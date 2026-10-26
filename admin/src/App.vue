@@ -47,7 +47,7 @@ function logout() {
           ><button class="text-button" @click="logout">退出登录</button>
         </div>
       </header>
-      <RouterView />
+      <RouterView :key="route.path" />
     </div>
   </div>
 </template>

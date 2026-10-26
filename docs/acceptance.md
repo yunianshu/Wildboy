@@ -32,13 +32,13 @@
 | PostgreSQL 真实数据库与并发验证 | 通过 | Zonky 启动真实 PostgreSQL（非 H2/mock），使用回环 TCP。13 项集成测试含 20 人并发抢 3 名额 |
 | HTTP 公开入口端到端测试 | 通过 | 独立启动真实 PostgreSQL + Spring HTTP 端口，29 项断言通过；8 次并发重复报名、第二用户容量与取消隔离均通过 |
 | 最终可执行 JAR 启动 | 通过 | 后端另用 PackagedSmokeServer 启动实际 JAR + 新 PostgreSQL，验证 Flyway/Tomcat、health UP、home 四分类/支付关闭、活动接口，并正常关闭 |
-| 管理后台类型检查/构建/测试 | 通过 | 独立重跑 `npm test` 36 项通过；`npm run build`（vue-tsc + Vite）通过 |
+| 管理后台类型检查/构建/测试 | 通过 | 独立重跑 `npm test` 38 项通过；`npm run build`（vue-tsc + Vite）通过 |
 | 管理后台浏览器核心流程 | 环境阻塞，未完成 | 本地 Chromium 被运行环境的进程 socket 限制；提升执行后启动器仍失败。云端浏览器与服务工作区隔离，访问回环地址被拒绝。保留可运行脚本，不声称页面实测通过 |
-| 小程序类型检查/逻辑测试 | 通过 | 独立重跑 `npm test`，22 项通过，含 tsc/native 文件构建；当前 dist 为 38 个文件、897,725 字节（含 6 张配图），并非平台上传包大小保证 |
+| 小程序类型检查/逻辑测试 | 通过 | 独立重跑 `npm test`，22 项通过，含 tsc/native 文件构建；当前 dist 为 38 个文件、907,967 字节（含 6 张配图），并非平台上传包大小保证 |
 | 微信开发者工具/真机 | 未运行 | 需要实际小程序 AppID、平台配置及开发者工具/设备 |
 | 真实微信 code2session | 未运行 | 不使用个人凭据或伪称已完成平台联调 |
 | 支付 | 不在本期范围 | 当前免费报名；没有交易/退款承诺 |
-| GitHub 精确提交 CI | 待发布后验证 | |
+| GitHub 精确提交 CI | 以对应提交的 Actions 结果为准 | https://github.com/yunianshu/Wildboy/actions；每次 push 自动运行，不将旧提交结果冒充当前结果 |
 
 ## 独立审查已发现并修复
 

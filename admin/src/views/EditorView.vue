@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
-import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
+import {
+  useRoute,
+  useRouter,
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+} from "vue-router";
 import { request, ApiError, errorMessage } from "../api";
 import {
   categories,
@@ -191,7 +196,13 @@ function beforeUnload(event: BeforeUnloadEvent) {
   }
 }
 onBeforeRouteLeave(
-  () => !dirty.value || window.confirm("修改尚未保存，确定离开吗？"),
+  (to) =>
+    to.path === "/login" ||
+    !dirty.value ||
+    window.confirm("修改尚未保存，确定离开吗？"),
+);
+onBeforeRouteUpdate(
+  () => !dirty.value || window.confirm("修改尚未保存，确定切换活动吗？"),
 );
 onMounted(() => {
   void load();
