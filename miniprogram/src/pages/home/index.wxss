@@ -1,0 +1,194 @@
+.hero,
+.hero-swiper,
+.hero-placeholder {
+  height: 790rpx;
+  position: relative;
+  background: #2b4e40;
+}
+.hero-image {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
+.hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 34, 25, 0.24),
+    transparent 32%,
+    rgba(9, 30, 22, 0.72)
+  );
+}
+.brand {
+  position: absolute;
+  left: 32rpx;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  z-index: 4;
+}
+.brand-name {
+  font-size: 46rpx;
+  font-weight: 800;
+  letter-spacing: -2rpx;
+}
+.brand-caption {
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  margin-top: 3rpx;
+  opacity: 0.85;
+}
+.hero-copy {
+  position: absolute;
+  bottom: 94rpx;
+  left: 36rpx;
+  right: 36rpx;
+  color: #fff;
+}
+.hero-kicker {
+  font-size: 18rpx;
+  letter-spacing: 4rpx;
+  opacity: 0.8;
+}
+.hero-title {
+  font-size: 67rpx;
+  font-weight: 700;
+  letter-spacing: -3rpx;
+  line-height: 1.2;
+  white-space: pre-line;
+  max-width: 620rpx;
+  margin: 22rpx 0;
+}
+.hero-sub {
+  font-size: 24rpx;
+  opacity: 0.9;
+  display: flex;
+  justify-content: space-between;
+}
+.hero-sub text {
+  font-size: 40rpx;
+}
+.home-body {
+  padding: 0 28rpx;
+}
+.intro {
+  padding: 40rpx 0 30rpx;
+}
+.intro-line {
+  font-size: 35rpx;
+  margin-top: 12rpx;
+  font-weight: 500;
+}
+.intro-line text {
+  font-weight: 700;
+}
+.category-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+}
+.category {
+  height: 306rpx;
+  position: relative;
+  overflow: hidden;
+  border-radius: 12rpx;
+}
+.category image {
+  width: 100%;
+  height: 100%;
+}
+.category-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent, rgba(12, 31, 22, 0.65));
+}
+.category-copy {
+  position: absolute;
+  bottom: 24rpx;
+  left: 24rpx;
+  right: 24rpx;
+  color: #fff;
+}
+.category-en {
+  font-size: 16rpx;
+  letter-spacing: 3rpx;
+  opacity: 0.85;
+}
+.category-title {
+  font-size: 35rpx;
+  font-weight: 650;
+  margin-top: 8rpx;
+  display: flex;
+  justify-content: space-between;
+}
+.shop {
+  height: 298rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+  position: relative;
+  background: #d8dccb;
+}
+.shop image {
+  width: 100%;
+  height: 100%;
+}
+.shop-copy {
+  position: absolute;
+  top: 28rpx;
+  bottom: 28rpx;
+  left: 28rpx;
+  color: #f9f8e9;
+  text-shadow: 0 1rpx 16rpx #233527;
+}
+.shop-tag {
+  font-size: 19rpx;
+  letter-spacing: 2rpx;
+}
+.shop-title {
+  font-size: 43rpx;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 16rpx 0;
+}
+.shop-hint {
+  font-size: 19rpx;
+}
+.equipment-strip {
+  white-space: nowrap;
+  margin-top: 20rpx;
+}
+.equipment-item {
+  display: inline-block;
+  width: 200rpx;
+  margin-right: 20rpx;
+  vertical-align: top;
+  font-size: 23rpx;
+  white-space: normal;
+}
+.equipment-item image {
+  width: 200rpx;
+  height: 160rpx;
+  border-radius: 8rpx;
+  margin-bottom: 12rpx;
+}
+.equipment-item text {
+  font-size: 20rpx;
+  color: #8b8d80;
+}
+.footer-brand {
+  padding: 52rpx 0 42rpx;
+  border-top: 1rpx solid #dce1d2;
+  margin-top: 12rpx;
+  font-size: 45rpx;
+  font-weight: 800;
+  letter-spacing: -2rpx;
+}
+.footer-brand text {
+  display: block;
+  font-size: 15rpx;
+  letter-spacing: 3rpx;
+  margin-top: 12rpx;
+  font-weight: 400;
+  color: #919684;
+}

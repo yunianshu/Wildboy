@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+"""Run against an isolated dev server only; creates and cancels test activities.
+BASE_URL defaults to localhost:8080/api/v1. Distinct USER_TOKEN_2 optional.
+Use ADMIN_TOKEN / USER_TOKEN or explicitly enabled dev-login. Never production.
+"""
+import concurrent.futures
+import datetime as dt
+import json
+import os
+import urllib.error
+import urllib.request
+import uuid
+
+BASE = os.getenv('BASE_URL', 'http://localhost:8080/api/v1').rstrip('/')
+if not BASE.startswith(('http://localhost:', 'http://127.0.0.1:')):
+    raise SystemExit('This destructive fixture test permits loopback dev servers only.')
+checks = []
+
+def request(method, path, data=None, token=None):
+    headers = {'Content-Type': 'application/json'}
+    if token:
+        headers['Authorization'] = 'Bearer ' + token
+    req = urllib.request.Request(BASE + path, data=None if data is None else json.dumps(data).encode(), headers=headers, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=20) as response:
+            raw = response.read()
+            return response.status, json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        raw = e.read()
+        try: body = json.loads(raw)
+        except ValueError: body = raw.decode()
+        return e.code, body
+
+def check(name, condition, detail=None):
+    if not condition:
+        raise AssertionError(f'{name}: {detail}')
+    checks.append(name)
+    print('PASS', name, flush=True)
+
+def token(role):
+    supplied = os.getenv(role + '_TOKEN')
+    if supplied: return supplied
+    status, body = request('POST', '/auth/dev-login', {'role': role})
+    check('dev test login ' + role, status == 200 and bool(body.get('token')), body)
+    return body['token']
+
+admin = token('ADMIN')
+user = token('USER')
+user2 = os.getenv('USER_TOKEN_2')
+status, home = request('GET', '/home')
+check('public home payments disabled', status == 200 and home['paymentEnabled'] is False, home)
+check('four named categories', [x['name'] for x in home['categories']] == ['本周活动','国内游行','假期活动','休闲活动'], home)
+status, body = request('GET', '/admin/activities')
+check('anonymous admin denied', status == 401, body)
+status, body = request('GET', '/admin/activities', token=user)
+check('ordinary user admin denied', status == 403, body)
+now = dt.datetime.now(dt.timezone.utc)
+iso = lambda days: (now + dt.timedelta(days=days)).isoformat()
+fixture = dict(title='E2E ' + str(uuid.uuid4())[:8], category='WEEKLY', coverUrl='/assets/category-weekly.jpg', galleryUrls=[], summary='自动验收测试活动', description='仅用于隔离环境验收，不是真实活动。', location='厦门', meetingPoint='测试集合点', startAt=iso(10), endAt=iso(11), registrationDeadline=iso(9), capacity=1, priceCents=0)
+status, body = request('POST', '/admin/activities', fixture, user)
+check('ordinary user cannot create', status == 403, body)
+paid = {**fixture, 'priceCents': 100}
+status, body = request('POST', '/admin/activities', paid, admin)
+check('nonzero fees rejected', status == 400, body)
+status, activity = request('POST', '/admin/activities', fixture, admin)
+check('admin creates draft', status == 201 and activity['status'] == 'DRAFT', activity)
+aid = activity['id']
+status, body = request('GET', '/activities/' + aid)
+check('draft not publicly readable', status == 404, body)
+status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000'}, user)
+check('draft registration forbidden', status == 404, body)
+updated = {**fixture, 'title': fixture['title']+' edited', 'version': activity['version']}
+status, activity = request('PUT', '/admin/activities/'+aid, updated, admin)
+check('edit succeeds with current version', status == 200 and activity['title'].endswith(' edited'), activity)
+status, body = request('PUT', '/admin/activities/'+aid, updated, admin)
+check('stale edit rejected', status == 409, body)
+status, activity = request('POST', f'/admin/activities/{aid}/publish', {'version':activity['version']}, admin)
+check('publish succeeds', status == 200 and activity['status']=='PUBLISHED', activity)
+status, body = request('GET', '/activities/'+aid)
+check('published publicly visible and PII absent', status == 200 and not any(k in body for k in ['phone','participantName','registrations']), body)
+status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000'})
+check('anonymous cannot register', status == 401, body)
+participant = {'participantName':'验收用户','phone':'13800000000'}
+with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+    results = list(pool.map(lambda _: request('POST', f'/activities/{aid}/registrations', participant, user), range(8)))
+check('duplicate concurrent registration idempotent', all(s in (200,201) for s,_ in results) and len({b['id'] for _,b in results}) == 1, results)
+status, activity = request('GET', '/activities/'+aid)
+check('duplicate retries occupy one seat', status == 200 and activity['registeredCount']==1, activity)
+status, own = request('GET', f'/activities/{aid}/registrations/me', token=user)
+check('own enrollment lookup', status == 200 and own['status']=='CONFIRMED', own)
+if user2:
+    status, body = request('POST', f'/activities/{aid}/registrations', participant, user2)
+    check('second user cannot exceed capacity', status == 409, body)
+    status, body = request('DELETE', f'/activities/{aid}/registrations/me', token=user2)
+    check('unregistered user cancel does not alter other enrollment', status in (200,204), body)
+    status, activity = request('GET', '/activities/'+aid)
+    check('cross-user isolation retains seat', activity['registeredCount']==1, activity)
+status, body = request('GET', f'/admin/activities/{aid}/registrations', token=user)
+check('ordinary user cannot access roster', status == 403, body)
+status, body = request('GET', f'/admin/activities/{aid}/registrations', token=admin)
+check('admin can access own operational roster', status == 200 and body['total']==1, body)
+status, body = request('DELETE', f'/activities/{aid}/registrations/me', token=user)
+check('self cancellation succeeds', status in (200,204), body)
+status, activity = request('GET', '/activities/'+aid)
+check('cancellation releases seat', activity['registeredCount']==0, activity)
+status, body = request('POST', f'/activities/{aid}/registrations', participant, user)
+check('cancelled user can re-register', status == 201 and body['status']=='CONFIRMED', body)
+status, activity = request('GET', '/admin/activities/'+aid, token=admin)
+status, body = request('POST', f'/admin/activities/{aid}/cancel', {'version':activity['version']}, admin)
+check('admin cancels activity', status == 200 and body['status']=='CANCELLED', body)
+status, body = request('POST', f'/activities/{aid}/registrations', participant, user)
+check('cancelled activity cannot accept registration', status == 409, body)
+status, body = request('GET', '/activities?page=-1&size=10')
+check('invalid pagination rejected', status == 400, body)
+status, body = request('GET', '/activities?page=0&size=1')
+check('page shape valid', status==200 and len(body['items'])<=1 and isinstance(body['hasMore'],bool), body)
+print(json.dumps({'passed':len(checks),'distinct_user_capacity_checked':bool(user2),'fixture_id':aid}, ensure_ascii=False))

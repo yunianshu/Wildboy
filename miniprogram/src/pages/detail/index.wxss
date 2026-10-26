@@ -1,0 +1,42 @@
+.detail-hero {
+  width: 100%;
+  height: 620rpx;
+}
+.detail-hero image {
+  width: 100%;
+  height: 100%;
+}
+.detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.share {
+  font-size: 23rpx;
+  background: none;
+  margin: 0;
+  padding: 0 16rpx;
+  line-height: 60rpx;
+  color: #53684b;
+}
+.facts {
+  border-top: 1rpx solid #dae0d0;
+  border-bottom: 1rpx solid #dae0d0;
+  margin: 32rpx 0;
+  padding: 16rpx 0;
+}
+.facts view {
+  display: flex;
+  justify-content: space-between;
+  gap: 32rpx;
+  padding: 16rpx 0;
+  font-size: 26rpx;
+}
+.facts view text:first-child {
+  color: #868b7d;
+  flex-shrink: 0;
+}
+.facts view text:last-child {
+  text-align: right;
+  line-height: 1.6;
+}

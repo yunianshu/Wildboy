@@ -1,0 +1,17 @@
+{
+  "desc": "Only public activity pages are indexable",
+  "rules": [
+    {
+      "action": "disallow",
+      "page": "pages/register/index"
+    },
+    {
+      "action": "disallow",
+      "page": "pages/mine/index"
+    },
+    {
+      "action": "allow",
+      "page": "*"
+    }
+  ]
+}

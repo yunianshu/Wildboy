@@ -1,0 +1,85 @@
+<view class="page">
+  <view wx:if="{{success}}" class="success">
+    <view class="success-symbol">✓</view>
+    <text class="eyebrow">SEE YOU OUTSIDE</text>
+    <view class="title">山野见！</view>
+    <view class="muted">
+      你已成功报名「{{activity.title}}」
+      <view />
+      出发时间 {{activity.dateText}}
+    </view>
+    <view class="notice">
+      报名成功不代表活动安排不会变化。出发前请再次核对活动详情。
+    </view>
+    <button class="primary" bindtap="done">查看活动安排</button>
+    <button class="secondary" bindtap="myActivities">我的报名</button>
+  </view>
+  <block wx:else>
+    <text class="eyebrow">ONE STEP CLOSER TO THE OUTSIDE</text>
+    <view class="title">为出发，留个位置。</view>
+    <view wx:if="{{loading}}" class="state">正在确认活动…</view>
+    <view wx:elif="{{error}}" class="state error">
+      {{error}}
+      <button class="secondary" bindtap="retry">重试</button>
+    </view>
+    <block wx:elif="{{activity}}">
+      <view class="booking-summary">
+        <text class="badge">免费报名 · 无需支付</text>
+        <view class="booking-title">{{activity.title}}</view>
+        <view class="muted">{{activity.dateText}} · {{activity.location}}</view>
+      </view>
+      <view class="field">
+        <text class="label">参加人姓名</text>
+        <input
+          value="{{name}}"
+          maxlength="40"
+          placeholder="请填写真实参加人姓名"
+          bindinput="inputName"
+          disabled="{{submitting}}"
+        />
+      </view>
+      <view class="field">
+        <text class="label">联系手机号</text>
+        <input
+          value="{{phone}}"
+          type="number"
+          maxlength="11"
+          placeholder="便于主理人联系活动安排"
+          bindinput="inputPhone"
+          disabled="{{submitting}}"
+        />
+      </view>
+      <checkbox-group bindchange="consentChange">
+        <label class="consent">
+          <checkbox
+            value="yes"
+            checked="{{consent}}"
+            color="#193F34"
+            disabled="{{submitting}}"
+          />
+          <text>
+            我同意将姓名和手机号提供给活动主理人，仅用于本次活动组织与联系。
+          </text>
+        </label>
+      </checkbox-group>
+      <view class="privacy" bindtap="privacy">阅读报名信息使用说明 ↗</view>
+      <view class="notice">
+        点击报名时将通过微信登录识别你的账号。不会获取微信密码，也不会自动发起支付。每个微信账号每场活动限一个有效名额。
+      </view>
+      <view wx:if="{{fieldError}}" class="error form-error">
+        {{fieldError}}
+      </view>
+      <button
+        class="primary submit"
+        loading="{{submitting}}"
+        disabled="{{submitting || !activity.enabled}}"
+        bindtap="submit"
+      >
+        {{submitting ? '正在确认名额…' : activity.label}}
+      </button>
+      <view class="muted small center">
+        报名失败不代表名额已确认，请以成功页面或我的报名为准。
+      </view>
+    </block>
+  </block>
+</view>

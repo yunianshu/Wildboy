@@ -1,0 +1,65 @@
+.profile {
+  padding: 34rpx 0 62rpx;
+  position: relative;
+  overflow: hidden;
+}
+.profile-mark {
+  position: absolute;
+  right: -8rpx;
+  bottom: -35rpx;
+  font-size: 180rpx;
+  color: #e5ead9;
+  font-weight: 900;
+  z-index: -1;
+}
+.login-panel {
+  background: #e7edd9;
+  padding: 34rpx;
+  border-radius: 14rpx;
+}
+.login-panel .muted {
+  margin: 20rpx 0 30rpx;
+}
+.privacy-link {
+  font-size: 21rpx;
+  color: #7a876d;
+  margin-top: 22rpx;
+  text-align: center;
+}
+.enrollment {
+  padding: 30rpx 0;
+  border-bottom: 1rpx solid #dce1d3;
+}
+.enrollment-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 30rpx;
+}
+.enrollment-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin: 18rpx 0 8rpx;
+}
+.enrollment-bottom {
+  font-size: 23rpx;
+  color: #728169;
+  margin-top: 20rpx;
+}
+.cancelled {
+  background: #e3e3dc;
+  color: #83877a;
+}
+.brand-footer {
+  margin-top: 70rpx;
+  font-size: 42rpx;
+  font-weight: 800;
+  letter-spacing: -2rpx;
+}
+.brand-footer text {
+  display: block;
+  font-size: 20rpx;
+  font-weight: 400;
+  letter-spacing: 2rpx;
+  color: #8c9482;
+  margin-top: 12rpx;
+}

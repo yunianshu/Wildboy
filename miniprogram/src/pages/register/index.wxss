@@ -1,0 +1,58 @@
+.booking-summary {
+  padding: 28rpx;
+  background: #e9eddf;
+  border-radius: 12rpx;
+  margin: 32rpx 0;
+}
+.booking-title {
+  font-size: 34rpx;
+  font-weight: 650;
+  margin: 18rpx 0 10rpx;
+}
+.consent {
+  display: flex;
+  align-items: flex-start;
+  font-size: 24rpx;
+  line-height: 1.8;
+  color: #6a7561;
+}
+.consent checkbox {
+  transform: scale(0.8);
+  transform-origin: left top;
+  flex-shrink: 0;
+  width: 55rpx;
+}
+.privacy {
+  font-size: 24rpx;
+  color: #486b45;
+  padding: 20rpx 0 28rpx;
+}
+.submit {
+  margin: 32rpx 0 20rpx;
+}
+.form-error {
+  padding-top: 24rpx;
+  font-size: 25rpx;
+}
+.center {
+  text-align: center;
+}
+.success {
+  text-align: center;
+  padding-top: 60rpx;
+}
+.success-symbol {
+  font-size: 70rpx;
+  background: #dde8c8;
+  width: 150rpx;
+  height: 150rpx;
+  line-height: 150rpx;
+  border-radius: 50%;
+  margin: 0 auto 40rpx;
+}
+.success .notice {
+  margin: 40rpx 0;
+}
+.success button {
+  margin-top: 24rpx;
+}

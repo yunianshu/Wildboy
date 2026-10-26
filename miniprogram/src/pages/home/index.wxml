@@ -1,0 +1,172 @@
+<view class="home">
+  <view class="hero">
+    <swiper
+      wx:if="{{home.banners.length}}"
+      class="hero-swiper"
+      autoplay
+      circular
+      interval="5000"
+      duration="700"
+      indicator-dots
+      indicator-color="rgba(255,255,255,.35)"
+      indicator-active-color="#fff"
+    >
+      <swiper-item wx:for="{{home.banners}}" wx:key="id">
+        <image class="hero-image" src="{{item.imageUrl}}" mode="aspectFill" />
+        <view class="hero-shade" />
+        <view
+          class="hero-copy"
+          data-id="{{item.activityId}}"
+          bindtap="openActivity"
+        >
+          <text class="hero-kicker">OUTSIDE IS A WAY OF LIFE</text>
+          <view class="hero-title">{{item.title}}</view>
+          <view class="hero-sub">
+            {{item.subtitle}}
+            <text>↗</text>
+          </view>
+        </view>
+      </swiper-item>
+    </swiper>
+    <view wx:else class="hero-placeholder">
+      <image
+        class="hero-image"
+        src="/assets/hero-hiking.jpg"
+        mode="aspectFill"
+      />
+      <view class="hero-shade" />
+      <view class="hero-copy">
+        <text class="hero-kicker">WILDBOY / OUTDOOR CLUB</text>
+        <view class="hero-title">去山野，
+找回自己。</view>
+        <view class="hero-sub">把日常留在身后 · 一起走出去</view>
+      </view>
+    </view>
+    <view class="brand" style="top:{{topInset}}px">
+      <text class="brand-name">wildboy.</text>
+      <text class="brand-caption">野一点，自由一点</text>
+    </view>
+  </view>
+  <view class="home-body">
+    <view wx:if="{{devMode}}" class="notice">
+      开发联调模式 · 演示账号，不代表真实报名用户
+    </view>
+    <view class="intro">
+      <text class="eyebrow">MAKE ROOM FOR THE OUTSIDE</text>
+      <view class="intro-line">
+        下一站，
+        <text>向野而生</text>
+      </view>
+    </view>
+    <view class="category-grid">
+      <view
+        class="category"
+        wx:for="{{categories}}"
+        wx:key="code"
+        data-code="{{item.code}}"
+        bindtap="openCategory"
+      >
+        <image src="{{item.image}}" mode="aspectFill" />
+        <view class="category-shade" />
+        <view class="category-copy">
+          <text class="category-en">{{item.en}}</text>
+          <view class="category-title">
+            {{item.name}}
+            <text>↗</text>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="section-head">
+      <view>
+        <view class="eyebrow">PACK LIGHT. GO FAR.</view>
+        <view class="section-title">装备小店</view>
+      </view>
+      <text class="section-link" bindtap="equipmentInfo">装备一览 ↗</text>
+    </view>
+    <view class="shop" bindtap="equipmentInfo">
+      <image src="/assets/equipment.jpg" mode="aspectFill" />
+      <view class="shop-copy">
+        <view class="shop-tag">装备灵感 · 仅展示</view>
+        <view class="shop-title">
+          轻装出发
+          <view />
+          自在入野
+        </view>
+        <text class="shop-hint">原创示意 · 暂不售卖</text>
+      </view>
+    </view>
+    <scroll-view
+      wx:if="{{home.equipment.length}}"
+      scroll-x
+      class="equipment-strip"
+    >
+      <view
+        class="equipment-item"
+        wx:for="{{home.equipment}}"
+        wx:key="id"
+        bindtap="equipmentInfo"
+      >
+        <image src="{{item.imageUrl}}" mode="aspectFill" />
+        <view>{{item.name}}</view>
+        <text>{{item.priceLabel || '装备展示'}}</text>
+      </view>
+    </scroll-view>
+    <view class="section-head">
+      <view>
+        <view class="eyebrow">FIND YOUR NEXT ADVENTURE</view>
+        <view class="section-title">正在发生的山野</view>
+      </view>
+      <text class="section-link" bindtap="allActivities">全部 ↗</text>
+    </view>
+    <view wx:if="{{error}}" class="state">
+      <view>{{error}}</view>
+      <button class="secondary" bindtap="retry">重新加载</button>
+    </view>
+    <view wx:elif="{{loading}}" class="state">正在寻找下一次出发…</view>
+    <block wx:else>
+      <view wx:if="{{!items.length}}" class="state">
+        新的活动正在准备中
+        <view />
+        先把周末留给山野吧
+      </view>
+      <view class="grid">
+        <view
+          class="activity-card"
+          wx:for="{{items}}"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="openActivity"
+        >
+          <image
+            class="activity-image"
+            src="{{item.coverUrl}}"
+            mode="aspectFill"
+            lazy-load
+          />
+          <view class="card-meta">
+            {{item.categoryName}} · {{item.dateText}}
+          </view>
+          <view class="card-title">{{item.title}}</view>
+          <view class="card-detail">{{item.location}}</view>
+          <view class="card-footer">
+            <text class="free">免费参与</text>
+            <text class="muted">{{item.available}} 个余位</text>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{feedError}}" class="state error">
+        {{feedError}}
+        <button class="secondary" bindtap="retryMore">重试加载更多</button>
+      </view>
+      <view wx:else class="loading-line">
+        {{loadingMore ? '正在加载…' : (hasMore ? '继续向下，发现更多活动' :
+        '这次看到这里 · 下次山野见')}}
+      </view>
+    </block>
+    <view class="footer-brand">
+      wildboy.
+      <text>LEAVE NO TRACE. TAKE GOOD MEMORIES.</text>
+    </view>
+  </view>
+</view>

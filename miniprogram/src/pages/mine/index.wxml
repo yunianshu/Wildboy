@@ -1,0 +1,69 @@
+<view class="page">
+  <view class="profile">
+    <text class="eyebrow">YOUR OUTDOOR CHAPTERS</text>
+    <view class="title">把周末，过成故事。</view>
+    <view class="muted">每一次出发，都值得期待。</view>
+    <text class="profile-mark">W.</text>
+  </view>
+  <view wx:if="{{!loggedIn}}" class="login-panel">
+    <view class="section-title">你的下一次出发</view>
+    <view class="muted">
+      微信登录后，查看与管理自己的报名。
+      <view />
+      不获取头像昵称，不自动报名。
+    </view>
+    <button
+      class="primary"
+      loading="{{loggingIn}}"
+      disabled="{{loggingIn}}"
+      bindtap="signIn"
+    >
+      微信登录
+    </button>
+    <view class="privacy-link" bindtap="privacy">
+      登录即表示你已阅读信息使用说明 ↗
+    </view>
+  </view>
+  <block wx:else>
+    <view class="section-head">
+      <view class="section-title">我的报名</view>
+      <text class="section-link" bindtap="signOut">退出登录</text>
+    </view>
+    <view wx:if="{{loading}}" class="state">正在同步报名…</view>
+    <view wx:elif="{{!items.length && !error}}" class="state">
+      还没有报名记录，去发现下一次出发。
+      <button class="secondary" bindtap="explore">探索活动 ↗</button>
+    </view>
+    <view
+      class="enrollment"
+      wx:for="{{items}}"
+      wx:key="id"
+      data-id="{{item.activityId}}"
+      bindtap="open"
+    >
+      <view class="enrollment-top">
+        <text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}">
+          {{item.status === 'CONFIRMED' ? '报名成功' : '已取消报名'}}
+        </text>
+        <text>↗</text>
+      </view>
+      <view class="enrollment-title">{{item.activityTitle}}</view>
+      <view class="muted">报名时间 {{item.dateText}}</view>
+      <view class="enrollment-bottom">查看安排与报名状态</view>
+    </view>
+    <view wx:if="{{items.length && !error}}" class="loading-line">
+      {{loadingMore ? '正在加载…' : (hasMore ? '上滑查看更多报名' :
+      '已显示全部报名')}}
+    </view>
+  </block>
+  <view wx:if="{{error}}" class="state error">
+    {{error}}
+    <button wx:if="{{loggedIn}}" class="secondary" bindtap="retry">重试</button>
+  </view>
+  <view class="divider" />
+  <view class="muted" bindtap="privacy">报名信息使用说明 ↗</view>
+  <view class="brand-footer">
+    wildboy.
+    <text>多一些山野，少一些日常。</text>
+  </view>
+</view>

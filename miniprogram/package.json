@@ -1,0 +1,14 @@
+{
+  "name": "wildboy-miniprogram",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc && node scripts/copy-static.cjs",
+    "test": "npm run build && node --test tests/*.test.cjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "miniprogram-api-typings": "^4.1.0"
+  }
+}

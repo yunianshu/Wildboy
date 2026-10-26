@@ -1,0 +1,66 @@
+export type Category = "WEEKLY" | "DOMESTIC" | "HOLIDAY" | "LEISURE";
+export interface Activity {
+  id: string;
+  title: string;
+  category: Category;
+  coverUrl: string;
+  galleryUrls: string[];
+  summary: string;
+  description: string;
+  location: string;
+  meetingPoint: string;
+  startAt: string;
+  endAt: string;
+  registrationDeadline: string;
+  capacity: number;
+  registeredCount: number;
+  status: "DRAFT" | "PUBLISHED" | "CANCELLED";
+  priceCents: number;
+  currency: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface Registration {
+  id: string;
+  activityId: string;
+  activityTitle: string;
+  status: "CONFIRMED" | "CANCELLED";
+  createdAt: string;
+  participantName: string;
+  phone: string;
+}
+export interface PageResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  hasMore: boolean;
+}
+export interface Home {
+  banners: {
+    id: string;
+    title: string;
+    subtitle: string;
+    imageUrl: string;
+    activityId: string;
+  }[];
+  categories: { code: Category; name: string }[];
+  equipment: {
+    id: string;
+    name: string;
+    imageUrl: string;
+    description: string;
+    priceLabel: string;
+  }[];
+  paymentEnabled: boolean;
+}
+export interface User {
+  id: string;
+  nickname: string;
+  role: string;
+}
+export interface AuthResult {
+  token: string;
+  user: User;
+}

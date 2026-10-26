@@ -1,0 +1,38 @@
+{
+  "pages": [
+    "pages/home/index",
+    "pages/activities/index",
+    "pages/detail/index",
+    "pages/register/index",
+    "pages/mine/index",
+    "pages/privacy/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "Wildboy",
+    "navigationBarBackgroundColor": "#F6F4ED",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F6F4ED"
+  },
+  "tabBar": {
+    "color": "#85877F",
+    "selectedColor": "#173F35",
+    "backgroundColor": "#F6F4ED",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "探索"
+      },
+      {
+        "pagePath": "pages/activities/index",
+        "text": "活动"
+      },
+      {
+        "pagePath": "pages/mine/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,17 @@
+.filters {
+  white-space: nowrap;
+  margin: 36rpx 0 34rpx;
+}
+.filter {
+  display: inline-block;
+  padding: 17rpx 24rpx;
+  border-radius: 40rpx;
+  margin-right: 12rpx;
+  font-size: 24rpx;
+  background: #e9eddf;
+  color: #73816a;
+}
+.active {
+  background: #193f34;
+  color: #fffdf4;
+}
