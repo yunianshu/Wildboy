@@ -26,6 +26,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Native mini-program interaction regressions
+        if: matrix.app == 'miniprogram'
+        run: node --test ../tests/e2e/mobile*.cjs
+      - name: Legal version and consent regressions
+        if: matrix.app == 'miniprogram'
+        run: node --test ../tests/e2e/legal*.cjs
   server:
     runs-on: ubuntu-latest
     defaults:

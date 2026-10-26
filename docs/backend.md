@@ -67,3 +67,14 @@ python3 -c 'import bcrypt,getpass; print(bcrypt.hashpw(getpass.getpass("Admin pa
 - 实际启动最终 Spring Boot 可执行 JAR（不是只启动测试类）：新 PostgreSQL + Flyway 成功，Tomcat8081、health UP、公开活动/首页接口、支付关闭检查通过，进程已正常关闭。
 - 本机不支持 Unix-domain socket，所以嵌入式数据库测试使用其官方配置关闭 Unix socket、通过127.0.0.1 TCP连接；Mockito 使用官方 subclass mock-maker避免动态 JVM attach，未修改或跳过验收断言。
 - 尚未真实微信 AppID/code 登录、微信开发者工具预览、真机报名或正式服务器部署。数据库测试版本与生产镜像版本可能不同，发布前须在目标 PostgreSQL 版本做一次部署验收。
+
+## 小程序管理员与全局筛选
+
+小程序管理端与网页管理端复用 `POST /api/v1/auth/admin`。返回的会话必须通过 `GET /api/v1/me` 校验，只有服务端角色 `ADMIN` 能使用 `/api/v1/admin/**`；客户端页面隐藏、请求 body 或自定义 header 均不能授权。普通微信登录仍为 `USER`，不会因打开管理页面自动升级。账号密码由部署管理员配置；小程序不得保存管理员密码，切换/退出身份必须清理前一身份的数据和会话。当前退出仅清理客户端会话，已签发 token 仍受服务端到期时间控制，不声称已服务端撤销。
+
+- `GET /api/v1/admin/activities?status=DRAFT|PUBLISHED|CANCELLED`：可选全局状态筛选，可与 `category`、`page`、`size` 组合。不传 `status` 返回全部状态。无效状态返回 400。
+- `GET /api/v1/me/registrations?status=CONFIRMED|CANCELLED`：仅当前用户，按全库匹配记录筛选后分页。不传返回全部状态；无效状态返回 400。
+- 两者 `total`、`hasMore` 均依据数据库中的完整筛选结果计算，不是前端当前页过滤。
+- 管理员名单只对管理员可见，活动取消后保留取消报名历史；公开活动接口不返回参与人姓名或电话。
+
+本次移动管理增量已运行 `mvn verify`：19 项真实 PostgreSQL 集成测试，0 失败/错误/跳过。新增覆盖普通用户对全部管理路由的拒绝、伪造 role/header、过期管理员会话、真实管理员 HTTP 登录与创建/编辑/发布/取消/名单流程，以及两类全局状态筛选的分页与用户隔离。最终可执行 JAR 已连接独立 PostgreSQL 启动，健康、公开首页/活动、支付关闭和匿名管理访问 401 冒烟通过。这不代表真实微信登录、真机或生产部署已验证。

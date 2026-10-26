@@ -1,69 +1,92 @@
-<view class="page">
-  <view class="profile">
-    <text class="eyebrow">YOUR OUTDOOR CHAPTERS</text>
-    <view class="title">把周末，过成故事。</view>
-    <view class="muted">每一次出发，都值得期待。</view>
-    <text class="profile-mark">W.</text>
+<view class="page my-page">
+  <text class="eyebrow">YOUR NEXT CHAPTER OUTSIDE</text>
+  <view class="title">我的山野</view>
+  <view wx:if="{{loading}}" class="state">正在确认账号身份…</view>
+  <view wx:elif="{{user}}" class="profile">
+    <view class="avatar">W</view>
+    <view class="profile-name">{{user.nickname || '山野同行者'}}</view>
+    <view class="role">{{user.role === 'ADMIN' ? '管理员' : '微信用户'}}</view>
+    <view class="profile-note">把每一次出发，收进自己的故事。</view>
   </view>
-  <view wx:if="{{!loggedIn}}" class="login-panel">
-    <view class="section-title">你的下一次出发</view>
-    <view class="muted">
-      微信登录后，查看与管理自己的报名。
-      <view />
-      不获取头像昵称，不自动报名。
-    </view>
+  <view wx:else class="profile guest">
+    <view class="avatar">W</view>
+    <view class="profile-name">一起走进山野</view>
+    <view class="profile-note">登录后查看报名与活动安排。</view>
     <button
-      class="primary"
+      class="login-button"
       loading="{{loggingIn}}"
       disabled="{{loggingIn}}"
       bindtap="signIn"
     >
       微信登录
     </button>
-    <view class="privacy-link" bindtap="privacy">
-      登录即表示你已阅读信息使用说明 ↗
-    </view>
   </view>
-  <block wx:else>
-    <view class="section-head">
-      <view class="section-title">我的报名</view>
-      <text class="section-link" bindtap="signOut">退出登录</text>
-    </view>
-    <view wx:if="{{loading}}" class="state">正在同步报名…</view>
-    <view wx:elif="{{!items.length && !error}}" class="state">
-      还没有报名记录，去发现下一次出发。
-      <button class="secondary" bindtap="explore">探索活动 ↗</button>
-    </view>
-    <view
-      class="enrollment"
-      wx:for="{{items}}"
-      wx:key="id"
-      data-id="{{item.activityId}}"
-      bindtap="open"
-    >
-      <view class="enrollment-top">
-        <text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}">
-          {{item.status === 'CONFIRMED' ? '报名成功' : '已取消报名'}}
-        </text>
-        <text>↗</text>
-      </view>
-      <view class="enrollment-title">{{item.activityTitle}}</view>
-      <view class="muted">报名时间 {{item.dateText}}</view>
-      <view class="enrollment-bottom">查看安排与报名状态</view>
-    </view>
-    <view wx:if="{{items.length && !error}}" class="loading-line">
-      {{loadingMore ? '正在加载…' : (hasMore ? '上滑查看更多报名' :
-      '已显示全部报名')}}
-    </view>
-  </block>
   <view wx:if="{{error}}" class="state error">
     {{error}}
-    <button wx:if="{{loggedIn}}" class="secondary" bindtap="retry">重试</button>
+    <button class="secondary" bindtap="retry">重试</button>
   </view>
-  <view class="divider" />
-  <view class="muted" bindtap="privacy">报名信息使用说明 ↗</view>
-  <view class="brand-footer">
-    wildboy.
-    <text>多一些山野，少一些日常。</text>
+  <view wx:if="{{requiresConsent}}" class="notice">
+    协议已更新，请重新阅读并确认。已有报名可继续查看和取消。
+    <button class="secondary" bindtap="confirmLegal">查看并确认当前协议</button>
+  </view>
+  <view wx:if="{{legalStatusError}}" class="muted">{{legalStatusError}}</view>
+  <view class="section-title section">我的活动</view>
+  <view class="menu" bindtap="registrations">
+    <view>
+      <view class="menu-title">我的报名</view>
+      <view class="muted">查看已报名、已取消的活动</view>
+    </view>
+    <text>›</text>
+  </view>
+  <view wx:if="{{user.role === 'ADMIN'}}" class="menu" bindtap="manage">
+    <view>
+      <view class="menu-title">
+        活动管理
+        <text class="badge">仅管理员</text>
+      </view>
+      <view class="muted">创建活动、编辑安排、查看报名名单</view>
+    </view>
+    <text>›</text>
+  </view>
+  <view wx:if="{{user.role === 'ADMIN'}}" class="menu" bindtap="legalManage">
+    <view>
+      <view class="menu-title">
+        协议管理
+        <text class="badge">仅管理员</text>
+      </view>
+      <view class="muted">隐私政策与用户协议草稿、版本发布</view>
+    </view>
+    <text>›</text>
+  </view>
+  <view class="menu" bindtap="explore">
+    <view>
+      <view class="menu-title">发现下一次出发</view>
+      <view class="muted">本周活动、山水旅行与休闲时光</view>
+    </view>
+    <text>↗</text>
+  </view>
+  <view class="links">
+    <view bindtap="privacy">
+      隐私政策
+      <text>›</text>
+    </view>
+    <view bindtap="terms">
+      用户协议
+      <text>›</text>
+    </view>
+    <view wx:if="{{user}}" bindtap="signOut">
+      退出当前账号
+      <text>›</text>
+    </view>
+  </view>
+  <view
+    wx:if="{{!loading && user.role !== 'ADMIN'}}"
+    class="admin-auth"
+    bindtap="adminSignIn"
+  >
+    管理员身份验证 ↗
+  </view>
+  <view class="notice">
+    管理身份验证不会授予权限；账号是否有管理权由服务器确认。普通用户不能访问活动管理或报名名单。
   </view>
 </view>

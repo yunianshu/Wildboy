@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc && node scripts/copy-static.cjs",
+    "build": "node scripts/clean.cjs && tsc && node scripts/copy-static.cjs",
     "test": "npm run build && node --test tests/*.test.cjs"
   },
   "devDependencies": {

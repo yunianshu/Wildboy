@@ -1,0 +1,55 @@
+.success-page {
+  text-align: center;
+  padding-top: 54rpx;
+}
+.success-mark {
+  width: 108rpx;
+  height: 108rpx;
+  line-height: 108rpx;
+  border-radius: 50%;
+  background: #e0e8d2;
+  color: #193f34;
+  font-size: 58rpx;
+  margin: 0 auto 32rpx;
+}
+.trip {
+  background: #fffdf7;
+  border-radius: 18rpx;
+  overflow: hidden;
+  text-align: left;
+  margin: 40rpx 0 28rpx;
+}
+.trip image {
+  width: 100%;
+  height: 300rpx;
+}
+.trip-content {
+  padding: 28rpx;
+}
+.trip-title {
+  font-weight: 650;
+  font-size: 34rpx;
+  line-height: 1.5;
+  margin-bottom: 16rpx;
+}
+.trip-row {
+  border-bottom: 1rpx solid #e5e8de;
+  padding: 20rpx 0;
+  line-height: 1.6;
+  display: flex;
+  gap: 28rpx;
+}
+.trip-row text {
+  color: #7f8679;
+  flex-shrink: 0;
+}
+.trip-row view {
+  word-break: break-all;
+}
+.notice {
+  text-align: left;
+  margin-bottom: 30rpx;
+}
+button {
+  margin-top: 18rpx;
+}

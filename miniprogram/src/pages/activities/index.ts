@@ -40,7 +40,7 @@ Page({
   },
   select(e: WechatMiniprogram.TouchEvent) {
     const v = e.currentTarget.dataset.code || "";
-    if (v === this.data.selected) return;
+    if ((v !== "" && !validCategory(v)) || v === this.data.selected) return;
     this.setData({ selected: v });
     void this.load(true);
   },

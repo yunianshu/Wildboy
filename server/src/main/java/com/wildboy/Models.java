@@ -12,6 +12,17 @@ public final class Models {
     LEISURE
   }
 
+  public enum ActivityStatus {
+    DRAFT,
+    PUBLISHED,
+    CANCELLED
+  }
+
+  public enum RegistrationStatus {
+    CONFIRMED,
+    CANCELLED
+  }
+
   public record User(String id, String nickname, String role) {}
 
   public record Login(String token, User user) {}
@@ -65,7 +76,9 @@ public final class Models {
 
   public record RegistrationInput(
       @NotBlank @Size(max = 80) String participantName,
-      @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone) {}
+      @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone,
+      @NotNull @Min(1) Long privacyVersion,
+      @NotNull @Min(1) Long termsVersion) {}
 
   public record VersionInput(@NotNull @Min(0) Long version) {}
 
@@ -73,10 +86,16 @@ public final class Models {
 
   public record RegisterResult(Registration registration, boolean created) {}
 
-  public record WechatInput(@NotBlank @Size(max = 512) String code) {}
+  public record WechatInput(
+      @NotBlank @Size(max = 512) String code,
+      @NotNull @Min(1) Long privacyVersion,
+      @NotNull @Min(1) Long termsVersion) {}
 
   public record AdminInput(
       @NotBlank @Size(max = 100) String username, @NotBlank @Size(max = 200) String password) {}
 
-  public record DevInput(@NotBlank @Pattern(regexp = "USER|ADMIN") String role) {}
+  public record DevInput(
+      @NotBlank @Pattern(regexp = "USER|ADMIN") String role,
+      @Min(1) Long privacyVersion,
+      @Min(1) Long termsVersion) {}
 }

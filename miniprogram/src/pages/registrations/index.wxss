@@ -1,0 +1,44 @@
+.filters {
+  display: flex;
+  gap: 14rpx;
+  margin: 34rpx 0;
+}
+.filter {
+  flex: 1;
+  text-align: center;
+  border-radius: 36rpx;
+  padding: 16rpx 24rpx;
+  background: #e7ecdf;
+  color: #71806a;
+}
+.filter.active {
+  background: #193f34;
+  color: #fffdf7;
+}
+.record {
+  background: #fffdf7;
+  padding: 30rpx;
+  border-radius: 18rpx;
+  margin: 24rpx 0;
+}
+.record-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.record-title {
+  font-weight: 650;
+  font-size: 34rpx;
+  line-height: 1.5;
+  margin: 24rpx 0 14rpx;
+}
+.record button {
+  margin-top: 28rpx;
+}
+.cancelled {
+  background: #e7e7df;
+  color: #7d8175;
+}
+.notice {
+  margin-top: 24rpx;
+}

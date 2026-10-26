@@ -1,0 +1,12 @@
+.page {
+  padding-top: 60rpx;
+}
+.notice {
+  margin-top: 32rpx;
+}
+.feedback {
+  margin: 24rpx 0;
+}
+.back {
+  margin-top: 24rpx;
+}

@@ -1,0 +1,68 @@
+<view class="page">
+  <text class="eyebrow">YOUR OUTDOOR STORIES</text
+  ><view class="title">我的报名</view>
+  <view class="muted">每一次出发，都有迹可循。</view>
+  <view wx:if="{{!loggedIn}}" class="state"
+    ><view>请登录微信账号查看自己的报名。</view
+    ><button
+      class="primary"
+      bindtap="signIn"
+      loading="{{loggingIn}}"
+      disabled="{{loggingIn}}"
+    >
+      微信登录</button
+    ><view wx:if="{{error}}" class="error">{{error}}</view></view
+  >
+  <block wx:else>
+    <view class="filters"
+      ><view
+        class="filter {{status === '' ? 'active' : ''}}"
+        data-status=""
+        bindtap="select"
+        >全部</view
+      ><view
+        class="filter {{status === 'CONFIRMED' ? 'active' : ''}}"
+        data-status="CONFIRMED"
+        bindtap="select"
+        >已报名</view
+      ><view
+        class="filter {{status === 'CANCELLED' ? 'active' : ''}}"
+        data-status="CANCELLED"
+        bindtap="select"
+        >已取消</view
+      ></view
+    >
+    <view wx:if="{{loading}}" class="state">正在查找你的出发记录…</view>
+    <view wx:elif="{{!items.length && !error}}" class="state"
+      >{{status === 'CANCELLED' ? '还没有取消记录' :
+      '这里还没有报名记录'}}<button class="secondary" bindtap="explore">
+        去发现活动
+      </button></view
+    >
+    <view class="record" wx:for="{{items}}" wx:key="id"
+      ><view class="record-top"
+        ><text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}"
+          >{{item.status === 'CONFIRMED' ? '已报名' : '已取消'}}</text
+        ><text class="small muted"
+          >{{item.status === 'CONFIRMED' ? '免费参与' : '名额已释放'}}</text
+        ></view
+      ><view class="record-title">{{item.activityTitle}}</view
+      ><view class="muted">报名时间 {{item.dateText}}</view
+      ><button class="secondary" data-id="{{item.activityId}}" bindtap="open">
+        查看活动安排 ↗
+      </button></view
+    >
+    <view wx:if="{{error}}" class="state error"
+      >{{error}}<button class="secondary" bindtap="retry">
+        重新加载
+      </button></view
+    >
+    <view wx:elif="{{items.length}}" class="loading-line"
+      >{{loadingMore ? '正在加载…' : (hasMore ? '继续向下查看更多报名' :
+      '已显示全部 ' + total + ' 条记录')}}</view
+    >
+    <view class="notice"
+      >“已报名”表示报名状态，不代表活动尚未结束。活动时间和取消规则请查看详情。</view
+    >
+  </block>
+</view>

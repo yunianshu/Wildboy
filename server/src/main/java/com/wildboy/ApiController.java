@@ -21,7 +21,7 @@ public class ApiController {
 
   @PostMapping("/auth/wechat")
   Login wechat(@Valid @RequestBody WechatInput in) {
-    return auth.wechat(in.code());
+    return auth.wechat(in.code(), in.privacyVersion(), in.termsVersion());
   }
 
   @PostMapping("/auth/admin")
@@ -31,7 +31,7 @@ public class ApiController {
 
   @PostMapping("/auth/dev-login")
   Login dev(@Valid @RequestBody DevInput in) {
-    return auth.dev(in.role());
+    return auth.dev(in.role(), in.privacyVersion(), in.termsVersion());
   }
 
   @GetMapping("/me")
@@ -55,9 +55,10 @@ public class ApiController {
   @GetMapping("/me/registrations")
   Page<Registration> mine(
       @AuthenticationPrincipal User user,
+      @RequestParam(required = false) RegistrationStatus status,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return activities.registrations(user.id(), null, page, size);
+    return activities.registrations(user.id(), null, status, page, size);
   }
 
   @GetMapping("/activities/{id}/registrations/me")
@@ -85,9 +86,10 @@ public class ApiController {
   @GetMapping("/admin/activities")
   Page<Activity> adminList(
       @RequestParam(required = false) Category category,
+      @RequestParam(required = false) ActivityStatus status,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return activities.list(category, page, size, true);
+    return activities.list(category, status, page, size, true);
   }
 
   @GetMapping("/admin/activities/{id}")

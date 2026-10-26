@@ -1,94 +1,104 @@
-import { request, login, logout, hasSession } from "../../utils/api";
-import { Registration, PageResult } from "../../utils/models";
 import {
-  message,
-  dateLabel,
-  mergeUnique,
-  RequestEpoch,
-  safeId,
-} from "../../utils/domain";
+  request,
+  getCurrentUser,
+  login,
+  logout,
+  hasSession,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
+import { User } from "../../utils/models";
+import { message, RequestEpoch } from "../../utils/domain";
 const epoch = new RequestEpoch();
-type Item = Registration & { dateText: string };
 Page({
   data: {
-    loggedIn: false,
+    user: null as User | null,
+    requiresConsent: false,
+    legalStatusError: "",
     loading: false,
-    loadingMore: false,
     loggingIn: false,
     error: "",
-    items: [] as Item[],
-    page: 0,
-    hasMore: true,
   },
   onShow() {
-    this.setData({ loggedIn: hasSession() });
-    if (this.data.loggedIn) void this.load(true);
-    else this.setData({ items: [] });
+    void this.load();
+  },
+  onHide() {
+    epoch.invalidate();
+    this.setData({
+      user: null,
+      loading: false,
+      requiresConsent: false,
+      legalStatusError: "",
+    });
   },
   onUnload() {
     epoch.invalidate();
   },
-  onPullDownRefresh() {
-    void this.load(true).finally(() => wx.stopPullDownRefresh());
-  },
-  onReachBottom() {
-    void this.load(false);
-  },
-  async signIn() {
-    if (this.data.loggingIn) return;
-    this.setData({ loggingIn: true, error: "" });
-    try {
-      await login();
-      this.setData({ loggedIn: true });
-      await this.load(true);
-    } catch (e) {
-      this.setData({ error: message(e) });
-    } finally {
-      this.setData({ loggingIn: false });
-    }
-  },
-  async load(reset = true) {
-    if (!hasSession()) return;
-    if (
-      !reset &&
-      (this.data.loading || this.data.loadingMore || !this.data.hasMore)
-    )
-      return;
+  async load() {
     const n = epoch.next();
     this.setData({
-      loading: reset,
-      loadingMore: !reset,
+      user: null,
       error: "",
-      ...(reset ? { items: [], page: 0, hasMore: true } : {}),
+      loading: hasSession(),
+      requiresConsent: false,
+      legalStatusError: "",
     });
+    if (!hasSession()) return;
+    const session = sessionVersion();
     try {
-      const p = await request<PageResult<Registration>>(
-        `/me/registrations?page=${reset ? 0 : this.data.page + 1}&size=20`,
-      );
-      if (epoch.valid(n)) {
-        const items = p.items.map((x) => ({
-          ...x,
-          dateText: dateLabel(x.createdAt),
-        }));
-        this.setData({
-          items: reset ? items : mergeUnique(this.data.items, items),
-          page: p.page,
-          hasMore: p.hasMore,
-        });
+      const user = await getCurrentUser();
+      if (epoch.valid(n) && isSessionCurrent(session)) this.setData({ user });
+      if (user.role === "USER" && epoch.valid(n) && isSessionCurrent(session)) {
+        try {
+          const status = await request<{
+            requiresConsent: boolean;
+            ready: boolean;
+          }>("/me/consents");
+          if (epoch.valid(n) && isSessionCurrent(session))
+            this.setData({
+              requiresConsent: status?.requiresConsent === true,
+              legalStatusError:
+                status?.ready === false
+                  ? "运营方正在准备协议；你仍可查看或取消已有报名。"
+                  : "",
+            });
+        } catch (e) {
+          if (epoch.valid(n))
+            this.setData({
+              user: hasSession() ? user : null,
+              legalStatusError:
+                "暂时无法核对协议版本，可重试；已有报名仍可查看。",
+            });
+        }
       }
     } catch (e) {
-      if (epoch.valid(n))
-        this.setData({ error: message(e), loggedIn: hasSession() });
+      if (epoch.valid(n)) this.setData({ error: message(e), user: null });
     } finally {
-      if (epoch.valid(n)) this.setData({ loading: false, loadingMore: false });
+      if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
-  retry() {
-    void this.load(!this.data.items.length);
+  signIn() {
+    wx.navigateTo({ url: "/pages/login/index" });
   },
-  open(e: WechatMiniprogram.TouchEvent) {
-    const id = safeId(e.currentTarget.dataset.id);
-    if (id) wx.navigateTo({ url: `/pages/detail/index?id=${id}` });
+  confirmLegal() {
+    wx.navigateTo({ url: "/pages/login/index?mode=consent" });
+  },
+  registrations() {
+    wx.navigateTo({ url: "/pages/registrations/index" });
+  },
+  manage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-activities/index" });
+  },
+  legalManage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-legal/index" });
+  },
+  terms() {
+    wx.navigateTo({ url: "/pages/privacy/index?kind=TERMS" });
+  },
+  adminSignIn() {
+    wx.navigateTo({ url: "/pages/admin-login/index" });
   },
   explore() {
     wx.switchTab({ url: "/pages/activities/index" });
@@ -96,21 +106,18 @@ Page({
   privacy() {
     wx.navigateTo({ url: "/pages/privacy/index" });
   },
+  retry() {
+    void this.load();
+  },
   async signOut() {
-    const result = await wx.showModal({
-      title: "退出登录？",
-      content: "不会取消已报名的活动；重新登录同一微信账号即可查看。",
+    const answer = await wx.showModal({
+      title: "退出当前账号？",
+      content:
+        "不会取消已报名活动。管理账号与微信账号的报名记录分别归属各自账号。",
     });
-    if (result.confirm) {
-      epoch.invalidate();
-      logout();
-      this.setData({
-        loggedIn: false,
-        items: [],
-        error: "",
-        loading: false,
-        loadingMore: false,
-      });
-    }
+    if (!answer.confirm) return;
+    epoch.invalidate();
+    logout();
+    this.setData({ user: null, error: "", loading: false });
   },
 });

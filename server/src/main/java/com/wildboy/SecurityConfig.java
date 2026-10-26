@@ -40,7 +40,11 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             a ->
                 a.requestMatchers(
-                        "/actuator/health", "/api/v1/auth/**", "/api/v1/home", "/assets/**")
+                        "/actuator/health",
+                        "/api/v1/auth/**",
+                        "/api/v1/home",
+                        "/api/v1/legal/**",
+                        "/assets/**")
                     .permitAll()
                     .requestMatchers(
                         org.springframework.http.HttpMethod.GET,

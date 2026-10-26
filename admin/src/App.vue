@@ -23,6 +23,9 @@ function logout() {
       <RouterLink class="nav-link" to="/activities"
         ><span>↗</span>活动管理</RouterLink
       >
+      <RouterLink class="nav-link" to="/legal"
+        ><span>≡</span>协议管理</RouterLink
+      >
       <div class="sidebar-bottom">
         <span class="live-dot"></span> 报名服务已接入后端
         <p>微信支付暂未启用<br />装备小店仅作展示</p>
@@ -33,13 +36,15 @@ function logout() {
         <span
           >户外活动管理 /
           <strong>{{
-            route.path.endsWith("registrations")
-              ? "报名名单"
-              : route.path.endsWith("edit")
-                ? "编辑活动"
-                : route.path.endsWith("new")
-                  ? "新建活动"
-                  : "活动工作台"
+            route.path === "/legal"
+              ? "协议管理"
+              : route.path.endsWith("registrations")
+                ? "报名名单"
+                : route.path.endsWith("edit")
+                  ? "编辑活动"
+                  : route.path.endsWith("new")
+                    ? "新建活动"
+                    : "活动工作台"
           }}</strong></span
         >
         <div class="user-tools">

@@ -1,0 +1,11 @@
+.legal-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.9;
+  font-size: 28rpx;
+  margin: 40rpx 0;
+  color: #28463b;
+}
+.notice {
+  margin-top: 36rpx;
+}

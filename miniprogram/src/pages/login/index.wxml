@@ -1,0 +1,74 @@
+<view class="welcome">
+  <view class="picture">
+    <image src="/assets/hero-hiking.jpg" mode="aspectFill" />
+    <view class="shade" />
+    <view class="brand">
+      wildboy.
+      <text>野一点，自由一点</text>
+    </view>
+    <view class="slogan">
+      把日常留在身后
+      <text>下一程，和同频的人一起出发。</text>
+    </view>
+  </view>
+  <view class="panel">
+    <view class="title">
+      {{mode === 'consent' ? '协议已更新' : '欢迎加入 Wildboy'}}
+    </view>
+    <view class="muted">
+      {{mode === 'consent' ? '请阅读运营方当前发布的协议，确认后继续。' :
+      '登录后报名活动，查看自己的出发记录。'}}
+    </view>
+    <view wx:if="{{loading}}" class="state">正在读取当前协议…</view>
+    <block wx:if="{{current}}">
+      <view class="documents">
+        <view bindtap="readPrivacy">
+          《{{current.privacy.title}}》
+          <text>
+            版本 {{current.privacy.version}} · {{privacyRead ? '已打开' :
+            '点击阅读'}} ↗
+          </text>
+        </view>
+        <view bindtap="readTerms">
+          《{{current.terms.title}}》
+          <text>
+            版本 {{current.terms.version}} · {{termsRead ? '已打开' :
+            '点击阅读'}} ↗
+          </text>
+        </view>
+      </view>
+      <checkbox-group bindchange="agreement">
+        <label class="agreement">
+          <checkbox
+            value="yes"
+            checked="{{agreed}}"
+            disabled="{{busy}}"
+            color="#173F35"
+          />
+          <text>我已阅读并同意以上当前版本《隐私政策》《用户协议》。</text>
+        </label>
+      </checkbox-group>
+    </block>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button
+      wx:if="{{!current && !loading}}"
+      class="secondary"
+      bindtap="retry"
+    >
+      重新获取协议
+    </button>
+    <button
+      class="primary"
+      disabled="{{loading || busy || !current || !agreed}}"
+      loading="{{busy}}"
+      bindtap="submit"
+    >
+      {{mode === 'consent' ? '确认当前协议' : '微信登录'}}
+    </button>
+    <view class="small muted">
+      不需要输入微信账号或密码，不会自动获取头像、昵称或手机号。
+    </view>
+    <button class="text-button" bindtap="browse">先逛逛山野 ↗</button>
+    <view class="admin-link" bindtap="admin">管理员身份验证</view>
+  </view>
+</view>

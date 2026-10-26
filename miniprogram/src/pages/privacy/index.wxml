@@ -1,31 +1,18 @@
 <view class="page">
-  <text class="eyebrow">RESPECT YOUR PRIVACY</text>
-  <view class="title">只为，一起出发。</view>
-  <view class="notice">
-    上线前，运营方须在微信公众平台发布与实际处理方式一致的隐私保护指引，并补充可用的联系与删除渠道。本页不能替代平台要求的隐私指引。
+  <text class="eyebrow">RESPECT YOUR CHOICE</text>
+  <view wx:if="{{loading}}" class="state">正在读取已发布协议…</view>
+  <view wx:elif="{{error}}" class="state error">
+    {{error}}
+    <button class="secondary" bindtap="retry">重试</button>
   </view>
-  <view class="section-head">
-    <view class="section-title">登录与报名</view>
-  </view>
-  <view class="body-copy">
-    微信登录用于建立账号与识别本人的报名记录，不索取微信密码，不默认获取头像、昵称、相册或定位。报名时由你主动填写姓名及手机号，经同意后提供给该活动的主理人，用于活动组织、必要通知和现场核对。
-  </view>
-  <view class="section-head">
-    <view class="section-title">谁可以看到</view>
-  </view>
-  <view class="body-copy">
-    报名资料不展示在公开活动列表中。本人可查看自己的报名，授权管理员可查看负责管理活动的报名资料。请勿在公开描述中填写身份证、健康或其他敏感信息。
-  </view>
-  <view class="section-head">
-    <view class="section-title">取消与信息处理</view>
-  </view>
-  <view class="body-copy">
-    你可以在活动允许的时间内从详情页取消报名。取消报名不会自动删除历史记录；退出登录只清除本机登录凭据。需要删除个人资料或了解保留期限，请联系活动运营方，通过其正式公布的联系渠道处理。
-  </view>
-  <view class="section-head">
-    <view class="section-title">不启用支付</view>
-  </view>
-  <view class="body-copy">
-    当前仅支持免费活动报名。装备区域用于灵感展示，不支持购买。小程序不会主动发起微信支付，也不收集银行卡信息。
-  </view>
+  <block wx:elif="{{document}}">
+    <view class="title">{{document.title}}</view>
+    <view class="muted">
+      版本 {{document.version}} · 发布于 {{document.publishedAt}}
+    </view>
+    <view class="legal-content">{{document.content}}</view>
+    <view class="notice">
+      这里展示运营方发布的协议内容。自定义协议不替代微信平台要求的隐私保护指引；如需咨询，请使用协议中公布的联系渠道。
+    </view>
+  </block>
 </view>

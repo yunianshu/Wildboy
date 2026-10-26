@@ -1,4 +1,10 @@
-import { request, mediaUrl, hasSession } from "../../utils/api";
+import {
+  request,
+  mediaUrl,
+  hasSession,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
 import { Activity, Registration } from "../../utils/models";
 import {
   activityView,
@@ -27,6 +33,10 @@ Page({
   },
   onShow() {
     if (this.data.id) void this.load();
+  },
+  onHide() {
+    epoch.invalidate();
+    this.setData({ registration: null, cancelling: false });
   },
   onUnload() {
     epoch.invalidate();
@@ -79,6 +89,8 @@ Page({
   },
   async cancel() {
     if (this.data.cancelling || !this.data.activity?.canCancel) return;
+    const n = epoch.next(),
+      session = sessionVersion();
     this.setData({ cancelling: true });
     const answer = await wx.showModal({
       title: "取消这次报名？",
@@ -86,15 +98,18 @@ Page({
       confirmText: "确认取消",
       confirmColor: "#8A4B31",
     });
+    if (!epoch.valid(n) || !isSessionCurrent(session)) return;
     if (!answer.confirm) {
       this.setData({ cancelling: false });
       return;
     }
     try {
       await request(`/activities/${this.data.id}/registrations/me`, "DELETE");
+      if (!epoch.valid(n) || !isSessionCurrent(session)) return;
       wx.showToast({ title: "报名已取消", icon: "success" });
       await this.load();
     } catch (e) {
+      if (!epoch.valid(n) || !isSessionCurrent(session)) return;
       wx.showModal({
         title: "暂未取消",
         content: message(e),

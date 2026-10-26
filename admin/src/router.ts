@@ -4,12 +4,14 @@ import LoginView from "./views/LoginView.vue";
 import ActivitiesView from "./views/ActivitiesView.vue";
 import EditorView from "./views/EditorView.vue";
 import RosterView from "./views/RosterView.vue";
+import LegalView from "./views/LegalView.vue";
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     { path: "/login", component: LoginView },
     { path: "/", redirect: "/activities" },
     { path: "/activities", component: ActivitiesView },
+    { path: "/legal", component: LegalView },
     { path: "/activities/new", component: EditorView },
     { path: "/activities/:id/edit", component: EditorView },
     { path: "/activities/:id/registrations", component: RosterView },

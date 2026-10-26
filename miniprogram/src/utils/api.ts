@@ -1,11 +1,59 @@
 import { config } from "../config";
-import { AuthResult } from "./models";
+import { AuthResult, User } from "./models";
 const TOKEN_KEY = "wildboy-session";
 let loginPromise: Promise<AuthResult> | undefined;
+let sessionEpoch = 0;
+let authenticationAttempt = 0;
+export function sessionVersion(): number {
+  return sessionEpoch;
+}
+export function isSessionCurrent(version: number): boolean {
+  return version === sessionEpoch;
+}
+export async function getCurrentUser(): Promise<User> {
+  const user = await request<User>("/me");
+  if (!user || !user.id || !["USER", "ADMIN"].includes(user.role))
+    throw new Error("账号信息异常，请重新登录");
+  return user;
+}
+function saveAuthentication(result: AuthResult, attempt: number): AuthResult {
+  if (attempt !== authenticationAttempt)
+    throw new ApiError("登录状态已改变，请重试", 409, "SESSION_CHANGED");
+  if (!result || typeof result.token !== "string" || !result.token)
+    throw new Error("登录响应异常");
+  sessionEpoch++;
+  wx.setStorageSync(TOKEN_KEY, result.token);
+  return result;
+}
+export async function adminLogin(
+  username: string,
+  password: string,
+  isCurrent: () => boolean = () => true,
+): Promise<AuthResult> {
+  if (
+    !username.trim() ||
+    username.trim().length > 100 ||
+    !password ||
+    password.length > 200
+  )
+    throw new Error("请填写正确的管理员账号和密码");
+  const attempt = ++authenticationAttempt;
+  const result = await request<AuthResult>("/auth/admin", "POST", {
+    username: username.trim(),
+    password,
+  });
+  if (!result?.user?.id || result.user.role !== "ADMIN")
+    throw new ApiError("该账号没有管理权限", 403, "FORBIDDEN");
+  if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
+  return saveAuthentication(result, attempt);
+}
 export function hasSession(): boolean {
   return !!wx.getStorageSync(TOKEN_KEY);
 }
 export function logout() {
+  sessionEpoch++;
+  authenticationAttempt++;
+  loginPromise = undefined;
   wx.removeStorageSync(TOKEN_KEY);
 }
 export class ApiError extends Error {
@@ -43,7 +91,10 @@ export function request<T>(
     )
   )
     return Promise.reject(new Error("正式服务必须使用 HTTPS"));
-  const token = wx.getStorageSync(TOKEN_KEY);
+  const token = path.startsWith("/auth/")
+    ? undefined
+    : wx.getStorageSync(TOKEN_KEY);
+  const version = sessionEpoch;
   return new Promise((resolve, reject) =>
     wx.request({
       url: config.apiOrigin + "/api/v1" + path,
@@ -55,6 +106,15 @@ export function request<T>(
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       success(res) {
+        if (
+          token &&
+          (version !== sessionEpoch || token !== wx.getStorageSync(TOKEN_KEY))
+        ) {
+          reject(
+            new ApiError("账号已切换，请刷新页面", 409, "SESSION_CHANGED"),
+          );
+          return;
+        }
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(res.data as T);
           return;
@@ -62,7 +122,11 @@ export function request<T>(
         const body = (
           res.data && typeof res.data === "object" ? res.data : {}
         ) as { code?: string; message?: string };
-        if (res.statusCode === 401 && token === wx.getStorageSync(TOKEN_KEY))
+        if (
+          res.statusCode === 401 &&
+          token &&
+          token === wx.getStorageSync(TOKEN_KEY)
+        )
           logout();
         reject(
           new ApiError(
@@ -80,14 +144,33 @@ export function request<T>(
     }),
   );
 }
-export function login(): Promise<AuthResult> {
+export function login(
+  versions?: { privacyVersion: number; termsVersion: number },
+  isCurrent: () => boolean = () => true,
+): Promise<AuthResult> {
+  if (
+    !versions ||
+    !Number.isInteger(versions.privacyVersion) ||
+    versions.privacyVersion < 1 ||
+    !Number.isInteger(versions.termsVersion) ||
+    versions.termsVersion < 1
+  )
+    return Promise.reject(
+      new ApiError(
+        "请先阅读并同意当前隐私政策和用户协议",
+        409,
+        "CONSENT_REQUIRED",
+      ),
+    );
   if (loginPromise) return loginPromise;
-  loginPromise = (async () => {
+  const attempt = ++authenticationAttempt;
+  const pending = (async () => {
     let result: AuthResult;
     const env = wx.getAccountInfoSync().miniProgram.envVersion;
     if (config.devLogin && env === "develop")
       result = await request<AuthResult>("/auth/dev-login", "POST", {
         role: "USER",
+        ...versions,
       });
     else {
       const code = await new Promise<string>((resolve, reject) =>
@@ -102,16 +185,23 @@ export function login(): Promise<AuthResult> {
           },
         }),
       );
-      result = await request<AuthResult>("/auth/wechat", "POST", { code });
+      result = await request<AuthResult>("/auth/wechat", "POST", {
+        code,
+        ...versions,
+      });
     }
-    if (!result.token) throw new Error("登录响应异常");
-    wx.setStorageSync(TOKEN_KEY, result.token);
-    return result;
+    if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
+    const authenticated = saveAuthentication(result, attempt);
+    return authenticated;
   })().finally(() => {
-    loginPromise = undefined;
+    if (loginPromise === pending) loginPromise = undefined;
   });
-  return loginPromise;
+  loginPromise = pending;
+  return pending;
 }
 export async function requireSession() {
-  if (!hasSession()) await login();
+  if (!hasSession()) {
+    wx.navigateTo({ url: "/pages/login/index" });
+    throw new ApiError("请先完成微信登录，再确认报名", 401, "LOGIN_REQUIRED");
+  }
 }

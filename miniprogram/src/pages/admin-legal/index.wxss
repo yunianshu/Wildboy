@@ -1,0 +1,131 @@
+.legal-page {
+  padding: 40rpx 36rpx 70rpx;
+  background: #f6f4ed;
+  min-height: 100vh;
+  color: #173f35;
+}
+.eyebrow {
+  font-size: 20rpx;
+  color: #899183;
+  letter-spacing: 2rpx;
+}
+.title {
+  font-size: 52rpx;
+  font-weight: 700;
+  margin-top: 16rpx;
+}
+.intro,
+.footer {
+  font-size: 25rpx;
+  color: #7c8878;
+  line-height: 1.8;
+  margin: 20rpx 0;
+}
+.tabs,
+.actions {
+  display: flex;
+  gap: 16rpx;
+  margin: 28rpx 0;
+}
+.tabs button,
+.actions button {
+  flex: 1;
+  margin: 0;
+  font-size: 27rpx;
+}
+.tabs button {
+  background: #e8edde;
+  color: #173f35;
+}
+.tabs .active,
+.primary {
+  background: #173f35;
+  color: #fff;
+}
+.secondary {
+  background: #e8edde;
+  color: #173f35;
+}
+.version {
+  font-size: 26rpx;
+  font-weight: 600;
+  margin: 32rpx 0;
+}
+.note,
+.notice {
+  padding: 24rpx;
+  background: #e8edde;
+  line-height: 1.8;
+  font-size: 25rpx;
+  border-radius: 16rpx;
+}
+.label {
+  font-size: 28rpx;
+  font-weight: 600;
+  margin: 30rpx 0 16rpx;
+}
+.input,
+.content {
+  background: #fffefa;
+  border: 1rpx solid #d7dece;
+  border-radius: 14rpx;
+  padding: 22rpx;
+  box-sizing: border-box;
+  width: 100%;
+  font-size: 28rpx;
+}
+.input {
+  height: 88rpx;
+}
+.content {
+  height: 650rpx;
+  line-height: 1.8;
+}
+.count {
+  font-size: 23rpx;
+  color: #82907a;
+  margin: 16rpx 0;
+}
+.error {
+  background: #fff0e6;
+  color: #8b3d24;
+  padding: 24rpx;
+  line-height: 1.8;
+  font-size: 26rpx;
+  border-radius: 14rpx;
+}
+.state {
+  padding: 28rpx 0;
+  color: #7c8878;
+  font-size: 26rpx;
+  line-height: 1.8;
+}
+.section-title {
+  font-weight: 700;
+  font-size: 32rpx;
+  margin: 30rpx 0 20rpx;
+}
+.preview {
+  padding: 24rpx;
+  background: #fffefa;
+  border-radius: 18rpx;
+  word-break: break-all;
+}
+.plain {
+  font-size: 27rpx;
+  white-space: pre-wrap;
+  line-height: 1.9;
+}
+.history {
+  text-align: left;
+  background: #e8edde;
+  color: #173f35;
+  font-size: 25rpx;
+  margin: 16rpx 0;
+  white-space: normal;
+  line-height: 1.7;
+  padding: 20rpx;
+}
+button[disabled] {
+  opacity: 0.45;
+}

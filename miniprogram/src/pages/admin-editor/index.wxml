@@ -1,0 +1,233 @@
+<view class="page back-space">
+  <view class="eyebrow">WILDBOY / EDITOR</view>
+  <view class="title">先把风景准备好</view>
+  <view class="muted">所有时间均为北京时间 · 当前免费报名</view>
+  <view wx:if="{{loading}}" class="state">正在读取活动…</view>
+  <view wx:if="{{error}}" class="notice error">
+    {{error}}
+    <button wx:if="{{conflict}}" class="secondary" bindtap="reload">
+      重新读取
+    </button>
+    <button wx:if="{{uncertain}}" class="secondary" bindtap="list">
+      返回管理列表核对
+    </button>
+    <button
+      wx:if="{{!loading&&!conflict&&!uncertain}}"
+      class="secondary"
+      bindtap="retry"
+    >
+      重新验证并加载
+    </button>
+    <button wx:if="{{!authorized}}" class="secondary" bindtap="login">
+      验证管理员身份
+    </button>
+  </view>
+  <block wx:if="{{authorized&&!loading}}">
+    <image class="cover" src="{{cover}}" mode="aspectFill" />
+    <view class="muted small">选择原创示意封面，或填写自有 HTTPS 图片地址</view>
+    <scroll-view class="presets" scroll-x>
+      <image
+        wx:for="{{presets}}"
+        wx:key="*this"
+        class="preset {{form.coverUrl===item?'selected':''}}"
+        src="{{item}}"
+        mode="aspectFill"
+        data-path="{{item}}"
+        bindtap="coverPreset"
+      />
+    </scroll-view>
+    <view class="field">
+      <text class="label">封面地址</text>
+      <input
+        value="{{form.coverUrl}}"
+        data-field="coverUrl"
+        bindinput="input"
+        maxlength="2048"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view class="field">
+      <text class="label">活动名称</text>
+      <input
+        value="{{form.title}}"
+        data-field="title"
+        bindinput="input"
+        maxlength="120"
+        disabled="{{busy}}"
+        placeholder="为这次出发起个名字"
+      />
+    </view>
+    <view class="field">
+      <text class="label">活动分类</text>
+      <picker
+        range="{{categories}}"
+        range-key="name"
+        value="{{categoryIndex}}"
+        bindchange="category"
+        disabled="{{busy}}"
+      >
+        <view class="picker">
+          {{categories[categoryIndex].name}}
+          <text>›</text>
+        </view>
+      </picker>
+    </view>
+    <view class="field">
+      <text class="label">开始时间</text>
+      <view class="date-row">
+        <picker
+          mode="date"
+          value="{{form.startDate}}"
+          data-field="startDate"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.startDate||'选择日期'}}</view>
+        </picker>
+        <picker
+          mode="time"
+          value="{{form.startTime}}"
+          data-field="startTime"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.startTime}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">结束时间</text>
+      <view class="date-row">
+        <picker
+          mode="date"
+          value="{{form.endDate}}"
+          data-field="endDate"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.endDate||'选择日期'}}</view>
+        </picker>
+        <picker
+          mode="time"
+          value="{{form.endTime}}"
+          data-field="endTime"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.endTime}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">报名截止</text>
+      <view class="date-row">
+        <picker
+          mode="date"
+          value="{{form.deadlineDate}}"
+          data-field="deadlineDate"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.deadlineDate||'选择日期'}}</view>
+        </picker>
+        <picker
+          mode="time"
+          value="{{form.deadlineTime}}"
+          data-field="deadlineTime"
+          bindchange="chooseDate"
+          disabled="{{busy}}"
+        >
+          <view class="picker">{{form.deadlineTime}}</view>
+        </picker>
+      </view>
+    </view>
+    <view class="field">
+      <text class="label">活动地点</text>
+      <input
+        value="{{form.location}}"
+        data-field="location"
+        bindinput="input"
+        maxlength="200"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view class="field">
+      <text class="label">集合地点</text>
+      <input
+        value="{{form.meetingPoint}}"
+        data-field="meetingPoint"
+        bindinput="input"
+        maxlength="200"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view class="field">
+      <text class="label">活动名额（已报名 {{registeredCount}} 人）</text>
+      <input
+        type="number"
+        value="{{form.capacity}}"
+        data-field="capacity"
+        bindinput="input"
+        maxlength="5"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view class="field">
+      <text class="label">活动简介</text>
+      <textarea
+        value="{{form.summary}}"
+        data-field="summary"
+        bindinput="input"
+        maxlength="300"
+        disabled="{{busy}}"
+        placeholder="一句话介绍这次出发"
+      />
+    </view>
+    <view class="field">
+      <text class="label">活动详情与注意事项</text>
+      <textarea
+        class="description"
+        value="{{form.description}}"
+        data-field="description"
+        bindinput="input"
+        maxlength="20000"
+        disabled="{{busy}}"
+        placeholder="路线、装备、难度、注意事项等"
+      />
+    </view>
+    <view class="field">
+      <text class="label">详情图片（选填，最多 12 张，每行一个地址）</text>
+      <textarea
+        value="{{form.galleryText}}"
+        data-field="galleryText"
+        bindinput="input"
+        maxlength="25000"
+        disabled="{{busy}}"
+        placeholder="https://…"
+      />
+    </view>
+    <view class="notice">
+      发布后改变内容不会自动通知报名用户，请自行联系参加者。原始配图仅为示意，请核对实际活动。
+    </view>
+    <view class="sticky-action actions">
+      <button
+        class="secondary"
+        data-action="save"
+        bindtap="save"
+        loading="{{busy}}"
+        disabled="{{busy||conflict||uncertain}}"
+      >
+        {{status==='PUBLISHED'?'保存修改':'保存草稿'}}
+      </button>
+      <button
+        wx:if="{{status==='DRAFT'}}"
+        class="primary"
+        data-action="publish"
+        bindtap="save"
+        disabled="{{busy||conflict||uncertain}}"
+      >
+        确认并发布
+      </button>
+    </view>
+  </block>
+</view>

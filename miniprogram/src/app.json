@@ -5,7 +5,15 @@
     "pages/detail/index",
     "pages/register/index",
     "pages/mine/index",
-    "pages/privacy/index"
+    "pages/privacy/index",
+    "pages/registrations/index",
+    "pages/signup-success/index",
+    "pages/admin-login/index",
+    "pages/admin-activities/index",
+    "pages/admin-editor/index",
+    "pages/admin-roster/index",
+    "pages/login/index",
+    "pages/admin-legal/index"
   ],
   "window": {
     "navigationBarTitleText": "Wildboy",

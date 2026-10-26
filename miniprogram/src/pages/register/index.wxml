@@ -58,11 +58,20 @@
             disabled="{{submitting}}"
           />
           <text>
-            我同意将姓名和手机号提供给活动主理人，仅用于本次活动组织与联系。
+            我已阅读并同意当前版本隐私政策、用户协议，并同意将姓名和手机号用于本次活动组织与联系。
           </text>
         </label>
       </checkbox-group>
-      <view class="privacy" bindtap="privacy">阅读报名信息使用说明 ↗</view>
+      <view class="privacy" bindtap="privacy">
+        阅读隐私政策（版本 {{legal.privacy.version}}）↗
+      </view>
+      <view class="privacy" bindtap="terms">
+        阅读用户协议（版本 {{legal.terms.version}}）↗
+      </view>
+      <view wx:if="{{legalError}}" class="error">
+        {{legalError}}
+        <button class="secondary" bindtap="retry">重新读取协议</button>
+      </view>
       <view class="notice">
         点击报名时将通过微信登录识别你的账号。不会获取微信密码，也不会自动发起支付。每个微信账号每场活动限一个有效名额。
       </view>
@@ -72,7 +81,7 @@
       <button
         class="primary submit"
         loading="{{submitting}}"
-        disabled="{{submitting || !activity.enabled}}"
+        disabled="{{submitting || !activity.enabled || !legal}}"
         bindtap="submit"
       >
         {{submitting ? '正在确认名额…' : activity.label}}

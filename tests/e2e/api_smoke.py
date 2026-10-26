@@ -40,13 +40,21 @@ def check(name, condition, detail=None):
 def token(role):
     supplied = os.getenv(role + '_TOKEN')
     if supplied: return supplied
-    status, body = request('POST', '/auth/dev-login', {'role': role})
+    payload = {'role': role}
+    if role == 'USER':
+        status, published = request('GET', '/legal/current')
+        check('dev login has published legal versions', status == 200 and published.get('ready') is True, published)
+        payload.update(privacyVersion=published['privacy']['version'], termsVersion=published['terms']['version'])
+    status, body = request('POST', '/auth/dev-login', payload)
     check('dev test login ' + role, status == 200 and bool(body.get('token')), body)
     return body['token']
 
 admin = token('ADMIN')
 user = token('USER')
 user2 = os.getenv('USER_TOKEN_2')
+status, legal = request('GET', '/legal/current')
+check('isolated dev has explicit published legal documents', status == 200 and legal.get('ready') is True, legal)
+consent = {'privacyVersion': legal['privacy']['version'], 'termsVersion': legal['terms']['version']}
 status, home = request('GET', '/home')
 check('public home payments disabled', status == 200 and home['paymentEnabled'] is False, home)
 check('four named categories', [x['name'] for x in home['categories']] == ['本周活动','国内游行','假期活动','休闲活动'], home)
@@ -67,7 +75,7 @@ check('admin creates draft', status == 201 and activity['status'] == 'DRAFT', ac
 aid = activity['id']
 status, body = request('GET', '/activities/' + aid)
 check('draft not publicly readable', status == 404, body)
-status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000'}, user)
+status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000', **consent}, user)
 check('draft registration forbidden', status == 404, body)
 updated = {**fixture, 'title': fixture['title']+' edited', 'version': activity['version']}
 status, activity = request('PUT', '/admin/activities/'+aid, updated, admin)
@@ -78,9 +86,9 @@ status, activity = request('POST', f'/admin/activities/{aid}/publish', {'version
 check('publish succeeds', status == 200 and activity['status']=='PUBLISHED', activity)
 status, body = request('GET', '/activities/'+aid)
 check('published publicly visible and PII absent', status == 200 and not any(k in body for k in ['phone','participantName','registrations']), body)
-status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000'})
+status, body = request('POST', f'/activities/{aid}/registrations', {'participantName':'验收用户','phone':'13800000000', **consent})
 check('anonymous cannot register', status == 401, body)
-participant = {'participantName':'验收用户','phone':'13800000000'}
+participant = {'participantName':'验收用户','phone':'13800000000', **consent}
 with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
     results = list(pool.map(lambda _: request('POST', f'/activities/{aid}/registrations', participant, user), range(8)))
 check('duplicate concurrent registration idempotent', all(s in (200,201) for s,_ in results) and len({b['id'] for _,b in results}) == 1, results)
@@ -105,6 +113,47 @@ status, activity = request('GET', '/activities/'+aid)
 check('cancellation releases seat', activity['registeredCount']==0, activity)
 status, body = request('POST', f'/activities/{aid}/registrations', participant, user)
 check('cancelled user can re-register', status == 201 and body['status']=='CONFIRMED', body)
+# Versioned policy lifecycle uses only synthetic text in this isolated fixture.
+status, previous_consent = request('GET', '/me/consents', token=user)
+check('registration recorded current legal consent', status == 200 and previous_consent['requiresConsent'] is False, previous_consent)
+status, state = request('GET', '/admin/legal/PRIVACY', token=admin)
+check('admin reads policy draft', status == 200 and 'draft' in state, state)
+draft = {'title':'独立验收隐私示例', 'content':'仅用于隔离环境测试，不是正式法律文本。测试内容不用于实际运营。', 'revision':state['draft']['revision']}
+status, body = request('PUT', '/admin/legal/PRIVACY/draft', draft, user)
+check('ordinary user cannot edit legal policy', status == 403, body)
+status, body = request('PUT', '/admin/legal/PRIVACY/draft', {**draft, 'content':'<script>synthetic</script>'}, admin)
+check('HTML legal content rejected', status == 400, body)
+status, saved = request('PUT', '/admin/legal/PRIVACY/draft', draft, admin)
+check('admin saves legal draft', status == 200, saved)
+status, body = request('PUT', '/admin/legal/PRIVACY/draft', draft, admin)
+check('stale draft revision rejected', status == 409, body)
+status, unchanged = request('GET', '/legal/current')
+check('saving draft leaves published document unchanged', status == 200 and unchanged == legal, unchanged)
+status, state = request('GET', '/admin/legal/PRIVACY', token=admin)
+status, body = request('POST', '/admin/legal/PRIVACY/publish', {'revision':state['draft']['revision']}, user)
+check('ordinary user cannot publish legal policy', status == 403, body)
+status, published = request('POST', '/admin/legal/PRIVACY/publish', {'revision':state['draft']['revision']}, admin)
+check('admin explicitly publishes new policy version', status == 200, published)
+status, latest = request('GET', '/legal/current')
+check('publication increments policy version only', status == 200 and latest['privacy']['version'] > consent['privacyVersion'] and latest['terms']['version'] == consent['termsVersion'], latest)
+status, historical = request('GET', f"/legal/PRIVACY/versions/{consent['privacyVersion']}")
+check('published historical document immutable', status == 200 and historical == legal['privacy'], historical)
+status, body = request('GET', '/me/consents', token=user)
+check('new policy requires fresh user consent', status == 200 and body['requiresConsent'] is True, body)
+status, body = request('POST', '/me/consents', consent, user)
+check('old policy versions cannot be accepted as current', status == 409, body)
+status, body = request('DELETE', f'/activities/{aid}/registrations/me', token=user)
+check('policy update does not block self cancellation', status in (200,204), body)
+status, body = request('POST', f'/activities/{aid}/registrations', participant, user)
+check('old policy versions cannot re-register', status == 409, body)
+consent = {'privacyVersion':latest['privacy']['version'], 'termsVersion':latest['terms']['version']}
+status, body = request('POST', '/me/consents', consent, user)
+check('explicit latest legal consent accepted', status in (200,201,204), body)
+participant = {**participant, **consent}
+status, body = request('POST', f'/activities/{aid}/registrations', participant, user)
+check('current policy versions permit re-registration', status == 201, body)
+status, body = request('GET', '/me/consents', token=user)
+check('current legal consent status is retained', status == 200 and body['requiresConsent'] is False, body)
 status, activity = request('GET', '/admin/activities/'+aid, token=admin)
 status, body = request('POST', f'/admin/activities/{aid}/cancel', {'version':activity['version']}, admin)
 check('admin cancels activity', status == 200 and body['status']=='CANCELLED', body)

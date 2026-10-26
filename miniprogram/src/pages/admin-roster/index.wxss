@@ -1,0 +1,73 @@
+.activity-title {
+  font-size: 35rpx;
+  font-weight: 650;
+  line-height: 1.6;
+  margin-top: 32rpx;
+}
+.summary {
+  display: flex;
+  gap: 40rpx;
+  background: #193f34;
+  color: #fffdf7;
+  padding: 30rpx;
+  border-radius: 16rpx;
+  margin-top: 30rpx;
+}
+.summary > view {
+  flex: 1;
+}
+.summary text {
+  font-size: 23rpx;
+  color: #d9e1d1;
+}
+.summary > view > view {
+  font-size: 40rpx;
+  font-weight: 650;
+  margin-top: 12rpx;
+}
+.member {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  background: #fffdf7;
+  padding: 26rpx 22rpx;
+  border-radius: 18rpx;
+  margin-bottom: 22rpx;
+}
+.avatar {
+  width: 68rpx;
+  height: 68rpx;
+  line-height: 68rpx;
+  text-align: center;
+  background: #e8ecdf;
+  border-radius: 50%;
+  flex-shrink: 0;
+  font-weight: 650;
+}
+.member-info {
+  flex: 1;
+  min-width: 0;
+}
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+  word-break: break-all;
+}
+.phone {
+  background: transparent;
+  text-align: left;
+  padding: 12rpx 0;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 23rpx;
+  color: #63775e;
+}
+.badge {
+  white-space: nowrap;
+}
+.notice {
+  margin-top: 30rpx;
+}
+.more {
+  margin-top: 32rpx;
+}

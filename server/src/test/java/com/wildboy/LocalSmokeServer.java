@@ -14,8 +14,8 @@ public class LocalSmokeServer {
     System.setProperty("spring.profiles.active", "dev");
     var context = SpringApplication.run(WildboyApplication.class, args);
     var auth = context.getBean(AuthService.class);
-    String admin = auth.dev("ADMIN").token();
-    String user = auth.dev("USER").token();
+    String admin = auth.dev("ADMIN", null, null).token();
+    String user = auth.dev("USER", 1L, 1L).token();
     String user2 = auth.login(auth.user("smoke:user2", "Smoke second user", "USER")).token();
     Path path = Path.of("/tmp/wildboy-smoke-env");
     Files.writeString(

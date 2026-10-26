@@ -1,0 +1,116 @@
+<view class="legal-page">
+  <text class="eyebrow">TRUST BEFORE THE JOURNEY</text>
+  <view class="title">协议管理</view>
+  <view class="intro">编辑不立即生效。先保存草稿，再确认发布。</view>
+  <view class="tabs"
+    ><button
+      class="{{kind === 'PRIVACY' ? 'active' : ''}}"
+      data-kind="PRIVACY"
+      bindtap="switchKind"
+      disabled="{{busy || loading}}"
+    >
+      隐私政策</button
+    ><button
+      class="{{kind === 'TERMS' ? 'active' : ''}}"
+      data-kind="TERMS"
+      bindtap="switchKind"
+      disabled="{{busy || loading}}"
+    >
+      用户协议
+    </button></view
+  >
+  <view wx:if="error" class="error">{{error}}</view
+  ><view wx:if="notice" class="notice">{{notice}}</view>
+  <view wx:if="loading" class="state">正在读取协议…</view>
+  <view wx:if="authorized">
+    <view class="version"
+      >{{published ? '当前发布 v' + published.version : '尚未发布'}} · 草稿修订
+      {{revision}}</view
+    >
+    <view class="note"
+      >正式内容请由运营方审核。本功能不替代微信后台的隐私声明配置。</view
+    >
+    <view class="label">{{label}}标题</view
+    ><input
+      class="input"
+      value="{{title}}"
+      data-field="title"
+      bindinput="input"
+      maxlength="120"
+      disabled="{{busy}}"
+      placeholder="请输入标题"
+    />
+    <view class="label">正文 · 纯文本</view
+    ><textarea
+      class="content"
+      value="{{content}}"
+      data-field="content"
+      bindinput="input"
+      maxlength="50000"
+      disabled="{{busy}}"
+      placeholder="填写经确认的协议内容，发布前请完整预览。"
+    />
+    <view class="count"
+      >{{content.length}} / 50000 · {{dirty ? '有未保存修改' :
+      '与已存草稿一致'}}</view
+    >
+    <view class="actions"
+      ><button class="secondary" bindtap="togglePreview">
+        {{preview ? '收起预览' : '预览草稿'}}</button
+      ><button
+        class="secondary"
+        bindtap="reload"
+        disabled="{{busy || loading}}"
+      >
+        重新加载
+      </button></view
+    >
+    <view wx:if="preview" class="preview"
+      ><view class="section-title">{{title || '未填写标题'}}</view
+      ><text selectable class="plain">{{content || '未填写正文'}}</text></view
+    >
+    <view class="actions"
+      ><button
+        class="primary"
+        bindtap="save"
+        disabled="{{busy || loading || conflict}}"
+        loading="{{busy}}"
+      >
+        保存草稿</button
+      ><button
+        class="primary"
+        bindtap="publish"
+        disabled="{{busy || loading || dirty || conflict}}"
+      >
+        发布新版本
+      </button></view
+    >
+    <view class="section-title">已发布历史</view
+    ><view wx:if="!history.length" class="state"
+      >暂无发布记录；草稿不会公开展示。</view
+    >
+    <button
+      wx:for="{{history}}"
+      wx:key="version"
+      class="history"
+      data-version="{{item.version}}"
+      bindtap="viewHistory"
+    >
+      v{{item.version}} · {{item.title}}　↗
+    </button>
+    <view wx:if="selected" class="preview"
+      ><view class="section-title"
+        >{{selected.title}} · v{{selected.version}}</view
+      ><view class="count">{{selected.publishedAt}} · 只读历史</view
+      ><text selectable class="plain">{{selected.content}}</text
+      ><button class="secondary" bindtap="closeHistory">收起</button></view
+    >
+  </view>
+  <view wx:elif="!loading" class="state"
+    ><button class="secondary" bindtap="reload">重新加载</button
+    ><button class="primary" bindtap="login">管理员身份验证</button></view
+  >
+  <view class="footer"
+    >每次发布保留独立版本，用户需重新确认；历史同意记录不会被覆盖。</view
+  >
+</view>

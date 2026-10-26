@@ -1,0 +1,93 @@
+<view class="page">
+  <view class="eyebrow">WILDBOY / MANAGEMENT</view>
+  <view class="title">安排下一次出发</view>
+  <view class="muted">管理活动内容与报名情况</view>
+  <button
+    wx:if="{{authorized}}"
+    class="primary create"
+    bindtap="create"
+    disabled="{{!!busyId}}"
+  >
+    ＋ 创建活动
+  </button>
+  <view class="tabs" wx:if="{{authorized}}">
+    <view
+      wx:for="{{statuses}}"
+      wx:key="value"
+      class="tab {{status===item.value?'active':''}}"
+      data-status="{{item.value}}"
+      bindtap="filter"
+    >
+      {{item.label}}
+    </view>
+  </view>
+  <view wx:if="{{error}}" class="state error">
+    {{error}}
+    <button class="secondary" bindtap="retry">重试</button>
+    <button wx:if="{{!authorized}}" class="primary" bindtap="login">
+      管理员身份验证
+    </button>
+  </view>
+  <view wx:if="{{loading}}" class="state">正在加载活动…</view>
+  <view wx:if="{{authorized}}">
+    <view wx:for="{{items}}" wx:key="id" class="activity">
+      <view class="activity-top">
+        <image src="{{item.cover}}" mode="aspectFill" />
+        <view class="activity-copy">
+          <view class="activity-title">{{item.title}}</view>
+          <text class="badge">{{item.statusText}}</text>
+          <view class="muted">{{item.dateText}}</view>
+        </view>
+      </view>
+      <view class="muted">
+        {{item.registeredCount}} / {{item.capacity}} 人 · 免费参与
+      </view>
+      <view class="actions">
+        <button
+          class="secondary"
+          wx:if="{{item.editable}}"
+          data-id="{{item.id}}"
+          bindtap="edit"
+          disabled="{{!!busyId}}"
+        >
+          编辑
+        </button>
+        <button
+          class="secondary"
+          data-id="{{item.id}}"
+          bindtap="roster"
+          disabled="{{!!busyId}}"
+        >
+          名单
+        </button>
+        <button
+          class="primary"
+          wx:if="{{item.status==='DRAFT'}}"
+          data-id="{{item.id}}"
+          data-action="publish"
+          bindtap="change"
+          loading="{{busyId===item.id}}"
+          disabled="{{!!busyId}}"
+        >
+          发布
+        </button>
+        <button
+          class="danger"
+          wx:if="{{item.status!=='CANCELLED'}}"
+          data-id="{{item.id}}"
+          data-action="cancel"
+          bindtap="change"
+          disabled="{{!!busyId}}"
+        >
+          取消
+        </button>
+      </view>
+    </view>
+    <view wx:if="{{!loading&&!items.length&&!error}}" class="state">
+      暂无此状态的活动
+    </view>
+    <view wx:if="{{items.length}}" class="loading-line">
+      {{loadingMore?'正在加载…':(hasMore?'向下滑动加载更多':'已显示全部活动')}}
+    </view>
+  </view>
+</view>

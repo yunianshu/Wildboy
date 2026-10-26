@@ -24,16 +24,22 @@ public class AuthService {
   private final boolean devEnabled;
   private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
   private final RestClient wechat;
+  private final LegalService legal;
+  private final org.springframework.transaction.support.TransactionTemplate tx;
 
   public AuthService(
       JdbcTemplate db,
       Environment env,
+      LegalService legal,
+      org.springframework.transaction.PlatformTransactionManager transactionManager,
       @Value("${wildboy.wechat.app-id}") String appId,
       @Value("${wildboy.wechat.app-secret}") String appSecret,
       @Value("${wildboy.admin.username}") String adminUsername,
       @Value("${wildboy.admin.password-hash}") String adminHash,
       @Value("${wildboy.dev-login-enabled:false}") boolean devEnabled) {
     this.db = db;
+    this.legal = legal;
+    this.tx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
     this.env = env;
     this.appId = appId;
     this.appSecret = appSecret;
@@ -48,7 +54,8 @@ public class AuthService {
         RestClient.builder().baseUrl("https://api.weixin.qq.com").requestFactory(factory).build();
   }
 
-  public Login wechat(String code) {
+  public Login wechat(String code, Long privacyVersion, Long termsVersion) {
+    legal.requireCurrent(privacyVersion, termsVersion);
     if (appId.isBlank() || appSecret.isBlank())
       throw new ApiException(503, "WECHAT_NOT_CONFIGURED", "微信登录尚未配置");
     String openid;
@@ -77,7 +84,17 @@ public class AuthService {
     } catch (Exception e) {
       throw new ApiException(502, "WECHAT_UNAVAILABLE", "微信登录暂不可用，请稍后重试");
     }
-    return login(user("wechat:" + openid, "微信用户", "USER"));
+    return finishWechat(openid, privacyVersion, termsVersion);
+  }
+
+  Login finishWechat(String openid, Long privacyVersion, Long termsVersion) {
+    return tx.execute(
+        status -> {
+          legal.requireCurrent(privacyVersion, termsVersion);
+          User user = user("wechat:" + openid, "微信用户", "USER");
+          legal.accept(user.id(), privacyVersion, termsVersion, "LOGIN");
+          return login(user);
+        });
   }
 
   public Login admin(String username, String password) {
@@ -102,9 +119,16 @@ public class AuthService {
         && !Arrays.asList(env.getActiveProfiles()).contains("prod");
   }
 
-  public Login dev(String role) {
+  public Login dev(String role, Long privacyVersion, Long termsVersion) {
     if (!isDev()) throw ApiException.notFound();
-    return login(user("dev:" + role, "演示" + (role.equals("ADMIN") ? "管理员" : "用户"), role));
+    if (role.equals("ADMIN")) return login(user("dev:ADMIN", "演示管理员", "ADMIN"));
+    return tx.execute(
+        status -> {
+          legal.requireCurrent(privacyVersion, termsVersion);
+          User user = user("dev:USER", "演示用户", "USER");
+          legal.accept(user.id(), privacyVersion, termsVersion, "LOGIN");
+          return login(user);
+        });
   }
 
   User user(String external, String nickname, String role) {

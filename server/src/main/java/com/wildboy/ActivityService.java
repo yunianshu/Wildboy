@@ -16,10 +16,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class ActivityService {
   final JdbcTemplate db;
   final ObjectMapper json;
+  final LegalService legal;
 
-  public ActivityService(JdbcTemplate db, ObjectMapper json) {
+  public ActivityService(JdbcTemplate db, ObjectMapper json, LegalService legal) {
     this.db = db;
     this.json = json;
+    this.legal = legal;
   }
 
   final RowMapper<Registration> registrationMapper =
@@ -67,9 +69,18 @@ public class ActivityService {
   }
 
   public Page<Activity> list(Category category, int page, int size, boolean admin) {
+    return list(category, null, page, size, admin);
+  }
+
+  public Page<Activity> list(
+      Category category, ActivityStatus status, int page, int size, boolean admin) {
     pageCheck(page, size);
     var args = new ArrayList<Object>();
     String where = admin ? " WHERE 1=1" : " WHERE status='PUBLISHED'";
+    if (admin && status != null) {
+      where += " AND status=?";
+      args.add(status.name());
+    }
     if (category != null) {
       where += " AND category=?";
       args.add(category.name());
@@ -255,10 +266,14 @@ public class ActivityService {
 
   @Transactional
   public RegisterResult register(String id, String user, RegistrationInput input) {
+    legal.requireCurrent(input.privacyVersion(), input.termsVersion());
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
     Registration existing = own(id, user);
-    if (existing != null) return new RegisterResult(existing, false);
+    if (existing != null) {
+      legal.accept(user, input.privacyVersion(), input.termsVersion(), "REGISTRATION");
+      return new RegisterResult(existing, false);
+    }
     enrollmentOpen(a);
     if (a.registeredCount() >= a.capacity()) throw ApiException.conflict("ACTIVITY_FULL", "活动名额已满");
     var previous =
@@ -289,6 +304,7 @@ public class ActivityService {
             + " registered_count=registered_count+1,version=version+1,updated_at=CURRENT_TIMESTAMP"
             + " WHERE id=?",
         id);
+    legal.accept(user, input.privacyVersion(), input.termsVersion(), "REGISTRATION");
     audit(user, id, "REGISTER");
     return new RegisterResult(own(id, user), true);
   }
@@ -312,11 +328,24 @@ public class ActivityService {
   }
 
   public Page<Registration> registrations(String user, String activity, int page, int size) {
+    return registrations(user, activity, null, page, size);
+  }
+
+  public Page<Registration> registrations(
+      String user, String activity, RegistrationStatus status, int page, int size) {
     pageCheck(page, size);
     String where = user != null ? "r.user_id=?" : "r.activity_id=?";
-    Object filter = user != null ? user : activity;
+    var args = new ArrayList<Object>();
+    args.add(user != null ? user : activity);
+    if (status != null) {
+      where += " AND r.status=?";
+      args.add(status.name());
+    }
     long total =
-        db.queryForObject("SELECT COUNT(*) FROM registration r WHERE " + where, Long.class, filter);
+        db.queryForObject(
+            "SELECT COUNT(*) FROM registration r WHERE " + where, Long.class, args.toArray());
+    args.add(size);
+    args.add(page * size);
     var items =
         db.query(
             "SELECT r.*,a.title AS activity_title FROM registration r JOIN activity a ON"
@@ -324,9 +353,7 @@ public class ActivityService {
                 + where
                 + " ORDER BY r.created_at DESC,r.id LIMIT ? OFFSET ?",
             registrationMapper,
-            filter,
-            size,
-            page * size);
+            args.toArray());
     return new Page<>(items, total, page, size, (long) (page + 1) * size < total);
   }
 
