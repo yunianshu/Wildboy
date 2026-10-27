@@ -12,12 +12,17 @@ public class LocalSmokeServer {
     System.setProperty("spring.datasource.username", "postgres");
     System.setProperty("spring.datasource.password", "");
     System.setProperty("spring.profiles.active", "dev");
+    System.setProperty("wildboy.admin.username", "smoke-admin");
+    System.setProperty(
+        "wildboy.admin.password-hash",
+        new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()
+            .encode("smoke-only-password-123!"));
     var context = SpringApplication.run(WildboyApplication.class, args);
     var auth = context.getBean(AuthService.class);
     String admin = auth.dev("ADMIN", null, null).token();
     String user = auth.dev("USER", 1L, 1L).token();
     String user2 = auth.login(auth.user("smoke:user2", "Smoke second user", "USER")).token();
-    Path path = Path.of("/tmp/wildboy-smoke-env");
+    Path path = Path.of(System.getProperty("java.io.tmpdir"), "wildboy-smoke-env");
     Files.writeString(
         path, "ADMIN_TOKEN=" + admin + "\nUSER_TOKEN=" + user + "\nUSER_TOKEN_2=" + user2 + "\n");
     try {

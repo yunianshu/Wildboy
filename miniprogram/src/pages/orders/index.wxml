@@ -1,0 +1,18 @@
+<view class="page orders-page">
+  <view class="eyebrow">YOUR GEAR. YOUR JOURNEYS.</view><view class="title">我的订单</view><view class="muted">每一件装备，都为下一次出发。</view>
+  <view wx:if="{{!loggedIn}}" class="state">登录后查看自己的装备订单<button class="primary" bindtap="signIn">微信登录</button></view>
+  <block wx:else>
+    <view wx:if="{{loading}}" class="state">正在读取订单…</view>
+    <view wx:elif="{{error && !items.length}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
+    <view wx:elif="{{!items.length}}" class="state">还没有装备订单<view />去挑选下一场出发的装备吧。</view>
+    <view class="order-card" wx:for="{{items}}" wx:key="id">
+      <view class="order-head"><text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}">{{item.statusText}}</text><text class="muted small">{{item.dateText}}</text></view>
+      <view class="order-line" wx:for="{{item.items}}" wx:for-item="product" wx:key="id"><view class="product-name">{{product.productName}}</view><view class="muted small">× {{product.quantity}}</view></view>
+      <view class="order-total"><text>合计</text><strong>{{item.totalText}}</strong></view>
+      <view class="order-number">订单号 {{item.orderNo}}</view>
+      <view class="order-actions"><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" loading="{{busyId === item.id}}">继续支付</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="cancel" disabled="{{busyId}}">取消订单</button></view>
+    </view>
+    <view wx:if="{{error}}" class="state error">{{error}}</view>
+    <view class="notice">支付状态以服务端确认为准。已支付订单由管理员发货；当前不支持在线退款或修改地址。</view>
+  </block>
+</view>

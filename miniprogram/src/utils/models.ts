@@ -21,14 +21,21 @@ export interface Activity {
   createdAt: string;
   updatedAt: string;
 }
+export interface ParticipantInput {
+  participantName: string;
+  idNumber: string;
+  phone: string;
+}
+export interface Participant extends ParticipantInput {
+  id: string;
+}
 export interface Registration {
   id: string;
   activityId: string;
   activityTitle: string;
   status: "CONFIRMED" | "CANCELLED";
   createdAt: string;
-  participantName: string;
-  phone: string;
+  participants: Participant[];
 }
 export interface PageResult<T> {
   items: T[];
@@ -63,4 +70,49 @@ export interface User {
 export interface AuthResult {
   token: string;
   user: User;
+}
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  priceCents: number;
+  stock: number;
+  status: "ON_SALE" | "OFF_SHELF";
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED";
+export interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  imageUrl: string;
+  priceCents: number;
+  quantity: number;
+}
+export interface Order {
+  id: string;
+  orderNo: string;
+  userId: string;
+  totalCents: number;
+  status: OrderStatus;
+  recipientName: string;
+  phone: string;
+  address: string;
+  paymentTransactionId: string | null;
+  paymentInitiated: boolean;
+  paidAt: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+}
+export interface PaymentRequest {
+  timeStamp: string;
+  nonceStr: string;
+  package: string;
+  signType: string;
+  paySign: string;
 }

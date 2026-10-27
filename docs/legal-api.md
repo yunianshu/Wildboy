@@ -16,7 +16,7 @@
 - `POST /api/v1/me/consents`，body `{privacyVersion,termsVersion}`，返回 ConsentState。
 - `POST /api/v1/auth/wechat` body `{code,privacyVersion,termsVersion}`。用户必须主动阅读并勾选，版本必填正整数。
 - 开发 `POST /api/v1/auth/dev-login` 的 USER 同样提交两版本；ADMIN 不需要协议即可进入管理配置，生产该接口仍关闭。
-- `POST /api/v1/activities/{id}/registrations` body `{participantName,phone,privacyVersion,termsVersion}`。
+- `POST /api/v1/activities/{id}/registrations` body `{participants:[{participantName,idNumber,phone}],privacyVersion,termsVersion}`；至少一位参与人。
 
 `503 LEGAL_NOT_READY`：两协议尚未发布，不允许微信用户登录/新报名。`409 LEGAL_VERSION_CHANGED`：版本非当前，重新取协议、展示内容并清除勾选，用户重新确认后再提交。不能静默填最新版本。普通浏览、查看历史和取消报名不强制最新同意，管理员登录与维护不受未发布状态阻断。
 

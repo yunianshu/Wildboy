@@ -1,0 +1,12 @@
+.orders-page .title { margin-bottom: 8rpx; }
+.order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #fffdf7; }
+.order-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }
+.cancelled { background: #e3e3dc; color: #777; }
+.order-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; padding: 12rpx 0; }
+.product-name { font-weight: 600; line-height: 1.5; }
+.order-total { display: flex; align-items: center; justify-content: space-between; padding-top: 20rpx; margin-top: 14rpx; border-top: 1rpx solid #e0e4d9; }
+.order-total strong { color: #8a4b31; font-size: 32rpx; }
+.order-number { margin-top: 12rpx; color: #8a8f83; font-size: 19rpx; word-break: break-all; }
+.order-actions { display: flex; gap: 16rpx; margin-top: 22rpx; }
+.small-button { flex: 1; min-height: 72rpx; line-height: 72rpx; font-size: 25rpx; }
+.orders-page .notice { margin-top: 30rpx; }

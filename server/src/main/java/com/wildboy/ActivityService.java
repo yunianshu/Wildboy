@@ -32,8 +32,60 @@ public class ActivityService {
               r.getString("activity_title"),
               r.getString("status"),
               r.getObject("created_at", OffsetDateTime.class),
-              r.getString("participant_name"),
-              r.getString("phone"));
+              List.of());
+
+  Registration withParticipants(Registration registration, List<Participant> participants) {
+    return new Registration(
+        registration.id(),
+        registration.activityId(),
+        registration.activityTitle(),
+        registration.status(),
+        registration.createdAt(),
+        participants);
+  }
+
+  Registration attachParticipants(Registration registration) {
+    var participants =
+        db.query(
+            "SELECT * FROM registration_participant WHERE registration_id=? ORDER BY position",
+            (r, n) ->
+                new Participant(
+                    r.getString("id"),
+                    r.getString("participant_name"),
+                    r.getString("id_number"),
+                    r.getString("phone")),
+            registration.id());
+    return withParticipants(registration, participants);
+  }
+
+  List<Registration> attachParticipants(List<Registration> registrations) {
+    if (registrations.isEmpty()) return registrations;
+    var ids = registrations.stream().map(Registration::id).toList();
+    var byRegistration = new HashMap<String, List<Participant>>();
+    db.query(
+        "SELECT * FROM registration_participant WHERE registration_id IN ("
+            + String.join(",", Collections.nCopies(ids.size(), "?"))
+            + ") ORDER BY registration_id,position",
+        rs -> {
+          var participant =
+              new Participant(
+                  rs.getString("id"),
+                  rs.getString("participant_name"),
+                  rs.getString("id_number"),
+                  rs.getString("phone"));
+          byRegistration
+              .computeIfAbsent(rs.getString("registration_id"), key -> new ArrayList<>())
+              .add(participant);
+        },
+        ids.toArray());
+    return registrations.stream()
+        .map(
+            registration ->
+                withParticipants(
+                    registration,
+                    byRegistration.getOrDefault(registration.id(), List.of())))
+        .toList();
+  }
 
   Activity map(ResultSet r, int n) throws SQLException {
     try {
@@ -254,6 +306,7 @@ public class ActivityService {
             user)
         .stream()
         .findFirst()
+        .map(this::attachParticipants)
         .orElse(null);
   }
 
@@ -264,9 +317,51 @@ public class ActivityService {
       throw ApiException.conflict("REGISTRATION_CLOSED", "活动报名已关闭");
   }
 
+  List<ParticipantInput> validatedParticipants(RegistrationInput input) {
+    if (input.participants() == null || input.participants().isEmpty())
+      throw new ApiException(400, "PARTICIPANTS_REQUIRED", "请至少填写一位参与人");
+    var normalized = new ArrayList<ParticipantInput>();
+    var idNumbers = new HashSet<String>();
+    for (ParticipantInput participant : input.participants()) {
+      if (participant == null)
+        throw new ApiException(400, "INVALID_PARTICIPANT", "参与人信息不完整");
+      String name = participant.participantName() == null ? "" : participant.participantName().strip();
+      String idNumber = participant.idNumber() == null ? "" : participant.idNumber().strip().toUpperCase(Locale.ROOT);
+      String phone = participant.phone() == null ? "" : participant.phone().strip();
+      if (name.length() < 2 || name.length() > 80)
+        throw new ApiException(400, "INVALID_PARTICIPANT_NAME", "参与人姓名须为 2–80 字");
+      if (!phone.matches("[+0-9][0-9 ()-]{5,28}"))
+        throw new ApiException(400, "INVALID_PARTICIPANT_PHONE", "参与人手机号格式不正确");
+      if (!validIdNumber(idNumber))
+        throw new ApiException(400, "INVALID_ID_NUMBER", "请填写有效的 18 位身份证号");
+      if (!idNumbers.add(idNumber))
+        throw new ApiException(400, "DUPLICATE_PARTICIPANT", "同一报名中身份证号不能重复");
+      normalized.add(new ParticipantInput(name, idNumber, phone));
+    }
+    return normalized;
+  }
+
+  boolean validIdNumber(String value) {
+    if (!value.matches("[0-9]{17}[0-9X]")) return false;
+    try {
+      java.time.LocalDate.of(
+          Integer.parseInt(value.substring(6, 10)),
+          Integer.parseInt(value.substring(10, 12)),
+          Integer.parseInt(value.substring(12, 14)));
+    } catch (java.time.DateTimeException | NumberFormatException e) {
+      return false;
+    }
+    int[] weights = {7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2};
+    int sum = 0;
+    for (int index = 0; index < weights.length; index++)
+      sum += (value.charAt(index) - '0') * weights[index];
+    return "10X98765432".charAt(sum % 11) == value.charAt(17);
+  }
+
   @Transactional
   public RegisterResult register(String id, String user, RegistrationInput input) {
     legal.requireCurrent(input.privacyVersion(), input.termsVersion());
+    var participants = validatedParticipants(input);
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
     Registration existing = own(id, user);
@@ -275,34 +370,40 @@ public class ActivityService {
       return new RegisterResult(existing, false);
     }
     enrollmentOpen(a);
-    if (a.registeredCount() >= a.capacity()) throw ApiException.conflict("ACTIVITY_FULL", "活动名额已满");
+    if (participants.size() > a.capacity() - a.registeredCount())
+      throw ApiException.conflict("ACTIVITY_FULL", "名额已满或剩余名额不足，请减少参与人数后重试");
     var previous =
         db.queryForList(
             "SELECT id FROM registration WHERE activity_id=? AND user_id=?",
             String.class,
             id,
             user);
+    String registrationId = previous.isEmpty() ? UUID.randomUUID().toString() : previous.getFirst();
     if (previous.isEmpty())
       db.update(
-          "INSERT INTO registration(id,activity_id,user_id,participant_name,phone,status)"
-              + " VALUES(?,?,?,?,?,'CONFIRMED')",
-          UUID.randomUUID().toString(),
+          "INSERT INTO registration(id,activity_id,user_id,status) VALUES(?,?,?,'CONFIRMED')",
+          registrationId,
           id,
-          user,
-          input.participantName().strip(),
-          input.phone().strip());
+          user);
     else
       db.update(
-          "UPDATE registration SET"
-              + " status='CONFIRMED',participant_name=?,phone=?,created_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP"
-              + " WHERE id=?",
-          input.participantName().strip(),
-          input.phone().strip(),
-          previous.getFirst());
+          "UPDATE registration SET status='CONFIRMED',created_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+          registrationId);
+    db.update("DELETE FROM registration_participant WHERE registration_id=?", registrationId);
+    for (int index = 0; index < participants.size(); index++) {
+      ParticipantInput participant = participants.get(index);
+      db.update(
+          "INSERT INTO registration_participant(id,registration_id,participant_name,id_number,phone,position) VALUES(?,?,?,?,?,?)",
+          UUID.randomUUID().toString(),
+          registrationId,
+          participant.participantName(),
+          participant.idNumber(),
+          participant.phone(),
+          index);
+    }
     db.update(
-        "UPDATE activity SET"
-            + " registered_count=registered_count+1,version=version+1,updated_at=CURRENT_TIMESTAMP"
-            + " WHERE id=?",
+        "UPDATE activity SET registered_count=registered_count+?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        participants.size(),
         id);
     legal.accept(user, input.privacyVersion(), input.termsVersion(), "REGISTRATION");
     audit(user, id, "REGISTER");
@@ -312,7 +413,8 @@ public class ActivityService {
   @Transactional
   public void cancelOwn(String id, String user) {
     Activity a = lock(id);
-    if (own(id, user) == null) return;
+    Registration existing = own(id, user);
+    if (existing == null) return;
     enrollmentOpen(a);
     db.update(
         "UPDATE registration SET status='CANCELLED',updated_at=CURRENT_TIMESTAMP WHERE"
@@ -320,9 +422,8 @@ public class ActivityService {
         id,
         user);
     db.update(
-        "UPDATE activity SET"
-            + " registered_count=registered_count-1,version=version+1,updated_at=CURRENT_TIMESTAMP"
-            + " WHERE id=?",
+        "UPDATE activity SET registered_count=registered_count-?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        existing.participants().size(),
         id);
     audit(user, id, "UNREGISTER");
   }
@@ -354,7 +455,8 @@ public class ActivityService {
                 + " ORDER BY r.created_at DESC,r.id LIMIT ? OFFSET ?",
             registrationMapper,
             args.toArray());
-    return new Page<>(items, total, page, size, (long) (page + 1) * size < total);
+    return new Page<>(
+        attachParticipants(items), total, page, size, (long) (page + 1) * size < total);
   }
 
   void audit(String actor, String entity, String action) {

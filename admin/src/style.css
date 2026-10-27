@@ -157,14 +157,33 @@ fieldset {
   margin: 60px 12px 15px;
 }
 .nav-link {
+  display: flex;
+  align-items: center;
   border-radius: 8px;
   padding: 12px 14px;
   font-size: 13px;
+  color: #cbd6cc;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.nav-link + .nav-link {
+  margin-top: 8px;
+}
+.nav-link:hover {
+  background: #234a3e;
+  color: #fff;
+}
+.nav-link.router-link-active {
   background: #2a5043;
+  color: #fff;
+  font-weight: 600;
 }
 .nav-link span {
-  margin-right: 12px;
+  width: 18px;
+  margin-right: 10px;
   color: #d5dd99;
+  text-align: center;
 }
 .sidebar-bottom {
   margin-top: auto;

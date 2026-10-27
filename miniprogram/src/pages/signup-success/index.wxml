@@ -4,7 +4,7 @@
     >{{error}}<button class="secondary" bindtap="retry">重新核对</button
     ><button class="secondary" bindtap="registrations">我的报名</button></view
   >
-  <block wx:elif="{{confirmed && activity}}">
+  <block wx:elif="{{confirmed && activity && registration}}">
     <view class="success-mark">✓</view
     ><text class="eyebrow">SEE YOU OUTSIDE</text
     ><view class="title">山野见！</view
@@ -13,7 +13,7 @@
       ><image src="{{activity.coverUrl}}" mode="aspectFill" /><view
         class="trip-content"
         ><view class="trip-title">{{activity.title}}</view
-        ><view class="badge">已锁定 1 个名额</view
+        ><view class="badge">已锁定 {{registration.participants.length}} 个名额</view
         ><view class="trip-row"
           ><text>出发时间</text><view>{{activity.dateText}}</view></view
         ><view class="trip-row"
@@ -21,6 +21,14 @@
         ><view class="trip-row"
           ><text>集合地点</text><view>{{activity.meetingPoint}}</view></view
         ></view
+      ></view
+    >
+    <view class="section-head"
+      ><view class="section-title">参与人信息</view></view
+    >
+    <view class="record"
+      ><view wx:for="{{registration.participants}}" wx:key="id"
+        >参与人 {{index + 1}} · {{item.participantName}}</view
       ></view
     >
     <view class="notice"

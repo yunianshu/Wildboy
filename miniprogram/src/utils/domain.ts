@@ -1,4 +1,4 @@
-import { Activity, Category } from "./models";
+import { Activity, Category, ParticipantInput } from "./models";
 export const categories: {
   code: Category;
   name: string;
@@ -63,14 +63,51 @@ export function registrationState(
     return { enabled: false, label: "名额已满" };
   return { enabled: true, label: "免费报名" };
 }
-export function validateParticipant(
-  name: string,
-  phone: string,
+export function validIdNumber(value: string): boolean {
+  const id = value.trim().toUpperCase();
+  if (!/^\d{17}[\dX]$/.test(id)) return false;
+  const year = Number(id.slice(6, 10)),
+    month = Number(id.slice(10, 12)),
+    day = Number(id.slice(12, 14));
+  const birth = new Date(Date.UTC(year, month - 1, day));
+  if (
+    birth.getUTCFullYear() !== year ||
+    birth.getUTCMonth() !== month - 1 ||
+    birth.getUTCDate() !== day
+  )
+    return false;
+  const weights = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+  const sum = weights.reduce(
+    (total, weight, index) => total + Number(id[index]) * weight,
+    0,
+  );
+  return "10X98765432"[sum % 11] === id[17];
+}
+export function maskIdNumber(value: string): string {
+  if (!value) return "历史记录未登记";
+  return value.length === 18
+    ? `${value.slice(0, 6)}********${value.slice(-4)}`
+    : "••••••••••";
+}
+export function validateParticipants(
+  participants: ParticipantInput[],
   consent: boolean,
 ): string {
-  if (name.trim().length < 2 || name.trim().length > 40)
-    return "请填写 2–40 字的参加人姓名";
-  if (!/^1[3-9]\d{9}$/.test(phone.trim())) return "请填写有效的中国大陆手机号";
+  if (!participants.length) return "请至少添加一位参与人";
+  const idNumbers = new Set<string>();
+  for (let index = 0; index < participants.length; index++) {
+    const participant = participants[index];
+    const label = `第 ${index + 1} 位参与人`;
+    const name = participant.participantName.trim();
+    const idNumber = participant.idNumber.trim().toUpperCase();
+    if (name.length < 2 || name.length > 40)
+      return `${label}姓名须为 2–40 字`;
+    if (!validIdNumber(idNumber)) return `请填写${label}的有效身份证号`;
+    if (idNumbers.has(idNumber)) return `${label}与前一位参与人身份证号重复`;
+    idNumbers.add(idNumber);
+    if (!/^1[3-9]\d{9}$/.test(participant.phone.trim()))
+      return `请填写${label}的有效中国大陆手机号`;
+  }
   if (!consent) return "请先阅读并同意报名信息使用说明";
   return "";
 }

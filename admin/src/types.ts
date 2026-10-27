@@ -24,14 +24,60 @@ export interface Activity extends ActivityInput {
   createdAt: string;
   updatedAt: string;
 }
+export interface Participant {
+  id: string;
+  participantName: string;
+  idNumber: string;
+  phone: string;
+}
 export interface Registration {
   id: string;
   activityId: string;
   activityTitle: string;
   status: "CONFIRMED" | "CANCELLED";
   createdAt: string;
-  participantName: string;
+  participants: Participant[];
+}
+export type ProductStatus = "ON_SALE" | "OFF_SHELF";
+export interface ProductInput {
+  name: string;
+  description: string;
+  imageUrl: string;
+  priceCents: number;
+  stock: number;
+  status: ProductStatus;
+}
+export interface Product extends ProductInput {
+  id: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+}
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED";
+export interface OrderItem {
+  id: string;
+  productId: string;
+  productName: string;
+  imageUrl: string;
+  priceCents: number;
+  quantity: number;
+}
+export interface Order {
+  id: string;
+  orderNo: string;
+  userId: string;
+  totalCents: number;
+  status: OrderStatus;
+  recipientName: string;
   phone: string;
+  address: string;
+  paymentTransactionId: string | null;
+  paymentInitiated: boolean;
+  paidAt: string | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
 }
 export interface Page<T> {
   items: T[];

@@ -28,27 +28,69 @@
         <view class="booking-title">{{activity.title}}</view>
         <view class="muted">{{activity.dateText}} · {{activity.location}}</view>
       </view>
-      <view class="field">
-        <text class="label">参加人姓名</text>
-        <input
-          value="{{name}}"
-          maxlength="40"
-          placeholder="请填写真实参加人姓名"
-          bindinput="inputName"
-          disabled="{{submitting}}"
-        />
+      <view class="section-head">
+        <view class="section-title">参与人信息</view>
+        <text class="muted">共 {{participants.length}} 人 · 剩余 {{activity.available}} 个名额</text>
       </view>
-      <view class="field">
-        <text class="label">联系手机号</text>
-        <input
-          value="{{phone}}"
-          type="number"
-          maxlength="11"
-          placeholder="便于主理人联系活动安排"
-          bindinput="inputPhone"
-          disabled="{{submitting}}"
-        />
+      <view
+        class="participant-card"
+        wx:for="{{participants}}"
+        wx:key="index"
+        wx:for-index="index"
+      >
+        <view class="participant-head">
+          <text>参与人 {{index + 1}}</text>
+          <button
+            wx:if="{{participants.length > 1}}"
+            class="text-button"
+            data-index="{{index}}"
+            bindtap="removeParticipant"
+            disabled="{{submitting}}"
+          >删除</button>
+        </view>
+        <view class="field">
+          <text class="label">姓名</text>
+          <input
+            value="{{item.participantName}}"
+            maxlength="40"
+            placeholder="请填写真实姓名"
+            data-index="{{index}}"
+            data-field="participantName"
+            bindinput="inputParticipant"
+            disabled="{{submitting}}"
+          />
+        </view>
+        <view class="field">
+          <text class="label">身份证号</text>
+          <input
+            value="{{item.idNumber}}"
+            maxlength="18"
+            placeholder="用于本次活动身份核验"
+            data-index="{{index}}"
+            data-field="idNumber"
+            bindinput="inputParticipant"
+            disabled="{{submitting}}"
+          />
+        </view>
+        <view class="field">
+          <text class="label">手机号</text>
+          <input
+            value="{{item.phone}}"
+            type="number"
+            maxlength="11"
+            placeholder="便于主理人联系活动安排"
+            data-index="{{index}}"
+            data-field="phone"
+            bindinput="inputParticipant"
+            disabled="{{submitting}}"
+          />
+        </view>
       </view>
+      <button
+        class="secondary add-participant"
+        bindtap="addParticipant"
+        disabled="{{submitting || participants.length >= activity.available}}"
+      >＋ 添加参与人</button>
       <checkbox-group bindchange="consentChange">
         <label class="consent">
           <checkbox
@@ -58,7 +100,7 @@
             disabled="{{submitting}}"
           />
           <text>
-            我已阅读并同意当前版本隐私政策、用户协议，并同意将姓名和手机号用于本次活动组织与联系。
+            我已阅读并同意当前版本隐私政策、用户协议，并同意将所有参与人的姓名、身份证号和手机号用于本次活动身份核验、组织与联系。
           </text>
         </label>
       </checkbox-group>
@@ -73,7 +115,7 @@
         <button class="secondary" bindtap="retry">重新读取协议</button>
       </view>
       <view class="notice">
-        点击报名时将通过微信登录识别你的账号。不会获取微信密码，也不会自动发起支付。每个微信账号每场活动限一个有效名额。
+        点击报名时将通过微信登录识别你的账号。不会获取微信密码，也不会自动发起支付。每个微信账号每场活动限一笔有效报名，可为多位参与人一次报名。
       </view>
       <view wx:if="{{fieldError}}" class="error form-error">
         {{fieldError}}

@@ -2,6 +2,7 @@ package com.wildboy;
 
 import static com.wildboy.Models.*;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -52,6 +53,10 @@ class BackendIntegrationTest {
   @Autowired JdbcTemplate db;
   @Autowired ObjectMapper json;
   @Autowired LegalService legal;
+  @Autowired ShopService shop;
+
+  @org.springframework.test.context.bean.override.mockito.MockitoBean
+  WechatPayService pay;
 
   @BeforeEach
   void clean() {
@@ -61,6 +66,8 @@ class BackendIntegrationTest {
             + " draft_title='',draft_content='',draft_revision=0,published_version=NULL");
     db.update("DELETE FROM audit_event");
     db.update("DELETE FROM registration");
+    db.update("DELETE FROM shop_order");
+    db.update("DELETE FROM product");
     db.update("DELETE FROM activity");
     db.update("DELETE FROM auth_session");
     db.update("DELETE FROM app_user");
@@ -100,8 +107,43 @@ class BackendIntegrationTest {
     return activities.publish(a.id(), a.version(), "fixture");
   }
 
+  RegistrationInput registrationInput(String name, String phone) {
+    return registrationInput(name, phone, 1L, 1L);
+  }
+
+  RegistrationInput registrationInput(
+      String name, String phone, Long privacyVersion, Long termsVersion) {
+    return new RegistrationInput(
+        List.of(new ParticipantInput(name, "11010519491231002X", phone)),
+        privacyVersion,
+        termsVersion);
+  }
+
   User user() {
     return auth.user("fixture:" + UUID.randomUUID(), "Test user", "USER");
+  }
+
+  ShopModels.Product product(int priceCents, int stock) {
+    return shop.createProduct(
+        new ShopModels.ProductInput(
+            "QA backpack",
+            "Synthetic test product",
+            "/assets/equipment.jpg",
+            priceCents,
+            stock,
+            ShopModels.ProductStatus.ON_SALE,
+            null),
+        "fixture");
+  }
+
+  ShopModels.OrderInput orderInput(String productId, int quantity) {
+    return new ShopModels.OrderInput(
+        List.of(new ShopModels.OrderItemInput(productId, quantity)),
+        "QA recipient",
+        "13800000000",
+        "Xiamen synthetic address",
+        1L,
+        1L);
   }
 
   String bearer(User u) {
@@ -152,9 +194,7 @@ class BackendIntegrationTest {
     Activity a = publish(1);
     String token = bearer(user());
     String path = "/api/v1/activities/" + a.id() + "/registrations";
-    String body =
-        "{\"participantName\":\"QA"
-            + " private\",\"phone\":\"13800001234\",\"privacyVersion\":1,\"termsVersion\":1}";
+    String body = json.writeValueAsString(registrationInput("QA private", "13800001234"));
     mvc.perform(
             post(path).header("Authorization", token).contentType("application/json").content(body))
         .andExpect(status().isCreated());
@@ -163,7 +203,7 @@ class BackendIntegrationTest {
         .andExpect(status().isOk());
     assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(1);
     mvc.perform(get(path + "/me").header("Authorization", token))
-        .andExpect(jsonPath("$.participantName").value("QA private"));
+        .andExpect(jsonPath("$.participants[0].participantName").value("QA private"));
     mvc.perform(get("/api/v1/activities/" + a.id()))
         .andExpect(
             content()
@@ -196,7 +236,7 @@ class BackendIntegrationTest {
                 ready.await();
                 try {
                   activities.register(
-                      a.id(), u.id(), new RegistrationInput("QA", "13800001234", 1L, 1L));
+                      a.id(), u.id(), registrationInput("QA", "13800001234", 1L, 1L));
                   return true;
                 } catch (ApiException e) {
                   assertThat(e.code).isEqualTo("ACTIVITY_FULL");
@@ -225,7 +265,7 @@ class BackendIntegrationTest {
       calls.add(
           () ->
               activities.register(
-                  a.id(), u.id(), new RegistrationInput("QA", "13800001234", 1L, 1L)));
+                  a.id(), u.id(), registrationInput("QA", "13800001234", 1L, 1L)));
     var results = pool.invokeAll(calls);
     int created = 0;
     for (var r : results) if (r.get().created()) created++;
@@ -235,10 +275,53 @@ class BackendIntegrationTest {
   }
 
   @Test
+  void multipleParticipantsConsumeAndReleaseAllSeatsAtomically() {
+    Activity a = publish(3);
+    User owner = user(), other = user();
+    var first = new ParticipantInput("第一位", "11010519491231002X", "13800000001");
+    var second = new ParticipantInput("第二位", "110105194912310038", "13800000002");
+    var input = new RegistrationInput(List.of(first, second), 1L, 1L);
+    var created = activities.register(a.id(), owner.id(), input);
+    assertThat(created.created()).isTrue();
+    assertThat(created.registration().participants()).hasSize(2);
+    assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(2);
+    assertThat(activities.register(a.id(), owner.id(), input).created()).isFalse();
+    assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(2);
+    assertThatThrownBy(() -> activities.register(a.id(), other.id(), input))
+        .hasMessageContaining("剩余名额不足");
+    activities.cancelOwn(a.id(), owner.id());
+    assertThat(activities.get(a.id(), true).registeredCount()).isZero();
+    var reregistered =
+        activities.register(
+            a.id(), owner.id(), new RegistrationInput(List.of(second), 1L, 1L));
+    assertThat(reregistered.registration().participants())
+        .extracting(Participant::idNumber)
+        .containsExactly("110105194912310038");
+    assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(1);
+    assertThatThrownBy(
+            () ->
+                activities.register(
+                    a.id(),
+                    other.id(),
+                    new RegistrationInput(
+                        List.of(
+                            new ParticipantInput(
+                                "错误证件", "110105194912310020", "13800000003")),
+                        1L,
+                        1L)))
+        .hasMessageContaining("身份证");
+    assertThatThrownBy(
+            () ->
+                activities.register(
+                    a.id(), other.id(), new RegistrationInput(List.of(first, first), 1L, 1L)))
+        .hasMessageContaining("不能重复");
+  }
+
+  @Test
   void staleEditCapacityAndCancelAtomic() {
     Activity a = publish(2);
-    activities.register(a.id(), user().id(), new RegistrationInput("One", "13800000001", 1L, 1L));
-    activities.register(a.id(), user().id(), new RegistrationInput("Two", "13800000002", 1L, 1L));
+    activities.register(a.id(), user().id(), registrationInput("One", "13800000001", 1L, 1L));
+    activities.register(a.id(), user().id(), registrationInput("Two", "13800000002", 1L, 1L));
     assertThatThrownBy(() -> activities.edit(a.id(), input(1), "fixture"))
         .isInstanceOf(ApiException.class)
         .hasMessageContaining("刷新");
@@ -271,7 +354,7 @@ class BackendIntegrationTest {
     assertThatThrownBy(
             () ->
                 activities.register(
-                    a.id(), user().id(), new RegistrationInput("Three", "13800000003", 1L, 1L)))
+                    a.id(), user().id(), registrationInput("Three", "13800000003", 1L, 1L)))
         .hasMessageContaining("关闭");
   }
 
@@ -279,14 +362,14 @@ class BackendIntegrationTest {
   void expiredRegistrationAndCancellationRejected() {
     Activity a = publish(4);
     User u = user();
-    activities.register(a.id(), u.id(), new RegistrationInput("QA", "13800000000", 1L, 1L));
+    activities.register(a.id(), u.id(), registrationInput("QA", "13800000000", 1L, 1L));
     db.update(
         "UPDATE activity SET registration_deadline=CURRENT_TIMESTAMP-INTERVAL '1 hour' WHERE id=?",
         a.id());
     assertThatThrownBy(
             () ->
                 activities.register(
-                    a.id(), user().id(), new RegistrationInput("Another", "13800000001", 1L, 1L)))
+                    a.id(), user().id(), registrationInput("Another", "13800000001", 1L, 1L)))
         .hasMessageContaining("关闭");
     assertThatThrownBy(() -> activities.cancelOwn(a.id(), u.id())).hasMessageContaining("关闭");
     assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(1);
@@ -512,12 +595,13 @@ class BackendIntegrationTest {
                 .header("Authorization", ordinaryToken)
                 .contentType("application/json")
                 .content(
-                    "{\"participantName\":\"Private"
-                        + " attendee\",\"phone\":\"13800008888\",\"privacyVersion\":1,\"termsVersion\":1}"))
+                    json.writeValueAsString(
+                        registrationInput("Private attendee", "13800008888"))))
         .andExpect(status().isCreated());
     mvc.perform(get(base + "/registrations").header("Authorization", adminToken))
-        .andExpect(jsonPath("$.items[0].participantName").value("Private attendee"))
-        .andExpect(jsonPath("$.items[0].phone").value("13800008888"));
+        .andExpect(
+            jsonPath("$.items[0].participants[0].participantName").value("Private attendee"))
+        .andExpect(jsonPath("$.items[0].participants[0].phone").value("13800008888"));
     current = activities.get(draft.id(), true);
     mvc.perform(
             post(base + "/cancel")
@@ -582,9 +666,9 @@ class BackendIntegrationTest {
     for (int i = 0; i < 3; i++) {
       Activity a = publish(3);
       activities.register(
-          a.id(), owner.id(), new RegistrationInput("Owner", "13800000001", 1L, 1L));
+          a.id(), owner.id(), registrationInput("Owner", "13800000001", 1L, 1L));
       activities.register(
-          a.id(), other.id(), new RegistrationInput("Other", "13800000002", 1L, 1L));
+          a.id(), other.id(), registrationInput("Other", "13800000002", 1L, 1L));
       if (i == 0) activities.cancelOwn(a.id(), owner.id());
     }
     String token = bearer(owner);
@@ -594,7 +678,7 @@ class BackendIntegrationTest {
         .andExpect(jsonPath("$.total").value(2))
         .andExpect(jsonPath("$.items.length()").value(1))
         .andExpect(jsonPath("$.hasMore").value(true))
-        .andExpect(jsonPath("$.items[0].participantName").value("Owner"));
+        .andExpect(jsonPath("$.items[0].participants[0].participantName").value("Owner"));
     mvc.perform(get(path + "?status=CONFIRMED&size=1&page=1").header("Authorization", token))
         .andExpect(jsonPath("$.total").value(2))
         .andExpect(jsonPath("$.hasMore").value(false));
@@ -756,7 +840,7 @@ class BackendIntegrationTest {
                 .header("Authorization", token)
                 .contentType("application/json")
                 .content(
-                    json.writeValueAsString(new RegistrationInput("QA", "13800001234", 1L, 1L))))
+                    json.writeValueAsString(registrationInput("QA", "13800001234", 1L, 1L))))
         .andExpect(status().isServiceUnavailable());
     mvc.perform(
             post("/api/v1/auth/admin")
@@ -792,24 +876,137 @@ class BackendIntegrationTest {
   void registrationPolicyChangeBlocksOldConsentButDoesNotBlockCancellation() {
     Activity a = publish(1);
     User first = user(), second = user();
-    activities.register(a.id(), first.id(), new RegistrationInput("QA", "13800001234", 1L, 1L));
+    activities.register(a.id(), first.id(), registrationInput("QA", "13800001234", 1L, 1L));
     assertThatThrownBy(
             () ->
                 activities.register(
-                    a.id(), second.id(), new RegistrationInput("QA2", "13800001235", 1L, 1L)))
+                    a.id(), second.id(), registrationInput("QA2", "13800001235", 1L, 1L)))
         .hasMessageContaining("已满");
     assertThat(legal.consentState(second.id()).accepted()).isNull();
     publishLegalPrivacy2();
     assertThatThrownBy(
             () ->
                 activities.register(
-                    a.id(), second.id(), new RegistrationInput("QA2", "13800001235", 1L, 1L)))
+                    a.id(), second.id(), registrationInput("QA2", "13800001235", 1L, 1L)))
         .hasMessageContaining("更新");
     activities.cancelOwn(a.id(), first.id());
     assertThat(activities.get(a.id(), true).registeredCount()).isZero();
-    activities.register(a.id(), second.id(), new RegistrationInput("QA2", "13800001235", 2L, 1L));
+    activities.register(a.id(), second.id(), registrationInput("QA2", "13800001235", 2L, 1L));
     assertThat(legal.consentState(first.id()).accepted().privacyVersion()).isEqualTo(1);
     assertThat(legal.consentState(second.id()).accepted().privacyVersion()).isEqualTo(2);
+  }
+
+  @Test
+  void shopUsesServerPriceAndPreventsOverselling() throws Exception {
+    var product = product(1299, 2);
+    User owner = user(), other = user();
+    var order = shop.createOrder(owner.id(), orderInput(product.id(), 2));
+    assertThat(order.totalCents()).isEqualTo(2598);
+    assertThat(order.items().getFirst().productName()).isEqualTo("QA backpack");
+    assertThat(shop.product(product.id(), true).stock()).isZero();
+    assertThatThrownBy(() -> shop.createOrder(other.id(), orderInput(product.id(), 1)))
+        .hasMessageContaining("库存不足");
+    assertThatThrownBy(() -> shop.order(order.id(), other.id(), false))
+        .isInstanceOf(ApiException.class)
+        .hasMessageContaining("不存在");
+    assertThat(shop.orders(owner.id(), null, 0, 20).total()).isEqualTo(1);
+    assertThat(shop.orders(other.id(), null, 0, 20).total()).isZero();
+  }
+
+  @Test
+  void shopConcurrentOrdersNeverExceedStock() throws Exception {
+    var product = product(100, 3);
+    var users = new ArrayList<User>();
+    for (int index = 0; index < 12; index++) users.add(user());
+    var pool = Executors.newFixedThreadPool(6);
+    var futures = new ArrayList<Future<Boolean>>();
+    for (User current : users)
+      futures.add(
+          pool.submit(
+              () -> {
+                try {
+                  shop.createOrder(current.id(), orderInput(product.id(), 1));
+                  return true;
+                } catch (ApiException e) {
+                  assertThat(e.code).isEqualTo("INSUFFICIENT_STOCK");
+                  return false;
+                }
+              }));
+    int successes = 0;
+    for (var future : futures) if (future.get(30, TimeUnit.SECONDS)) successes++;
+    pool.shutdownNow();
+    assertThat(successes).isEqualTo(3);
+    assertThat(shop.product(product.id(), true).stock()).isZero();
+    assertThat(shop.orders(null, ShopModels.OrderStatus.PENDING_PAYMENT, 0, 20).total())
+        .isEqualTo(3);
+  }
+
+  @Test
+  void paymentPrepayCloseAndShipmentFollowOrderState() {
+    var product = product(5000, 2);
+    User customer = auth.user("wechat:qa-openid", "Wechat customer", "USER");
+    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
+    when(pay.prepay(any(), eq("qa-openid")))
+        .thenReturn(
+            new ShopModels.PaymentRequest(
+                "1", "nonce", "prepay_id=qa", "RSA", "signature"));
+    var payment = shop.payment(order.id(), customer.id());
+    assertThat(payment.packageValue()).isEqualTo("prepay_id=qa");
+    assertThat(shop.order(order.id(), customer.id(), false).paymentInitiated()).isTrue();
+    var cancelled = shop.cancelOrder(order.id(), customer.id());
+    assertThat(cancelled.status()).isEqualTo("CANCELLED");
+    assertThat(shop.product(product.id(), true).stock()).isEqualTo(2);
+    verify(pay).closeOrder(order.orderNo());
+    assertThatThrownBy(() -> shop.payment(order.id(), customer.id()))
+        .hasMessageContaining("不可支付");
+  }
+
+  @Test
+  void onlyVerifiedPaymentNotificationMarksPaidOnce() {
+    var product = product(3600, 1);
+    User customer = user();
+    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
+    when(pay.enabled()).thenReturn(true);
+    when(pay.merchantId()).thenReturn("merchant-qa");
+    var transaction = new com.wechat.pay.java.service.payments.model.Transaction();
+    transaction.setMchid("merchant-qa");
+    transaction.setOutTradeNo(order.orderNo());
+    transaction.setTransactionId("transaction-qa");
+    transaction.setTradeState(
+        com.wechat.pay.java.service.payments.model.Transaction.TradeStateEnum.SUCCESS);
+    var amount = new com.wechat.pay.java.service.payments.model.TransactionAmount();
+    amount.setTotal(order.totalCents());
+    transaction.setAmount(amount);
+    shop.completePayment(transaction);
+    assertThat(shop.order(order.id(), customer.id(), false).status()).isEqualTo("PAID");
+    shop.completePayment(transaction);
+    assertThat(shop.order(order.id(), customer.id(), false).version()).isEqualTo(1);
+    var shipped = shop.ship(order.id(), 1L, "fixture-admin");
+    assertThat(shipped.status()).isEqualTo("SHIPPED");
+    var secondProduct = product(3600, 1);
+    var second = shop.createOrder(user().id(), orderInput(secondProduct.id(), 1));
+    transaction.setOutTradeNo(second.orderNo());
+    transaction.setTransactionId("transaction-other");
+    amount.setTotal(1);
+    assertThatThrownBy(() -> shop.completePayment(transaction))
+        .hasMessageContaining("金额不匹配");
+    assertThat(shop.order(second.id(), second.userId(), false).status())
+        .isEqualTo("PENDING_PAYMENT");
+  }
+
+  @Test
+  void devIdentityCannotCreateRealPaymentOrMarkOrderPaid() throws Exception {
+    var product = product(100, 1);
+    User customer = user();
+    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
+    mvc.perform(
+            post("/api/v1/orders/" + order.id() + "/pay")
+                .header("Authorization", bearer(customer)))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WECHAT_IDENTITY_REQUIRED"));
+    assertThat(shop.order(order.id(), customer.id(), false).status())
+        .isEqualTo("PENDING_PAYMENT");
+    verify(pay, never()).prepay(any(), any());
   }
 
   @Test

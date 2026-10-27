@@ -2,14 +2,35 @@
   "description": "Wildboy 户外活动微信小程序；先 npm ci && npm run build，再导入本目录。",
   "compileType": "miniprogram",
   "miniprogramRoot": "dist/",
-  "appid": "touristappid",
+  "appid": "wx213637d718ac5d52",
   "projectname": "Wildboy",
   "setting": {
     "es6": true,
     "minified": true,
-    "urlCheck": true
+    "urlCheck": true,
+    "postcss": false,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "enhance": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "packOptions": {
-    "ignore": []
-  }
+    "ignore": [],
+    "include": []
+  },
+  "simulatorPluginLibVersion": {},
+  "editorSetting": {}
 }

@@ -12,12 +12,16 @@ import { message, RequestEpoch } from "../../utils/domain";
 const epoch = new RequestEpoch();
 Page({
   data: {
+    topInset: 48,
     user: null as User | null,
     requiresConsent: false,
     legalStatusError: "",
     loading: false,
     loggingIn: false,
     error: "",
+  },
+  onLoad() {
+    this.setData({ topInset: wx.getWindowInfo().statusBarHeight + 10 });
   },
   onShow() {
     void this.load();
@@ -85,6 +89,9 @@ Page({
   },
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
+  },
+  orders() {
+    wx.navigateTo({ url: "/pages/orders/index" });
   },
   manage() {
     if (this.data.user?.role === "ADMIN")

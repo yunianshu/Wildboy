@@ -205,7 +205,7 @@ test("admin list can navigate create/edit/roster only after role verification", 
   p.create();
   assert.equal(navigations.length, 3);
 });
-test("canceling publish confirmation sends no mutation and double click has one pending action", async () => {
+test("canceling in-page publish confirmation sends no mutation", async () => {
   store["wildboy-session"] = "admin-token";
   transport = (o) =>
     respond(
@@ -216,19 +216,29 @@ test("canceling publish confirmation sends no mutation and double click has one 
     );
   const p = page("admin-activities");
   await p.load(true);
-  let answer,
-    dialogs = 0;
-  wx.showModal = () => {
-    dialogs++;
-    return new Promise((r) => (answer = r));
-  };
-  const first = p.change(event({ id: "activity-1", action: "publish" }));
   await p.change(event({ id: "activity-1", action: "publish" }));
-  assert.equal(dialogs, 1);
-  answer({ confirm: false });
-  await first;
+  await p.change(event({ id: "activity-1", action: "publish" }));
+  assert.equal(p.data.pendingId, "activity-1");
+  p.cancelChange();
   assert.equal(requests.filter((o) => o.method === "POST").length, 0);
-  assert.equal(p.data.busyId, "");
+  assert.equal(p.data.pendingId, "");
+});
+test("in-page confirmation executes the confirmed admin mutation", async () => {
+  store["wildboy-session"] = "admin-token";
+  transport = (o) =>
+    respond(
+      o,
+      o.url.endsWith("/me")
+        ? { id: "a", role: "ADMIN" }
+        : o.method === "POST"
+          ? respond(o, fixtureActivity({ status: "CANCELLED" }))
+          : pageResult([fixtureActivity()]),
+    );
+  const p = page("admin-activities");
+  await p.load(true);
+  await p.change(event({ id: "activity-1", action: "cancel" }));
+  await p.confirmChange();
+  assert.equal(requests.filter((o) => o.method === "POST").length, 1);
 });
 test("switching accounts during confirmation blocks the old admin mutation", async () => {
   store["wildboy-session"] = "admin-token";
@@ -241,13 +251,10 @@ test("switching accounts during confirmation blocks the old admin mutation", asy
     );
   const p = page("admin-activities");
   await p.load(true);
-  let answer;
-  wx.showModal = () => new Promise((r) => (answer = r));
-  const pending = p.change(event({ id: "activity-1", action: "cancel" }));
+  await p.change(event({ id: "activity-1", action: "cancel" }));
   api.logout();
   store["wildboy-session"] = "user-token";
-  answer({ confirm: true });
-  await pending;
+  await p.confirmChange();
   assert.equal(requests.filter((o) => o.method === "POST").length, 0);
 });
 test("publish includes exact current version and conflict is not shown as success", async () => {
@@ -261,6 +268,7 @@ test("publish includes exact current version and conflict is not shown as succes
   const p = page("admin-activities");
   await p.load(true);
   await p.change(event({ id: "activity-1", action: "publish" }));
+  await p.confirmChange();
   const mutation = requests.find((o) => o.method === "POST");
   assert.equal(
     mutation.url,
@@ -276,8 +284,14 @@ const registration = {
   activityTitle: "Synthetic forest hike",
   status: "CONFIRMED",
   createdAt: "2099-10-25T08:00:00+08:00",
-  participantName: "Synthetic participant",
-  phone: "13800000000",
+  participants: [
+    {
+      id: "participant-1",
+      participantName: "Synthetic participant",
+      idNumber: "11010519491231002X",
+      phone: "13800000000",
+    },
+  ],
 };
 test("signup success refuses forged registration IDs and cancelled records", async () => {
   store["wildboy-session"] = "user-token";
@@ -327,9 +341,14 @@ test("registration does not claim success for malformed successful HTTP response
   const p = page("register");
   p.setData({
     id: "activity-1",
-    activity: { enabled: true },
-    name: "Synthetic participant",
-    phone: "13800000000",
+    activity: { enabled: true, available: 20 },
+    participants: [
+      {
+        participantName: "Synthetic participant",
+        idNumber: "11010519491231002X",
+        phone: "13800000000",
+      },
+    ],
     consent: true,
     legal: legalFixture,
     privacyRead: true,
@@ -346,9 +365,14 @@ test("registration submits once and links returned receipt without participant P
   const p = page("register");
   p.setData({
     id: "activity-1",
-    activity: { enabled: true },
-    name: "Synthetic participant",
-    phone: "13800000000",
+    activity: { enabled: true, available: 20 },
+    participants: [
+      {
+        participantName: "Synthetic participant",
+        idNumber: "11010519491231002X",
+        phone: "13800000000",
+      },
+    ],
     consent: true,
     legal: legalFixture,
     privacyRead: true,
@@ -363,8 +387,8 @@ test("registration submits once and links returned receipt without participant P
   respond(pending, registration, 201);
   await first;
   assert.equal(p.data.success, true);
-  assert.equal(p.data.name, "");
-  assert.equal(p.data.phone, "");
+  assert.equal(p.data.participants[0].participantName, "");
+  assert.equal(p.data.participants.length, 1);
   assert.deepEqual(navigations, [
     "/pages/signup-success/index?id=activity-1&registrationId=registration-1",
   ]);
@@ -445,6 +469,7 @@ test("editor creates draft then publishes using the returned server ID and versi
   await p.load();
   p.setData({ form: validForm() });
   await p.save(event({ action: "publish" }));
+  await p.confirmPublish();
   const writes = requests.filter((o) => o.method === "POST");
   assert.equal(writes.length, 2);
   assert.equal(writes[0].url, "https://wildboy.test/api/v1/admin/activities");
@@ -465,8 +490,8 @@ test("editor cancelled publish confirmation performs neither create nor publish"
   p.onLoad({});
   await p.load();
   p.setData({ form: validForm() });
-  modalAnswer = { confirm: false };
   await p.save(event({ action: "publish" }));
+  p.cancelPublish();
   assert.equal(requests.filter((o) => o.method === "POST").length, 0);
   assert.equal(p.data.busy, false);
 });
@@ -515,11 +540,14 @@ test("roster private fields are masked in data and cleared when leaving", async 
   const p = page("admin-roster");
   p.onLoad({ id: "activity-1" });
   await p.load(true);
-  assert.equal(p.data.items[0].maskedPhone, "138 **** 0000");
+  assert.equal(p.data.items[0].participants[0].maskedPhone, "138 **** 0000");
+  assert.equal(p.data.items[0].participants[0].maskedId, "110105********002X");
   assert.equal(JSON.stringify(p.data).includes("13800000000"), false);
+  assert.equal(JSON.stringify(p.data).includes("11010519491231002X"), false);
   p.onHide();
   assert.deepEqual(p.data.items, []);
   assert.deepEqual(p._phones, {});
+  assert.deepEqual(p._idNumbers, {});
   assert.equal(p.data.authorized, false);
 });
 test("roster reveal revalidates role and clears cached participants when access is lost", async () => {
@@ -542,11 +570,12 @@ test("roster reveal revalidates role and clears cached participants when access 
     return { confirm: true };
   };
   transport = (o) => respond(o, { id: "a", role: "USER" });
-  await p.reveal(event({ id: "registration-1" }));
+  await p.reveal(event({ id: "participant-1" }));
   assert.equal(dialogs, 0);
   assert.equal(p.data.authorized, false);
   assert.deepEqual(p.data.items, []);
   assert.deepEqual(p._phones, {});
+  assert.deepEqual(p._idNumbers, {});
 });
 test("all configured native pages and WXML handlers exist in final artifact", () => {
   const app = JSON.parse(fs.readFileSync(path.join(DIST, "app.json"), "utf8"));

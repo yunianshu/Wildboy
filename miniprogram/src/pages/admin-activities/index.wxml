@@ -90,4 +90,14 @@
       {{loadingMore?'正在加载…':(hasMore?'向下滑动加载更多':'已显示全部活动')}}
     </view>
   </view>
+  <view wx:if="{{pendingId}}" class="confirm-mask">
+    <view class="confirm-card">
+      <view class="section-title">{{pendingAction === 'publish' ? '确认发布活动？' : '确认取消活动？'}}</view>
+      <view class="muted">{{pendingAction === 'publish' ? '发布后微信用户可以看到并报名。' : '所有已确认报名将取消，并保留记录。当前不会自动发送通知，请另行联系参加者。'}}</view>
+      <view class="confirm-actions">
+        <button class="secondary" bindtap="cancelChange">返回检查</button>
+        <button class="primary {{pendingAction === 'cancel' ? 'danger' : ''}}" bindtap="confirmChange">{{pendingAction === 'publish' ? '确认发布' : '取消活动'}}</button>
+      </view>
+    </view>
+  </view>
 </view>

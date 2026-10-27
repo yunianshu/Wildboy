@@ -26,13 +26,23 @@
   margin-top: 12rpx;
 }
 .member {
-  display: flex;
-  align-items: flex-start;
-  gap: 20rpx;
   background: #fffdf7;
   padding: 26rpx 22rpx;
   border-radius: 18rpx;
   margin-bottom: 22rpx;
+}
+.participant-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+.participant-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx solid #e4e8de;
 }
 .avatar {
   width: 68rpx;

@@ -1,4 +1,6 @@
 {
-  "navigationBarTitleText": "探索活动",
-  "enablePullDownRefresh": true
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#F6F4ED",
+  "backgroundTextStyle": "dark"
 }

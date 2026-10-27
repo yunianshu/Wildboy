@@ -62,6 +62,12 @@ function maskPhone(phone: string) {
     ? `${phone.slice(0, 3)}••••${phone.slice(-4)}`
     : "••••";
 }
+function maskIdNumber(idNumber: string) {
+  if (!idNumber) return "历史记录未登记";
+  return idNumber.length === 18
+    ? `${idNumber.slice(0, 6)}••••••••${idNumber.slice(-4)}`
+    : "••••••••••";
+}
 watch(page, load);
 onMounted(load);
 onUnmounted(() => {
@@ -93,7 +99,7 @@ onUnmounted(() => {
       >
     </section>
     <div class="privacy-note">
-      报名信息仅用于本次活动组织。手机号默认隐藏，点击后可查看；请勿公开名单、截图或用于无关营销。
+      姓名、身份证号和手机号仅用于本次活动身份核验与组织联系。敏感信息默认隐藏，点击后可查看；请勿公开名单、截图或用于无关营销。
     </div>
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
@@ -108,29 +114,47 @@ onUnmounted(() => {
         <thead>
           <tr>
             <th>参与者</th>
+            <th>身份证号</th>
             <th>联系方式</th>
             <th>报名时间 / 北京时间</th>
             <th>状态</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="item in data.items" :key="item.id">
+        <tbody v-for="item in data.items" :key="item.id">
+          <tr
+            v-for="(participant, index) in item.participants"
+            :key="participant.id"
+          >
             <td>
-              <strong>{{ item.participantName }}</strong>
+              <strong>{{ participant.participantName }}</strong>
+              <span v-if="index === 0" class="muted">
+                · 本单 {{ item.participants.length }} 人</span
+              >
+            </td>
+            <td>
+              {{
+                revealed.has(participant.id)
+                  ? participant.idNumber
+                  : maskIdNumber(participant.idNumber)
+              }}
             </td>
             <td>
               <span>{{
-                revealed.has(item.id) ? item.phone : maskPhone(item.phone)
+                revealed.has(participant.id)
+                  ? participant.phone
+                  : maskPhone(participant.phone)
               }}</span
               ><button
                 class="text-button phone-toggle"
-                @click="toggle(item.id)"
+                @click="toggle(participant.id)"
               >
-                {{ revealed.has(item.id) ? "隐藏" : "查看" }}
+                {{ revealed.has(participant.id) ? "隐藏" : "查看" }}
               </button>
             </td>
-            <td>{{ displayDate(item.createdAt) }}</td>
-            <td>
+            <td v-if="index === 0" :rowspan="item.participants.length">
+              {{ displayDate(item.createdAt) }}
+            </td>
+            <td v-if="index === 0" :rowspan="item.participants.length">
               <span
                 class="status-pill inline"
                 :class="item.status === 'CONFIRMED' ? 'published' : 'cancelled'"
@@ -144,7 +168,7 @@ onUnmounted(() => {
     <nav class="pagination" aria-label="名单分页">
       <button class="secondary" :disabled="busy || page === 0" @click="page--">
         上一页</button
-      ><span>第 {{ page + 1 }} 页 · 共 {{ data.total }} 条记录</span
+      ><span>第 {{ page + 1 }} 页 · 共 {{ data.total }} 笔报名</span
       ><button
         class="secondary"
         :disabled="busy || !data.hasMore"

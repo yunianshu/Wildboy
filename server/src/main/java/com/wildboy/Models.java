@@ -1,5 +1,6 @@
 package com.wildboy;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -65,18 +66,24 @@ public final class Models {
       @Min(0) @Max(0) int priceCents,
       Long version) {}
 
+  public record Participant(
+      String id, String participantName, String idNumber, String phone) {}
+
+  public record ParticipantInput(
+      @NotBlank @Size(min = 2, max = 80) String participantName,
+      @NotBlank @Pattern(regexp = "[0-9]{17}[0-9Xx]") String idNumber,
+      @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone) {}
+
   public record Registration(
       String id,
       String activityId,
       String activityTitle,
       String status,
       OffsetDateTime createdAt,
-      String participantName,
-      String phone) {}
+      List<Participant> participants) {}
 
   public record RegistrationInput(
-      @NotBlank @Size(max = 80) String participantName,
-      @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone,
+      @NotEmpty List<@Valid ParticipantInput> participants,
       @NotNull @Min(1) Long privacyVersion,
       @NotNull @Min(1) Long termsVersion) {}
 

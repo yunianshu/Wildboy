@@ -34,6 +34,25 @@
   padding-top: 24rpx;
   font-size: 25rpx;
 }
+.participant-card {
+  padding: 24rpx 0;
+  border-top: 1rpx solid #d9dfd2;
+}
+.participant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12rpx 0;
+  font-weight: 650;
+}
+.participant-head .text-button {
+  color: #8a4b31;
+  font-size: 26rpx;
+}
+.add-participant {
+  width: 100%;
+  margin: 12rpx 0 28rpx;
+}
 .center {
   text-align: center;
 }

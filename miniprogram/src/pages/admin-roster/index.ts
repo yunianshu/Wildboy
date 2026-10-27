@@ -1,11 +1,22 @@
 import { request, isSessionCurrent, ApiError } from "../../utils/api";
 import { Activity, Registration, PageResult } from "../../utils/models";
-import { message, dateLabel, safeId, mergeUnique } from "../../utils/domain";
-import { requireAdmin, maskPhone, statusLabel } from "../admin-editor/shared";
-type Row = {
+import {
+  message,
+  dateLabel,
+  safeId,
+  mergeUnique,
+  maskIdNumber,
+} from "../../utils/domain";
+import { requireAdmin, maskPhone } from "../admin-editor/shared";
+type ParticipantRow = {
   id: string;
   participantName: string;
   maskedPhone: string;
+  maskedId: string;
+};
+type Row = {
+  id: string;
+  participants: ParticipantRow[];
   dateText: string;
   statusText: string;
 };
@@ -27,6 +38,7 @@ Page({
   _epoch: 0,
   _session: -1,
   _phones: {} as Record<string, string>,
+  _idNumbers: {} as Record<string, string>,
   onLoad(query: Record<string, string>) {
     this.setData({ id: safeId(query.id) });
   },
@@ -36,6 +48,7 @@ Page({
   onHide() {
     this._epoch++;
     this._phones = {};
+    this._idNumbers = {};
     this.setData({
       authorized: false,
       activity: null,
@@ -47,6 +60,7 @@ Page({
   onUnload() {
     this._epoch++;
     this._phones = {};
+    this._idNumbers = {};
   },
   onReachBottom() {
     void this.load(false);
@@ -68,7 +82,10 @@ Page({
       error: "",
       ...(reset ? { items: [], activity: null, page: 0 } : {}),
     });
-    if (reset) this._phones = {};
+    if (reset) {
+      this._phones = {};
+      this._idNumbers = {};
+    }
     try {
       const session = await requireAdmin();
       if (n !== this._epoch) return;
@@ -81,16 +98,21 @@ Page({
         ),
       ]);
       if (n !== this._epoch || !isSessionCurrent(session)) return;
-      const rows = result.items.map((x) => {
-        this._phones[x.id] = x.phone;
-        return {
-          id: x.id,
-          participantName: x.participantName,
-          maskedPhone: maskPhone(x.phone),
-          dateText: dateLabel(x.createdAt),
-          statusText: x.status === "CONFIRMED" ? "已报名" : "已取消",
-        };
-      });
+      const rows = result.items.map((x) => ({
+        id: x.id,
+        participants: x.participants.map((participant) => {
+          this._phones[participant.id] = participant.phone;
+          this._idNumbers[participant.id] = participant.idNumber;
+          return {
+            id: participant.id,
+            participantName: participant.participantName,
+            maskedPhone: maskPhone(participant.phone),
+            maskedId: maskIdNumber(participant.idNumber),
+          };
+        }),
+        dateText: dateLabel(x.createdAt),
+        statusText: x.status === "CONFIRMED" ? "已报名" : "已取消",
+      }));
       this.setData({
         activity,
         dateText: dateLabel(activity.startAt),
@@ -105,7 +127,10 @@ Page({
         const denied =
           !isSessionCurrent(this._session) ||
           (e instanceof ApiError && (e.status === 401 || e.status === 403));
-        if (denied) this._phones = {};
+        if (denied) {
+          this._phones = {};
+          this._idNumbers = {};
+        }
         this.setData({
           error: message(e),
           ...(denied ? { authorized: false, activity: null, items: [] } : {}),
@@ -133,8 +158,8 @@ Page({
       if (n !== this._epoch || !isSessionCurrent(session) || !this._phones[id])
         return;
       await wx.showModal({
-        title: "仅用于本次活动联系",
-        content: this._phones[id],
+        title: "仅用于本次活动组织",
+        content: `手机号：${this._phones[id]}\n身份证号：${this._idNumbers[id] || "历史记录未登记"}`,
         showCancel: false,
         confirmText: "我知道了",
       });
@@ -144,7 +169,10 @@ Page({
           !isSessionCurrent(this._session) ||
           (error instanceof ApiError &&
             (error.status === 401 || error.status === 403));
-        if (denied) this._phones = {};
+        if (denied) {
+          this._phones = {};
+          this._idNumbers = {};
+        }
         this.setData({
           error: message(error),
           ...(denied ? { authorized: false, activity: null, items: [] } : {}),

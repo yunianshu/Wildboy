@@ -49,7 +49,11 @@ public class SecurityConfig {
                     .requestMatchers(
                         org.springframework.http.HttpMethod.GET,
                         "/api/v1/activities",
-                        "/api/v1/activities/*")
+                        "/api/v1/activities/*",
+                        "/api/v1/shop/products",
+                        "/api/v1/shop/products/*")
+                    .permitAll()
+                    .requestMatchers("/api/v1/payments/wechat/notify")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")

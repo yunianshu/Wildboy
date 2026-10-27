@@ -94,7 +94,7 @@ Page({
     this.setData({ cancelling: true });
     const answer = await wx.showModal({
       title: "取消这次报名？",
-      content: "取消后名额会释放给其他伙伴；重新报名取决于剩余名额与截止时间。",
+      content: "取消后整单所有参与人的名额都会释放；重新报名取决于剩余名额与截止时间。",
       confirmText: "确认取消",
       confirmColor: "#8A4B31",
     });

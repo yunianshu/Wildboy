@@ -71,8 +71,14 @@ const registration = {
   activityTitle: activity.title,
   status: "CONFIRMED",
   createdAt: "2026-10-26T00:00:00Z",
-  participantName: "测试",
-  phone: "13800000000",
+  participants: [
+    {
+      id: "participant-1",
+      participantName: "测试",
+      idNumber: "11010519491231002X",
+      phone: "13800000000",
+    },
+  ],
 };
 beforeEach(() => {
   navigations = [];
@@ -165,9 +171,14 @@ function filled() {
   const p = page("register");
   p.setData({
     id: activity.id,
-    activity: { ...activity, enabled: true },
-    name: "测试",
-    phone: "13800000000",
+    activity: { ...activity, enabled: true, available: 20 },
+    participants: [
+      {
+        participantName: "测试",
+        idNumber: "11010519491231002X",
+        phone: "13800000000",
+      },
+    ],
     consent: true,
     legal: structuredClone(legal),
     privacyRead: true,
@@ -180,11 +191,40 @@ test("signup navigates only after confirmed response", async () => {
   response = async () => registration;
   await p.submit();
   assert.equal(p.data.success, true);
-  assert.equal(p.data.phone, "");
+  assert.equal(p.data.participants[0].participantName, "");
   assert.equal(
     navigations[0],
     "/pages/signup-success/index?id=activity-1&registrationId=reg-1",
   );
+});
+test("signup adds a second participant and submits the full group", async () => {
+  const p = filled();
+  p.addParticipant();
+  p.setData({
+    participants: [
+      p.data.participants[0],
+      {
+        participantName: "第二位",
+        idNumber: "110105194912310038",
+        phone: "13800000001",
+      },
+    ],
+  });
+  response = async () => ({
+    ...registration,
+    participants: [
+      ...registration.participants,
+      {
+        id: "participant-2",
+        participantName: "第二位",
+        idNumber: "110105194912310038",
+        phone: "13800000001",
+      },
+    ],
+  });
+  await p.submit();
+  assert.equal(calls[0].data.participants.length, 2);
+  assert.equal(p.data.success, true);
 });
 test("malformed signup never pretends success", async () => {
   const p = filled();

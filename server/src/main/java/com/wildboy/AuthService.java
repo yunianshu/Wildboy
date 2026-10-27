@@ -159,6 +159,14 @@ public class AuthService {
     return new Login(token, user);
   }
 
+  public String wechatOpenid(String userId) {
+    String external =
+        db.queryForObject("SELECT external_id FROM app_user WHERE id=?", String.class, userId);
+    if (external == null || !external.startsWith("wechat:"))
+      throw new ApiException(409, "WECHAT_IDENTITY_REQUIRED", "请使用真实微信账号登录后支付");
+    return external.substring("wechat:".length());
+  }
+
   User authenticate(String token) {
     if (token == null || token.length() > 100) return null;
     return db

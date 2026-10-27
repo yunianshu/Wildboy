@@ -21,7 +21,6 @@
   >
   <view wx:if="error" class="error">{{error}}</view
   ><view wx:if="notice" class="notice">{{notice}}</view>
-  <view wx:if="loading" class="state">正在读取协议…</view>
   <view wx:if="authorized">
     <view class="version"
       >{{published ? '当前发布 v' + published.version : '尚未发布'}} · 草稿修订

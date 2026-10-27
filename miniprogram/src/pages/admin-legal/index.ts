@@ -41,7 +41,6 @@ Page({
     void this.load(false);
   },
   onHide() {
-    this._epoch++;
     this.setData({
       authorized: false,
       loading: false,

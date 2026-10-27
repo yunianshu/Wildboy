@@ -2,8 +2,8 @@
 Base /api/v1. JSON responses directly; errors {code,message,fieldErrors?}. Dates ISO-8601 with offset; display Asia/Shanghai. IDs strings. Page {items,total,page,size,hasMore}; page 0-based, size <=50.
 
 Activity: {id,title,category,coverUrl,galleryUrls,summary,description,location,meetingPoint,startAt,endAt,registrationDeadline,capacity,registeredCount,status,priceCents,currency,version,createdAt,updatedAt}. category WEEKLY,DOMESTIC,HOLIDAY,LEISURE. status DRAFT,PUBLISHED,CANCELLED. priceCents=0 for current free registration, currency=CNY. Do not take payment or pretend paid. Upload only trusted https image URLs or local /assets URLs for now.
-Registration: {id,activityId,activityTitle,status,createdAt,participantName,phone}; status CONFIRMED,CANCELLED. Private participant info never in public feed.
-Home: {banners:[{id,title,subtitle,imageUrl,activityId}],categories:[{code,name}],equipment:[{id,name,imageUrl,description,priceLabel}],paymentEnabled:false}. Equipment display-only no cart/checkout.
+Registration: {id,activityId,activityTitle,status,createdAt,participants:[{id,participantName,idNumber,phone}]}; status CONFIRMED,CANCELLED. One registration is a group order and consumes participants.length seats. Private participant info never in public feed. Legacy records migrated before identity collection may have an empty idNumber.
+Home: {banners:[{id,title,subtitle,imageUrl,activityId}],categories:[{code,name}],equipment:[{id,name,imageUrl,description,priceLabel}],paymentEnabled:boolean}. Equipment links to real products; paymentEnabled reflects complete server merchant configuration.
 
 GET /home public
 GET /activities?category=&page=0&size=10 public published only
@@ -12,7 +12,7 @@ POST /auth/wechat {code,privacyVersion,termsVersion} -> {token,user:{id,nickname
 POST /auth/dev-login {role:USER|ADMIN,privacyVersion?,termsVersion?} -> same; explicitly dev/test-only disabled prod, admin protected by dev environment.
 GET /me -> {id,nickname,role}
 GET /me/registrations?page=0&size=20 -> Page registration
-POST /activities/{id}/registrations {participantName,phone,privacyVersion,termsVersion} auth; transactional capacity, duplicate-safe. 201 new /200 idempotent existing.
+POST /activities/{id}/registrations {participants:[{participantName,idNumber,phone}],privacyVersion,termsVersion} auth; at least one participant, transactional group capacity, duplicate-safe. 201 new /200 idempotent existing.
 DELETE /activities/{id}/registrations/me auth; cancel own enrollment idempotently, deadline/start policy enforced; no personal data in logs.
 GET /admin/activities?page=0&size=20 admin
 GET /admin/activities/{id} admin
@@ -25,6 +25,20 @@ POST /auth/admin {username,password} -> token; configured server admin hash or s
 
 Activity input fields title,category,coverUrl,galleryUrls,summary,description,location,meetingPoint,startAt,endAt,registrationDeadline,capacity,priceCents=0. Errors 400 validation,401 unauthenticated,403 forbidden,404 absent,409 full/closed/stale/duplicate conflict. Never physical-delete registrations or published activity history. Public demo seed clearly labeled demonstration, separate from prod.
 GET /activities/{id}/registrations/me auth -> active Registration|null, exact enrollment lookup.
+
+## Shop and WeChat Pay
+
+Product: {id,name,description,imageUrl,priceCents,stock,status,version,createdAt,updatedAt}; status ON_SALE|OFF_SHELF.
+Order: {id,orderNo,userId,totalCents,status,recipientName,phone,address,paymentTransactionId,paymentInitiated,paidAt,version,createdAt,updatedAt,items:[{id,productId,productName,imageUrl,priceCents,quantity}]}; status PENDING_PAYMENT|PAID|CANCELLED|SHIPPED.
+
+- GET `/shop/products`, GET `/shop/products/{id}` public on-sale catalog.
+- POST `/orders` auth `{items:[{productId,quantity}],recipientName,phone,address,privacyVersion,termsVersion}`; transactional server pricing and stock, 201.
+- GET `/orders`, GET `/orders/{id}` own orders only.
+- POST `/orders/{id}/pay` -> `{timeStamp,nonceStr,package,signType,paySign}`; real JSAPI prepay, real WeChat identity required.
+- POST `/orders/{id}/cancel` pending own order; closes WeChat order first when prepay was initiated, then restocks.
+- POST `/payments/wechat/notify` public WeChat callback only; raw-body official SDK verification/decryption, merchant/amount/order validation and idempotent PAID transition.
+- GET/POST `/admin/shop/products`, PUT `/admin/shop/products/{id}` admin catalog with optimistic version.
+- GET `/admin/orders`, POST `/admin/orders/{id}/ship` admin; only PAID can become SHIPPED.
 
 ## Mobile management filtering
 - GET /admin/activities accepts optional status=DRAFT|PUBLISHED|CANCELLED, composable with category/page/size. Omit status for all. Invalid enum -> 400.

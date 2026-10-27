@@ -44,15 +44,35 @@ test("capacity and date boundaries close registration", () => {
       false,
     );
 });
-test("registration name phone and explicit consent validated", () => {
-  assert.equal(d.validateParticipant("王小明", "13800138000", true), "");
-  assert.notEqual(d.validateParticipant("王", "13800138000", true), "");
-  assert.notEqual(d.validateParticipant("王小明", "1380013800", true), "");
-  assert.notEqual(d.validateParticipant("王小明", "13800138000", false), "");
+test("multiple participants require valid identity, phone and consent", () => {
+  const first = {
+    participantName: "王小明",
+    idNumber: "11010519491231002X",
+    phone: "13800138000",
+  };
+  const second = {
+    participantName: "李小红",
+    idNumber: "110105194912310038",
+    phone: "13800138001",
+  };
+  assert.equal(d.validateParticipants([first, second], true), "");
+  assert.notEqual(d.validateParticipants([], true), "");
   assert.notEqual(
-    d.validateParticipant("a".repeat(41), "13800138000", true),
+    d.validateParticipants([{ ...first, participantName: "王" }], true),
     "",
   );
+  assert.notEqual(
+    d.validateParticipants([{ ...first, idNumber: "110105194912310020" }], true),
+    "",
+  );
+  assert.notEqual(
+    d.validateParticipants([{ ...first, phone: "1380013800" }], true),
+    "",
+  );
+  assert.notEqual(d.validateParticipants([first, first], true), "");
+  assert.notEqual(d.validateParticipants([first], false), "");
+  assert.equal(d.maskIdNumber(first.idNumber), "110105********002X");
+  assert.equal(d.maskIdNumber(""), "历史记录未登记");
 });
 test("pagination merges repeats rather than duplicate cards", () => {
   assert.deepEqual(

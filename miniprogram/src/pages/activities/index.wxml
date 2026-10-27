@@ -1,60 +1,34 @@
-<view class="page">
-  <text class="eyebrow">A LITTLE FURTHER. A LITTLE FREER.</text>
-  <view class="title">总有一程，属于你。</view>
-  <view class="muted">选一种节奏，把自己交给山野。</view>
-  <scroll-view scroll-x class="filters">
-    <text
-      class="filter {{selected === '' ? 'active' : ''}}"
-      data-code=""
-      bindtap="select"
-    >
-      全部活动
-    </text>
-    <text
-      wx:for="{{categories}}"
-      wx:key="code"
-      class="filter {{selected === item.code ? 'active' : ''}}"
-      data-code="{{item.code}}"
-      bindtap="select"
-    >
-      {{item.name}}
-    </text>
-  </scroll-view>
-  <view wx:if="{{loading}}" class="state">正在加载活动…</view>
-  <view wx:elif="{{!items.length && !error}}" class="state">
-    这个分类还没有开放的活动
-    <view />
-    换个分类，发现别的可能。
-  </view>
-  <view class="grid">
-    <view
-      class="activity-card"
-      wx:for="{{items}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="openActivity"
-    >
-      <image
-        class="activity-image"
-        src="{{item.coverUrl}}"
-        mode="aspectFill"
-        lazy-load
-      />
-      <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
-      <view class="card-title">{{item.title}}</view>
-      <view class="card-detail">{{item.location}}</view>
-      <view class="card-footer">
-        <text class="free">免费参与</text>
-        <text class="muted">{{item.available}} 个余位</text>
-      </view>
+<view class="activities-page">
+  <view class="activities-hero">
+    <view class="brand" style="top:{{topInset}}px">
+      <text class="brand-name">wildboy.</text>
+      <text class="brand-caption">OUTDOOR CLUB</text>
+    </view>
+    <view class="activities-heading">
+      <text class="hero-kicker">A LITTLE FURTHER. A LITTLE FREER.</text>
+      <view class="hero-title">活动</view>
+      <view class="hero-subtitle">选一种节奏，把自己交给山野。</view>
     </view>
   </view>
-  <view wx:if="{{error}}" class="state error">
-    {{error}}
-    <button class="secondary" bindtap="retry">重试</button>
-  </view>
-  <view wx:elif="{{items.length}}" class="loading-line">
-    {{loadingMore ? '正在加载…' : (hasMore ? '上滑发现更多' :
-    '已经看到全部活动')}}
+  <view class="page activities-content">
+    <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}">
+      <view class="filter-track">
+        <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" bindtap="select">全部活动</text>
+        <text wx:for="{{categories}}" wx:key="code" class="filter {{selected === item.code ? 'active' : ''}}" data-code="{{item.code}}" bindtap="select">{{item.name}}</text>
+      </view>
+    </scroll-view>
+    <view wx:if="{{loading}}" class="state">正在加载活动…</view>
+    <view wx:elif="{{!items.length && !error}}" class="state">这个分类还没有开放的活动<view />换个分类，发现别的可能。</view>
+    <view class="grid">
+      <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
+        <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
+        <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
+        <view class="card-title">{{item.title}}</view>
+        <view class="card-detail">{{item.location}}</view>
+        <view class="card-footer"><text class="free">免费参与</text><text class="muted">{{item.available}} 个余位</text></view>
+      </view>
+    </view>
+    <view wx:if="{{error}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
+    <view wx:elif="{{items.length}}" class="loading-line">{{loadingMore ? '正在加载…' : (hasMore ? '上滑发现更多' : '已经看到全部活动')}}</view>
   </view>
 </view>

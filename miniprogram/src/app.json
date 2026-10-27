@@ -2,6 +2,10 @@
   "pages": [
     "pages/home/index",
     "pages/activities/index",
+    "pages/shop/index",
+    "pages/product/index",
+    "pages/checkout/index",
+    "pages/orders/index",
     "pages/detail/index",
     "pages/register/index",
     "pages/mine/index",
@@ -34,6 +38,10 @@
       {
         "pagePath": "pages/activities/index",
         "text": "活动"
+      },
+      {
+        "pagePath": "pages/shop/index",
+        "text": "商城"
       },
       {
         "pagePath": "pages/mine/index",

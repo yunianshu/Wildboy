@@ -15,6 +15,8 @@ Page({
     authorized: false,
     loading: false,
     busy: false,
+    confirming: false,
+    publishConfirmed: false,
     error: "",
     conflict: false,
     uncertain: false,
@@ -44,10 +46,11 @@ Page({
     if (!this._invalid) void this.load(false);
   },
   onHide() {
-    this._epoch++;
     this.setData({
       authorized: false,
       busy: false,
+      confirming: false,
+      publishConfirmed: false,
       ...(this.data.busy && !this.data.id ? { uncertain: true } : {}),
     });
   },
@@ -175,6 +178,15 @@ Page({
   list() {
     wx.redirectTo({ url: "/pages/admin-activities/index" });
   },
+  cancelPublish() {
+    this.setData({ confirming: false, publishConfirmed: false });
+  },
+  confirmPublish() {
+    this.setData({ publishConfirmed: true });
+    return this.save({
+      currentTarget: { dataset: { action: "publish" } },
+    } as unknown as WechatMiniprogram.TouchEvent);
+  },
   async save(e: WechatMiniprogram.TouchEvent) {
     if (
       this.data.busy ||
@@ -192,18 +204,15 @@ Page({
       this.setData({ error: message(error) });
       return;
     }
+    if (publish && !this.data.publishConfirmed) {
+      this.setData({ confirming: true, publishConfirmed: false });
+      return;
+    }
+    if (publish) this.setData({ confirming: false, publishConfirmed: false });
     const n = this._epoch,
       session = this._session;
     this.setData({ busy: true, error: "" });
     try {
-      if (publish) {
-        const m = await wx.showModal({
-          title: "保存并发布活动？",
-          content: "发布后用户可以看到并报名。请核对日期、集合点和名额。",
-        });
-        if (!m.confirm || n !== this._epoch || !isSessionCurrent(session))
-          return;
-      }
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(session)) return;
       const a = await request<Activity>(

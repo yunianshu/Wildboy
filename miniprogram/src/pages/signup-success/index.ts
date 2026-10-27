@@ -21,6 +21,7 @@ Page({
     error: "",
     confirmed: false,
     activity: null as ReturnType<typeof activityView> | null,
+    registration: null as Registration | null,
   },
   onLoad(o) {
     this.setData({
@@ -33,7 +34,7 @@ Page({
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ confirmed: false, activity: null });
+    this.setData({ confirmed: false, activity: null, registration: null });
   },
   onUnload() {
     epoch.invalidate();
@@ -46,6 +47,7 @@ Page({
       error: "",
       confirmed: false,
       activity: null,
+      registration: null,
     });
     if (!this.data.id || !this.data.registrationId) {
       this.setData({
@@ -84,6 +86,7 @@ Page({
       this.setData({
         confirmed: true,
         activity: activityView({ ...a, coverUrl: mediaUrl(a.coverUrl) }),
+        registration: r,
       });
     } catch (e) {
       if (epoch.valid(n)) this.setData({ error: message(e) });

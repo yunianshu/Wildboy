@@ -14,6 +14,9 @@ Page({
     loading: false,
     loadingMore: false,
     busyId: "",
+    pendingId: "",
+    pendingAction: "",
+    pendingConfirmed: false,
     error: "",
     items: [] as Row[],
     page: 0,
@@ -32,13 +35,15 @@ Page({
     void this.load(true);
   },
   onHide() {
-    this._epoch++;
     this.setData({
       authorized: false,
       items: [],
       loading: false,
       loadingMore: false,
       busyId: "",
+      pendingId: "",
+      pendingAction: "",
+      pendingConfirmed: false,
     });
   },
   onUnload() {
@@ -141,6 +146,17 @@ Page({
     )
       wx.navigateTo({ url: `/pages/admin-roster/index?id=${id}` });
   },
+  cancelChange() {
+    this.setData({ pendingId: "", pendingAction: "", pendingConfirmed: false });
+  },
+  confirmChange() {
+    const id = this.data.pendingId,
+      action = this.data.pendingAction;
+    this.setData({ pendingConfirmed: true });
+    return this.change({
+      currentTarget: { dataset: { id, action } },
+    } as unknown as WechatMiniprogram.TouchEvent);
+  },
   async change(e: WechatMiniprogram.TouchEvent) {
     if (
       this.data.busyId ||
@@ -153,21 +169,19 @@ Page({
     if (action !== "publish" && action !== "cancel") return;
     const item = this.data.items.find((x) => x.id === id);
     if (!item) return;
+    if (
+      !this.data.pendingConfirmed ||
+      this.data.pendingId !== id ||
+      this.data.pendingAction !== action
+    ) {
+      this.setData({ pendingId: id, pendingAction: action, pendingConfirmed: false });
+      return;
+    }
+    this.setData({ pendingId: "", pendingAction: "", pendingConfirmed: false });
     const epoch = this._epoch,
       session = this._session;
     this.setData({ busyId: id, error: "" });
     try {
-      const modal = await wx.showModal({
-        title: action === "publish" ? "确认发布活动？" : "确认取消活动？",
-        content:
-          action === "publish"
-            ? "发布后微信用户可以看到并报名。"
-            : "所有已确认报名将取消，并保留记录。当前不会自动发送通知，请另行联系参加者。",
-        confirmText: action === "publish" ? "确认发布" : "取消活动",
-        confirmColor: action === "cancel" ? "#a05037" : "#193f34",
-      });
-      if (!modal.confirm || epoch !== this._epoch || !isSessionCurrent(session))
-        return;
       await requireAdmin();
       if (epoch !== this._epoch || !isSessionCurrent(session)) return;
       await request(`/admin/activities/${id}/${action}`, "POST", {

@@ -6,12 +6,16 @@ import {
   LegalCurrent,
 } from "../../utils/legal";
 import { request, requireSession, ApiError } from "../../utils/api";
-import { Activity, Registration } from "../../utils/models";
+import {
+  Activity,
+  ParticipantInput,
+  Registration,
+} from "../../utils/models";
 import {
   activityView,
   message,
   safeId,
-  validateParticipant,
+  validateParticipants,
   RequestEpoch,
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
@@ -21,8 +25,9 @@ Page({
     activity: null as ReturnType<typeof activityView> | null,
     loading: true,
     error: "",
-    name: "",
-    phone: "",
+    participants: [
+      { participantName: "", idNumber: "", phone: "" },
+    ] as ParticipantInput[],
     consent: false,
     legal: null as LegalCurrent | null,
     legalError: "",
@@ -74,11 +79,43 @@ Page({
   retry() {
     void this.load();
   },
-  inputName(e: WechatMiniprogram.Input) {
-    this.setData({ name: e.detail.value, fieldError: "" });
+  inputParticipant(e: WechatMiniprogram.Input) {
+    const index = Number(e.currentTarget.dataset.index);
+    const field = e.currentTarget.dataset.field;
+    if (
+      !Number.isInteger(index) ||
+      !this.data.participants[index] ||
+      !["participantName", "idNumber", "phone"].includes(field)
+    )
+      return;
+    this.setData({
+      [`participants[${index}].${field}`]: e.detail.value,
+      fieldError: "",
+    });
   },
-  inputPhone(e: WechatMiniprogram.Input) {
-    this.setData({ phone: e.detail.value, fieldError: "" });
+  addParticipant() {
+    if (this.data.participants.length >= (this.data.activity?.available || 0)) {
+      this.setData({ fieldError: "添加人数不能超过当前剩余名额" });
+      return;
+    }
+    this.setData({
+      participants: [
+        ...this.data.participants,
+        { participantName: "", idNumber: "", phone: "" },
+      ],
+      fieldError: "",
+    });
+  },
+  removeParticipant(e: WechatMiniprogram.TouchEvent) {
+    const index = Number(e.currentTarget.dataset.index);
+    if (this.data.participants.length <= 1 || !this.data.participants[index])
+      return;
+    this.setData({
+      participants: this.data.participants.filter(
+        (_, participantIndex) => participantIndex !== index,
+      ),
+      fieldError: "",
+    });
   },
   consentChange(e: WechatMiniprogram.CheckboxGroupChange) {
     const wants = e.detail.value.includes("yes");
@@ -125,9 +162,8 @@ Page({
   },
   async submit() {
     if (this.data.submitting || this.data.success) return;
-    const fieldError = validateParticipant(
-      this.data.name,
-      this.data.phone,
+    const fieldError = validateParticipants(
+      this.data.participants,
       this.data.consent,
     );
     if (fieldError) {
@@ -136,6 +172,10 @@ Page({
     }
     if (!this.data.activity?.enabled) {
       this.setData({ fieldError: "当前活动不可报名，请返回刷新" });
+      return;
+    }
+    if (this.data.participants.length > this.data.activity.available) {
+      this.setData({ fieldError: "报名人数超过剩余名额，请减少参与人" });
       return;
     }
     if (!this.data.legal || !this.data.privacyRead || !this.data.termsRead) {
@@ -161,24 +201,30 @@ Page({
         });
         throw new Error("协议版本已更新，请重新阅读并确认");
       }
+      const participants = this.data.participants.map((participant) => ({
+        participantName: participant.participantName.trim(),
+        idNumber: participant.idNumber.trim().toUpperCase(),
+        phone: participant.phone.trim(),
+      }));
       const result = await request<Registration>(
         `/activities/${this.data.id}/registrations`,
         "POST",
-        {
-          participantName: this.data.name.trim(),
-          phone: this.data.phone.trim(),
-          ...versions,
-        },
+        { participants, ...versions },
       );
       if (
         !result ||
         !safeId(result.id) ||
         result.activityId !== this.data.id ||
-        result.status !== "CONFIRMED"
+        result.status !== "CONFIRMED" ||
+        !Array.isArray(result.participants) ||
+        result.participants.length !== participants.length
       )
         throw new Error("报名结果未确认，请到我的报名核对，勿重复提交");
       if (epoch.valid(n)) {
-        this.setData({ success: true, name: "", phone: "" });
+        this.setData({
+          success: true,
+          participants: [{ participantName: "", idNumber: "", phone: "" }],
+        });
         wx.redirectTo({
           url: `/pages/signup-success/index?id=${this.data.id}&registrationId=${result.id}`,
         });

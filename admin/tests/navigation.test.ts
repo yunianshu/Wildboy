@@ -56,16 +56,14 @@ describe("sensitive navigation", () => {
   it("remounts editor when activity ID changes so prior content cannot update another activity", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockImplementation(async (path: string) => ({
-          ok: true,
-          status: 200,
-          json: async () =>
-            path.endsWith("/two")
-              ? { ...activity, id: "two", title: "第二场活动" }
-              : activity,
-        })),
+      vi.fn().mockImplementation(async (path: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          path.endsWith("/two")
+            ? { ...activity, id: "two", title: "第二场活动" }
+            : activity,
+      })),
     );
     const { wrapper, router } = await render();
     expect(
@@ -87,13 +85,11 @@ describe("sensitive navigation", () => {
   it("logout clears editor even with unsaved changes, without blocking behind leave confirmation", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          status: 200,
-          json: async () => activity,
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => activity,
+      }),
     );
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const { wrapper, router } = await render();

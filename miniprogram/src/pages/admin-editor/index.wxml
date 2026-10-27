@@ -230,4 +230,14 @@
       </button>
     </view>
   </block>
+  <view wx:if="{{confirming}}" class="confirm-mask">
+    <view class="confirm-card">
+      <view class="section-title">保存并发布活动？</view>
+      <view class="muted">发布后用户可以看到并报名。请核对日期、集合点和名额。</view>
+      <view class="confirm-actions">
+        <button class="secondary" bindtap="cancelPublish">返回检查</button>
+        <button class="primary" bindtap="confirmPublish">确认发布</button>
+      </view>
+    </view>
+  </view>
 </view>

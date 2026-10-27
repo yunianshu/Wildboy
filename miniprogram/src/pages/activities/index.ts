@@ -12,6 +12,7 @@ import {
 const epoch = new RequestEpoch();
 Page({
   data: {
+    topInset: 48,
     categories,
     selected: "",
     items: [] as ReturnType<typeof activityView>[],
@@ -20,6 +21,9 @@ Page({
     error: "",
     page: 0,
     hasMore: true,
+  },
+  onLoad() {
+    this.setData({ topInset: wx.getWindowInfo().statusBarHeight + 10 });
   },
   onShow() {
     const category = wx.getStorageSync("wildboy-category");

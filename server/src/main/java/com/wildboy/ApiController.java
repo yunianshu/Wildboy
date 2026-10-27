@@ -13,10 +13,15 @@ import org.springframework.web.bind.annotation.*;
 public class ApiController {
   final ActivityService activities;
   final AuthService auth;
+  final ShopService shop;
+  final WechatPayService pay;
 
-  public ApiController(ActivityService activities, AuthService auth) {
+  public ApiController(
+      ActivityService activities, AuthService auth, ShopService shop, WechatPayService pay) {
     this.activities = activities;
     this.auth = auth;
+    this.shop = shop;
+    this.pay = pay;
   }
 
   @PostMapping("/auth/wechat")
@@ -165,19 +170,18 @@ public class ApiController {
             Map.of("code", "HOLIDAY", "name", "假期活动"),
             Map.of("code", "LEISURE", "name", "休闲活动")),
         "equipment",
-        List.of(
-            Map.of(
-                "id",
-                "pack",
-                "name",
-                "轻量徒步装备",
-                "imageUrl",
-                "/assets/equipment.jpg",
-                "description",
-                "装备小店筹备中，仅作展示",
-                "priceLabel",
-                "敬请期待")),
+        shop.products(false).stream()
+            .limit(6)
+            .map(
+                product ->
+                    Map.of(
+                        "id", product.id(),
+                        "name", product.name(),
+                        "imageUrl", product.imageUrl(),
+                        "description", product.description(),
+                        "priceLabel", String.format("¥%.2f", product.priceCents() / 100.0)))
+            .toList(),
         "paymentEnabled",
-        false);
+        pay.enabled());
   }
 }

@@ -3,9 +3,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
-test("all fourteen registered native pages have compiled JS WXML WXSS JSON", () => {
+test("all eighteen registered native pages have compiled JS WXML WXSS JSON", () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
-  assert.equal(app.pages.length, 14);
+  assert.equal(app.pages.length, 18);
   for (const route of [
     "mine",
     "login",
@@ -16,6 +16,10 @@ test("all fourteen registered native pages have compiled JS WXML WXSS JSON", () 
     "admin-activities",
     "admin-editor",
     "admin-roster",
+    "shop",
+    "product",
+    "checkout",
+    "orders",
   ])
     assert.ok(app.pages.includes(`pages/${route}/index`));
   for (const page of app.pages)
@@ -25,7 +29,7 @@ test("all fourteen registered native pages have compiled JS WXML WXSS JSON", () 
         page + "." + ext,
       );
 });
-test("native pages have no unsupported HTML tags or direct payment API", () => {
+test("native pages use safe markup and never embed payment secrets", () => {
   for (const file of fs.readdirSync(path.join(root, "pages"))) {
     const markup = fs.readFileSync(
       path.join(root, "pages", file, "index.wxml"),
@@ -36,15 +40,33 @@ test("native pages have no unsupported HTML tags or direct payment API", () => {
       path.join(root, "pages", file, "index.js"),
       "utf8",
     );
-    assert.doesNotMatch(script, /requestPayment|AppSecret|session_key/);
+    assert.doesNotMatch(script, /AppSecret|session_key|WECHAT_PAY_API_V3_KEY/);
   }
+});
+test("custom page headers remove old titles and center compact activity tabs", () => {
+  for (const name of ["mine", "activities"]) {
+    const config = JSON.parse(
+      fs.readFileSync(path.join(root, "pages", name, "index.json"), "utf8"),
+    );
+    assert.equal(config.navigationStyle, "custom");
+    assert.equal(config.navigationBarTitleText, undefined);
+  }
+  const styles = fs.readFileSync(
+    path.join(root, "pages", "activities", "index.wxss"),
+    "utf8",
+  );
+  assert.match(styles, /\.filter\s*\{[^}]*height:\s*56rpx/s);
+  assert.match(styles, /\.filter\s*\{[^}]*align-items:\s*center/s);
+  assert.match(styles, /\.filters\s*\{[^}]*height:\s*72rpx/s);
 });
 test("production configuration fails closed and domain validation stays enabled", () => {
   const config = require("../dist/config.js").config;
   assert.equal(config.devLogin, false);
   const project = require("../project.config.json");
   assert.equal(project.setting.urlCheck, true);
-  assert.equal(project.appid, "touristappid");
+  assert.ok(
+    project.appid === "touristappid" || /^wx[0-9a-f]{16}$/.test(project.appid),
+  );
 });
 
 test("WXML template expressions retain native operators, not HTML entities", () => {

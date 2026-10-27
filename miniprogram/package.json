@@ -5,10 +5,18 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node scripts/clean.cjs && tsc && node scripts/copy-static.cjs",
+    "dev:local": "npm run build && node scripts/configure-local.cjs",
     "test": "npm run build && node --test tests/*.test.cjs"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "miniprogram-api-typings": "^4.1.0"
+    "miniprogram-api-typings": "^4.1.0",
+    "miniprogram-automator": "^0.13.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "debug": "^4.3.1",
+    "minimist": "^0.2.4",
+    "phin": "^3.7.1",
+    "jpeg-js": "^0.4.4"
   }
 }
