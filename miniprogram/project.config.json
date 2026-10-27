@@ -2,7 +2,7 @@
   "description": "Wildboy 户外活动微信小程序；先 npm ci && npm run build，再导入本目录。",
   "compileType": "miniprogram",
   "miniprogramRoot": "dist/",
-  "appid": "wx213637d718ac5d52",
+  "appid": "wx659060b1117220e5",
   "projectname": "Wildboy",
   "setting": {
     "es6": true,
