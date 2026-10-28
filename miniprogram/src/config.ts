@@ -15,5 +15,8 @@ export const config: {
   apiMode: "anyservice",
   anyServiceEnvId: "magic-stoat-d0gklwuq0d9881bc5",
   anyServiceName: "wildboyapi",
-  devLogin: false,
+  // Trial phase: the server runs the dev profile without WeChat credentials,
+  // so develop-env previews log in through /auth/dev-login (server-gated to
+  // the dev profile). Turn off once WECHAT_APP_ID/SECRET are configured.
+  devLogin: true,
 };
