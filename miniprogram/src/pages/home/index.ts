@@ -12,7 +12,6 @@ Page({
     categories,
     items: [] as ReturnType<typeof homeActivitySlots>,
     banners: fallbackBanners,
-    carouselPlaying: true,
     loading: false,
     error: "",
   },
@@ -30,9 +29,6 @@ Page({
   },
   onPullDownRefresh() {
     void this.load().finally(() => wx.stopPullDownRefresh());
-  },
-  toggleCarousel() {
-    this.setData({ carouselPlaying: !this.data.carouselPlaying });
   },
   async load() {
     const n = epoch.next();

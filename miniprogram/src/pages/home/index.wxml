@@ -8,7 +8,7 @@
       <view class="hero-sub">把日常留在身后 · 一起走出去</view>
     </view>
     <view class="brand" style="top:{{topInset}}px">
-      <text class="brand-name">wildboy.</text>
+      <text class="brand-name">野小子</text>
       <text class="brand-caption">野一点，自由一点</text>
     </view>
   </view>
@@ -118,9 +118,8 @@
         <view class="eyebrow">MOMENTS OUTSIDE</view>
         <view class="section-title">山野之间</view>
       </view>
-      <button class="carousel-toggle" bindtap="toggleCarousel" aria-label="{{carouselPlaying ? '暂停图片自动轮播' : '开始图片自动轮播'}}">{{carouselPlaying ? '暂停轮播' : '播放轮播'}}</button>
     </view>
-    <swiper class="scenery-swiper" autoplay="{{carouselPlaying}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
+    <swiper class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
       <swiper-item wx:for="{{banners}}" wx:key="id">
         <view class="scenery-slide" data-id="{{item.activityId}}" bindtap="openActivity">
           <image class="scenery-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />

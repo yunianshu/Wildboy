@@ -58,12 +58,9 @@ test("home only reads six activities, duplicate cards navigate using original ID
   p.openActivity({currentTarget: {dataset: {id: p.data.items[4].id}}});
   assert.deepEqual(navigation, ["/pages/detail/index?id=real-1"]);
 });
-test("bottom carousel has safe local fallback and explicit pause/resume", async () => {
+test("bottom carousel has safe local fallback", async () => {
   const p = page(); await p.load();
   assert.deepEqual(p.data.banners, fallbackBanners);
-  p.toggleCarousel(); assert.equal(p.data.carouselPlaying, false);
-  await p.load(); assert.equal(p.data.carouselPlaying, false);
-  p.toggleCarousel(); assert.equal(p.data.carouselPlaying, true);
   p.openActivity({currentTarget: {dataset: {id: ""}}});
   assert.deepEqual(navigation, []);
 });
@@ -112,7 +109,7 @@ test("native template order matches reference: static hero, four categories, six
   assert.ok(positions.every((x,i) => x >= 0 && (!i || x > positions[i-1])));
   assert.equal((markup.match(/<swiper\s/g) || []).length, 1);
   assert.match(markup, /wx:key="slotKey"/);
-  assert.match(markup, /autoplay="{{carouselPlaying}}"/);
+  assert.match(markup, /autoplay="{{true}}"/);
   const styles = fs.readFileSync("dist/pages/home/index.wxss", "utf8");
   assert.match(styles, /repeat\(4, minmax\(0, 1fr\)\)/);
   assert.match(styles, /safe-area-inset-bottom/);
