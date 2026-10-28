@@ -18,18 +18,19 @@ AnyService 不替代备案，只是让小程序在备案期间也能连上真实
 - `wildboy-edge` 把 AnyService 提供的 `X-Forwarded-For` 原样传给后端，后端以 `SERVER_FORWARD_HEADERS_STRATEGY=native` 信任来自回环代理的该头部，登录限流仍按真实客户端 IP 分桶（实测同一 IP 第 21 次登录返回 429，换 IP 仍为 401）。
 - 源站凭证保存在 `/root/wildboy-deploy/anyservice-cred.txt`（600 权限，仓库外）。
 
-## 需要在腾讯云/微信侧完成（需账号登录，自动化无法代做）
+## 腾讯云/微信侧配置（已完成）
 
-1. 在[云开发控制台](https://tcb.cloud.tencent.com/dev)创建环境（**仅上海地域**支持 AnyService）。
-2. 把该环境与小程序 `wx213637d718ac5d52` 关联（云开发 → 环境 → 关联小程序）。
-3. 新建 AnyService 服务：
-   - 服务名称/标识：如 `wildboy-api`（标识只能用英文、数字、下划线）；
+1. 在[云开发控制台](https://tcb.cloud.tencent.com/dev)创建环境（**仅上海地域**支持 AnyService）。现用环境：`magic-stoat`（ID `magic-stoat-d0gklwuq0d9881bc5`，体验版套餐）。
+2. 把该环境与小程序 `wx659060b1117220e5`（野小子户外旅行）关联：控制台「环境管理 → 小程序认证」扫码授权，并确保腾讯云账号（账号中心 → 登录方式 → 微信公众平台）绑定的是该小程序。
+3. 新建 AnyService 服务（扩展功能 → 资源连接 → AnyService）：
+   - 服务名称 `wildboy-api`，服务标识 **`wildboyapi`**（标识只允许小写字母与数字，**不能用连字符**）；
    - 源站类型：通过公网访问源站；
    - 源站协议：`http`；
    - 源站连接信息：`60.205.219.30:80`；
-   - 源站访问凭证（Basic）：账号 `anyservice`，密码见 `/root/wildboy-deploy/anyservice-cred.txt`。
-4. 阿里云安全组放行入方向 TCP 80（建议只放行腾讯云 AnyService 出口网段，无法确定时至少先放行后观察日志）。
-5. 记录**环境 ID**与**服务标识**，填入小程序配置。
+   - 源站访问凭证：**只填 base64 值本身**（`YW55c2VydmljZTp...`）。平台下发时自动加 `Basic ` 前缀；若在控制台里带上 `Basic `，源站会收到 `Basic Basic ...` 导致 403。
+   - 凭证明文（账号 `anyservice` / 密码）见 `/root/wildboy-deploy/anyservice-cred.txt`（600 权限，仓库外）。
+4. 阿里云轻量服务器防火墙放行入方向 TCP 80（SWAS 控制台 → 防火墙规则）。
+5. 环境 ID 与服务标识已写入 `miniprogram/src/config.ts`。
 
 ## 小程序侧配置
 
@@ -39,9 +40,9 @@ AnyService 不替代备案，只是让小程序在备案期间也能连上真实
 export const config = {
   apiOrigin: "https://api.example.invalid", // AnyService 模式下不使用
   apiMode: "anyservice",
-  anyServiceEnvId: "你的环境ID",
-  anyServiceName: "wildboy-api",
-  devLogin: false,
+  anyServiceEnvId: "magic-stoat-d0gklwuq0d9881bc5",
+  anyServiceName: "wildboyapi",
+  devLogin: true, // 过渡期：服务器未配微信 AppSecret，develop 预览走 /auth/dev-login
 };
 ```
 
@@ -60,7 +61,7 @@ npm run build
 | 项目 | 影响 |
 | --- | --- |
 | `<image>` 相对图片 `/assets/*` | 图片组件不走 AnyService，无公网域名时无法加载。六张内置素材正常；后台自定义封面/图集请填 HTTPS 图片地址 |
-| 管理后台（Vue） | 浏览器访问，不经 AnyService。当前只监听 `127.0.0.1:8081`，需通过 SSH 隧道访问（`ssh -L 8081:127.0.0.1:8081`），或后续配置域名/证书 |
+| 管理后台（Vue） | 浏览器访问，不经 AnyService。当前监听 `0.0.0.0:8081`（SWAS 防火墙已放行），`http://60.205.219.30:8081` 可达——纯 HTTP，属临时过渡，上线前应关回仅本机监听（或 SSH 隧道 `ssh -L 8081:127.0.0.1:8081`），配域名证书后再公开 |
 | 微信支付回调 `notify_url` | 微信服务器需要一个公网 HTTPS 地址，AnyService 不提供入站地址，备案+证书前无法接收支付通知，因此商城只能保持在待支付、不能确认入账 |
 | 音频/视频/下载域名 | 同上，只有 `wx.cloud` 通道内的请求可用 |
 | 小程序发布 | AnyService 免域名备案，但小程序本身仍需完成**小程序备案**与微信认证，且 AnyService 调用要求基础库支持 `wx.cloud.callContainer` |
@@ -75,6 +76,6 @@ npm run build
 ## 运维
 
 - 边缘容器：`docker run` 启动，`--restart unless-stopped`，配置 `-v /root/wildboy-deploy/edge/nginx-edge.conf:/etc/nginx/conf.d/default.conf:ro`，`--network host`，监听 80。
-- 后台容器：`wildboy-admin`，配置 `/root/wildboy-deploy/admin/nginx-admin.conf`，监听 `127.0.0.1:8081`。
+- 后台容器：`wildboy-admin`，配置 `/root/wildboy-deploy/admin/nginx-admin.conf`，监听 `0.0.0.0:8081`（临时公网，见上表）。
 - 两者都不在 `docker-compose.yml` 内；`docker compose down` 不会停止它们。重建宿主机时需按上面的挂载参数重新启动。
 - 轮换源站凭证：改 `/root/wildboy-deploy/anyservice-cred.txt`、`nginx-edge.conf` 中的 base64 值，`docker restart wildboy-edge`，再在控制台同步更新 AnyService 服务配置。

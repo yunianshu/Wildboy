@@ -2,7 +2,7 @@
 // Requires the code upload key: WILDBOY_UPLOAD_KEY or
 // %USERPROFILE%/.wechat-keys/private.wx659060b1117220e5.key.
 // The uploaded package must already be built: npm run build first
-// (plus scripts/configure-anyservice.cjs for AnyService trial builds).
+// (src/config.ts already carries the AnyService trial values).
 const path = require("node:path");
 const ci = require("miniprogram-ci");
 
