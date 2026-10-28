@@ -48,7 +48,7 @@ public final class Models {
       String currency,
       long version,
       OffsetDateTime createdAt,
-      OffsetDateTime updatedAt) {}
+      OffsetDateTime updatedAt, boolean identityRequired) {}
 
   public record ActivityInput(
       @NotBlank @Size(max = 120) String title,
@@ -64,14 +64,18 @@ public final class Models {
       @NotNull OffsetDateTime registrationDeadline,
       @Min(1) @Max(10000) int capacity,
       @Min(0) @Max(0) int priceCents,
-      Long version) {}
+      Long version, Boolean identityRequired) {
+    public ActivityInput(String title, Category category, String coverUrl, List<String> galleryUrls, String summary, String description, String location, String meetingPoint, OffsetDateTime startAt, OffsetDateTime endAt, OffsetDateTime registrationDeadline, int capacity, int priceCents, Long version) {
+      this(title, category, coverUrl, galleryUrls, summary, description, location, meetingPoint, startAt, endAt, registrationDeadline, capacity, priceCents, version, false);
+    }
+  }
 
   public record Participant(
       String id, String participantName, String idNumber, String phone) {}
 
   public record ParticipantInput(
       @NotBlank @Size(min = 2, max = 80) String participantName,
-      @NotBlank @Pattern(regexp = "[0-9]{17}[0-9Xx]") String idNumber,
+      @Size(max = 18) String idNumber,
       @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone) {}
 
   public record Registration(

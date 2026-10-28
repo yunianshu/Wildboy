@@ -141,6 +141,16 @@ public class ApiController {
     return activities.registrations(null, id, page, size);
   }
 
+  @PostMapping("/admin/privacy/encrypt-legacy-identities")
+  Map<String, Integer> encryptLegacyIdentities(@AuthenticationPrincipal User user) {
+    return activities.encryptLegacyIdentities(user.id());
+  }
+
+  @PostMapping("/admin/activities/{id}/participants/{participantId}/reveal")
+  Participant revealParticipant(@PathVariable String id, @PathVariable String participantId, @AuthenticationPrincipal User user) {
+    return activities.revealParticipant(id, participantId, user.id());
+  }
+
   @GetMapping("/home")
   Map<String, Object> home() {
     var featured = activities.list(null, 0, 3, false).items();

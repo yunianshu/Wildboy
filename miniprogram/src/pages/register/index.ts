@@ -165,6 +165,7 @@ Page({
     const fieldError = validateParticipants(
       this.data.participants,
       this.data.consent,
+      !!this.data.activity?.identityRequired,
     );
     if (fieldError) {
       this.setData({ fieldError });
@@ -203,7 +204,7 @@ Page({
       }
       const participants = this.data.participants.map((participant) => ({
         participantName: participant.participantName.trim(),
-        idNumber: participant.idNumber.trim().toUpperCase(),
+        idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
       }));
       const result = await request<Registration>(

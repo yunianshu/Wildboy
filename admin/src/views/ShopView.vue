@@ -298,6 +298,7 @@ onUnmounted(() => {
               {{ money(order.totalCents) }}</strong
             >
             <p class="muted">订单号 {{ order.orderNo }}</p>
+            <p v-if="order.reconciliationRequired" class="error">需核对微信订单状态，库存暂保留，请勿手动回库。</p>
           </div>
           <button
             v-if="order.status === 'PAID'"

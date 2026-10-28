@@ -157,9 +157,11 @@ Page({
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(session) || !this._phones[id])
         return;
+      const detail = await request<{ phone: string; idNumber: string }>(`/admin/activities/${this.data.id}/participants/${id}/reveal`, "POST");
+      if (n !== this._epoch || !isSessionCurrent(session)) return;
       await wx.showModal({
-        title: "仅用于本次活动组织",
-        content: `手机号：${this._phones[id]}\n身份证号：${this._idNumbers[id] || "历史记录未登记"}`,
+        title: "仅用于本次活动组织（已记录访问）",
+        content: `手机号：${detail.phone}\n身份证号：${detail.idNumber || "未采集"}`,
         showCancel: false,
         confirmText: "我知道了",
       });

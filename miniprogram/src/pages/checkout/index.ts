@@ -1,7 +1,23 @@
-import { request, requireSession, ApiError, mediaUrl } from "../../utils/api";
+import {
+  request,
+  requireSession,
+  ApiError,
+  mediaUrl,
+  getCurrentUser,
+  hasSession,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
 import { Product, Order } from "../../utils/models";
-import { message, safeId, RequestEpoch } from "../../utils/domain";
-import { money, payOrder } from "../../utils/shop";
+import { message, safeId, RequestEpoch, dateLabel } from "../../utils/domain";
+import {
+  money,
+  payOrder,
+  orderStatusLabel,
+  checkoutRequestId,
+  finishCheckoutIntent,
+  pendingCheckoutRequestId,
+} from "../../utils/shop";
 import {
   currentLegal,
   legalLink,
@@ -14,6 +30,7 @@ const epoch = new RequestEpoch();
 Page({
   data: {
     id: "",
+    session: -1,
     quantity: 1,
     product: null as Product | null,
     totalText: "",
@@ -26,6 +43,10 @@ Page({
     consent: false,
     order: null as Order | null,
     orderTotalText: "",
+    orderStatusText: "",
+    orderDeadlineText: "",
+    awaitingConfirmation: false,
+    recoveredOrder: false,
     busy: false,
     loading: true,
     error: "",
@@ -33,10 +54,30 @@ Page({
   onLoad(options: Record<string, string>) {
     const id = safeId(options.id);
     const parsed = Number(options.quantity);
-    const quantity = Number.isInteger(parsed) ? Math.min(99, Math.max(1, parsed)) : 1;
-    this.setData({ id, quantity });
+    const quantity = Number.isInteger(parsed)
+      ? Math.min(99, Math.max(1, parsed))
+      : 1;
+    this.setData({ id, quantity, session: sessionVersion() });
     if (id) void this.load();
     else this.setData({ loading: false, error: "商品链接无效" });
+  },
+  onShow() {
+    if (this.data.session !== -1 && this.data.session !== sessionVersion()) {
+      epoch.invalidate();
+      this.setData({
+        session: sessionVersion(),
+        recipientName: "",
+        phone: "",
+        address: "",
+        order: null,
+        consent: false,
+        privacyRead: false,
+        termsRead: false,
+        busy: false,
+        error: "账号已改变，请重新确认收货信息",
+      });
+    }
+    if (this.data.loading) void this.load();
   },
   onHide() {
     epoch.invalidate();
@@ -48,15 +89,46 @@ Page({
   async load() {
     const current = epoch.next();
     this.setData({ loading: true, error: "" });
+    const session = sessionVersion();
     try {
+      if (hasSession()) {
+        const user = await getCurrentUser();
+        if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+        const pendingId = pendingCheckoutRequestId(
+          user.id,
+          this.data.id,
+          this.data.quantity,
+        );
+        if (pendingId) {
+          try {
+            const order = await request<Order>(
+              `/orders/by-request/${pendingId}`,
+            );
+            if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+            this.showOrder(order);
+            this.setData({ recoveredOrder: true, awaitingConfirmation: false });
+            finishCheckoutIntent(
+              user.id,
+              this.data.id,
+              this.data.quantity,
+              pendingId,
+            );
+            return;
+          } catch (error) {
+            if (!(error instanceof ApiError && error.status === 404))
+              throw error;
+          }
+        }
+      }
       const [product, legal] = await Promise.all([
         request<Product>(`/shop/products/${this.data.id}`),
         currentLegal(),
       ]);
       if (!epoch.valid(current)) return;
       if (this.data.quantity > product.stock) {
-        this.setData({ error: "购买数量超过当前库存，请返回商品页调整" });
-        return;
+        this.setData({
+          error: "购买数量超过当前库存；如之前已提交，请先核对我的订单",
+        });
       }
       this.setData({
         product: { ...product, imageUrl: mediaUrl(product.imageUrl) },
@@ -76,6 +148,7 @@ Page({
     void this.load();
   },
   input(event: WechatMiniprogram.Input) {
+    if (this.data.busy) return;
     const field = event.currentTarget.dataset.field;
     if (["recipientName", "phone", "address"].includes(field))
       this.setData({ [field]: event.detail.value, error: "" });
@@ -96,23 +169,40 @@ Page({
   },
   openDocument(kind: "PRIVACY" | "TERMS") {
     if (!this.data.legal) return;
-    const expected = kind === "PRIVACY" ? this.data.legal.privacy?.version : this.data.legal.terms?.version;
+    const expected =
+      kind === "PRIVACY"
+        ? this.data.legal.privacy?.version
+        : this.data.legal.terms?.version;
     wx.navigateTo({
       url: legalLink(kind, this.data.legal),
       events: {
         legalDocumentLoaded: (document: { kind: string; version: number }) => {
-          const current = kind === "PRIVACY" ? this.data.legal?.privacy?.version : this.data.legal?.terms?.version;
-          if (document.kind === kind && document.version === expected && current === expected)
-            this.setData({ [kind === "PRIVACY" ? "privacyRead" : "termsRead"]: true });
+          const current =
+            kind === "PRIVACY"
+              ? this.data.legal?.privacy?.version
+              : this.data.legal?.terms?.version;
+          if (
+            document.kind === kind &&
+            document.version === expected &&
+            current === expected
+          )
+            this.setData({
+              [kind === "PRIVACY" ? "privacyRead" : "termsRead"]: true,
+            });
         },
       },
     });
   },
   validate(): string {
     const name = this.data.recipientName.trim();
-    if (name.length < 2 || name.length > 40) return "请填写 2–40 字的收货人姓名";
-    if (!/^1[3-9]\d{9}$/.test(this.data.phone.trim())) return "请填写有效的中国大陆手机号";
-    if (this.data.address.trim().length < 5 || this.data.address.trim().length > 300)
+    if (name.length < 2 || name.length > 40)
+      return "请填写 2–40 字的收货人姓名";
+    if (!/^1[3-9]\d{9}$/.test(this.data.phone.trim()))
+      return "请填写有效的中国大陆手机号";
+    if (
+      this.data.address.trim().length < 5 ||
+      this.data.address.trim().length > 300
+    )
       return "请填写完整收货地址";
     if (!this.data.consent || !this.data.privacyRead || !this.data.termsRead)
       return "请阅读并同意当前隐私政策和用户协议";
@@ -131,58 +221,138 @@ Page({
     }
     this.setData({ busy: true, error: "" });
     const current = epoch.next();
+    const session = sessionVersion();
     try {
       await requireSession();
-      if (!epoch.valid(current)) return;
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       const versions = versionsOf(this.data.legal);
       const latest = await currentLegal();
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       if (!sameVersions(versions, versionsOf(latest))) {
-        this.setData({ legal: latest, consent: false, privacyRead: false, termsRead: false });
+        this.setData({
+          legal: latest,
+          consent: false,
+          privacyRead: false,
+          termsRead: false,
+        });
         throw new Error("协议版本已更新，请重新阅读并确认");
       }
+      const user = await getCurrentUser();
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+      const requestId = checkoutRequestId(
+        user.id,
+        this.data.id,
+        this.data.quantity,
+      );
+      // Resolve any previous timeout before sending changed form data or paying.
+      try {
+        const existing = await request<Order>(
+          `/orders/by-request/${requestId}`,
+        );
+        if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+        this.showOrder(existing);
+        this.setData({ recoveredOrder: true, awaitingConfirmation: false });
+        finishCheckoutIntent(
+          user.id,
+          this.data.id,
+          this.data.quantity,
+          requestId,
+        );
+        return;
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 404)) throw error;
+      }
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       const order = await request<Order>("/orders", "POST", {
+        requestId,
         items: [{ productId: this.data.id, quantity: this.data.quantity }],
         recipientName: this.data.recipientName.trim(),
         phone: this.data.phone.trim(),
         address: this.data.address.trim(),
         ...versions,
       });
-      if (!order?.id || order.status !== "PENDING_PAYMENT")
-        throw new Error("订单创建结果异常，请在我的订单中核对");
-      this.setData({ order, orderTotalText: money(order.totalCents) });
-      const paidOrder = await payOrder(order.id);
-      if (epoch.valid(current))
-        this.setData({ order: paidOrder, orderTotalText: money(paidOrder.totalCents) });
+      if (!order?.id) throw new Error("订单创建结果异常，请在我的订单中核对");
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+      this.showOrder(order);
+      finishCheckoutIntent(
+        user.id,
+        this.data.id,
+        this.data.quantity,
+        requestId,
+      );
+      if (order.status !== "PENDING_PAYMENT") return;
+      this.setData({ awaitingConfirmation: true });
+      const paidOrder = await payOrder(order.id, () => epoch.valid(current));
+      if (epoch.valid(current) && isSessionCurrent(session))
+        this.showOrder(paidOrder);
     } catch (error) {
       if (epoch.valid(current)) {
-        if (error instanceof ApiError && ["LEGAL_VERSION_CHANGED", "LEGAL_NOT_READY"].includes(error.code))
-          this.setData({ legal: null, consent: false, privacyRead: false, termsRead: false });
-        this.setData({ error: message(error) });
+        if (
+          error instanceof ApiError &&
+          ["LEGAL_VERSION_CHANGED", "LEGAL_NOT_READY"].includes(error.code)
+        )
+          this.setData({
+            legal: null,
+            consent: false,
+            privacyRead: false,
+            termsRead: false,
+          });
+        this.setData({
+          error:
+            error instanceof ApiError && error.code === "IDEMPOTENCY_CONFLICT"
+              ? "此前提交已被记录，请再次点击提交以找回原订单，或到我的订单核对；不会重复创建。"
+              : message(error),
+          awaitingConfirmation: false,
+        });
       }
     } finally {
       if (epoch.valid(current)) this.setData({ busy: false });
     }
   },
   async payExisting() {
-    if (this.data.busy || !this.data.order) return;
-    this.setData({ busy: true, error: "" });
+    if (
+      this.data.busy ||
+      !this.data.order ||
+      this.data.order.status !== "PENDING_PAYMENT"
+    )
+      return;
+    this.setData({ busy: true, error: "", awaitingConfirmation: true });
     const current = epoch.next();
+    const session = sessionVersion();
     try {
-      const order = await payOrder(this.data.order.id);
-      if (epoch.valid(current)) this.setData({ order, orderTotalText: money(order.totalCents) });
+      const order = await payOrder(this.data.order.id, () =>
+        epoch.valid(current),
+      );
+      if (epoch.valid(current) && isSessionCurrent(session))
+        this.showOrder(order);
     } catch (error) {
-      if (epoch.valid(current)) this.setData({ error: message(error) });
+      if (epoch.valid(current))
+        this.setData({ error: message(error), awaitingConfirmation: false });
     } finally {
       if (epoch.valid(current)) this.setData({ busy: false });
     }
   },
+  showOrder(order: Order) {
+    this.setData({
+      order,
+      orderTotalText: money(order.totalCents),
+      orderStatusText: orderStatusLabel(order.status),
+      orderDeadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
+    });
+  },
   async refreshOrder() {
-    if (!this.data.order) return;
+    if (!this.data.order || this.data.busy) return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    this.setData({ busy: true, error: "" });
     try {
       const order = await request<Order>(`/orders/${this.data.order.id}`);
-      this.setData({ order, orderTotalText: money(order.totalCents) });
+      if (epoch.valid(current) && isSessionCurrent(session))
+        this.showOrder(order);
     } catch (error) {
-      this.setData({ error: message(error) });
+      if (epoch.valid(current)) this.setData({ error: message(error) });
+    } finally {
+      if (epoch.valid(current)) this.setData({ busy: false });
     }
   },
   orders() {

@@ -1,14 +1,8 @@
 import { config } from "../../config";
 import { request, mediaUrl } from "../../utils/api";
 import { Home, Activity, PageResult } from "../../utils/models";
-import {
-  categories,
-  activityView,
-  message,
-  mergeUnique,
-  RequestEpoch,
-  safeId,
-} from "../../utils/domain";
+import { categories, message, RequestEpoch, safeId } from "../../utils/domain";
+import { homeActivitySlots, fallbackBanners } from "../../utils/home";
 const epoch = new RequestEpoch();
 Page({
   data: {
@@ -16,13 +10,11 @@ Page({
     topInset: 48,
     home: null as Home | null,
     categories,
-    items: [] as ReturnType<typeof activityView>[],
+    items: [] as ReturnType<typeof homeActivitySlots>,
+    banners: fallbackBanners,
+    carouselPlaying: true,
     loading: false,
-    loadingMore: false,
     error: "",
-    feedError: "",
-    page: 0,
-    hasMore: true,
   },
   onLoad() {
     this.setData({
@@ -39,24 +31,22 @@ Page({
   onPullDownRefresh() {
     void this.load().finally(() => wx.stopPullDownRefresh());
   },
-  onReachBottom() {
-    void this.loadMore();
+  toggleCarousel() {
+    this.setData({ carouselPlaying: !this.data.carouselPlaying });
   },
   async load() {
     const n = epoch.next();
     this.setData({
       loading: true,
       error: "",
-      feedError: "",
+      home: null,
+      banners: fallbackBanners,
       items: [],
-      page: 0,
-      hasMore: true,
-      loadingMore: false,
     });
     try {
       const [home, page] = await Promise.all([
         request<Home>("/home"),
-        request<PageResult<Activity>>("/activities?page=0&size=10"),
+        request<PageResult<Activity>>("/activities?page=0&size=6"),
       ]);
       if (!epoch.valid(n)) return;
       this.setData({
@@ -71,11 +61,12 @@ Page({
             imageUrl: mediaUrl(x.imageUrl),
           })),
         },
-        items: page.items.map((x) =>
-          activityView({ ...x, coverUrl: mediaUrl(x.coverUrl) }),
+        banners: home.banners.length
+          ? home.banners.map((x) => ({ ...x, imageUrl: mediaUrl(x.imageUrl) }))
+          : fallbackBanners,
+        items: homeActivitySlots(
+          page.items.map((x) => ({ ...x, coverUrl: mediaUrl(x.coverUrl) })),
         ),
-        hasMore: page.hasMore,
-        page: page.page,
       });
     } catch (e) {
       if (epoch.valid(n)) this.setData({ error: message(e) });
@@ -83,42 +74,8 @@ Page({
       if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
-  async loadMore() {
-    if (
-      this.data.loading ||
-      this.data.loadingMore ||
-      !this.data.hasMore ||
-      this.data.error
-    )
-      return;
-    const n = epoch.next();
-    this.setData({ loadingMore: true, feedError: "" });
-    try {
-      const p = await request<PageResult<Activity>>(
-        `/activities?page=${this.data.page + 1}&size=10`,
-      );
-      if (epoch.valid(n))
-        this.setData({
-          items: mergeUnique(
-            this.data.items,
-            p.items.map((x) =>
-              activityView({ ...x, coverUrl: mediaUrl(x.coverUrl) }),
-            ),
-          ),
-          page: p.page,
-          hasMore: p.hasMore,
-        });
-    } catch (e) {
-      if (epoch.valid(n)) this.setData({ feedError: message(e) });
-    } finally {
-      if (epoch.valid(n)) this.setData({ loadingMore: false });
-    }
-  },
   retry() {
     void this.load();
-  },
-  retryMore() {
-    void this.loadMore();
   },
   openActivity(e: WechatMiniprogram.TouchEvent) {
     const id = safeId(e.currentTarget.dataset.id);
@@ -130,6 +87,7 @@ Page({
     wx.switchTab({ url: "/pages/activities/index" });
   },
   allActivities() {
+    wx.setStorageSync("wildboy-category", "ALL");
     wx.switchTab({ url: "/pages/activities/index" });
   },
   equipmentInfo() {

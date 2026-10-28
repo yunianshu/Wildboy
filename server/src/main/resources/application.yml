@@ -25,6 +25,8 @@ management:
     health:
       show-details: never
 wildboy:
+  identity:
+    encryption-key: ${IDENTITY_ENCRYPTION_KEY:}
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}

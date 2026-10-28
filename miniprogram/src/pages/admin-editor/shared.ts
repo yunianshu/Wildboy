@@ -30,6 +30,7 @@ export const presets = [
   "equipment",
 ].map((name) => `/assets/${name}.jpg`);
 export type EditForm = {
+  identityRequired: boolean;
   title: string;
   category: Category;
   coverUrl: string;
@@ -48,6 +49,7 @@ export type EditForm = {
 };
 export function emptyForm(): EditForm {
   return {
+    identityRequired: false,
     title: "",
     category: "WEEKLY",
     coverUrl: presets[1],
@@ -78,6 +80,7 @@ export function formFromActivity(a: Activity): EditForm {
     e = chinaFields(a.endAt),
     d = chinaFields(a.registrationDeadline);
   return {
+    identityRequired: !!a.identityRequired,
     title: a.title,
     category: a.category,
     coverUrl: a.coverUrl,
@@ -160,6 +163,7 @@ export function buildInput(f: EditForm, registered = 0, now = Date.now()) {
     throw new Error("详情图片最多 12 张，请使用 HTTPS 地址或内置资源");
   return {
     title,
+    identityRequired: f.identityRequired,
     category: f.category,
     coverUrl: f.coverUrl.trim(),
     galleryUrls,

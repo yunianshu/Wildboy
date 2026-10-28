@@ -12,6 +12,7 @@ export interface ActivityInput {
   startAt: string;
   endAt: string;
   registrationDeadline: string;
+  identityRequired?: boolean;
   capacity: number;
   priceCents: number;
 }
@@ -63,6 +64,7 @@ export interface OrderItem {
   quantity: number;
 }
 export interface Order {
+  reconciliationRequired?: boolean;
   id: string;
   orderNo: string;
   userId: string;

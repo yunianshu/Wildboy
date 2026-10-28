@@ -12,6 +12,7 @@ export interface Activity {
   startAt: string;
   endAt: string;
   registrationDeadline: string;
+  identityRequired?: boolean;
   capacity: number;
   registeredCount: number;
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
@@ -93,6 +94,8 @@ export interface OrderItem {
   quantity: number;
 }
 export interface Order {
+  reconciliationRequired?: boolean;
+  expiresAt?: string;
   id: string;
   orderNo: string;
   userId: string;

@@ -1,15 +1,36 @@
-import { request, hasSession, sessionVersion, isSessionCurrent } from "../../utils/api";
+import {
+  request,
+  hasSession,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
 import { Order, PageResult } from "../../utils/models";
 import { message, safeId, dateLabel, RequestEpoch } from "../../utils/domain";
 import { money, orderStatusLabel, payOrder } from "../../utils/shop";
 
 const epoch = new RequestEpoch();
-type OrderView = Order & { statusText: string; totalText: string; dateText: string };
+type OrderView = Order & {
+  statusText: string;
+  totalText: string;
+  dateText: string;
+  deadlineText: string;
+};
 Page({
   data: {
     loggedIn: false,
     items: [] as OrderView[],
     loading: true,
+    loadingMore: false,
+    page: 0,
+    hasMore: false,
+    selected: "",
+    filters: [
+      { code: "", name: "全部" },
+      { code: "PENDING_PAYMENT", name: "待支付" },
+      { code: "PAID", name: "待发货" },
+      { code: "SHIPPED", name: "已发货" },
+      { code: "CANCELLED", name: "已取消" },
+    ],
     busyId: "",
     error: "",
   },
@@ -20,6 +41,23 @@ Page({
   onHide() {
     epoch.invalidate();
     this.setData({ items: [], busyId: "" });
+  },
+  onReachBottom() {
+    void this.load(false);
+  },
+  select(event: WechatMiniprogram.TouchEvent) {
+    const selected = event.currentTarget.dataset.code || "";
+    if (
+      !this.data.filters.some((item) => item.code === selected) ||
+      selected === this.data.selected ||
+      this.data.busyId
+    )
+      return;
+    this.setData({ selected });
+    void this.load();
+  },
+  more() {
+    void this.load(false);
   },
   onUnload() {
     epoch.invalidate();
@@ -34,25 +72,68 @@ Page({
       statusText: orderStatusLabel(order.status),
       totalText: money(order.totalCents),
       dateText: dateLabel(order.createdAt),
+      deadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     };
   },
-  async load() {
+  async load(reset = true) {
+    if (
+      this.data.busyId ||
+      (!reset &&
+        (this.data.loading || this.data.loadingMore || !this.data.hasMore))
+    )
+      return;
     const current = epoch.next();
     const session = sessionVersion();
-    this.setData({ loading: true, error: "", loggedIn: hasSession() });
+    const page = reset ? 0 : this.data.page + 1;
+    this.setData({
+      loading: reset,
+      loadingMore: !reset,
+      error: "",
+      loggedIn: hasSession(),
+      ...(reset ? { items: [], page: 0, hasMore: false } : {}),
+    });
     if (!hasSession()) {
-      this.setData({ loading: false, items: [] });
+      this.setData({ loading: false, loadingMore: false, items: [] });
       return;
     }
     try {
-      const result = await request<PageResult<Order>>("/orders?page=0&size=50");
-      if (epoch.valid(current) && isSessionCurrent(session))
-        this.setData({ items: result.items.map((order) => this.view(order)) });
+      const result = await request<PageResult<Order>>(
+        `/orders?page=${page}&size=20${this.data.selected ? "&status=" + this.data.selected : ""}`,
+      );
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        const rows = result.items.map((order) => this.view(order));
+        const previous = reset ? [] : this.data.items;
+        const ids = new Set(previous.map((item) => item.id));
+        this.setData({
+          items: [...previous, ...rows.filter((item) => !ids.has(item.id))],
+          page: result.page,
+          hasMore: result.hasMore,
+        });
+      }
     } catch (error) {
-      if (epoch.valid(current)) this.setData({ error: message(error) });
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
     } finally {
-      if (epoch.valid(current)) this.setData({ loading: false });
+      if (epoch.valid(current))
+        this.setData({ loading: false, loadingMore: false });
     }
+  },
+  updateOrder(order: Order) {
+    this.setData({
+      items: this.data.items
+        .filter(
+          (item) =>
+            item.id !== order.id ||
+            !this.data.selected ||
+            order.status === this.data.selected,
+        )
+        .map((item) => (item.id === order.id ? this.view(order) : item)),
+    });
   },
   retry() {
     void this.load();
@@ -62,35 +143,71 @@ Page({
   },
   async pay(event: WechatMiniprogram.TouchEvent) {
     const id = safeId(event.currentTarget.dataset.id);
-    if (!id || this.data.busyId) return;
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
+      return;
     const current = epoch.next();
     const session = sessionVersion();
     this.setData({ busyId: id, error: "" });
     try {
-      const order = await payOrder(id);
+      const order = await payOrder(id, () => epoch.valid(current));
       if (!epoch.valid(current) || !isSessionCurrent(session)) return;
-      this.setData({ items: this.data.items.map((item) => (item.id === id ? this.view(order) : item)) });
-      if (order.status !== "PAID")
-        wx.showModal({ title: "支付结果确认中", content: "请稍后下拉刷新订单；不要重复创建新订单。", showCancel: false });
+      this.updateOrder(order);
+      if (order.status === "PENDING_PAYMENT")
+        wx.showModal({
+          title: "支付结果确认中",
+          content: "请稍后下拉刷新订单；不要重复创建新订单。",
+          showCancel: false,
+        });
     } catch (error) {
-      if (epoch.valid(current)) this.setData({ error: message(error) });
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
     } finally {
       if (epoch.valid(current)) this.setData({ busyId: "" });
     }
   },
   async cancel(event: WechatMiniprogram.TouchEvent) {
     const id = safeId(event.currentTarget.dataset.id);
-    if (!id || this.data.busyId) return;
-    const answer = await wx.showModal({ title: "取消这笔订单？", content: "服务端关单成功后会释放库存；已支付订单不能直接取消。", confirmText: "确认取消" });
-    if (!answer.confirm) return;
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
+      return;
+    const session = sessionVersion();
+    const prompt = epoch.next();
+    this.setData({ busyId: id });
+    let answer;
+    try {
+      answer = await wx.showModal({
+        title: "取消这笔订单？",
+        content: "服务端关单成功后会释放库存；已支付订单不能直接取消。",
+        confirmText: "确认取消",
+      });
+    } catch (error) {
+      if (epoch.valid(prompt))
+        this.setData({ busyId: "", error: message(error) });
+      return;
+    }
+    if (!epoch.valid(prompt) || !isSessionCurrent(session)) return;
+    if (!answer.confirm) {
+      this.setData({ busyId: "" });
+      return;
+    }
     const current = epoch.next();
     this.setData({ busyId: id, error: "" });
     try {
       const order = await request<Order>(`/orders/${id}/cancel`, "POST");
-      if (epoch.valid(current))
-        this.setData({ items: this.data.items.map((item) => (item.id === id ? this.view(order) : item)) });
+      if (epoch.valid(current) && isSessionCurrent(session))
+        this.updateOrder(order);
     } catch (error) {
-      if (epoch.valid(current)) this.setData({ error: message(error) });
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
     } finally {
       if (epoch.valid(current)) this.setData({ busyId: "" });
     }

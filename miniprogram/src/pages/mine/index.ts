@@ -97,6 +97,14 @@ Page({
     if (this.data.user?.role === "ADMIN")
       wx.navigateTo({ url: "/pages/admin-activities/index" });
   },
+  shopManage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-shop/index" });
+  },
+  orderManage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-orders/index" });
+  },
   legalManage() {
     if (this.data.user?.role === "ADMIN")
       wx.navigateTo({ url: "/pages/admin-legal/index" });

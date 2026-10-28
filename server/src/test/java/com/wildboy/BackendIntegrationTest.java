@@ -39,6 +39,7 @@ class BackendIntegrationTest {
     r.add("spring.datasource.username", () -> "postgres");
     r.add("spring.datasource.password", () -> "");
     r.add("wildboy.dev-login-enabled", () -> true);
+    r.add("wildboy.identity.encryption-key", () -> java.util.Base64.getEncoder().encodeToString(new byte[32]));
     r.add("wildboy.admin.username", () -> "qa-admin");
     r.add(
         "wildboy.admin.password-hash",
@@ -99,7 +100,7 @@ class BackendIntegrationTest {
         start.minusDays(1),
         capacity,
         0,
-        null);
+        null, true);
   }
 
   Activity publish(int capacity) {
@@ -148,6 +149,46 @@ class BackendIntegrationTest {
 
   String bearer(User u) {
     return "Bearer " + auth.login(u).token();
+  }
+
+  @Test
+  void identitiesAreEncryptedMaskedAndExplicitlyAudited() throws Exception {
+    Activity a = publish(3);
+    User owner = user();
+    var result = activities.register(a.id(), owner.id(), registrationInput("测试人", "13800000000"));
+    var person = result.registration().participants().getFirst();
+    String stored = db.queryForObject("SELECT id_number FROM registration_participant WHERE id=?", String.class, person.id());
+    assertThat(stored).startsWith("enc:v1:").doesNotContain("11010519491231002X");
+    assertThat(person.idNumber()).isEqualTo("******************");
+    String path = "/api/v1/admin/activities/"+a.id()+"/participants/"+person.id()+"/reveal";
+    mvc.perform(post(path).header("Authorization",bearer(owner))).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/privacy/encrypt-legacy-identities").header("Authorization",bearer(owner))).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/activities/other/participants/"+person.id()+"/reveal").header("Authorization",bearer(auth.user("fixture:other-admin", "Admin", "ADMIN")))).andExpect(status().isNotFound());
+    mvc.perform(post(path).header("Authorization",bearer(auth.user("fixture:privacy-admin", "Admin", "ADMIN"))))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.idNumber").value("11010519491231002X"));
+    assertThat(db.queryForObject("SELECT COUNT(*) FROM audit_event WHERE action='PARTICIPANT_IDENTITY_REVEAL'", Integer.class)).isEqualTo(1);
+  }
+
+  @Test
+  void legacyIdentityMigrationIsBoundedAuditedAndIdempotent() {
+    Activity a=publish(1); User owner=user();
+    var participant=activities.register(a.id(),owner.id(),registrationInput("测试人","13800000000")).registration().participants().getFirst();
+    db.update("UPDATE registration_participant SET id_number='11010519491231002X' WHERE id=?",participant.id());
+    assertThat(activities.own(a.id(),owner.id()).participants().getFirst().idNumber()).doesNotContain("19491231");
+    assertThat(activities.encryptLegacyIdentities("fixture").get("encrypted")).isEqualTo(1);
+    assertThat(activities.encryptLegacyIdentities("fixture").get("encrypted")).isZero();
+    assertThat(activities.revealParticipant(a.id(),participant.id(),"fixture").idNumber()).isEqualTo("11010519491231002X");
+  }
+
+  @Test
+  void noIdentityActivityAllowsMultipleParticipantsWithoutIdsAndRejectsUnnecessaryIds() {
+    Activity a = publish(3);
+    db.update("UPDATE activity SET identity_required=false WHERE id=?",a.id());
+    User owner = user();
+    var result = activities.register(a.id(), owner.id(), new RegistrationInput(List.of(
+        new ParticipantInput("测试一", "", "13800000000"), new ParticipantInput("测试二", "", "13800000001")),1L,1L));
+    assertThat(result.registration().participants()).hasSize(2).allMatch(x -> x.idNumber().isEmpty());
+    assertThatThrownBy(() -> activities.register(a.id(),user().id(),registrationInput("测试三","13800000002"))).hasMessageContaining("不采集");
   }
 
   @Test
@@ -296,7 +337,7 @@ class BackendIntegrationTest {
             a.id(), owner.id(), new RegistrationInput(List.of(second), 1L, 1L));
     assertThat(reregistered.registration().participants())
         .extracting(Participant::idNumber)
-        .containsExactly("110105194912310038");
+        .containsExactly("******************");
     assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(1);
     assertThatThrownBy(
             () ->

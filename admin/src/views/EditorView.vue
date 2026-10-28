@@ -39,6 +39,7 @@ const fields = reactive({
     startAt: "",
     endAt: "",
     registrationDeadline: "",
+    identityRequired: false,
     capacity: 20,
   }),
   errors = ref<Record<string, string>>({}),
@@ -68,6 +69,7 @@ function assign(data: Activity) {
     startAt: toShanghaiInput(data.startAt),
     endAt: toShanghaiInput(data.endAt),
     registrationDeadline: toShanghaiInput(data.registrationDeadline),
+    identityRequired: !!data.identityRequired,
     capacity: data.capacity,
   });
   baseline.value = JSON.stringify(fields);
@@ -105,6 +107,7 @@ function input(): ActivityInput {
     startAt: fromShanghaiInput(fields.startAt),
     endAt: fromShanghaiInput(fields.endAt),
     registrationDeadline: fromShanghaiInput(fields.registrationDeadline),
+    identityRequired: fields.identityRequired,
     capacity: Number(fields.capacity),
     priceCents: 0,
   };
@@ -280,7 +283,8 @@ onUnmounted(() => {
                   ><small class="field-error">{{
                     errors.category
                   }}</small></label
-                ><label
+                ><label class="field"><input v-model="fields.identityRequired" type="checkbox" /> 本活动必须核验身份证（仅确有需要时开启，并说明用途）</label>
+                <label
                   >人数上限 <span>*</span
                   ><input
                     v-model.number="fields.capacity"

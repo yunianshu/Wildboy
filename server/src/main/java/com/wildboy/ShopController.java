@@ -46,6 +46,11 @@ public class ShopController {
     return shop.orders(user.id(), status, page, size);
   }
 
+  @GetMapping("/orders/by-request/{requestId}")
+  Order orderByRequest(@PathVariable String requestId, @AuthenticationPrincipal Models.User user) {
+    return shop.orderByRequest(requestId, user.id());
+  }
+
   @GetMapping("/orders/{id}")
   Order order(@PathVariable String id, @AuthenticationPrincipal Models.User user) {
     return shop.order(id, user.id(), false);

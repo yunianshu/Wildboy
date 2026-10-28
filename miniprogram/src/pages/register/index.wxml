@@ -60,8 +60,8 @@
             disabled="{{submitting}}"
           />
         </view>
-        <view class="field">
-          <text class="label">身份证号</text>
+        <view wx:if="{{activity.identityRequired}}" class="field">
+          <text class="label">身份证号（本活动身份核验需要）</text>
           <input
             value="{{item.idNumber}}"
             maxlength="18"
@@ -100,7 +100,7 @@
             disabled="{{submitting}}"
           />
           <text>
-            我已阅读并同意当前版本隐私政策、用户协议，并同意将所有参与人的姓名、身份证号和手机号用于本次活动身份核验、组织与联系。
+            我已阅读并同意当前版本隐私政策、用户协议，并同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号用于本次活动身份核验、组织与联系。
           </text>
         </label>
       </checkbox-group>

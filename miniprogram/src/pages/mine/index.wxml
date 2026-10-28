@@ -69,6 +69,8 @@
       <view><view class="menu-title">协议管理 <text class="badge">仅管理员</text></view><view class="muted">隐私政策与用户协议版本</view></view>
       <text>›</text>
     </view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="shopManage"><view><view class="menu-title">商品管理 <text class="badge">仅管理员</text></view><view class="muted">商品编辑、库存与上下架</view></view><text>›</text></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="orderManage"><view><view class="menu-title">订单管理 <text class="badge">仅管理员</text></view><view class="muted">订单筛选、收件信息与发货</view></view><text>›</text></view>
     <view class="links">
       <view bindtap="privacy">隐私政策<text>›</text></view>
       <view bindtap="terms">用户协议<text>›</text></view>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useRoute } from "vue-router";
-import { request, errorMessage } from "../api";
+import { request, errorMessage, currentUser } from "../api";
 import { displayDate } from "../forms";
 import type { Activity, Registration, Page } from "../types";
 const route = useRoute(),
@@ -26,6 +26,7 @@ async function load() {
   busy.value = true;
   error.value = "";
   revealed.value = new Set();
+  revealedDetails.value = {};
   try {
     const id = encodeURIComponent(String(route.params.id));
     const [details, list] = await Promise.all([
@@ -51,11 +52,27 @@ async function load() {
     if (current === generation) busy.value = false;
   }
 }
-function toggle(id: string) {
-  const set = new Set(revealed.value);
-  if (set.has(id)) set.delete(id);
-  else set.add(id);
-  revealed.value = set;
+const revealedDetails = ref<Record<string, { phone: string; idNumber: string }>>({});
+const revealing = new Set<string>();
+async function toggle(id: string) {
+  if (revealed.value.has(id)) {
+    revealed.value = new Set([...revealed.value].filter(x => x !== id));
+    delete revealedDetails.value[id];
+    return;
+  }
+  if (revealing.has(id)) return;
+  const current = generation;
+  const actor = currentUser.value;
+  if (!actor || actor.role !== "ADMIN") return;
+  revealing.add(id);
+  try {
+    const result = await request<{phone: string; idNumber: string}>(`/admin/activities/${encodeURIComponent(String(route.params.id))}/participants/${encodeURIComponent(id)}/reveal`, {method: "POST"});
+    if (current !== generation || currentUser.value !== actor) return;
+    revealedDetails.value[id] = result;
+    revealed.value = new Set([...revealed.value, id]);
+  } catch (e) {
+    if (current === generation) error.value = errorMessage(e);
+  } finally { revealing.delete(id); }
 }
 function maskPhone(phone: string) {
   return phone.length > 7
@@ -68,6 +85,13 @@ function maskIdNumber(idNumber: string) {
     ? `${idNumber.slice(0, 6)}••••••••${idNumber.slice(-4)}`
     : "••••••••••";
 }
+watch(currentUser, () => {
+  generation++;
+  controller?.abort();
+  revealed.value.clear();
+  revealedDetails.value = {};
+  data.value.items = [];
+});
 watch(page, load);
 onMounted(load);
 onUnmounted(() => {
@@ -75,6 +99,7 @@ onUnmounted(() => {
   controller?.abort();
   data.value.items = [];
   revealed.value.clear();
+  revealedDetails.value = {};
 });
 </script>
 <template>
@@ -134,14 +159,14 @@ onUnmounted(() => {
             <td>
               {{
                 revealed.has(participant.id)
-                  ? participant.idNumber
+                  ? revealedDetails[participant.id]?.idNumber
                   : maskIdNumber(participant.idNumber)
               }}
             </td>
             <td>
               <span>{{
                 revealed.has(participant.id)
-                  ? participant.phone
+                  ? revealedDetails[participant.id]?.phone
                   : maskPhone(participant.phone)
               }}</span
               ><button

@@ -10,3 +10,9 @@
 .order-actions { display: flex; gap: 16rpx; margin-top: 22rpx; }
 .small-button { flex: 1; min-height: 72rpx; line-height: 72rpx; font-size: 25rpx; }
 .orders-page .notice { margin-top: 30rpx; }
+
+.order-filters { margin-top: 24rpx; white-space: nowrap; }
+.filter-row { display: flex; gap: 12rpx; }
+.filter { flex: 0 0 auto; margin: 0; padding: 0 22rpx; font-size: 24rpx; line-height: 68rpx; border-radius: 40rpx; background: #edf0e8; }
+.filter.active { color: #fff; background: #193f34; }
+.end { text-align: center; margin-top: 24rpx; }

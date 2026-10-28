@@ -1,15 +1,21 @@
 <view class="page checkout-page">
   <view wx:if="{{loading}}" class="state">正在核对商品与协议…</view>
   <block wx:elif="{{order}}">
-    <view class="result-card {{order.status === 'PAID' ? 'paid' : ''}}">
-      <view class="result-mark">{{order.status === 'PAID' ? '✓' : '…'}}</view>
-      <view class="title">{{order.status === 'PAID' ? '支付已确认' : (order.status === 'CANCELLED' ? '订单已取消' : '支付结果确认中')}}</view>
+    <view wx:if="{{recoveredOrder}}" class="notice">已找回此前提交的原订单，未重复下单。请核对原收货信息后再决定是否继续支付。</view>
+    <view class="result-card {{(order.status === 'PAID' || order.status === 'SHIPPED') ? 'paid' : ''}}">
+      <view class="result-mark">{{(order.status === 'PAID' || order.status === 'SHIPPED') ? '✓' : '…'}}</view>
+      <view class="title">{{order.status === 'PENDING_PAYMENT' && awaitingConfirmation ? '支付结果确认中' : orderStatusText}}</view>
       <view class="muted">订单号 {{order.orderNo}}</view>
       <view class="result-total">订单金额 {{orderTotalText}}</view>
+      <view class="muted">{{order.recipientName}} · {{order.phone}}</view>
+      <view class="muted">{{order.address}}</view>
     </view>
-    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">只有服务端确认已支付才会显示成功。若已付款，请刷新结果；不要重复创建新订单。</view>
-    <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="primary" loading="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
-    <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="secondary" loading="{{busy}}" bindtap="payExisting">继续支付</button>
+    <view wx:if="{{order.status === 'PENDING_PAYMENT' && orderDeadlineText}}" class="notice">请于 {{orderDeadlineText}} 前完成付款，超时后系统核实关单并释放库存。</view>
+    <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
+    <view wx:if="{{error}}" class="error form-error">{{error}}</view>
+    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">只有服务端确认已支付才会显示成功。若已付款，请刷新结果；未付款可继续支付。请勿重复创建新订单。</view>
+    <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
+    <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="payExisting">继续支付</button>
     <button class="secondary" bindtap="orders">查看我的订单</button>
   </block>
   <block wx:elif="{{product}}">
@@ -23,6 +29,7 @@
     <view class="privacy" bindtap="privacy">阅读隐私政策（版本 {{legal.privacy.version}}）↗</view>
     <view class="privacy" bindtap="terms">阅读用户协议（版本 {{legal.terms.version}}）↗</view>
     <view class="notice">提交后由服务端核对价格与库存并创建订单。支付取消不会生成付款成功记录，订单可稍后继续支付。</view>
+    <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
     <button class="primary submit" loading="{{busy}}" disabled="{{busy || !legal}}" bindtap="submit">{{busy ? '正在处理订单…' : '提交订单并支付 ' + totalText}}</button>
   </block>

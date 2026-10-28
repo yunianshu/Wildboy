@@ -92,6 +92,7 @@ export function maskIdNumber(value: string): string {
 export function validateParticipants(
   participants: ParticipantInput[],
   consent: boolean,
+  identityRequired = true,
 ): string {
   if (!participants.length) return "请至少添加一位参与人";
   const idNumbers = new Set<string>();
@@ -102,8 +103,8 @@ export function validateParticipants(
     const idNumber = participant.idNumber.trim().toUpperCase();
     if (name.length < 2 || name.length > 40)
       return `${label}姓名须为 2–40 字`;
-    if (!validIdNumber(idNumber)) return `请填写${label}的有效身份证号`;
-    if (idNumbers.has(idNumber)) return `${label}与前一位参与人身份证号重复`;
+    if ((identityRequired || idNumber) && !validIdNumber(idNumber)) return `请填写${label}的有效身份证号`;
+    if (idNumber && idNumbers.has(idNumber)) return `${label}与前一位参与人身份证号重复`;
     idNumbers.add(idNumber);
     if (!/^1[3-9]\d{9}$/.test(participant.phone.trim()))
       return `请填写${label}的有效中国大陆手机号`;

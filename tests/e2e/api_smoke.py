@@ -64,7 +64,7 @@ status, body = request('GET', '/admin/activities', token=user)
 check('ordinary user admin denied', status == 403, body)
 now = dt.datetime.now(dt.timezone.utc)
 iso = lambda days: (now + dt.timedelta(days=days)).isoformat()
-fixture = dict(title='E2E ' + str(uuid.uuid4())[:8], category='WEEKLY', coverUrl='/assets/category-weekly.jpg', galleryUrls=[], summary='自动验收测试活动', description='仅用于隔离环境验收，不是真实活动。', location='厦门', meetingPoint='测试集合点', startAt=iso(10), endAt=iso(11), registrationDeadline=iso(9), capacity=2, priceCents=0)
+fixture = dict(title='E2E ' + str(uuid.uuid4())[:8], category='WEEKLY', coverUrl='/assets/category-weekly.jpg', galleryUrls=[], summary='自动验收测试活动', description='仅用于隔离环境验收，不是真实活动。', location='厦门', meetingPoint='测试集合点', startAt=iso(10), endAt=iso(11), registrationDeadline=iso(9), capacity=2, priceCents=0, identityRequired=True)
 participant = {'participants': [
     {'participantName':'验收用户一','idNumber':'11010519491231002X','phone':'13800000000'},
     {'participantName':'验收用户二','idNumber':'110105194912310038','phone':'13800000001'},
@@ -112,7 +112,7 @@ if user2:
 status, body = request('GET', f'/admin/activities/{aid}/registrations', token=user)
 check('ordinary user cannot access roster', status == 403, body)
 status, body = request('GET', f'/admin/activities/{aid}/registrations', token=admin)
-check('admin can access group roster with identities', status == 200 and body['total']==1 and len(body['items'][0]['participants'])==2 and body['items'][0]['participants'][0]['idNumber']=='11010519491231002X', body)
+check('admin roster masks identity by default', status == 200 and body['total']==1 and len(body['items'][0]['participants'])==2 and body['items'][0]['participants'][0]['idNumber']=='******************', body)
 status, body = request('DELETE', f'/activities/{aid}/registrations/me', token=user)
 check('self cancellation succeeds', status in (200,204), body)
 status, activity = request('GET', '/activities/'+aid)

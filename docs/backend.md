@@ -98,3 +98,11 @@ WECHAT_PAY_NOTIFY_URL=https://你的API域名/api/v1/payments/wechat/notify
 - 管理员名单只对管理员可见，活动取消后保留取消报名历史；公开活动接口不返回参与人姓名或电话。
 
 本次移动管理增量已运行 `mvn verify`：19 项真实 PostgreSQL 集成测试，0 失败/错误/跳过。新增覆盖普通用户对全部管理路由的拒绝、伪造 role/header、过期管理员会话、真实管理员 HTTP 登录与创建/编辑/发布/取消/名单流程，以及两类全局状态筛选的分页与用户隔离。最终可执行 JAR 已连接独立 PostgreSQL 启动，健康、公开首页/活动、支付关闭和匿名管理访问 401 冒烟通过。这不代表真实微信登录、真机或生产部署已验证。
+
+### Order reliability and recovery
+
+- New clients send a stable `requestId` (8–80 ASCII letters/digits/underscore/hyphen) to `POST /orders`. Same owner/key and normalized payload returns the original order without re-reserving stock; different payload returns `409 IDEMPOTENCY_CONFLICT`. The field is optional only for legacy-client compatibility. `GET /orders/by-request/{requestId}` is owner-scoped recovery after a lost response; it returns 404 if no committed order exists. Never put address, phone or identity information in a request ID.
+- Orders expire after 30 minutes (`expiresAt`), with at most 10 unpaid orders per owner. A minute-based worker closes expired orders. It reserves each retry for five minutes independently of gateway rollback so uncertain orders cannot starve the remainder of a batch.
+- Payment intent is committed before calling WeChat. Prepay, cancellation, expiry and notifications serialize on the order row. The same order number is reused. Prepay includes the same gateway expiry time. A failed/unknown gateway close never releases inventory; a verified successful query reconciles payment, and a verified CLOSED query permits release. NOT_EXIST after an uncertain prepay is deliberately not proof that a late request cannot create a payable order.
+- Configuration missing before prepay does not mark an order initiated. Unknown gateway orders remain reserved and retried; monitor `Order expiry deferred` logs and pending orders past `expiresAt`, then reconcile through the merchant console. Do not manually set CANCELLED or restock until gateway final state is established. This conservative recovery can retain stock during an outage and is intentional to avoid accepting payment for released stock.
+- No real merchant credentials or live payment were used by the regression suite; gateway mocks plus real PostgreSQL exercise timeout, concurrency, idempotency and rollback.

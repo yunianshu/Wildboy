@@ -4,6 +4,10 @@ import static com.wildboy.Models.Page;
 import static com.wildboy.ShopModels.*;
 
 import com.wechat.pay.java.service.payments.model.Transaction;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -20,18 +24,20 @@ public class ShopService {
   private final AuthService auth;
   private final ActivityService activities;
   private final WechatPayService pay;
+  private final TransactionTemplate transactions;
 
   public ShopService(
       JdbcTemplate db,
       LegalService legal,
       AuthService auth,
       ActivityService activities,
-      WechatPayService pay) {
+      WechatPayService pay, PlatformTransactionManager transactionManager) {
     this.db = db;
     this.legal = legal;
     this.auth = auth;
     this.activities = activities;
     this.pay = pay;
+    this.transactions = new TransactionTemplate(transactionManager);
   }
 
   private final RowMapper<Product> productMapper =
@@ -65,6 +71,8 @@ public class ShopService {
               r.getLong("version"),
               r.getObject("created_at", OffsetDateTime.class),
               r.getObject("updated_at", OffsetDateTime.class),
+              r.getObject("expires_at", OffsetDateTime.class),
+              r.getBoolean("reconciliation_required"),
               List.of());
 
   public List<Product> products(boolean admin) {
@@ -158,6 +166,8 @@ public class ShopService {
         order.version(),
         order.createdAt(),
         order.updatedAt(),
+        order.expiresAt(),
+        order.reconciliationRequired(),
         items);
   }
 
@@ -167,6 +177,12 @@ public class ShopService {
             "SELECT * FROM shop_order WHERE id=?" + (admin ? "" : " AND user_id=?"),
             orderMapper,
             admin ? new Object[] {id} : new Object[] {id, userId});
+    if (result.isEmpty()) throw ApiException.notFound();
+    return withItems(result.getFirst());
+  }
+
+  public Order orderByRequest(String requestId, String userId) {
+    var result = db.query("SELECT * FROM shop_order WHERE user_id=? AND request_id=?", orderMapper, userId, requestId);
     if (result.isEmpty()) throw ApiException.notFound();
     return withItems(result.getFirst());
   }
@@ -229,6 +245,23 @@ public class ShopService {
       if (quantity > 99) throw new ApiException(400, "INVALID_ORDER_ITEM", "单种商品最多购买 99 件");
       quantities.put(item.productId(), quantity);
     }
+    // A per-owner lock serializes retries and the pending-order limit, including concurrent requests.
+    db.queryForObject("SELECT id FROM app_user WHERE id=? FOR UPDATE", String.class, userId);
+    String requestId = input.requestId();
+    if (requestId != null && (!requestId.matches("[A-Za-z0-9_-]{8,80}")))
+      throw new ApiException(400, "INVALID_REQUEST_ID", "下单请求号格式无效");
+    String fingerprint = fingerprint(quantities, recipient, phone, address, input);
+    if (requestId != null) {
+      var previous = db.query("SELECT * FROM shop_order WHERE user_id=? AND request_id=?", orderMapper, userId, requestId);
+      if (!previous.isEmpty()) {
+        String oldFingerprint = db.queryForObject("SELECT request_fingerprint FROM shop_order WHERE id=?", String.class, previous.getFirst().id());
+        if (!fingerprint.equals(oldFingerprint))
+          throw ApiException.conflict("IDEMPOTENCY_CONFLICT", "同一请求号对应的订单内容已改变");
+        return withItems(previous.getFirst());
+      }
+    }
+    if (db.queryForObject("SELECT COUNT(*) FROM shop_order WHERE user_id=? AND status='PENDING_PAYMENT'", Integer.class, userId) >= 10)
+      throw ApiException.conflict("TOO_MANY_PENDING_ORDERS", "待支付订单过多，请先完成或取消已有订单");
     var productIds = quantities.keySet().stream().sorted().toList();
     var products = new HashMap<String, Product>();
     for (String productId : productIds) {
@@ -250,14 +283,16 @@ public class ShopService {
     String id = UUID.randomUUID().toString();
     String orderNo = UUID.randomUUID().toString().replace("-", "");
     db.update(
-        "INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address) VALUES(?,?,?,?,'PENDING_PAYMENT',?,?,?)",
+        "INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address,request_id,request_fingerprint) VALUES(?,?,?,?,'PENDING_PAYMENT',?,?,?,?,?)",
         id,
         orderNo,
         userId,
         (int) total,
         recipient,
         phone,
-        address);
+        address,
+        requestId,
+        fingerprint);
     for (String productId : productIds) {
       Product product = products.get(productId);
       int quantity = quantities.get(productId);
@@ -277,39 +312,117 @@ public class ShopService {
     return order(id, userId, false);
   }
 
-  public ShopModels.PaymentRequest payment(String id, String userId) {
-    Order order = order(id, userId, false);
+  private String fingerprint(Map<String, Integer> quantities, String recipient, String phone,
+      String address, OrderInput input) {
+    try {
+      // Length-prefixed fields avoid delimiter collisions and do not retain extra address copies.
+      var fields = new ArrayList<String>();
+      new TreeMap<>(quantities).forEach((id, quantity) -> { fields.add(id); fields.add(quantity.toString()); });
+      fields.addAll(List.of(recipient, phone, address, String.valueOf(input.privacyVersion()), String.valueOf(input.termsVersion())));
+      StringBuilder canonical = new StringBuilder();
+      fields.forEach(value -> canonical.append(value.length()).append(':').append(value));
+      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+    } catch (java.security.NoSuchAlgorithmException e) { throw new IllegalStateException(e); }
+  }
+
+  private void requirePayable(Order order) {
     if (!order.status().equals("PENDING_PAYMENT"))
       throw ApiException.conflict("ORDER_NOT_PAYABLE", "当前订单状态不可支付");
+    if (!order.expiresAt().isAfter(OffsetDateTime.now()))
+      throw ApiException.conflict("ORDER_EXPIRED", "订单支付期限已过，正在安全关闭，请重新下单");
+  }
+
+  public PaymentRequest payment(String id, String userId) {
+    // Commit intent BEFORE the external call. A timeout/crash must never erase the possibility
+    // that WeChat created the order; cancellation must close it before releasing stock.
     String openid = auth.wechatOpenid(userId);
-    var payment = pay.prepay(order, openid);
-    db.update(
-        "UPDATE shop_order SET payment_initiated=TRUE,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'",
-        id);
-    return payment;
+    pay.requireConfigured();
+    transactions.executeWithoutResult(status -> {
+      requirePayable(lockOrder(id, userId, false));
+      db.update("UPDATE shop_order SET payment_initiated=TRUE,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", id);
+    });
+    try {
+      return transactions.execute(status -> {
+      Order order = lockOrder(id, userId, false);
+      requirePayable(order);
+      // The same row lock is used by cancellation, expiry and payment notifications.
+      return pay.prepay(withItems(order), openid);
+      });
+    } catch (RuntimeException failure) {
+      markReconciliation(id);
+      throw failure;
+    }
   }
 
   @Transactional
   public Order cancelOrder(String id, String userId) {
-    Order order = lockOrder(id, userId, false);
+    return closePending(lockOrder(id, userId, false), userId, "ORDER_CANCEL");
+  }
+
+  public void expireOrder(String id) {
+    // This retry delay is committed independently: a failed gateway reconciliation must not
+    // roll it back and starve later expired orders behind the same first batch forever.
+    transactions.executeWithoutResult(status -> db.update(
+        "UPDATE shop_order SET expiry_retry_at=CURRENT_TIMESTAMP+INTERVAL '5 minutes' WHERE id=? AND status='PENDING_PAYMENT'", id));
+    try {
+      transactions.executeWithoutResult(status -> {
+      Order order = lockOrder(id, null, true);
+      if (order.status().equals("PENDING_PAYMENT") && !order.expiresAt().isAfter(OffsetDateTime.now()))
+        closePending(order, "system", "ORDER_EXPIRE");
+      });
+    } catch (RuntimeException failure) {
+      markReconciliation(id);
+      throw failure;
+    }
+  }
+
+  private void markReconciliation(String id) {
+    transactions.executeWithoutResult(status -> db.update("UPDATE shop_order SET reconciliation_required=TRUE WHERE id=? AND status='PENDING_PAYMENT' AND payment_initiated=TRUE", id));
+  }
+
+  public List<String> expiredOrderIds() {
+    return db.queryForList("SELECT id FROM shop_order WHERE status='PENDING_PAYMENT' AND expires_at<=CURRENT_TIMESTAMP AND expiry_retry_at<=CURRENT_TIMESTAMP ORDER BY expiry_retry_at,expires_at LIMIT 100", String.class);
+  }
+
+  private Order closePending(Order order, String actor, String action) {
     if (order.status().equals("CANCELLED")) return withItems(order);
     if (!order.status().equals("PENDING_PAYMENT"))
       throw ApiException.conflict("ORDER_NOT_CANCELLABLE", "当前订单不能取消");
-    if (order.paymentInitiated()) pay.closeOrder(order.orderNo());
-    db.update(
-        "UPDATE shop_order SET status='CANCELLED',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
-        id);
-    db.update(
-        "UPDATE product SET stock=stock+oi.quantity,version=product.version+1,updated_at=CURRENT_TIMESTAMP FROM shop_order_item oi WHERE product.id=oi.product_id AND oi.order_id=?",
-        id);
-    activities.audit(userId, id, "ORDER_CANCEL");
-    return order(id, userId, false);
+    if (order.paymentInitiated()) {
+      try {
+        pay.closeOrder(order.orderNo());
+      } catch (ApiException closeFailure) {
+        // An uncertain close is not permission to restock. Query only reconciles a verified
+        // successful payment or an explicitly CLOSED gateway order. NOT_EXIST is uncertain
+        // after a timed-out prepay and must retain stock until a later safe reconciliation.
+        Transaction remote = pay.queryOrder(order.orderNo());
+        if (remote != null && Objects.equals(remote.getOutTradeNo(), order.orderNo())
+            && Objects.equals(remote.getMchid(), pay.merchantId())
+            && Objects.equals(remote.getAppid(), pay.appId())
+            && remote.getTradeState() == Transaction.TradeStateEnum.SUCCESS) {
+          completePayment(remote);
+          return order(order.id(), order.userId(), false);
+        }
+        if (remote == null || remote.getTradeState() != Transaction.TradeStateEnum.CLOSED
+            || !Objects.equals(remote.getOutTradeNo(), order.orderNo())
+            || !Objects.equals(remote.getMchid(), pay.merchantId())
+            || !Objects.equals(remote.getAppid(), pay.appId())) throw closeFailure;
+      }
+    }
+    db.update("UPDATE shop_order SET status='CANCELLED',reconciliation_required=FALSE,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", order.id());
+    // Deterministic lock order prevents deadlocks for carts with more than one product.
+    var items = withItems(order).items().stream().sorted(Comparator.comparing(OrderItem::productId)).toList();
+    for (OrderItem item : items)
+      db.update("UPDATE product SET stock=stock+?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", item.quantity(), item.productId());
+    activities.audit(actor, order.id(), action);
+    return order(order.id(), order.userId(), false);
   }
 
   @Transactional
   public void completePayment(Transaction transaction) {
     if (transaction.getTradeState() != Transaction.TradeStateEnum.SUCCESS) return;
-    if (!pay.enabled() || !Objects.equals(transaction.getMchid(), pay.merchantId()))
+    if (!pay.enabled() || !Objects.equals(transaction.getMchid(), pay.merchantId())
+        || !Objects.equals(transaction.getAppid(), pay.appId()))
       throw new ApiException(400, "PAYMENT_MERCHANT_MISMATCH", "支付通知商户不匹配");
     var order =
         db.query(
@@ -319,6 +432,8 @@ public class ShopService {
             .stream()
             .findFirst()
             .orElseThrow(() -> new ApiException(400, "PAYMENT_ORDER_MISMATCH", "支付通知订单不存在"));
+    if (transaction.getTransactionId() == null || transaction.getTransactionId().isBlank())
+      throw new ApiException(400, "PAYMENT_TRANSACTION_REQUIRED", "支付通知缺少交易号");
     if (transaction.getAmount() == null
         || transaction.getAmount().getTotal() != order.totalCents())
       throw new ApiException(400, "PAYMENT_AMOUNT_MISMATCH", "支付通知金额不匹配");
@@ -327,7 +442,7 @@ public class ShopService {
       throw ApiException.conflict("PAYMENT_ORDER_STATE_CONFLICT", "订单状态与支付通知冲突，请人工核对");
     }
     db.update(
-        "UPDATE shop_order SET status='PAID',payment_transaction_id=?,paid_at=CURRENT_TIMESTAMP,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE shop_order SET status='PAID',reconciliation_required=FALSE,payment_transaction_id=?,paid_at=CURRENT_TIMESTAMP,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         transaction.getTransactionId(),
         order.id());
     activities.audit(order.userId(), order.id(), "ORDER_PAID");

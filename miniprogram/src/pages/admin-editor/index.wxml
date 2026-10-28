@@ -36,7 +36,8 @@
         bindtap="coverPreset"
       />
     </scroll-view>
-    <view class="field">
+    <view class="field"><text>本活动必须核验身份证（仅确有需要时开启，并在活动说明中写明用途）</text><switch checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
+      <view class="field">
       <text class="label">封面地址</text>
       <input
         value="{{form.coverUrl}}"

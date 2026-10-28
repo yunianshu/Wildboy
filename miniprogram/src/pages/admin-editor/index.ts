@@ -118,6 +118,10 @@ Page({
     if (typeof wx.enableAlertBeforeUnload === "function")
       wx.enableAlertBeforeUnload({ message: "修改尚未保存，离开将丢失修改" });
   },
+  identityChange(e: WechatMiniprogram.SwitchChange) {
+    this.setData({ "form.identityRequired": e.detail.value, dirty: true });
+    if (typeof wx.enableAlertBeforeUnload === "function") wx.enableAlertBeforeUnload({message: "活动尚未保存"});
+  },
   input(e: WechatMiniprogram.Input) {
     if (this.data.busy || !this.data.authorized) return;
     const field = String(e.currentTarget.dataset.field);

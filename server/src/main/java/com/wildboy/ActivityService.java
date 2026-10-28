@@ -17,11 +17,13 @@ public class ActivityService {
   final JdbcTemplate db;
   final ObjectMapper json;
   final LegalService legal;
+  final IdentityProtection identity;
 
-  public ActivityService(JdbcTemplate db, ObjectMapper json, LegalService legal) {
+  public ActivityService(JdbcTemplate db, ObjectMapper json, LegalService legal, IdentityProtection identity) {
     this.db = db;
     this.json = json;
     this.legal = legal;
+    this.identity = identity;
   }
 
   final RowMapper<Registration> registrationMapper =
@@ -52,7 +54,7 @@ public class ActivityService {
                 new Participant(
                     r.getString("id"),
                     r.getString("participant_name"),
-                    r.getString("id_number"),
+                    identity.masked(r.getString("id_number")),
                     r.getString("phone")),
             registration.id());
     return withParticipants(registration, participants);
@@ -71,7 +73,7 @@ public class ActivityService {
               new Participant(
                   rs.getString("id"),
                   rs.getString("participant_name"),
-                  rs.getString("id_number"),
+                  identity.masked(rs.getString("id_number")),
                   rs.getString("phone"));
           byRegistration
               .computeIfAbsent(rs.getString("registration_id"), key -> new ArrayList<>())
@@ -109,7 +111,7 @@ public class ActivityService {
           r.getString("currency"),
           r.getLong("version"),
           r.getObject("created_at", OffsetDateTime.class),
-          r.getObject("updated_at", OffsetDateTime.class));
+          r.getObject("updated_at", OffsetDateTime.class), r.getBoolean("identity_required"));
     } catch (java.io.IOException e) {
       throw new IllegalStateException("Invalid persisted gallery", e);
     }
@@ -201,8 +203,8 @@ public class ActivityService {
     String id = UUID.randomUUID().toString();
     db.update(
         "INSERT INTO"
-            + " activity(id,title,category,cover_url,gallery_urls,summary,description,location,meeting_point,start_at,end_at,registration_deadline,capacity,status,price_cents)"
-            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'DRAFT',0)",
+            + " activity(id,title,category,cover_url,gallery_urls,summary,description,location,meeting_point,start_at,end_at,registration_deadline,capacity,status,price_cents,identity_required)"
+            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'DRAFT',0,?)",
         id,
         i.title().strip(),
         i.category().name(),
@@ -215,7 +217,7 @@ public class ActivityService {
         i.startAt(),
         i.endAt(),
         i.registrationDeadline(),
-        i.capacity());
+        i.capacity(), Boolean.TRUE.equals(i.identityRequired()));
     audit(actor, id, "ACTIVITY_CREATE");
     return get(id, true);
   }
@@ -235,7 +237,7 @@ public class ActivityService {
       throw ApiException.conflict("ACTIVITY_STARTED", "已开始活动不能修改");
     db.update(
         "UPDATE activity SET"
-            + " title=?,category=?,cover_url=?,gallery_urls=?,summary=?,description=?,location=?,meeting_point=?,start_at=?,end_at=?,registration_deadline=?,capacity=?,version=version+1,updated_at=CURRENT_TIMESTAMP"
+            + " title=?,category=?,cover_url=?,gallery_urls=?,summary=?,description=?,location=?,meeting_point=?,start_at=?,end_at=?,registration_deadline=?,capacity=?,identity_required=?,version=version+1,updated_at=CURRENT_TIMESTAMP"
             + " WHERE id=?",
         i.title().strip(),
         i.category().name(),
@@ -248,7 +250,7 @@ public class ActivityService {
         i.startAt(),
         i.endAt(),
         i.registrationDeadline(),
-        i.capacity(),
+        i.capacity(), i.identityRequired() == null ? a.identityRequired() : i.identityRequired(),
         id);
     audit(actor, id, "ACTIVITY_EDIT");
     return get(id, true);
@@ -317,7 +319,7 @@ public class ActivityService {
       throw ApiException.conflict("REGISTRATION_CLOSED", "活动报名已关闭");
   }
 
-  List<ParticipantInput> validatedParticipants(RegistrationInput input) {
+  List<ParticipantInput> validatedParticipants(RegistrationInput input, boolean required) {
     if (input.participants() == null || input.participants().isEmpty())
       throw new ApiException(400, "PARTICIPANTS_REQUIRED", "请至少填写一位参与人");
     var normalized = new ArrayList<ParticipantInput>();
@@ -332,9 +334,11 @@ public class ActivityService {
         throw new ApiException(400, "INVALID_PARTICIPANT_NAME", "参与人姓名须为 2–80 字");
       if (!phone.matches("[+0-9][0-9 ()-]{5,28}"))
         throw new ApiException(400, "INVALID_PARTICIPANT_PHONE", "参与人手机号格式不正确");
-      if (!validIdNumber(idNumber))
+      if (!required && !idNumber.isEmpty())
+        throw new ApiException(400, "IDENTITY_NOT_REQUIRED", "本活动不采集身份证号，请刷新报名页面");
+      if (required && !validIdNumber(idNumber))
         throw new ApiException(400, "INVALID_ID_NUMBER", "请填写有效的 18 位身份证号");
-      if (!idNumbers.add(idNumber))
+      if (!idNumber.isEmpty() && !idNumbers.add(idNumber))
         throw new ApiException(400, "DUPLICATE_PARTICIPANT", "同一报名中身份证号不能重复");
       normalized.add(new ParticipantInput(name, idNumber, phone));
     }
@@ -361,15 +365,16 @@ public class ActivityService {
   @Transactional
   public RegisterResult register(String id, String user, RegistrationInput input) {
     legal.requireCurrent(input.privacyVersion(), input.termsVersion());
-    var participants = validatedParticipants(input);
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
+    var participants = validatedParticipants(input, a.identityRequired());
     Registration existing = own(id, user);
     if (existing != null) {
       legal.accept(user, input.privacyVersion(), input.termsVersion(), "REGISTRATION");
       return new RegisterResult(existing, false);
     }
     enrollmentOpen(a);
+    if (a.identityRequired()) identity.requireReady();
     if (participants.size() > a.capacity() - a.registeredCount())
       throw ApiException.conflict("ACTIVITY_FULL", "名额已满或剩余名额不足，请减少参与人数后重试");
     var previous =
@@ -397,7 +402,7 @@ public class ActivityService {
           UUID.randomUUID().toString(),
           registrationId,
           participant.participantName(),
-          participant.idNumber(),
+          identity.encrypt(participant.idNumber()),
           participant.phone(),
           index);
     }
@@ -457,6 +462,26 @@ public class ActivityService {
             args.toArray());
     return new Page<>(
         attachParticipants(items), total, page, size, (long) (page + 1) * size < total);
+  }
+
+  /** Explicit operator-run, bounded migration. No background data deletion. */
+  @Transactional
+  public Map<String, Integer> encryptLegacyIdentities(String actor) {
+    identity.requireReady();
+    var rows = db.queryForList("SELECT id,id_number FROM registration_participant WHERE id_number<>'' AND id_number NOT LIKE 'enc:%' ORDER BY id LIMIT 100 FOR UPDATE SKIP LOCKED");
+    for (var row : rows) {
+      db.update("UPDATE registration_participant SET id_number=? WHERE id=?",identity.encrypt((String)row.get("id_number")),row.get("id"));
+    }
+    audit(actor, "participant-identity", "IDENTITY_ENCRYPT_LEGACY_BATCH");
+    return Map.of("encrypted", rows.size());
+  }
+
+  @Transactional
+  public Participant revealParticipant(String activityId, String participantId, String actor) {
+    var rows = db.query("SELECT p.* FROM registration_participant p JOIN registration r ON r.id=p.registration_id WHERE r.activity_id=? AND p.id=?", (r,n) -> new Participant(r.getString("id"),r.getString("participant_name"),identity.reveal(r.getString("id_number")),r.getString("phone")), activityId, participantId);
+    if (rows.isEmpty()) throw ApiException.notFound();
+    audit(actor, participantId, "PARTICIPANT_IDENTITY_REVEAL");
+    return rows.getFirst();
   }
 
   void audit(String actor, String entity, String action) {

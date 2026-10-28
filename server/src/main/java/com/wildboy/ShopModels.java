@@ -48,7 +48,13 @@ public final class ShopModels {
       @NotBlank @Pattern(regexp = "[+0-9][0-9 ()-]{5,28}") String phone,
       @NotBlank @Size(min = 5, max = 300) String address,
       @NotNull @Min(1) Long privacyVersion,
-      @NotNull @Min(1) Long termsVersion) {}
+      @NotNull @Min(1) Long termsVersion,
+      @Size(max = 80) String requestId) {
+    public OrderInput(List<OrderItemInput> items, String recipientName, String phone, String address,
+        Long privacyVersion, Long termsVersion) {
+      this(items, recipientName, phone, address, privacyVersion, termsVersion, null);
+    }
+  }
 
   public record OrderItem(
       String id,
@@ -73,6 +79,8 @@ public final class ShopModels {
       long version,
       OffsetDateTime createdAt,
       OffsetDateTime updatedAt,
+      OffsetDateTime expiresAt,
+      boolean reconciliationRequired,
       List<OrderItem> items) {}
 
   public record PaymentRequest(

@@ -12,6 +12,7 @@ public class LocalSmokeServer {
     System.setProperty("spring.datasource.username", "postgres");
     System.setProperty("spring.datasource.password", "");
     System.setProperty("spring.profiles.active", "dev");
+    System.setProperty("wildboy.identity.encryption-key", java.util.Base64.getEncoder().encodeToString(new byte[32]));
     System.setProperty("wildboy.admin.username", "smoke-admin");
     System.setProperty(
         "wildboy.admin.password-hash",

@@ -10,6 +10,7 @@ import com.wechat.pay.java.core.notification.RequestParam;
 import com.wechat.pay.java.service.payments.jsapi.JsapiServiceExtension;
 import com.wechat.pay.java.service.payments.jsapi.model.Amount;
 import com.wechat.pay.java.service.payments.jsapi.model.CloseOrderRequest;
+import com.wechat.pay.java.service.payments.jsapi.model.QueryOrderByOutTradeNoRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.Payer;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayRequest;
 import com.wechat.pay.java.service.payments.jsapi.model.PrepayWithRequestPaymentResponse;
@@ -59,6 +60,12 @@ public class WechatPayService {
         && notifyUrl.startsWith("https://");
   }
 
+  public void requireConfigured() {
+    if (!enabled()) throw new ApiException(503, "PAYMENT_NOT_CONFIGURED", "微信支付尚未完成商户配置");
+  }
+
+  public String appId() { return appId; }
+
   public String merchantId() {
     return merchantId;
   }
@@ -90,6 +97,7 @@ public class WechatPayService {
       request.setDescription("Wildboy 户外装备 " + order.orderNo());
       request.setOutTradeNo(order.orderNo());
       request.setNotifyUrl(notifyUrl);
+      request.setTimeExpire(order.expiresAt().format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
       var amount = new Amount();
       amount.setTotal(order.totalCents());
       request.setAmount(amount);
@@ -120,6 +128,18 @@ public class WechatPayService {
       throw e;
     } catch (Exception e) {
       throw new ApiException(502, "WECHAT_CLOSE_FAILED", "微信订单暂未关闭，请稍后重试");
+    }
+  }
+
+  public Transaction queryOrder(String orderNo) {
+    try {
+      var request = new QueryOrderByOutTradeNoRequest();
+      request.setMchid(merchantId);
+      request.setOutTradeNo(orderNo);
+      return service().queryOrderByOutTradeNo(request);
+    } catch (ApiException e) { throw e; }
+    catch (Exception e) {
+      throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，库存保留，请稍后重试");
     }
   }
 
