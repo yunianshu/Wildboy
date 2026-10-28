@@ -20,6 +20,8 @@ npm run build
 
 在 `src/config.ts` 设置自己的 HTTPS API **origin**（不含 `/api/v1`）。默认 `https://api.example.invalid` 会明确报服务尚未配置，不会返回伪造的成功数据。
 
+域名尚未备案时可把 `apiMode` 设为 `"anyservice"`，填写云开发环境 ID 与服务标识，改走 `wx.cloud.callContainer`：不需要域名白名单与证书，但 `<image>` 相对图片、支付回调和网页管理后台仍需要公网域名。见 [AnyService 接入](anyservice.md)。
+
 本地联调先启动后端 dev profile，再执行 `npm run dev:local`。脚本只把生成的 `dist/config.js` 设置为本地 HTTP origin 和开发登录，可用 `WILDBOY_LOCAL_API` 覆盖地址；`src/config.ts` 的生产 fail-closed 配置不变。只有微信运行环境 `envVersion === 'develop'` 才允许 HTTP 与 `/auth/dev-login`；体验版和正式版即便误带这个标记，也仍走真实微信登录且拒绝 HTTP。微信工具的本地调试域名校验需要操作者在开发工具里按需设置；仓库默认 `urlCheck: true`，不降低正式校验。Dev 登录仅使用后端明确配置的演示用户，不能用于真实微信支付。
 
 每次修改源码后重新 `npm run build`；dist 为生成物，不手动编辑或提交。

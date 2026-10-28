@@ -76,73 +76,105 @@ export function mediaUrl(value: string): string {
         ? value
         : "";
 }
+function requiresAnyService(): boolean {
+  return config.apiMode === "anyservice";
+}
+
 export function request<T>(
   path: string,
   method: "GET" | "POST" | "PUT" | "DELETE" = "GET",
   data?: unknown,
 ): Promise<T> {
-  if (config.apiOrigin.includes("example.invalid"))
-    return Promise.reject(new Error("服务尚未配置，请联系活动主理人"));
-  if (
-    !/^https:\/\//.test(config.apiOrigin) &&
-    !(
-      config.devLogin &&
-      wx.getAccountInfoSync().miniProgram.envVersion === "develop"
+  if (requiresAnyService()) {
+    // AnyService carries its own TLS tunnel, so only the env and service name
+    // are required; a public HTTPS origin is not.
+    if (!config.anyServiceEnvId || !config.anyServiceName)
+      return Promise.reject(new Error("服务尚未配置，请联系活动主理人"));
+  } else {
+    if (config.apiOrigin.includes("example.invalid"))
+      return Promise.reject(new Error("服务尚未配置，请联系活动主理人"));
+    if (
+      !/^https:\/\//.test(config.apiOrigin) &&
+      !(
+        config.devLogin &&
+        wx.getAccountInfoSync().miniProgram.envVersion === "develop"
+      )
     )
-  )
-    return Promise.reject(new Error("正式服务必须使用 HTTPS"));
+      return Promise.reject(new Error("正式服务必须使用 HTTPS"));
+  }
   const token = path.startsWith("/auth/")
     ? undefined
     : wx.getStorageSync(TOKEN_KEY);
   const version = sessionEpoch;
-  return new Promise((resolve, reject) =>
+  const header = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  return new Promise((resolve, reject) => {
+    const done = (statusCode: number, payload: unknown) => {
+      if (
+        token &&
+        (version !== sessionEpoch || token !== wx.getStorageSync(TOKEN_KEY))
+      ) {
+        reject(new ApiError("账号已切换，请刷新页面", 409, "SESSION_CHANGED"));
+        return;
+      }
+      if (statusCode >= 200 && statusCode < 300) {
+        resolve(payload as T);
+        return;
+      }
+      const body = (
+        payload && typeof payload === "object" ? payload : {}
+      ) as { code?: string; message?: string };
+      if (statusCode === 401 && token && token === wx.getStorageSync(TOKEN_KEY))
+        logout();
+      reject(
+        new ApiError(
+          typeof body.message === "string" ? body.message : "请求未完成，请重试",
+          statusCode,
+          typeof body.code === "string" ? body.code : "HTTP_ERROR",
+        ),
+      );
+    };
+    const failed = () => reject(new Error("网络连接失败，请检查网络后重试"));
+    if (requiresAnyService()) {
+      // CloudBase AnyService: fixed service name header plus this project's
+      // service identifier. Paths start at the origin root, so keep /api/v1.
+      const cloud = wx.cloud;
+      if (!cloud || typeof cloud.callContainer !== "function") {
+        failed();
+        return;
+      }
+      cloud.callContainer({
+        config: { env: config.anyServiceEnvId },
+        path: "/api/v1" + path,
+        method,
+        data: data as WechatMiniprogram.IAnyObject,
+        timeout: 15000,
+        header: {
+          ...header,
+          "X-WX-SERVICE": "tcbanyservice",
+          "X-AnyService-Name": config.anyServiceName,
+        },
+        success(res) {
+          done(res.statusCode, res.data);
+        },
+        fail: failed,
+      });
+      return;
+    }
     wx.request({
       url: config.apiOrigin + "/api/v1" + path,
       method,
       data: data as WechatMiniprogram.IAnyObject,
       timeout: 15000,
-      header: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      header,
       success(res) {
-        if (
-          token &&
-          (version !== sessionEpoch || token !== wx.getStorageSync(TOKEN_KEY))
-        ) {
-          reject(
-            new ApiError("账号已切换，请刷新页面", 409, "SESSION_CHANGED"),
-          );
-          return;
-        }
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve(res.data as T);
-          return;
-        }
-        const body = (
-          res.data && typeof res.data === "object" ? res.data : {}
-        ) as { code?: string; message?: string };
-        if (
-          res.statusCode === 401 &&
-          token &&
-          token === wx.getStorageSync(TOKEN_KEY)
-        )
-          logout();
-        reject(
-          new ApiError(
-            typeof body.message === "string"
-              ? body.message
-              : "请求未完成，请重试",
-            res.statusCode,
-            typeof body.code === "string" ? body.code : "HTTP_ERROR",
-          ),
-        );
+        done(res.statusCode, res.data);
       },
-      fail() {
-        reject(new Error("网络连接失败，请检查网络后重试"));
-      },
-    }),
-  );
+      fail: failed,
+    });
+  });
 }
 export function login(
   versions?: { privacyVersion: number; termsVersion: number },

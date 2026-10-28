@@ -72,6 +72,8 @@ Docker 配置存在不代表已在本环境完成 Docker 实测，以 [验收记
 
 新活动默认不收身份证；确需收集时由管理员开启并配置 `IDENTITY_ENCRYPTION_KEY`。历史数据不会因更新代码自动加密或删除，操作前阅读 [身份信息保护](docs/identity-protection.md)。
 
+域名尚未完成 ICP 备案时，小程序端可改用腾讯云开发 AnyService 通道（`wx.cloud.callContainer`，无需域名白名单），源站仅放行带 AnyService 凭证的请求。见 [AnyService 接入](docs/anyservice.md)。
+
 ## 核心保障
 
 - 服务端微信 code 交换，角色权限由服务端决定。

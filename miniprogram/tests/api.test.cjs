@@ -27,6 +27,7 @@ beforeEach(() => {
   requestCount = 0;
   loginCount = 0;
   env = "develop";
+  config.apiMode = "request";
   config.apiOrigin = "https://wildboy.test";
   config.devLogin = false;
   reply = (o) =>

@@ -19,6 +19,10 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/wildboy
       DATABASE_USER: wildboy
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      # The API is only reachable through the loopback reverse proxy that
+      # fronts AnyService, so its client address header can be trusted for
+      # per-client login rate limiting.
+      SERVER_FORWARD_HEADERS_STRATEGY: native
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set a BCrypt admin password hash}
       IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:-}
