@@ -19,6 +19,9 @@ services:
       DATABASE_URL: jdbc:postgresql://db:5432/wildboy
       DATABASE_USER: wildboy
       DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      # Deployment choice via .env: "dev" enables the demo login and demo
+      # data (trial phase); unset/empty keeps production behaviour.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-default}
       # The API is only reachable through the loopback reverse proxy that
       # fronts AnyService, so its client address header can be trusted for
       # per-client login rate limiting.
