@@ -21,14 +21,17 @@
   <block wx:elif="{{product}}">
     <view class="title">确认订单</view>
     <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="muted">数量 × {{quantity}}</view><view class="price">{{totalText}}</view></view></view>
-    <view class="section-head"><view class="section-title">收货信息</view></view>
-    <view class="field"><text class="label">收货人</text><input value="{{recipientName}}" maxlength="40" placeholder="请填写收货人姓名" data-field="recipientName" bindinput="input" disabled="{{busy}}" /></view>
-    <view class="field"><text class="label">手机号</text><input value="{{phone}}" type="number" maxlength="11" placeholder="用于订单与配送联系" data-field="phone" bindinput="input" disabled="{{busy}}" /></view>
-    <view class="field"><text class="label">收货地址</text><textarea value="{{address}}" maxlength="300" placeholder="省市区、详细地址" data-field="address" bindinput="input" disabled="{{busy}}" /></view>
+    <view class="section-head"><view class="section-title">收货地址</view></view>
+    <view wx:if="{{addressLoading}}" class="state">正在加载地址…</view>
+    <view wx:elif="{{addressError}}" class="error">{{addressError}}<button class="secondary" bindtap="retryAddress">重试</button></view>
+    <view class="shipping-card" bindtap="chooseAddress" role="button" aria-label="选择收货地址">
+      <block wx:if="{{selectedAddressId}}"><view class="shipping-name">{{recipientName}} · {{phone}}</view><view class="shipping-detail">{{address}}</view><view class="shipping-change">更换地址 ›</view></block>
+      <view wx:else>选择收货地址 ›</view>
+    </view>
     <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#193F34" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
     <view class="notice">价格与库存以下单确认为准。取消支付后，可在“我的订单”继续付款。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
-    <button class="primary submit" loading="{{busy}}" disabled="{{busy || !legal}}" bindtap="submit">{{busy ? '正在处理订单…' : '提交订单并支付 ' + totalText}}</button>
+    <button class="primary submit" loading="{{busy}}" disabled="{{busy || !legal || addressLoading || !selectedAddressId || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : '提交订单并支付 ' + totalText}}</button>
   </block>
   <view wx:if="{{error && !product && !order}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
 </view>

@@ -8,7 +8,7 @@ import {
   sessionVersion,
   isSessionCurrent,
 } from "../../utils/api";
-import { Product, Order } from "../../utils/models";
+import { Product, Order, ShippingAddress } from "../../utils/models";
 import { message, safeId, RequestEpoch, dateLabel } from "../../utils/domain";
 import {
   money,
@@ -27,6 +27,7 @@ import {
 } from "../../utils/legal";
 
 const epoch = new RequestEpoch();
+const addressEpoch = new RequestEpoch();
 Page({
   data: {
     id: "",
@@ -34,6 +35,9 @@ Page({
     quantity: 1,
     product: null as Product | null,
     totalText: "",
+    selectedAddressId: "",
+    addressLoading: false,
+    addressError: "",
     recipientName: "",
     phone: "",
     address: "",
@@ -66,6 +70,9 @@ Page({
       epoch.invalidate();
       this.setData({
         session: sessionVersion(),
+        selectedAddressId: "",
+        addressLoading: false,
+        addressError: "",
         recipientName: "",
         phone: "",
         address: "",
@@ -78,13 +85,16 @@ Page({
       });
     }
     if (this.data.loading) void this.load();
+    if (!this.data.order) void this.refreshAddress();
   },
   onHide() {
     epoch.invalidate();
+    addressEpoch.invalidate();
     this.setData({ busy: false });
   },
   onUnload() {
     epoch.invalidate();
+    addressEpoch.invalidate();
   },
   async load() {
     const current = epoch.next();
@@ -147,11 +157,71 @@ Page({
   retry() {
     void this.load();
   },
-  input(event: WechatMiniprogram.Input) {
-    if (this.data.busy) return;
-    const field = event.currentTarget.dataset.field;
-    if (["recipientName", "phone", "address"].includes(field))
-      this.setData({ [field]: event.detail.value, error: "" });
+  async refreshAddress() {
+    const n = addressEpoch.next();
+    const session = sessionVersion();
+    this.setData({ addressLoading: hasSession(), addressError: "" });
+    if (!hasSession()) {
+      this.setData({
+        selectedAddressId: "",
+        recipientName: "",
+        phone: "",
+        address: "",
+      });
+      return;
+    }
+    try {
+      const result = await request<{ items: ShippingAddress[] }>(
+        "/me/addresses",
+      );
+      if (
+        !addressEpoch.valid(n) ||
+        !isSessionCurrent(session) ||
+        this.data.order
+      )
+        return;
+      const address =
+        result.items.find((item) => item.id === this.data.selectedAddressId) ||
+        result.items.find((item) => item.isDefault) ||
+        result.items[0];
+      this.setData({
+        selectedAddressId: address?.id || "",
+        recipientName: address?.recipientName || "",
+        phone: address?.phone || "",
+        address: address?.address || "",
+      });
+    } catch (error) {
+      if (addressEpoch.valid(n))
+        this.setData({
+          selectedAddressId: "",
+          recipientName: "",
+          phone: "",
+          address: "",
+          addressError: message(error),
+        });
+    } finally {
+      if (addressEpoch.valid(n)) this.setData({ addressLoading: false });
+    }
+  },
+  chooseAddress() {
+    if (this.data.busy || this.data.order) return;
+    const session = sessionVersion();
+    if (!hasSession()) {
+      wx.navigateTo({ url: "/pages/login/index" });
+      return;
+    }
+    wx.navigateTo({
+      url: `/pages/addresses/index?select=1&selected=${encodeURIComponent(this.data.selectedAddressId)}`,
+      events: {
+        addressSelected: (selection: { id: string }) => {
+          if (isSessionCurrent(session) && !this.data.order)
+            this.setData({ selectedAddressId: selection.id, error: "" });
+        },
+      },
+    });
+  },
+  retryAddress() {
+    void this.refreshAddress();
   },
   consentChange(event: WechatMiniprogram.CheckboxGroupChange) {
     const consent = event.detail.value.includes("yes");
@@ -194,6 +264,9 @@ Page({
     });
   },
   validate(): string {
+    if (this.data.addressLoading) return "正在加载收货地址，请稍候";
+    if (!this.data.selectedAddressId || this.data.addressError)
+      return "请选择已保存的收货地址";
     const name = this.data.recipientName.trim();
     if (name.length < 2 || name.length > 40)
       return "请填写 2–40 字的收货人姓名";
@@ -263,6 +336,34 @@ Page({
         if (!(error instanceof ApiError && error.status === 404)) throw error;
       }
       if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+      const addresses = await request<{ items: ShippingAddress[] }>(
+        "/me/addresses",
+      );
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+      const selected = addresses.items.find(
+        (item) => item.id === this.data.selectedAddressId,
+      );
+      if (!selected) {
+        this.setData({
+          selectedAddressId: "",
+          recipientName: "",
+          phone: "",
+          address: "",
+        });
+        throw new Error("收货地址已删除，请重新选择");
+      }
+      if (
+        selected.recipientName !== this.data.recipientName ||
+        selected.phone !== this.data.phone ||
+        selected.address !== this.data.address
+      ) {
+        this.setData({
+          recipientName: selected.recipientName,
+          phone: selected.phone,
+          address: selected.address,
+        });
+        throw new Error("收货地址已更新，请核对后重新提交");
+      }
       const order = await request<Order>("/orders", "POST", {
         requestId,
         items: [{ productId: this.data.id, quantity: this.data.quantity }],

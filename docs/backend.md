@@ -106,3 +106,9 @@ WECHAT_PAY_NOTIFY_URL=https://你的API域名/api/v1/payments/wechat/notify
 - Payment intent is committed before calling WeChat. Prepay, cancellation, expiry and notifications serialize on the order row. The same order number is reused. Prepay includes the same gateway expiry time. A failed/unknown gateway close never releases inventory; a verified successful query reconciles payment, and a verified CLOSED query permits release. NOT_EXIST after an uncertain prepay is deliberately not proof that a late request cannot create a payable order.
 - Configuration missing before prepay does not mark an order initiated. Unknown gateway orders remain reserved and retried; monitor `Order expiry deferred` logs and pending orders past `expiresAt`, then reconcile through the merchant console. Do not manually set CANCELLED or restock until gateway final state is established. This conservative recovery can retain stock during an outage and is intentional to avoid accepting payment for released stock.
 - No real merchant credentials or live payment were used by the regression suite; gateway mocks plus real PostgreSQL exercise timeout, concurrency, idempotency and rollback.
+
+### 收货地址
+
+`V8` 增加按账号隔离的地址簿，最多 20 条。`GET /api/v1/me/addresses` 返回 `{items:[{id,recipientName,phone,address,isDefault}]}`；`POST` 新增（201），`PUT /{id}` 修改，`DELETE /{id}` 删除（204）。输入为姓名、手机号、完整地址与 `isDefault`。姓名 2–40 字、手机号为中国大陆 11 位、地址 5–300 字；所有操作必须登录，不能访问其他账号地址。
+
+首条自动设为默认；切换默认及删除后的默认递补在同一事务内完成，并按账号串行化写入。非空地址簿始终保留一个默认地址。修改、删除地址簿不改变已创建订单的收货快照。接口禁止缓存；地址不写入操作日志，生产存储、备份与传输应按既有个人信息保护配置管理。

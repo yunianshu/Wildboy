@@ -15,3 +15,8 @@
 .result-total { margin-top: 20rpx; color: #7c8178; font-size: 23rpx; }
 .result-card + .notice { margin-bottom: 26rpx; }
 .checkout-page > button { margin-top: 18rpx; }
+
+.shipping-card { padding: 28rpx; border-radius: 20rpx; background: white; margin-bottom: 28rpx; }
+.shipping-name { font-weight: 600; font-size: 30rpx; }
+.shipping-detail { margin-top: 14rpx; font-size: 27rpx; line-height: 1.6; word-break: break-all; }
+.shipping-change { text-align: right; color: #486b45; margin-top: 18rpx; font-size: 25rpx; }

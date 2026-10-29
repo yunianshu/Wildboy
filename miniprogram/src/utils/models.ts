@@ -119,3 +119,11 @@ export interface PaymentRequest {
   signType: string;
   paySign: string;
 }
+
+export interface ShippingAddress {
+  id: string;
+  recipientName: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
+}

@@ -46,6 +46,7 @@ function checkout() {
     quantity: 1,
     product: { id: "product-1", stock: 3 },
     legal: legalCurrent,
+    selectedAddressId: "address-1",
     recipientName: "收货人",
     phone: "13800000000",
     address: "厦门市测试地址",
@@ -57,6 +58,13 @@ function checkout() {
   });
   return p;
 }
+const savedAddress = {
+  id: "address-1",
+  recipientName: "收货人",
+  phone: "13800000000",
+  address: "厦门市测试地址",
+  isDefault: true,
+};
 const event = (id) => ({ currentTarget: { dataset: { id } } });
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 beforeEach(() => {
@@ -82,6 +90,7 @@ beforeEach(() => {
   legal.currentLegal = async () => legalCurrent;
   api.request = async (path, method = "GET", data) => {
     requests.push({ path, method, data });
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("not found", 404, "NOT_FOUND");
     if (path === "/orders") return { ...baseOrder };
@@ -116,6 +125,7 @@ test("lost create response retries original request identity, never uses a new k
   const p = checkout();
   let first;
   api.request = async (path, method, data) => {
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("missing", 404, "NOT_FOUND");
     if (path === "/orders") {
@@ -180,6 +190,7 @@ test("late create response after hide keeps persisted identity and never trigger
   const p = checkout();
   let release;
   api.request = async (path, method, data) => {
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("missing", 404, "NOT_FOUND");
     if (path === "/orders")
@@ -332,4 +343,37 @@ test("server expiry is displayed rather than a locally invented payment deadline
   p.showOrder(order);
   assert.equal(p.data.orderDeadlineText, "10.28 15:00");
   assert.equal(page("orders").view(order).deadlineText, "10.28 15:00");
+});
+
+test("address changed on server requires explicit re-confirmation and no premature order", async () => {
+  const p = checkout();
+  api.request = async (path, method, data) => {
+    requests.push({ path, method, data });
+    if (path.includes("/by-request/"))
+      throw new api.ApiError("missing", 404, "NOT_FOUND");
+    if (path === "/me/addresses")
+      return {
+        items: [{ ...savedAddress, address: "厦门市已更新的街道地址" }],
+      };
+    throw new Error("must not create");
+  };
+  await p.submit();
+  assert.match(p.data.error, /地址已更新/);
+  assert.equal(p.data.address, "厦门市已更新的街道地址");
+  assert.equal(requests.filter((r) => r.path === "/orders").length, 0);
+  assert.equal(p.data.busy, false);
+});
+test("deleted selected address cannot create order", async () => {
+  const p = checkout();
+  api.request = async (path) => {
+    requests.push(path);
+    if (path.includes("/by-request/"))
+      throw new api.ApiError("missing", 404, "NOT_FOUND");
+    if (path === "/me/addresses") return { items: [] };
+    throw new Error("must not create");
+  };
+  await p.submit();
+  assert.match(p.data.error, /地址已删除/);
+  assert.equal(p.data.selectedAddressId, "");
+  assert.ok(!requests.includes("/orders"));
 });

@@ -90,6 +90,9 @@ Page({
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },
+  addresses() {
+    wx.navigateTo({ url: "/pages/addresses/index" });
+  },
   orders() {
     wx.navigateTo({ url: "/pages/orders/index" });
   },
