@@ -8,7 +8,14 @@ APP_DIR=$(cd "$(dirname "$0")/.." && pwd)
 cd "$APP_DIR"
 
 echo "==> 1/5 sync code to origin/main"
-git fetch origin
+# GitHub reachability from CN hosts can be flaky; retry before giving up.
+fetch_ok=0
+for _ in 1 2 3 4 5; do
+  if git fetch origin; then fetch_ok=1; break; fi
+  echo "git fetch failed, retrying..." >&2
+  sleep 3
+done
+[ "$fetch_ok" = "1" ] || { echo "ERROR: git fetch failed repeatedly" >&2; exit 1; }
 git reset --hard origin/main
 
 if [ ! -f .env ]; then
