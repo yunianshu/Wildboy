@@ -52,11 +52,13 @@ async function load() {
     if (current === generation) busy.value = false;
   }
 }
-const revealedDetails = ref<Record<string, { phone: string; idNumber: string }>>({});
+const revealedDetails = ref<
+  Record<string, { phone: string; idNumber: string }>
+>({});
 const revealing = new Set<string>();
 async function toggle(id: string) {
   if (revealed.value.has(id)) {
-    revealed.value = new Set([...revealed.value].filter(x => x !== id));
+    revealed.value = new Set([...revealed.value].filter((x) => x !== id));
     delete revealedDetails.value[id];
     return;
   }
@@ -66,13 +68,18 @@ async function toggle(id: string) {
   if (!actor || actor.role !== "ADMIN") return;
   revealing.add(id);
   try {
-    const result = await request<{phone: string; idNumber: string}>(`/admin/activities/${encodeURIComponent(String(route.params.id))}/participants/${encodeURIComponent(id)}/reveal`, {method: "POST"});
+    const result = await request<{ phone: string; idNumber: string }>(
+      `/admin/activities/${encodeURIComponent(String(route.params.id))}/participants/${encodeURIComponent(id)}/reveal`,
+      { method: "POST" },
+    );
     if (current !== generation || currentUser.value !== actor) return;
     revealedDetails.value[id] = result;
     revealed.value = new Set([...revealed.value, id]);
   } catch (e) {
     if (current === generation) error.value = errorMessage(e);
-  } finally { revealing.delete(id); }
+  } finally {
+    revealing.delete(id);
+  }
 }
 function maskPhone(phone: string) {
   return phone.length > 7
@@ -107,8 +114,7 @@ onUnmounted(() => {
     <RouterLink class="back-link" to="/activities">← 返回活动目录</RouterLink>
     <section class="page-heading">
       <div>
-        <p class="eyebrow">THE PEOPLE WHO SHOW UP</p>
-        <h1>一起出发的人</h1>
+        <h1>报名名单</h1>
         <p class="muted">
           {{ activity?.title || "报名名单" }}
           <span v-if="activity"
@@ -124,7 +130,7 @@ onUnmounted(() => {
       >
     </section>
     <div class="privacy-note">
-      姓名、身份证号和手机号仅用于本次活动身份核验与组织联系。敏感信息默认隐藏，点击后可查看；请勿公开名单、截图或用于无关营销。
+      报名资料仅用于活动核验与联系。请勿公开、截图或用于无关营销。
     </div>
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
@@ -132,7 +138,6 @@ onUnmounted(() => {
     <p v-if="busy" class="empty-state">正在读取报名名单…</p>
     <div v-else-if="!data.items.length && !error" class="empty-state">
       <h3>还没有人报名</h3>
-      <p>发布活动后，用户报名信息会出现在这里。</p>
     </div>
     <div v-else-if="!error" class="table-scroll">
       <table>

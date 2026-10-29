@@ -1,7 +1,6 @@
 <view class="legal-page">
-  <text class="eyebrow">TRUST BEFORE THE JOURNEY</text>
   <view class="title">协议管理</view>
-  <view class="intro">编辑不立即生效。先保存草稿，再确认发布。</view>
+  <view class="intro">草稿不公开，发布后生效。</view>
   <view class="tabs"
     ><button
       class="{{kind === 'PRIVACY' ? 'active' : ''}}"
@@ -27,7 +26,7 @@
       {{revision}}</view
     >
     <view class="note"
-      >正式内容请由运营方审核。本功能不替代微信后台的隐私声明配置。</view
+      >正文须经运营方审核；微信隐私声明需另行配置。</view
     >
     <view class="label">{{label}}标题</view
     ><input
@@ -37,7 +36,6 @@
       bindinput="input"
       maxlength="120"
       disabled="{{busy}}"
-      placeholder="请输入标题"
     />
     <view class="label">正文 · 纯文本</view
     ><textarea
@@ -47,11 +45,10 @@
       bindinput="input"
       maxlength="50000"
       disabled="{{busy}}"
-      placeholder="填写经确认的协议内容，发布前请完整预览。"
     />
     <view class="count"
       >{{content.length}} / 50000 · {{dirty ? '有未保存修改' :
-      '与已存草稿一致'}}</view
+      '无未保存修改'}}</view
     >
     <view class="actions"
       ><button class="secondary" bindtap="togglePreview">
@@ -86,7 +83,7 @@
     >
     <view class="section-title">已发布历史</view
     ><view wx:if="!history.length" class="state"
-      >暂无发布记录；草稿不会公开展示。</view
+      >暂无发布记录</view
     >
     <button
       wx:for="{{history}}"
@@ -108,8 +105,5 @@
   <view wx:elif="!loading" class="state"
     ><button class="secondary" bindtap="reload">重新加载</button
     ><button class="primary" bindtap="login">管理员身份验证</button></view
-  >
-  <view class="footer"
-    >每次发布保留独立版本，用户需重新确认；历史同意记录不会被覆盖。</view
   >
 </view>

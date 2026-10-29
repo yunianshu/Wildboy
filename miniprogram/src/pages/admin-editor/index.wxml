@@ -1,7 +1,6 @@
 <view class="page back-space">
-  <view class="eyebrow">WILDBOY / EDITOR</view>
-  <view class="title">先把风景准备好</view>
-  <view class="muted">所有时间均为北京时间 · 当前免费报名</view>
+  <view class="title">{{id ? '编辑活动' : '创建活动'}}</view>
+  <view class="muted">北京时间 · 免费报名</view>
   <view wx:if="{{loading}}" class="state">正在读取活动…</view>
   <view wx:if="{{error}}" class="notice error">
     {{error}}
@@ -16,7 +15,7 @@
       class="secondary"
       bindtap="retry"
     >
-      重新验证并加载
+      重试
     </button>
     <button wx:if="{{!authorized}}" class="secondary" bindtap="login">
       验证管理员身份
@@ -24,7 +23,7 @@
   </view>
   <block wx:if="{{authorized&&!loading}}">
     <image class="cover" src="{{cover}}" mode="aspectFill" />
-    <view class="muted small">选择原创示意封面，或填写自有 HTTPS 图片地址</view>
+    <view class="muted small">示意封面 · 可使用自有 HTTPS 图片</view>
     <scroll-view class="presets" scroll-x>
       <image
         wx:for="{{presets}}"
@@ -36,7 +35,7 @@
         bindtap="coverPreset"
       />
     </scroll-view>
-    <view class="field"><text>本活动必须核验身份证（仅确有需要时开启，并在活动说明中写明用途）</text><switch checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
+    <view class="field"><text>核验身份证（仅必要时开启，并在活动说明中写明用途）</text><switch checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
       <view class="field">
       <text class="label">封面地址</text>
       <input
@@ -55,7 +54,6 @@
         bindinput="input"
         maxlength="120"
         disabled="{{busy}}"
-        placeholder="为这次出发起个名字"
       />
     </view>
     <view class="field">
@@ -181,7 +179,6 @@
         bindinput="input"
         maxlength="300"
         disabled="{{busy}}"
-        placeholder="一句话介绍这次出发"
       />
     </view>
     <view class="field">
@@ -208,7 +205,7 @@
       />
     </view>
     <view class="notice">
-      发布后改变内容不会自动通知报名用户，请自行联系参加者。原始配图仅为示意，请核对实际活动。
+      修改不会自动通知报名用户，请另行联系。预设配图仅为示意，请核对实际活动。
     </view>
     <view class="sticky-action actions">
       <button
@@ -234,7 +231,7 @@
   <view wx:if="{{confirming}}" class="confirm-mask">
     <view class="confirm-card">
       <view class="section-title">保存并发布活动？</view>
-      <view class="muted">发布后用户可以看到并报名。请核对日期、集合点和名额。</view>
+      <view class="muted">发布后开放浏览和报名。请核对日期、集合点和名额。</view>
       <view class="confirm-actions">
         <button class="secondary" bindtap="cancelPublish">返回检查</button>
         <button class="primary" bindtap="confirmPublish">确认发布</button>

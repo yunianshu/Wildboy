@@ -4,18 +4,12 @@
   min-height: 100vh;
   color: #173f35;
 }
-.eyebrow {
-  font-size: 20rpx;
-  color: #899183;
-  letter-spacing: 2rpx;
-}
 .title {
   font-size: 52rpx;
   font-weight: 700;
   margin-top: 16rpx;
 }
-.intro,
-.footer {
+.intro {
   font-size: 25rpx;
   color: #7c8878;
   line-height: 1.8;

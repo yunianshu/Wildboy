@@ -9,14 +9,13 @@
       出发时间 {{activity.dateText}}
     </view>
     <view class="notice">
-      报名成功不代表活动安排不会变化。出发前请再次核对活动详情。
+      活动安排可能变化，出发前请再次核对。
     </view>
     <button class="primary" bindtap="done">查看活动安排</button>
     <button class="secondary" bindtap="myActivities">我的报名</button>
   </view>
   <block wx:else>
-    <text class="eyebrow">ONE STEP CLOSER TO THE OUTSIDE</text>
-    <view class="title">为出发，留个位置。</view>
+    <view class="title">活动报名</view>
     <view wx:if="{{loading}}" class="state">正在确认活动…</view>
     <view wx:elif="{{error}}" class="state error">
       {{error}}
@@ -78,7 +77,7 @@
             value="{{item.phone}}"
             type="number"
             maxlength="11"
-            placeholder="便于主理人联系活动安排"
+            placeholder="用于活动联系"
             data-index="{{index}}"
             data-field="phone"
             bindinput="inputParticipant"
@@ -90,32 +89,25 @@
         class="secondary add-participant"
         bindtap="addParticipant"
         disabled="{{submitting || participants.length >= activity.available}}"
-      >＋ 添加参与人</button>
+      >＋ 新增报名人</button>
       <checkbox-group bindchange="consentChange">
-        <label class="consent">
+        <view class="consent">
           <checkbox
             value="yes"
             checked="{{consent}}"
             color="#193F34"
+            aria-label="同意当前协议及参与人信息使用"
             disabled="{{submitting}}"
           />
-          <text>
-            我已阅读并同意当前版本隐私政策、用户协议，并同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号用于本次活动身份核验、组织与联系。
-          </text>
-        </label>
+          <view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号用于本次活动身份核验、组织与联系。</view>
+        </view>
       </checkbox-group>
-      <view class="privacy" bindtap="privacy">
-        阅读隐私政策（版本 {{legal.privacy.version}}）↗
-      </view>
-      <view class="privacy" bindtap="terms">
-        阅读用户协议（版本 {{legal.terms.version}}）↗
-      </view>
       <view wx:if="{{legalError}}" class="error">
         {{legalError}}
         <button class="secondary" bindtap="retry">重新读取协议</button>
       </view>
       <view class="notice">
-        点击报名时将通过微信登录识别你的账号。不会获取微信密码，也不会自动发起支付。每个微信账号每场活动限一笔有效报名，可为多位参与人一次报名。
+        每个账号每场活动限一笔有效报名，可添加多位参与人。
       </view>
       <view wx:if="{{fieldError}}" class="error form-error">
         {{fieldError}}
@@ -129,8 +121,36 @@
         {{submitting ? '正在确认名额…' : activity.label}}
       </button>
       <view class="muted small center">
-        报名失败不代表名额已确认，请以成功页面或我的报名为准。
+        报名结果请以“我的报名”为准。
       </view>
     </block>
   </block>
+</view>
+
+<view wx:if="{{participantModalOpen}}" class="participant-overlay" catchtap="cancelParticipant" catchtouchmove="stopModalEvent">
+  <view class="participant-dialog" catchtap="stopModalEvent" role="dialog" aria-modal="true" aria-label="新增报名人">
+    <view class="dialog-head">
+      <view class="section-title">新增报名人</view>
+      <button class="dialog-close" bindtap="cancelParticipant" aria-label="关闭新增报名人">×</button>
+    </view>
+    <scroll-view scroll-y class="dialog-body">
+      <view class="field">
+        <text class="label">姓名</text>
+        <input value="{{participantDraft.participantName}}" maxlength="40" placeholder="请填写真实姓名" data-field="participantName" bindinput="inputParticipantDraft" />
+      </view>
+      <view wx:if="{{activity.identityRequired}}" class="field">
+        <text class="label">身份证号</text>
+        <input value="{{participantDraft.idNumber}}" maxlength="18" placeholder="用于本次活动身份核验" data-field="idNumber" bindinput="inputParticipantDraft" />
+      </view>
+      <view class="field">
+        <text class="label">手机号</text>
+        <input value="{{participantDraft.phone}}" type="number" maxlength="11" placeholder="用于活动联系" data-field="phone" bindinput="inputParticipantDraft" confirm-type="done" bindconfirm="confirmParticipant" />
+      </view>
+      <view wx:if="{{participantError}}" class="error dialog-error">{{participantError}}</view>
+    </scroll-view>
+    <view class="dialog-actions">
+      <button class="secondary" bindtap="cancelParticipant">取消</button>
+      <button class="primary" bindtap="confirmParticipant">确认添加</button>
+    </view>
+  </view>
 </view>

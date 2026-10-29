@@ -4,13 +4,12 @@
   <block wx:elif="{{product}}">
     <image class="product-image" src="{{product.imageUrl}}" mode="aspectFill" />
     <view class="page product-content">
-      <view class="eyebrow">WILDBOY / FIELD SUPPLY</view>
       <view class="product-title">{{product.name}}</view>
       <view class="price-line"><text class="price">{{priceText}}</text><text class="stock">{{product.stock ? '库存 ' + product.stock + ' 件' : '暂时售罄'}}</text></view>
       <view class="divider" />
       <view class="section-title small-title">装备细节</view>
       <text class="body-copy">{{product.description}}</text>
-      <view class="notice">下单时将在服务端再次核对价格与库存。付款完成后，可在“我的订单”查看支付与发货状态。</view>
+      <view class="notice">价格与库存以下单确认为准。</view>
       <view class="quantity-row"><view><view class="section-title small-title">购买数量</view><view class="muted">单种商品最多 99 件</view></view><view class="stepper"><button data-delta="-1" bindtap="changeQuantity" disabled="{{quantity <= 1}}">−</button><text>{{quantity}}</text><button data-delta="1" bindtap="changeQuantity" disabled="{{quantity >= product.stock}}">＋</button></view></view>
     </view>
     <view class="sticky-action purchase-bar"><view class="purchase-total"><text>合计</text><strong>{{totalText}}</strong></view><button class="primary" disabled="{{!product.stock}}" bindtap="buy">{{product.stock ? '立即购买' : '暂时售罄'}}</button></view>

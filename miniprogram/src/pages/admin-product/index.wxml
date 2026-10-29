@@ -1,7 +1,7 @@
 <view class="page"><view class="section-title">{{id ? '编辑商品' : '新增商品'}}</view>
  <view wx:if="{{loading}}" class="state">加载中…</view><view wx:if="{{error}}" class="state error">{{error}}</view>
  <button wx:if="{{!authorized && !loading}}" bindtap="login">管理员身份验证</button>
- <view wx:if="{{uncertainCreate}}" class="state"><button bindtap="backToProducts">返回列表核对创建结果</button></view>
+ <view wx:if="{{uncertainCreate}}" class="state"><button bindtap="backToProducts">返回列表核对</button></view>
  <view wx:if="{{authorized && !uncertainCreate}}" class="form">
  <label>商品名称<input value="{{form.name}}" maxlength="120" data-field="name" bindinput="input" disabled="{{saving}}"/></label>
  <label>商品说明<textarea value="{{form.description}}" maxlength="20000" data-field="description" bindinput="input" disabled="{{saving}}"/></label>
@@ -9,8 +9,8 @@
  <view class="presets"><image wx:for="{{presets}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="preset"/></view>
  <label>售价（元）<input value="{{form.price}}" type="digit" data-field="price" bindinput="input" disabled="{{saving}}"/></label>
  <label>可售库存<input value="{{form.stock}}" type="number" data-field="stock" bindinput="input" disabled="{{saving}}"/></label>
- <view class="muted">库存是当前可售数量；待付款订单已占用的库存不包含在此数值中。</view>
+ <view class="muted">可售库存不含待付款订单占用数量。</view>
  <picker range="{{statusLabels}}" value="{{statusIndex}}" bindchange="status" disabled="{{saving}}"><view class="picker">上架状态：{{statusLabels[statusIndex]}} ›</view></picker>
- <view wx:if="{{pendingSave}}" class="confirmation"><view>确认保存商品？{{form.status === 'ON_SALE' ? '商品将上架供用户购买。' : '商品保持下架。'}}价格 ¥{{form.price}}，库存 {{form.stock}}。</view><button bindtap="confirmSave" disabled="{{saving}}">确认保存上述内容</button><button class="secondary" bindtap="cancelSave" disabled="{{saving}}">取消</button></view>
+ <view wx:if="{{pendingSave}}" class="confirmation"><view>确认保存商品？{{form.status === 'ON_SALE' ? '商品将上架供用户购买。' : '商品保持下架。'}}价格 ¥{{form.price}}，库存 {{form.stock}}。</view><button bindtap="confirmSave" disabled="{{saving}}">确认保存</button><button class="secondary" bindtap="cancelSave" disabled="{{saving}}">取消</button></view>
  <button wx:if="{{!pendingSave}}" loading="{{saving}}" disabled="{{saving || loading}}" bindtap="save">确认并保存</button>
- <button class="secondary" disabled="{{saving}}" bindtap="reload">重新加载服务器商品</button><view wx:if="{{dirty}}" class="muted">有尚未保存的修改</view></view></view>
+ <button class="secondary" disabled="{{saving}}" bindtap="reload">重新加载</button><view wx:if="{{dirty}}" class="muted">有未保存修改</view></view></view>

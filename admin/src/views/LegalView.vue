@@ -219,11 +219,8 @@ onUnmounted(() => {
 </script>
 <template>
   <main class="legal-workspace">
-    <p class="eyebrow">TRUST BEFORE THE JOURNEY</p>
     <h1>协议管理</h1>
-    <p class="muted">
-      先保存草稿，再确认发布。草稿编辑不会改变线上协议；每次发布保留不可变版本与历史同意记录。
-    </p>
+    <p class="muted">保存草稿不影响线上协议，发布后生效。</p>
     <div class="legal-tabs">
       <button
         :class="kind === 'PRIVACY' ? 'primary' : 'secondary'"
@@ -254,16 +251,14 @@ onUnmounted(() => {
           · 草稿修订 {{ state.draft.revision }}</span
         >
       </div>
-      <p class="legal-help">
-        正式内容须由运营方确认。这里不提供自动生效的法律模板，也不替代微信后台的隐私声明配置。
-      </p>
+      <p class="legal-help">发布前须由运营方审核，并另行配置微信隐私声明。</p>
       <form @submit.prevent="save">
         <label
           >协议标题<input
             v-model="title"
             maxlength="120"
             :disabled="busy || loading"
-            placeholder="请输入协议标题"
+            placeholder="协议标题"
         /></label>
         <label
           >协议正文（纯文本）<textarea
@@ -271,12 +266,12 @@ onUnmounted(() => {
             maxlength="50000"
             rows="18"
             :disabled="busy || loading"
-            placeholder="填写经确认的协议正文。发布前请完整预览。"
+            placeholder="经审核的协议正文"
           />
         </label>
         <p class="muted">
           {{ content.length }} / 50000 ·
-          {{ dirty ? "有未保存修改" : "与已保存草稿一致" }}
+          {{ dirty ? "有未保存修改" : "草稿已保存" }}
         </p>
         <div class="legal-actions">
           <button
@@ -314,9 +309,7 @@ onUnmounted(() => {
     </button>
     <section class="legal-history">
       <h2>已发布历史</h2>
-      <p v-if="!history.length" class="muted">
-        暂无发布记录；未发布内容不会在小程序公开展示。
-      </p>
+      <p v-if="!history.length" class="muted">暂无发布记录</p>
       <div class="legal-versions">
         <button
           v-for="version in history"

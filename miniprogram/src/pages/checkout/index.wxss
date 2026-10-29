@@ -7,7 +7,6 @@
 .checkout-page textarea { width: 100%; height: 170rpx; padding: 22rpx 24rpx; border: 1rpx solid #dce1d5; border-radius: 10rpx; background: #fffdf7; font-size: 29rpx; box-sizing: border-box; }
 .consent { display: flex; align-items: flex-start; margin-top: 30rpx; color: #6a7561; font-size: 24rpx; line-height: 1.8; }
 .consent checkbox { flex-shrink: 0; width: 55rpx; transform: scale(.8); transform-origin: left top; }
-.privacy { padding: 18rpx 0; color: #486b45; font-size: 24rpx; }
 .form-error { padding-top: 24rpx; font-size: 25rpx; }
 .submit { margin-top: 30rpx; }
 .result-card { padding: 48rpx 28rpx; margin-bottom: 26rpx; border-radius: 18rpx; background: #eee9dc; text-align: center; }

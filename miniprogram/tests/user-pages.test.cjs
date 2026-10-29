@@ -200,16 +200,16 @@ test("signup navigates only after confirmed response", async () => {
 test("signup adds a second participant and submits the full group", async () => {
   const p = filled();
   p.addParticipant();
-  p.setData({
-    participants: [
-      p.data.participants[0],
-      {
-        participantName: "第二位",
-        idNumber: "110105194912310038",
-        phone: "13800000001",
-      },
-    ],
-  });
+  assert.equal(p.data.participants.length, 1);
+  assert.equal(p.data.participantModalOpen, true);
+  p.setData({ participantDraft: {
+    participantName: "第二位",
+    idNumber: "110105194912310038",
+    phone: "13800000001",
+  } });
+  p.confirmParticipant();
+  assert.equal(p.data.participantModalOpen, false);
+  assert.equal(p.data.participants.length, 2);
   response = async () => ({
     ...registration,
     participants: [

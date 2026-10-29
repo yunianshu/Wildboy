@@ -29,10 +29,6 @@ function logout() {
       <RouterLink class="nav-link" to="/legal"
         ><span>≡</span>协议管理</RouterLink
       >
-      <div class="sidebar-bottom">
-        <span class="live-dot"></span> 报名与商城服务已接入后端
-        <p>订单支付状态由服务端确认<br />未配置商户时不可发起支付</p>
-      </div>
     </aside>
     <div class="main-shell">
       <header class="topbar">

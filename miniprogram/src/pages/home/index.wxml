@@ -14,7 +14,7 @@
   </view>
   <view class="home-body">
     <view wx:if="{{devMode}}" class="notice">
-      开发联调模式 · 演示账号，不代表真实报名用户
+      开发演示账号 · 非真实用户
     </view>
     <view class="category-grid">
       <view
@@ -44,12 +44,10 @@
       <view>{{error}}</view>
       <button class="secondary" bindtap="retry">重新加载</button>
     </view>
-    <view wx:elif="{{loading}}" class="state">正在寻找下一次出发…</view>
+    <view wx:elif="{{loading}}" class="state">正在加载活动…</view>
     <block wx:else>
       <view wx:if="{{!items.length}}" class="state">
-        新的活动正在准备中
-        <view />
-        先把周末留给山野吧
+        暂无活动
       </view>
       <view class="grid">
         <view
@@ -93,7 +91,6 @@
           <view />
           自在入野
         </view>
-        <text class="shop-hint">查看商品 · 轻装出发</text>
       </view>
     </view>
     <scroll-view

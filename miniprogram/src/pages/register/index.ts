@@ -19,6 +19,9 @@ import {
   RequestEpoch,
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
+const emptyParticipant = (): ParticipantInput => ({
+  participantName: "", idNumber: "", phone: "",
+});
 Page({
   data: {
     id: "",
@@ -28,6 +31,9 @@ Page({
     participants: [
       { participantName: "", idNumber: "", phone: "" },
     ] as ParticipantInput[],
+    participantModalOpen: false,
+    participantDraft: emptyParticipant(),
+    participantError: "",
     consent: false,
     legal: null as LegalCurrent | null,
     legalError: "",
@@ -45,10 +51,12 @@ Page({
   },
   onHide() {
     epoch.invalidate();
+    this.cancelParticipant();
     this.setData({ submitting: false });
   },
   onUnload() {
     epoch.invalidate();
+    this.cancelParticipant();
   },
   async load() {
     const n = epoch.next();
@@ -80,6 +88,7 @@ Page({
     void this.load();
   },
   inputParticipant(e: WechatMiniprogram.Input) {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const index = Number(e.currentTarget.dataset.index);
     const field = e.currentTarget.dataset.field;
     if (
@@ -94,19 +103,66 @@ Page({
     });
   },
   addParticipant() {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     if (this.data.participants.length >= (this.data.activity?.available || 0)) {
       this.setData({ fieldError: "添加人数不能超过当前剩余名额" });
       return;
     }
     this.setData({
-      participants: [
-        ...this.data.participants,
-        { participantName: "", idNumber: "", phone: "" },
-      ],
+      participantModalOpen: true,
+      participantDraft: emptyParticipant(),
+      participantError: "",
       fieldError: "",
     });
   },
+  inputParticipantDraft(e: WechatMiniprogram.Input) {
+    if (!this.data.participantModalOpen || this.data.submitting) return;
+    const field = e.currentTarget.dataset.field;
+    if (!["participantName", "idNumber", "phone"].includes(field)) return;
+    this.setData({
+      participantDraft: { ...this.data.participantDraft, [field]: e.detail.value },
+      participantError: "",
+    });
+  },
+  cancelParticipant() {
+    this.setData({
+      participantModalOpen: false,
+      participantDraft: emptyParticipant(),
+      participantError: "",
+    });
+  },
+  stopModalEvent() {},
+  confirmParticipant() {
+    if (!this.data.participantModalOpen || this.data.submitting || this.data.success) return;
+    const participant = {
+      participantName: this.data.participantDraft.participantName.trim(),
+      idNumber: this.data.activity?.identityRequired
+        ? this.data.participantDraft.idNumber.trim().toUpperCase() : "",
+      phone: this.data.participantDraft.phone.trim(),
+    };
+    const error = validateParticipants([participant], true, !!this.data.activity?.identityRequired);
+    if (error) {
+      this.setData({ participantError: error.replace("第 1 位参与人", "报名人") });
+      return;
+    }
+    if (participant.idNumber && this.data.participants.some(
+      (p) => p.idNumber.trim().toUpperCase() === participant.idNumber,
+    )) {
+      this.setData({ participantError: "该身份证号已在报名名单中" });
+      return;
+    }
+    if (!this.data.activity?.enabled || this.data.participants.length >= this.data.activity.available) {
+      this.setData({ participantError: "当前剩余名额不足，请返回刷新" });
+      return;
+    }
+    this.setData({
+      participants: [...this.data.participants, participant],
+      fieldError: "",
+    });
+    this.cancelParticipant();
+  },
   removeParticipant(e: WechatMiniprogram.TouchEvent) {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const index = Number(e.currentTarget.dataset.index);
     if (this.data.participants.length <= 1 || !this.data.participants[index])
       return;
@@ -161,7 +217,7 @@ Page({
     });
   },
   async submit() {
-    if (this.data.submitting || this.data.success) return;
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const fieldError = validateParticipants(
       this.data.participants,
       this.data.consent,

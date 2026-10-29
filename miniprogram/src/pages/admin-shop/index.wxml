@@ -1,8 +1,8 @@
 <view class="page">
- <view class="section-title">装备商品管理</view><view class="muted">编辑商品、库存及上下架；服务器核验管理身份。</view>
+ <view class="section-title">商品管理</view>
  <view wx:if="{{loading}}" class="state">加载中…</view><view wx:if="{{error}}" class="state error">{{error}}<button bindtap="retry">重试</button></view>
  <button wx:if="{{!authorized && !loading}}" bindtap="login">管理员身份验证</button>
  <block wx:if="{{authorized}}"><view class="actions"><button bindtap="create">新增商品</button><button class="secondary" bindtap="orders">订单与发货</button></view>
- <view wx:if="{{!items.length}}" class="state">还没有商品，可先创建为下架草稿。</view>
+ <view wx:if="{{!items.length}}" class="state">暂无商品</view>
  <view wx:for="{{items}}" wx:key="id" class="card" data-id="{{item.id}}" bindtap="edit"><image src="{{item.cover}}" mode="aspectFill"/><view class="main"><view class="title">{{item.name}}</view><view>{{item.priceLabel}} · 可售库存 {{item.stock}}</view><view class="muted">{{item.status === 'ON_SALE' ? '已上架' : '已下架'}} · 编辑 ›</view></view></view></block>
 </view>

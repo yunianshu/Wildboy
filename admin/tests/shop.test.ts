@@ -65,6 +65,10 @@ describe("shop administration", () => {
     expect(wrapper.text()).toContain("徒步背包");
     expect(wrapper.text()).toContain("¥199.00");
     expect(wrapper.text()).toContain("已支付");
+    expect(wrapper.get(".privacy-note").text()).toContain("仅用于订单履约");
+    expect(wrapper.get(".privacy-note").text()).toContain(
+      "请勿公开或用于无关营销",
+    );
     expect(wrapper.text()).not.toContain("13800000000");
     expect(wrapper.text()).not.toContain("厦门市测试地址");
     const reveal = wrapper

@@ -1,7 +1,7 @@
 <view class="page checkout-page">
   <view wx:if="{{loading}}" class="state">正在核对商品与协议…</view>
   <block wx:elif="{{order}}">
-    <view wx:if="{{recoveredOrder}}" class="notice">已找回此前提交的原订单，未重复下单。请核对原收货信息后再决定是否继续支付。</view>
+    <view wx:if="{{recoveredOrder}}" class="notice">已找回原订单，未重复下单。付款前请核对收货信息。</view>
     <view class="result-card {{(order.status === 'PAID' || order.status === 'SHIPPED') ? 'paid' : ''}}">
       <view class="result-mark">{{(order.status === 'PAID' || order.status === 'SHIPPED') ? '✓' : '…'}}</view>
       <view class="title">{{order.status === 'PENDING_PAYMENT' && awaitingConfirmation ? '支付结果确认中' : orderStatusText}}</view>
@@ -10,26 +10,23 @@
       <view class="muted">{{order.recipientName}} · {{order.phone}}</view>
       <view class="muted">{{order.address}}</view>
     </view>
-    <view wx:if="{{order.status === 'PENDING_PAYMENT' && orderDeadlineText}}" class="notice">请于 {{orderDeadlineText}} 前完成付款，超时后系统核实关单并释放库存。</view>
+    <view wx:if="{{order.status === 'PENDING_PAYMENT' && orderDeadlineText}}" class="notice">付款截止 {{orderDeadlineText}}，超时后核实关单并释放库存。</view>
     <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
-    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">只有服务端确认已支付才会显示成功。若已付款，请刷新结果；未付款可继续支付。请勿重复创建新订单。</view>
+    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">已付款请刷新结果，勿重复下单；未付款可继续支付。</view>
     <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
     <button wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="payExisting">继续支付</button>
     <button class="secondary" bindtap="orders">查看我的订单</button>
   </block>
   <block wx:elif="{{product}}">
-    <view class="eyebrow">ONE LAST CHECK</view><view class="title">确认这次出发的准备</view>
+    <view class="title">确认订单</view>
     <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="muted">数量 × {{quantity}}</view><view class="price">{{totalText}}</view></view></view>
     <view class="section-head"><view class="section-title">收货信息</view></view>
     <view class="field"><text class="label">收货人</text><input value="{{recipientName}}" maxlength="40" placeholder="请填写收货人姓名" data-field="recipientName" bindinput="input" disabled="{{busy}}" /></view>
     <view class="field"><text class="label">手机号</text><input value="{{phone}}" type="number" maxlength="11" placeholder="用于订单与配送联系" data-field="phone" bindinput="input" disabled="{{busy}}" /></view>
     <view class="field"><text class="label">收货地址</text><textarea value="{{address}}" maxlength="300" placeholder="省市区、详细地址" data-field="address" bindinput="input" disabled="{{busy}}" /></view>
-    <checkbox-group bindchange="consentChange"><label class="consent"><checkbox value="yes" checked="{{consent}}" color="#193F34" disabled="{{busy}}" /><text>我已阅读并同意当前隐私政策、用户协议，同意为订单履约处理收货与支付信息。</text></label></checkbox-group>
-    <view class="privacy" bindtap="privacy">阅读隐私政策（版本 {{legal.privacy.version}}）↗</view>
-    <view class="privacy" bindtap="terms">阅读用户协议（版本 {{legal.terms.version}}）↗</view>
-    <view class="notice">提交后由服务端核对价格与库存并创建订单。支付取消不会生成付款成功记录，订单可稍后继续支付。</view>
-    <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
+    <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#193F34" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
+    <view class="notice">价格与库存以下单确认为准。取消支付后，可在“我的订单”继续付款。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
     <button class="primary submit" loading="{{busy}}" disabled="{{busy || !legal}}" bindtap="submit">{{busy ? '正在处理订单…' : '提交订单并支付 ' + totalText}}</button>
   </block>

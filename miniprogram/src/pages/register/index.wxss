@@ -22,11 +22,6 @@
   flex-shrink: 0;
   width: 55rpx;
 }
-.privacy {
-  font-size: 24rpx;
-  color: #486b45;
-  padding: 20rpx 0 28rpx;
-}
 .submit {
   margin: 32rpx 0 20rpx;
 }
@@ -75,3 +70,43 @@
 .success button {
   margin-top: 24rpx;
 }
+
+.participant-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  background: rgba(17, 31, 22, 0.48);
+}
+.participant-dialog {
+  width: 100%;
+  max-width: 620rpx;
+  border-radius: 24rpx;
+  background: #fafaf6;
+  padding: 28rpx;
+  box-shadow: 0 24rpx 80rpx rgba(17, 31, 22, 0.18);
+}
+.dialog-head, .dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+}
+.dialog-close {
+  margin: 0;
+  padding: 0;
+  width: 72rpx;
+  height: 72rpx;
+  line-height: 72rpx;
+  background: transparent;
+  color: #6a7561;
+  font-size: 44rpx;
+}
+.dialog-close::after { border: 0; }
+.dialog-body { max-height: 52vh; }
+.dialog-actions { margin-top: 24rpx; }
+.dialog-actions button { flex: 1; margin: 0; }
+.dialog-error { padding: 12rpx 0; font-size: 25rpx; }

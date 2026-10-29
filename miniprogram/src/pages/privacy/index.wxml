@@ -1,5 +1,4 @@
 <view class="page">
-  <text class="eyebrow">RESPECT YOUR CHOICE</text>
   <view wx:if="{{loading}}" class="state">正在读取已发布协议…</view>
   <view wx:elif="{{error}}" class="state error">
     {{error}}
@@ -12,7 +11,7 @@
     </view>
     <view class="legal-content">{{document.content}}</view>
     <view class="notice">
-      这里展示运营方发布的协议内容。自定义协议不替代微信平台要求的隐私保护指引；如需咨询，请使用协议中公布的联系渠道。
+      如需咨询，请使用协议中的联系渠道。
     </view>
   </block>
 </view>

@@ -209,3 +209,7 @@ input {
 .image-empty {
   background: #dce3d2;
 }
+.legal-link {
+  color: #173f35;
+  text-decoration: underline;
+}

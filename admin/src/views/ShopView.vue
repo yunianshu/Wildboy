@@ -182,9 +182,7 @@ onUnmounted(() => {
   <main class="workspace">
     <section class="page-heading">
       <div>
-        <p class="eyebrow">FIELD SUPPLY</p>
         <h1>商城运营</h1>
-        <p class="muted">商品、库存、订单与发货</p>
       </div>
       <button class="secondary button" @click="reset">＋ 新商品</button>
     </section>
@@ -279,10 +277,9 @@ onUnmounted(() => {
     <section class="editor-section">
       <div class="section-heading">
         <h2>装备订单</h2>
-        <span class="muted">支付状态由服务端通知确认</span>
       </div>
       <div class="privacy-note">
-        收货资料仅用于订单履约，默认遮罩；请勿公开或用于无关营销。
+        收货资料仅用于订单履约，请勿公开或用于无关营销。
       </div>
       <div v-if="!orders.items.length" class="empty-state">还没有订单</div>
       <article
@@ -298,7 +295,9 @@ onUnmounted(() => {
               {{ money(order.totalCents) }}</strong
             >
             <p class="muted">订单号 {{ order.orderNo }}</p>
-            <p v-if="order.reconciliationRequired" class="error">需核对微信订单状态，库存暂保留，请勿手动回库。</p>
+            <p v-if="order.reconciliationRequired" class="error">
+              需核对微信订单状态，库存暂保留，请勿手动回库。
+            </p>
           </div>
           <button
             v-if="order.status === 'PAID'"
