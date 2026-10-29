@@ -31,19 +31,13 @@ async function submit(demo = false) {
     <section class="login-story">
       <a class="brand" href="#/login">WILDBOY<span>OUTDOOR CLUB</span></a>
       <div>
-        <p class="eyebrow">LESS SCROLL. MORE SOUL.</p>
         <h1>把下一场<br />山野之约，<br /><em>认真安排好。</em></h1>
-        <p>
-          活动管理 · 路线编辑 · 报名名单<br />让出发之前的每一步，都井然有序。
-        </p>
       </div>
       <small>WILDBOY / 活动管理工作台</small>
     </section>
     <section class="login-panel">
       <div class="login-form">
-        <p class="eyebrow">WELCOME BACK</p>
-        <h2>开始筹备下一次出发</h2>
-        <p class="muted">使用管理员账号登录。报名用户不能进入管理后台。</p>
+        <h2>管理员登录</h2>
         <form @submit.prevent="submit(false)">
           <label
             >管理员账号<input
@@ -74,10 +68,10 @@ async function submit(demo = false) {
           :disabled="busy"
           @click="submit(true)"
         >
-          本地开发环境 · 演示管理员登录
+          开发环境 · 演示登录
         </button>
         <p class="login-note">
-          安全提示：会话仅保存在内存中，刷新页面后需重新登录。请勿在公共设备上展示报名名单。
+          刷新后需重新登录。请勿在公共设备上展示报名名单。
         </p>
       </div>
     </section>

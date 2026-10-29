@@ -67,18 +67,14 @@ describe("sensitive navigation", () => {
     );
     const { wrapper, router } = await render();
     expect(
-      (
-        wrapper.get('input[placeholder="例如：走进山海之间 · 周末轻徒步"]')
-          .element as HTMLInputElement
-      ).value,
+      (wrapper.get('input[placeholder="活动名称"]').element as HTMLInputElement)
+        .value,
     ).toBe("第一场活动");
     await router.push("/activities/two/edit");
     await flushPromises();
     expect(
-      (
-        wrapper.get('input[placeholder="例如：走进山海之间 · 周末轻徒步"]')
-          .element as HTMLInputElement
-      ).value,
+      (wrapper.get('input[placeholder="活动名称"]').element as HTMLInputElement)
+        .value,
     ).toBe("第二场活动");
     wrapper.unmount();
   });
@@ -93,9 +89,7 @@ describe("sensitive navigation", () => {
     );
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const { wrapper, router } = await render();
-    await wrapper
-      .get('input[placeholder="例如：走进山海之间 · 周末轻徒步"]')
-      .setValue("未保存的标题");
+    await wrapper.get('input[placeholder="活动名称"]').setValue("未保存的标题");
     await wrapper
       .findAll("button")
       .find((b) => b.text() === "退出登录")

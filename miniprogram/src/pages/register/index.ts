@@ -19,15 +19,22 @@ import {
   RequestEpoch,
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
+const emptyParticipant = (): ParticipantInput => ({
+  participantName: "", idNumber: "", phone: "",
+});
 Page({
   data: {
     id: "",
+    waitlistMode: false,
     activity: null as ReturnType<typeof activityView> | null,
     loading: true,
     error: "",
     participants: [
       { participantName: "", idNumber: "", phone: "" },
     ] as ParticipantInput[],
+    participantModalOpen: false,
+    participantDraft: emptyParticipant(),
+    participantError: "",
     consent: false,
     legal: null as LegalCurrent | null,
     legalError: "",
@@ -39,16 +46,18 @@ Page({
   },
   onLoad(o) {
     const id = safeId(o.id);
-    this.setData({ id });
+    this.setData({ id, waitlistMode: o.waitlist === "1" });
     if (id) void this.load();
     else this.setData({ error: "活动链接无效", loading: false });
   },
   onHide() {
     epoch.invalidate();
+    this.cancelParticipant();
     this.setData({ submitting: false });
   },
   onUnload() {
     epoch.invalidate();
+    this.cancelParticipant();
   },
   async load() {
     const n = epoch.next();
@@ -80,6 +89,7 @@ Page({
     void this.load();
   },
   inputParticipant(e: WechatMiniprogram.Input) {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const index = Number(e.currentTarget.dataset.index);
     const field = e.currentTarget.dataset.field;
     if (
@@ -94,19 +104,66 @@ Page({
     });
   },
   addParticipant() {
-    if (this.data.participants.length >= (this.data.activity?.available || 0)) {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
+    if (this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity?.available || 0)) {
       this.setData({ fieldError: "添加人数不能超过当前剩余名额" });
       return;
     }
     this.setData({
-      participants: [
-        ...this.data.participants,
-        { participantName: "", idNumber: "", phone: "" },
-      ],
+      participantModalOpen: true,
+      participantDraft: emptyParticipant(),
+      participantError: "",
       fieldError: "",
     });
   },
+  inputParticipantDraft(e: WechatMiniprogram.Input) {
+    if (!this.data.participantModalOpen || this.data.submitting) return;
+    const field = e.currentTarget.dataset.field;
+    if (!["participantName", "idNumber", "phone"].includes(field)) return;
+    this.setData({
+      participantDraft: { ...this.data.participantDraft, [field]: e.detail.value },
+      participantError: "",
+    });
+  },
+  cancelParticipant() {
+    this.setData({
+      participantModalOpen: false,
+      participantDraft: emptyParticipant(),
+      participantError: "",
+    });
+  },
+  stopModalEvent() {},
+  confirmParticipant() {
+    if (!this.data.participantModalOpen || this.data.submitting || this.data.success) return;
+    const participant = {
+      participantName: this.data.participantDraft.participantName.trim(),
+      idNumber: this.data.activity?.identityRequired
+        ? this.data.participantDraft.idNumber.trim().toUpperCase() : "",
+      phone: this.data.participantDraft.phone.trim(),
+    };
+    const error = validateParticipants([participant], true, !!this.data.activity?.identityRequired);
+    if (error) {
+      this.setData({ participantError: error.replace("第 1 位参与人", "报名人") });
+      return;
+    }
+    if (participant.idNumber && this.data.participants.some(
+      (p) => p.idNumber.trim().toUpperCase() === participant.idNumber,
+    )) {
+      this.setData({ participantError: "该身份证号已在报名名单中" });
+      return;
+    }
+    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled) || this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity!.available)) {
+      this.setData({ participantError: "当前剩余名额不足，请返回刷新" });
+      return;
+    }
+    this.setData({
+      participants: [...this.data.participants, participant],
+      fieldError: "",
+    });
+    this.cancelParticipant();
+  },
   removeParticipant(e: WechatMiniprogram.TouchEvent) {
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const index = Number(e.currentTarget.dataset.index);
     if (this.data.participants.length <= 1 || !this.data.participants[index])
       return;
@@ -161,7 +218,7 @@ Page({
     });
   },
   async submit() {
-    if (this.data.submitting || this.data.success) return;
+    if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const fieldError = validateParticipants(
       this.data.participants,
       this.data.consent,
@@ -171,11 +228,11 @@ Page({
       this.setData({ fieldError });
       return;
     }
-    if (!this.data.activity?.enabled) {
+    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled)) {
       this.setData({ fieldError: "当前活动不可报名，请返回刷新" });
       return;
     }
-    if (this.data.participants.length > this.data.activity.available) {
+    if (!this.data.waitlistMode && this.data.participants.length > this.data.activity!.available) {
       this.setData({ fieldError: "报名人数超过剩余名额，请减少参与人" });
       return;
     }
@@ -207,6 +264,12 @@ Page({
         idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
       }));
+      if (this.data.waitlistMode) {
+        const result = await request<{id:string;activityId:string;status:string}>(`/activities/${this.data.id}/waitlist`, "POST", {participants,...versions});
+        if (!result?.id || result.activityId !== this.data.id || !["WAITING","OFFERED"].includes(result.status)) throw new Error("候补结果未确认，请到我的候补核对");
+        if(epoch.valid(n)){this.setData({participants:[{participantName:"",idNumber:"",phone:""}]});wx.redirectTo({url:"/pages/waitlist/index"});}
+        return;
+      }
       const result = await request<Registration>(
         `/activities/${this.data.id}/registrations`,
         "POST",
@@ -250,6 +313,7 @@ Page({
       if (epoch.valid(n)) this.setData({ submitting: false });
     }
   },
+  joinWaitlist() { if(!this.data.submitting && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },
   done() {
     wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
   },

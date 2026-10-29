@@ -41,6 +41,15 @@ services:
       WECHAT_PAY_PUBLIC_KEY_ID: ${WECHAT_PAY_PUBLIC_KEY_ID:-}
       WECHAT_PAY_API_V3_KEY: ${WECHAT_PAY_API_V3_KEY:-}
       WECHAT_PAY_NOTIFY_URL: ${WECHAT_PAY_NOTIFY_URL:-}
+      MEDIA_DIR: /app/data/uploads
+      WECHAT_NOTIFICATIONS_ENABLED: ${WECHAT_NOTIFICATIONS_ENABLED:-false}
+      WECHAT_NOTIFICATION_TEMPLATE_ID: ${WECHAT_NOTIFICATION_TEMPLATE_ID:-}
+      WECHAT_NOTIFICATION_TITLE_KEY: ${WECHAT_NOTIFICATION_TITLE_KEY:-thing1}
+      WECHAT_NOTIFICATION_TIME_KEY: ${WECHAT_NOTIFICATION_TIME_KEY:-time2}
+      WECHAT_NOTIFICATION_DETAIL_KEY: ${WECHAT_NOTIFICATION_DETAIL_KEY:-thing3}
+      WECHAT_NOTIFICATION_STATE: ${WECHAT_NOTIFICATION_STATE:-formal}
+    volumes:
+      - wildboy-media:/app/data/uploads
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
@@ -49,3 +58,4 @@ services:
     restart: unless-stopped
 volumes:
   wildboy-data:
+  wildboy-media:

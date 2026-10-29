@@ -1,3 +1,4 @@
+import { uploadImage } from "../../utils/content";
 import { request, isSessionCurrent, ApiError } from "../../utils/api";
 import { Product } from "../../utils/models";
 import { message, safeId } from "../../utils/domain";
@@ -24,6 +25,8 @@ Page({
     statusLabels: ["下架", "上架"],
     statusIndex: 0,
   },
+  _uploading: false,
+  _alive: true,
   _epoch: 0,
   _session: -1,
   _loaded: false,
@@ -53,6 +56,7 @@ Page({
     });
   },
   onUnload() {
+    this._alive = false;
     this._epoch++;
   },
   async load(force = false) {
@@ -146,6 +150,18 @@ Page({
       dirty: true,
     });
     this.alert(true);
+  },
+  editContent() { if (this.data.id && this.data.authorized && !this.data.saving) wx.navigateTo({url:`/pages/admin-content/index?id=${this.data.id}&kind=product`}); },
+  async uploadCover() {
+    if (!this.data.authorized || this.data.saving) return;
+    if(this._uploading)return;
+    this._uploading=true;
+    const session=this._session;
+    this.setData({error:""});
+    try { const url=await uploadImage(); if(this._alive && isSessionCurrent(session)) {
+      this.setData({"form.imageUrl":url,dirty:true});
+      wx.enableAlertBeforeUnload({message:"有未保存修改"});
+    } } catch(e) { if(this._alive && isSessionCurrent(session) && !message(e).includes("cancel")) this.setData({error:message(e)}); } finally {this._uploading=false;}
   },
   async reload() {
     if (this.data.saving) return;

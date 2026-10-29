@@ -23,6 +23,8 @@ global.wx = {
 const api = require("../dist/utils/api.js");
 const versions = { privacyVersion: 1, termsVersion: 1 };
 beforeEach(() => {
+  api.logout();
+  wx.login = (o) => { loginCount++; o.success({ code: "one-use-code" }); };
   store = {};
   requestCount = 0;
   loginCount = 0;
@@ -47,7 +49,7 @@ test("real login exchanges only one use wx code and persists server token", asyn
     sent = o.data;
     o.success({
       statusCode: 200,
-      data: { token: "session", user: { id: "u" } },
+      data: { token: "session", user: { id: "u", role: "USER" } },
     });
   };
   await api.login(versions);
@@ -66,7 +68,7 @@ test("release never uses developer login endpoint", async () => {
   let url;
   reply = (o) => {
     url = o.url;
-    o.success({ statusCode: 200, data: { token: "s", user: {} } });
+    o.success({ statusCode: 200, data: { token: "s", user: { id: "u", role: "USER" } } });
   };
   await api.login(versions);
   assert.match(url, /\/auth\/wechat$/);
@@ -231,4 +233,56 @@ test("leaving WeChat login does not persist late credentials", async () => {
     (e) => e.code === "LOGIN_CANCELLED",
   );
   assert.equal(api.hasSession(), false);
+});
+
+test("malformed login identity never replaces an existing session", async () => {
+  for (const user of [undefined, {}, {id: "u"}, {id: "u", role: "ADMIN"}, {id: "", role: "USER"}]) {
+    store["wildboy-session"] = "existing";
+    reply = o => o.success({statusCode: 200, data: {token: "bad", user}});
+    await assert.rejects(api.login(versions), /响应异常/);
+    assert.equal(store["wildboy-session"], "existing");
+  }
+});
+test("late wx code after logout or leaving does not reach backend", async () => {
+  for (const action of ["logout", "leave"]) {
+    let callback, current = true;
+    wx.login = o => { callback = o; };
+    const pending = api.login(versions, () => current);
+    if (action === "logout") api.logout(); else current = false;
+    callback.success({code: "late-code"});
+    await assert.rejects(pending, e => ["SESSION_CHANGED", "LOGIN_CANCELLED"].includes(e.code));
+    assert.equal(requestCount, 0);
+  }
+});
+test("wx login timeout ignores late callback and permits fresh retry", async (t) => {
+  t.mock.timers.enable({apis: ["setTimeout"]});
+  let callback;
+  wx.login = o => { callback = o; assert.equal(o.timeout, 10000); };
+  const pending = api.login(versions);
+  t.mock.timers.tick(10000);
+  await assert.rejects(pending, /超时/);
+  callback.success({code: "too-late"});
+  await Promise.resolve();
+  assert.equal(requestCount, 0);
+  wx.login = o => o.success({code: "fresh-code"});
+  await api.login(versions);
+  assert.equal(requestCount, 1);
+});
+test("wx login synchronous failure rejects without backend request", async () => {
+  wx.login = () => { throw new Error("native unavailable"); };
+  await assert.rejects(api.login(versions), /暂不可用/);
+  assert.equal(requestCount, 0);
+});
+
+test("AnyService materializes uploaded images through JSON with bounded app cache", async () => {
+  config.apiMode="anyservice";config.anyServiceEnvId="env";config.anyServiceName="service";
+  const name="11111111-1111-1111-1111-111111111111.png",path=`/assets/uploads/${name}`,calls=[],writes=[],removed=[];
+  wx.env={USER_DATA_PATH:"/app-cache"};
+  wx.getFileSystemManager=()=>({mkdirSync(){},readdirSync(){return Array.from({length:64},(_,i)=>`${String(i).padStart(8,'0')}-0000-0000-0000-000000000000.png`)},unlinkSync:p=>removed.push(p),writeFile:o=>{writes.push(o.filePath);o.success({})}});
+  wx.cloud={callContainer:o=>{calls.push(o.path);o.success({statusCode:200,data:o.path.includes('/media/')?{dataBase64:'AAAA'}:{imageUrl:path}})}};
+  const value=await api.request('/shop/products');
+  assert.equal(value.imageUrl,path);assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
+  assert.equal(api.mediaUrl(path),`/app-cache/wildboy-public-images/${name}`);assert.equal(writes.length,1);assert.equal(removed.length,1);
+  await api.request('/shop/products');assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
+  delete wx.env;delete wx.cloud;
 });

@@ -20,6 +20,21 @@ function logout() {
         >WILDBOY<span>OUTDOOR CLUB</span></RouterLink
       >
       <p class="nav-label">工作空间</p>
+      <RouterLink class="nav-link" to="/operations"
+        ><span>◫</span>运营工作台</RouterLink
+      >
+      <RouterLink class="nav-link" to="/templates"
+        ><span>◇</span>活动模板</RouterLink
+      >
+      <RouterLink class="nav-link" to="/refunds"
+        ><span>↶</span>退款售后</RouterLink
+      >
+      <RouterLink class="nav-link" to="/waitlist"
+        ><span>◷</span>候补名单</RouterLink
+      >
+      <RouterLink class="nav-link" to="/notifications"
+        ><span>◉</span>消息管理</RouterLink
+      >
       <RouterLink class="nav-link" to="/activities"
         ><span>↗</span>活动管理</RouterLink
       >
@@ -29,27 +44,33 @@ function logout() {
       <RouterLink class="nav-link" to="/legal"
         ><span>≡</span>协议管理</RouterLink
       >
-      <div class="sidebar-bottom">
-        <span class="live-dot"></span> 报名与商城服务已接入后端
-        <p>订单支付状态由服务端确认<br />未配置商户时不可发起支付</p>
-      </div>
     </aside>
     <div class="main-shell">
       <header class="topbar">
         <span
           >户外活动管理 /
           <strong>{{
-            route.path === "/shop"
-              ? "商城管理"
-              : route.path === "/legal"
-                ? "协议管理"
-                : route.path.endsWith("registrations")
-                  ? "报名名单"
-                  : route.path.endsWith("edit")
-                    ? "编辑活动"
-                    : route.path.endsWith("new")
-                      ? "新建活动"
-                      : "活动工作台"
+            route.path === "/waitlist"
+              ? "候补名单"
+              : route.path === "/operations"
+                ? "运营工作台"
+                : route.path === "/templates"
+                  ? "活动模板"
+                  : route.path === "/refunds"
+                    ? "退款售后"
+                    : route.path === "/notifications"
+                      ? "消息管理"
+                      : route.path === "/shop"
+                        ? "商城管理"
+                        : route.path === "/legal"
+                          ? "协议管理"
+                          : route.path.endsWith("registrations")
+                            ? "报名名单"
+                            : route.path.endsWith("edit")
+                              ? "编辑活动"
+                              : route.path.endsWith("new")
+                                ? "新建活动"
+                                : "活动工作台"
           }}</strong></span
         >
         <div class="user-tools">

@@ -5,9 +5,7 @@
       <text class="brand-caption">OUTDOOR CLUB</text>
     </view>
     <view class="activities-heading">
-      <text class="hero-kicker">A LITTLE FURTHER. A LITTLE FREER.</text>
       <view class="hero-title">活动</view>
-      <view class="hero-subtitle">选一种节奏，把自己交给山野。</view>
     </view>
   </view>
   <view class="page activities-content">
@@ -18,7 +16,7 @@
       </view>
     </scroll-view>
     <view wx:if="{{loading}}" class="state">正在加载活动…</view>
-    <view wx:elif="{{!items.length && !error}}" class="state">这个分类还没有开放的活动<view />换个分类，发现别的可能。</view>
+    <view wx:elif="{{!items.length && !error}}" class="state">该分类暂无活动</view>
     <view class="grid">
       <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
         <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
@@ -29,6 +27,6 @@
       </view>
     </view>
     <view wx:if="{{error}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
-    <view wx:elif="{{items.length}}" class="loading-line">{{loadingMore ? '正在加载…' : (hasMore ? '上滑发现更多' : '已经看到全部活动')}}</view>
+    <view wx:elif="{{items.length}}" class="loading-line">{{loadingMore ? '正在加载…' : (hasMore ? '上拉加载更多' : '已显示全部活动')}}</view>
   </view>
 </view>

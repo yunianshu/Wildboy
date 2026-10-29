@@ -47,6 +47,11 @@ describe("editor workflow", () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/new");
+    expect(wrapper.get("h1").text()).toBe("新建活动");
+    expect(wrapper.text()).toContain("核验身份证（仅必要时开启，须说明用途）");
+    expect(wrapper.text()).toContain("仅支持免费报名");
+    expect(wrapper.text()).toContain("时间均为北京时间");
+    expect(wrapper.find(".eyebrow").exists()).toBe(false);
     await wrapper.get("form").trigger("submit");
     expect(wrapper.get("[role=alert]").text()).toContain("请检查");
     expect(fetch).not.toHaveBeenCalled();
@@ -125,7 +130,7 @@ describe("editor workflow", () => {
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
     await wrapper
-      .get('input[placeholder="例如：走进山海之间 · 周末轻徒步"]')
+      .get('input[placeholder="活动名称"]')
       .setValue("未保存的新标题");
     await wrapper
       .findAll("button")

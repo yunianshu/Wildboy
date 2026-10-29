@@ -46,6 +46,7 @@ function checkout() {
     quantity: 1,
     product: { id: "product-1", stock: 3 },
     legal: legalCurrent,
+    selectedAddressId: "address-1",
     recipientName: "收货人",
     phone: "13800000000",
     address: "厦门市测试地址",
@@ -57,6 +58,13 @@ function checkout() {
   });
   return p;
 }
+const savedAddress = {
+  id: "address-1",
+  recipientName: "收货人",
+  phone: "13800000000",
+  address: "厦门市测试地址",
+  isDefault: true,
+};
 const event = (id) => ({ currentTarget: { dataset: { id } } });
 const flush = () => new Promise((resolve) => setImmediate(resolve));
 beforeEach(() => {
@@ -82,6 +90,7 @@ beforeEach(() => {
   legal.currentLegal = async () => legalCurrent;
   api.request = async (path, method = "GET", data) => {
     requests.push({ path, method, data });
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("not found", 404, "NOT_FOUND");
     if (path === "/orders") return { ...baseOrder };
@@ -116,6 +125,7 @@ test("lost create response retries original request identity, never uses a new k
   const p = checkout();
   let first;
   api.request = async (path, method, data) => {
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("missing", 404, "NOT_FOUND");
     if (path === "/orders") {
@@ -180,6 +190,7 @@ test("late create response after hide keeps persisted identity and never trigger
   const p = checkout();
   let release;
   api.request = async (path, method, data) => {
+    if (path === "/me/addresses") return { items: [savedAddress] };
     if (path.includes("/by-request/"))
       throw new api.ApiError("missing", 404, "NOT_FOUND");
     if (path === "/orders")
@@ -332,4 +343,69 @@ test("server expiry is displayed rather than a locally invented payment deadline
   p.showOrder(order);
   assert.equal(p.data.orderDeadlineText, "10.28 15:00");
   assert.equal(page("orders").view(order).deadlineText, "10.28 15:00");
+});
+
+test("address changed on server requires explicit re-confirmation and no premature order", async () => {
+  const p = checkout();
+  api.request = async (path, method, data) => {
+    requests.push({ path, method, data });
+    if (path.includes("/by-request/"))
+      throw new api.ApiError("missing", 404, "NOT_FOUND");
+    if (path === "/me/addresses")
+      return {
+        items: [{ ...savedAddress, address: "厦门市已更新的街道地址" }],
+      };
+    throw new Error("must not create");
+  };
+  await p.submit();
+  assert.match(p.data.error, /地址已更新/);
+  assert.equal(p.data.address, "厦门市已更新的街道地址");
+  assert.equal(requests.filter((r) => r.path === "/orders").length, 0);
+  assert.equal(p.data.busy, false);
+});
+test("deleted selected address cannot create order", async () => {
+  const p = checkout();
+  api.request = async (path) => {
+    requests.push(path);
+    if (path.includes("/by-request/"))
+      throw new api.ApiError("missing", 404, "NOT_FOUND");
+    if (path === "/me/addresses") return { items: [] };
+    throw new Error("must not create");
+  };
+  await p.submit();
+  assert.match(p.data.error, /地址已删除/);
+  assert.equal(p.data.selectedAddressId, "");
+  assert.ok(!requests.includes("/orders"));
+});
+test("checkout explicit refresh actively reconciles rather than trusting local status", async () => {
+  const p = checkout(); p.data.order = baseOrder;
+  api.request = async (path, method) => { requests.push({path,method}); return {...baseOrder,status:"PAID"}; };
+  await p.refreshOrder();
+  assert.equal(p.data.order.status,"PAID");
+  assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
+});
+test("order list provides active reconciliation without repeat payment", async () => {
+  const p = page("orders"); p.data.loading = false; p.data.items = [p.view(baseOrder)];
+  api.request = async (path, method) => { requests.push({path,method}); return {...baseOrder,status:"PAID"}; };
+  await p.verify(event("order-1"));
+  assert.equal(p.data.items[0].status,"PAID");
+  assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
+});
+
+test("refund modal only submits after reason and shows pending review, not refunded",async()=>{
+ const p=page("orders");api.request=async(path,method,data)=>{requests.push({path,method,data});return method==="POST"?{id:"r",orderId:"order-1",status:"REQUESTED",reason:data.reason}:null;};
+ await p.openRefund(event("order-1"));assert.equal(p.data.refundOrderId,"order-1");assert.equal(p.data.refundRecord,null);
+ await p.requestRefund();assert.match(p.data.refundError,/原因/);assert.equal(requests.length,1);
+ p.refundInput({detail:{value:"不再需要"}});await p.requestRefund();assert.equal(p.data.refundRecord.status,"REQUESTED");assert.equal(p.data.refundStatusText,"待审核");
+ await p.requestRefund();assert.equal(requests.filter(r=>r.method==="POST").length,1);
+ p.closeRefund();assert.equal(p.data.refundOrderId,"");
+});
+test("refund cancellation and hidden-page responses do not retain private data",async()=>{
+ const p=page("orders");let resolve;api.request=()=>new Promise(r=>resolve=r);
+ const pending=p.openRefund(event("order-1"));p.onHide();resolve({id:"r",status:"REQUESTED",reason:"private"});await pending;
+ assert.equal(p.data.refundOrderId,"");assert.equal(p.data.refundRecord,null);
+});
+test("refund submission uses current identity and duplicate clicks send once",async()=>{
+ const p=page("orders");p.setData({refundOrderId:"order-1",refundReason:"不再需要"});let resolve;let calls=0;api.request=()=>{calls++;return new Promise(r=>resolve=r);};
+ const pending=p.requestRefund();await p.requestRefund();assert.equal(calls,1);session++;resolve({id:"r",status:"REQUESTED"});await pending;assert.equal(p.data.refundRecord,null);
 });

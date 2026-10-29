@@ -20,7 +20,11 @@
     "pages/admin-legal/index",
     "pages/admin-shop/index",
     "pages/admin-product/index",
-    "pages/admin-orders/index"
+    "pages/admin-orders/index",
+    "pages/addresses/index",
+    "pages/waitlist/index",
+    "pages/notifications/index",
+    "pages/admin-content/index"
   ],
   "window": {
     "navigationBarTitleText": "Wildboy",

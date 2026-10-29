@@ -1,0 +1,1 @@
+.block-card{padding:24rpx;background:white;border-radius:16rpx;margin:24rpx 0}.block-card text{display:block;white-space:pre-wrap;max-height:180rpx;overflow:hidden}.tools{display:flex;gap:12rpx;margin:20rpx 0}.tools button{font-size:23rpx;padding:0 14rpx}image{width:100%;max-height:400rpx}.primary,.secondary{margin-top:20rpx}

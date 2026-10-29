@@ -94,6 +94,11 @@ describe("legal management", () => {
     const { wrapper, fetch } = await render();
     await button(wrapper, "发布新版本").trigger("click");
     expect(wrapper.find("[role=dialog]").exists()).toBe(true);
+    expect(wrapper.get("[role=dialog]").text()).toContain("用户需重新确认");
+    expect(wrapper.get("[role=dialog]").text()).toContain(
+      "历史同意记录不会被覆盖",
+    );
+    expect(wrapper.get("[role=dialog]").text()).toContain("运营方审核");
     await button(wrapper, "返回检查").trigger("click");
     expect(fetch.mock.calls.some((x) => x[1]?.method === "POST")).toBe(false);
     wrapper.unmount();

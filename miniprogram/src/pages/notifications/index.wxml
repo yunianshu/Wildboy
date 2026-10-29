@@ -1,0 +1,6 @@
+<view class="page"><view class="title">活动消息</view>
+<view wx:if="{{!loggedIn}}" class="state">登录后查看消息<button class="primary" bindtap="signIn">微信登录</button></view>
+<block wx:else><button class="secondary" bindtap="subscribe" disabled="{{busy}}">订阅下次微信提醒</button>
+<view wx:if="{{error}}" class="error">{{error}}<button bindtap="retry">刷新</button></view>
+<view wx:for="{{items}}" wx:key="id" class="notice-card" data-id="{{item.activityId}}" bindtap="open"><view>{{item.title}}</view><view>{{item.detail}}</view><text class="muted">{{item.statusText}}</text></view>
+<view wx:if="{{!items.length && !loading}}" class="state">暂无消息</view><button wx:if="{{hasMore}}" bindtap="more" disabled="{{loading}}">加载更多</button></block></view>

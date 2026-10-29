@@ -212,3 +212,67 @@ test("expired reconfirmation session never silently switches to another WeChat l
   assert.equal(calls.filter((c) => c.path === "/me/consents").length, 0);
   assert.match(p.data.error, /登录已失效/);
 });
+
+test("inline policy links open exact versions without changing consent, including after return", async () => {
+  for (const name of ["login", "register", "checkout"]) {
+    const p = page(name);
+    const loginPage = name === "login";
+    const consentKey = loginPage ? "agreed" : "consent";
+    p.setData({ [loginPage ? "current" : "legal"]: structuredClone(legal), loading: false });
+    const privacy = loginPage ? "readPrivacy" : "privacy";
+    const terms = loginPage ? "readTerms" : "terms";
+    const change = loginPage ? "agreement" : "consentChange";
+    p[change]({ detail: { value: ["yes"] } });
+    assert.equal(p.data[consentKey], false, name + " blocks unread consent");
+    p[privacy]();
+    assert.equal(navigations.at(-1), "/pages/privacy/index?kind=PRIVACY&version=1");
+    p.onHide();
+    events.legalDocumentLoaded({ kind: "PRIVACY", version: 1 });
+    assert.equal(p.data[consentKey], false, name + " never accepts on read");
+    p[terms]();
+    assert.equal(navigations.at(-1), "/pages/privacy/index?kind=TERMS&version=2");
+    p.onHide();
+    events.legalDocumentLoaded({ kind: "TERMS", version: 2 });
+    p[change]({ detail: { value: ["yes"] } });
+    assert.equal(p.data[consentKey], true, name + " accepts only explicit checkbox");
+    p[privacy]();
+    p[terms]();
+    assert.equal(p.data[consentKey], true, name + " preserves explicit choice");
+    p[change]({ detail: { value: [] } });
+    assert.equal(p.data[consentKey], false);
+    assert.equal(calls.length, 0);
+    assert.equal(logins.length, 0);
+  }
+});
+
+test("stale inline document callbacks cannot mark a replacement policy version read", () => {
+  for (const name of ["login", "register", "checkout"]) {
+    const p = page(name);
+    const legalKey = name === "login" ? "current" : "legal";
+    p.setData({ [legalKey]: structuredClone(legal), loading: false });
+    p[name === "login" ? "readPrivacy" : "privacy"]();
+    const oldCallback = events.legalDocumentLoaded;
+    p.setData({ [legalKey]: { ...legal, privacy: { ...legal.privacy, version: 3 } } });
+    oldCallback({ kind: "PRIVACY", version: 1 });
+    assert.equal(p.data.privacyRead, false, name);
+  }
+});
+
+test("returning after interrupted login initialization reloads agreements", async () => {
+  const p = page("login");
+  let finish;
+  response = () => new Promise(resolve => { finish = resolve; });
+  const initial = p.load();
+  p.onHide();
+  finish(structuredClone(legal));
+  await initial;
+  assert.equal(p.data.loading, true);
+  response = async () => structuredClone(legal);
+  p.onShow();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(p.data.loading, false);
+  assert.equal(p.data.current.privacy.version, 1);
+  p.setData({privacyRead: true, termsRead: true, agreed: true});
+  p.onHide(); p.onShow();
+  assert.equal(p.data.agreed, true);
+});

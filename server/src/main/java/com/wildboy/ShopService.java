@@ -354,6 +354,28 @@ public class ShopService {
     }
   }
 
+  /** Reconcile a customer-owned order after client payment or a missed callback. */
+  @Transactional
+  public Order verifyPayment(String id, String userId) {
+    Order order = lockOrder(id, userId, false);
+    if (!order.status().equals("PENDING_PAYMENT") || !order.paymentInitiated())
+      return withItems(order);
+    Transaction remote = pay.queryOrder(order.orderNo());
+    if (remote == null || remote.getTradeState() == null)
+      throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，请稍后重试");
+    if (!Objects.equals(remote.getOutTradeNo(), order.orderNo())
+        || !Objects.equals(remote.getMchid(), pay.merchantId())
+        || !Objects.equals(remote.getAppid(), pay.appId()))
+      throw new ApiException(400, "PAYMENT_ORDER_MISMATCH", "支付查询订单信息不匹配");
+    if (remote.getTradeState() == Transaction.TradeStateEnum.SUCCESS) {
+      completePayment(remote);
+      return order(id, userId, false);
+    }
+    // NOTPAY/USERPAYING/CLOSED are not proof of payment and never release stock here.
+    // Cancellation and expiry own the safe gateway-close/restock workflow.
+    return withItems(order);
+  }
+
   @Transactional
   public Order cancelOrder(String id, String userId) {
     return closePending(lockOrder(id, userId, false), userId, "ORDER_CANCEL");
@@ -420,7 +442,8 @@ public class ShopService {
 
   @Transactional
   public void completePayment(Transaction transaction) {
-    if (transaction.getTradeState() != Transaction.TradeStateEnum.SUCCESS) return;
+    if (transaction == null || transaction.getTradeState() != Transaction.TradeStateEnum.SUCCESS)
+      throw new ApiException(400, "INVALID_PAYMENT_STATE", "支付通知状态无效");
     if (!pay.enabled() || !Objects.equals(transaction.getMchid(), pay.merchantId())
         || !Objects.equals(transaction.getAppid(), pay.appId()))
       throw new ApiException(400, "PAYMENT_MERCHANT_MISMATCH", "支付通知商户不匹配");
@@ -435,8 +458,13 @@ public class ShopService {
     if (transaction.getTransactionId() == null || transaction.getTransactionId().isBlank())
       throw new ApiException(400, "PAYMENT_TRANSACTION_REQUIRED", "支付通知缺少交易号");
     if (transaction.getAmount() == null
-        || transaction.getAmount().getTotal() != order.totalCents())
+        || !Objects.equals(transaction.getAmount().getTotal(), order.totalCents())
+        || !"CNY".equals(transaction.getAmount().getCurrency()))
       throw new ApiException(400, "PAYMENT_AMOUNT_MISMATCH", "支付通知金额不匹配");
+    if (transaction.getTradeType() != Transaction.TradeTypeEnum.JSAPI
+        || transaction.getPayer() == null
+        || !Objects.equals(transaction.getPayer().getOpenid(), auth.wechatOpenid(order.userId())))
+      throw new ApiException(400, "PAYMENT_PAYER_MISMATCH", "支付类型或付款账号不匹配");
     if (!order.status().equals("PENDING_PAYMENT")) {
       if (Objects.equals(order.paymentTransactionId(), transaction.getTransactionId())) return;
       throw ApiException.conflict("PAYMENT_ORDER_STATE_CONFLICT", "订单状态与支付通知冲突，请人工核对");
@@ -455,6 +483,8 @@ public class ShopService {
       throw ApiException.conflict("STALE_VERSION", "订单已被修改，请刷新后重试");
     if (!order.status().equals("PAID"))
       throw ApiException.conflict("ORDER_NOT_SHIPPABLE", "只有已支付订单可以发货");
+    if (db.queryForObject("SELECT COUNT(*) FROM refund_request WHERE order_id=? AND status NOT IN ('REJECTED','CLOSED')",Integer.class,id)>0)
+      throw ApiException.conflict("REFUND_PENDING", "退款申请处理中，不能发货");
     db.update(
         "UPDATE shop_order SET status='SHIPPED',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         id);

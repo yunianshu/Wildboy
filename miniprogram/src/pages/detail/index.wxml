@@ -15,7 +15,7 @@
     </view>
     <view class="notice" wx:if="{{activity.status === 'CANCELLED'}}">该活动已被主理人取消，请勿按原计划前往。</view>
     <view class="article-section">
-      <view class="section-bar">野小子：活动安排</view>
+      <view class="section-bar">活动安排</view>
       <view class="section-body facts">
         <view><text>【出发时间】</text><text>{{activity.dateText}}</text></view>
         <view><text>【结束时间】</text><text>{{endDate}}</text></view>
@@ -24,35 +24,26 @@
         <view><text>【报名截止】</text><text>{{deadline}}</text></view>
         <view><text>【同行名额】</text><text>{{activity.registeredCount}} / {{activity.capacity}} 人</text></view>
       </view>
-      <view class="section-footer">选山户外 · 量力而为</view>
     </view>
     <view class="article-section">
-      <view class="section-bar">野小子：线路与流程</view>
-      <view class="section-body"><text class="body-copy">{{activity.description}}</text></view>
-      <view class="section-footer">听领队安排 · 不擅自行动</view>
+      <view class="section-bar">线路与流程</view>
+      <view class="section-body"><content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}"/><text wx:else class="body-copy">{{activity.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view></view>
     </view>
     <view class="article-section" wx:if="{{registration && registration.status === 'CONFIRMED'}}">
-      <view class="section-bar">野小子：我的报名</view>
+      <view class="section-bar">我的报名</view>
       <view class="section-body">
         <view class="registration-count">已报名 {{registration.participants.length}} 人</view>
         <view class="participant-line" wx:for="{{registration.participants}}" wx:key="id">参与人 {{index + 1}} · {{item.participantName}}</view>
       </view>
-      <view class="section-footer">出发前请再次核对集合时间与地点</view>
-    </view>
-    <view class="article-section" wx:else>
-      <view class="section-bar">野小子：报名方式</view>
-      <view class="section-body signup-copy">点击下方报名入口，可为多位参与人一次报名。每位参与人需填写姓名、身份证号和手机号，活动当前免费，无需支付。</view>
-      <view class="section-footer">名额以服务端确认为准</view>
     </view>
     <view class="notice error" wx:if="{{registrationError}}">报名状态暂未同步：{{registrationError}}<text bindtap="retry">· 点击重试</text></view>
     <view class="article-section">
-      <view class="section-bar">野小子：注意事项</view>
-      <view class="section-body signup-copy">户外活动存在天气与路况变化。请根据自身能力报名，准备合适装备，出发前确认安排；保护环境，不留痕迹。取消规则以报名截止时间和活动开始时间为准。</view>
-      <view class="section-footer">安全出行 · 平安归来</view>
+      <view class="section-bar">注意事项</view>
+      <view class="section-body signup-copy">天气、路况可能变化，请量力报名、备齐装备、出发前核对安排，并听从领队、不留痕迹。取消规则以报名截止和活动开始时间为准。</view>
     </view>
     <view class="sticky-action">
       <button wx:if="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
-      <button wx:else class="primary" disabled="{{!activity.enabled || !!registrationError}}" bindtap="register">{{activity.label}}</button>
+      <block wx:else><button wx:if="{{activity.canCancel && !activity.available}}" class="primary" disabled="{{!!registrationError}}" bindtap="waitlist">加入候补</button><button wx:else class="primary" disabled="{{!activity.enabled || !!registrationError}}" bindtap="register">{{activity.label}}</button></block>
     </view>
   </block>
 </view>

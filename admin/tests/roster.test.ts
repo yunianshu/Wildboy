@@ -65,15 +65,17 @@ describe("group roster", () => {
         ok: true,
         status: 200,
         json: async () =>
-          path.endsWith("/reveal") ? registration.participants[0] : path.includes("/registrations?")
-            ? {
-                items: [registration],
-                total: 1,
-                page: 0,
-                size: 20,
-                hasMore: false,
-              }
-            : activity,
+          path.endsWith("/reveal")
+            ? registration.participants[0]
+            : path.includes("/registrations?")
+              ? {
+                  items: [registration],
+                  total: 1,
+                  page: 0,
+                  size: 20,
+                  hasMore: false,
+                }
+              : activity,
       })),
     );
     const router = createRouter({
@@ -87,6 +89,13 @@ describe("group roster", () => {
     expect(wrapper.text()).toContain("第一位");
     expect(wrapper.text()).toContain("第二位");
     expect(wrapper.text()).toContain("本单 2 人");
+    expect(wrapper.get("h1").text()).toBe("报名名单");
+    expect(wrapper.get(".privacy-note").text()).toContain(
+      "仅用于活动核验与联系",
+    );
+    expect(wrapper.get(".privacy-note").text()).toContain(
+      "请勿公开、截图或用于无关营销",
+    );
     expect(wrapper.text()).not.toContain("11010519491231002X");
     expect(wrapper.text()).not.toContain("13800000000");
     await wrapper.find(".phone-toggle").trigger("click");
@@ -96,22 +105,52 @@ describe("group roster", () => {
     wrapper.unmount();
   });
   it("ignores a late identity reveal after administrator logout", async () => {
-    acceptAuth({token:"test",user:{id:"admin",nickname:"管理员",role:"ADMIN"}});
+    acceptAuth({
+      token: "test",
+      user: { id: "admin", nickname: "管理员", role: "ADMIN" },
+    });
     let finish: (value: unknown) => void = () => {};
-    vi.stubGlobal("fetch", vi.fn().mockImplementation(async (path: string) => {
-      if (path.endsWith("/reveal")) return await new Promise(resolve => { finish=resolve; });
-      return {ok:true,status:200,json:async()=>path.includes("/registrations?") ? {items:[registration],total:1,page:0,size:20,hasMore:false} : activity};
-    }));
-    const router=createRouter({history:createMemoryHistory(),routes:[{path:"/activities/:id/roster",component:RosterView}]});
-    await router.push("/activities/activity-1/roster"); await router.isReady();
-    const wrapper=mount(RosterView,{global:{plugins:[router]}}); await flushPromises();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(async (path: string) => {
+        if (path.endsWith("/reveal"))
+          return await new Promise((resolve) => {
+            finish = resolve;
+          });
+        return {
+          ok: true,
+          status: 200,
+          json: async () =>
+            path.includes("/registrations?")
+              ? {
+                  items: [registration],
+                  total: 1,
+                  page: 0,
+                  size: 20,
+                  hasMore: false,
+                }
+              : activity,
+        };
+      }),
+    );
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/activities/:id/roster", component: RosterView }],
+    });
+    await router.push("/activities/activity-1/roster");
+    await router.isReady();
+    const wrapper = mount(RosterView, { global: { plugins: [router] } });
+    await flushPromises();
     await wrapper.find(".phone-toggle").trigger("click");
     clearSession();
-    finish({ok:true,status:200,json:async()=>registration.participants[0]});
+    finish({
+      ok: true,
+      status: 200,
+      json: async () => registration.participants[0],
+    });
     await flushPromises();
     expect(wrapper.text()).not.toContain("11010519491231002X");
     expect(wrapper.text()).not.toContain("第一位");
     wrapper.unmount();
   });
-
 });

@@ -7,13 +7,11 @@
       <text class="brand-caption">YOUR OUTDOOR STORIES</text>
     </view>
     <view class="hero-copy">
-      <text class="hero-kicker">MAKE EVERY JOURNEY COUNT</text>
       <view class="hero-title">我的山野</view>
-      <view class="hero-subtitle">把每一次出发，收进自己的故事。</view>
     </view>
   </view>
   <view class="page my-content">
-    <view wx:if="{{loading}}" class="state">正在确认账号身份…</view>
+    <view wx:if="{{loading}}" class="state">正在加载账号…</view>
     <view wx:elif="{{user}}" class="profile">
       <view class="avatar">W</view>
       <view class="profile-main">
@@ -26,19 +24,17 @@
       <view class="avatar">W</view>
       <view class="profile-main">
         <view class="profile-name">一起走进山野</view>
-        <view class="profile-note">登录后查看报名、订单与活动安排。</view>
       </view>
       <button class="login-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="signIn">微信登录</button>
     </view>
     <view wx:if="{{error}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
     <view wx:if="{{requiresConsent}}" class="notice">
-      协议已更新，请重新阅读并确认。已有报名可继续查看和取消。
-      <button class="secondary" bindtap="confirmLegal">查看并确认当前协议</button>
+      协议已更新，需重新确认；不影响查看和取消已有报名。
+      <button class="secondary" bindtap="confirmLegal">查看协议</button>
     </view>
     <view wx:if="{{legalStatusError}}" class="muted">{{legalStatusError}}</view>
     <view class="section-head">
       <view>
-        <view class="eyebrow">YOUR JOURNEYS</view>
         <view class="section-title">一路的足迹</view>
       </view>
     </view>
@@ -46,37 +42,39 @@
       <view class="menu" bindtap="registrations">
         <text class="menu-icon">↗</text>
         <view class="menu-title">我的报名</view>
-        <view class="muted">活动与参与人</view>
+
       </view>
       <view class="menu" bindtap="orders">
         <text class="menu-icon">▣</text>
         <view class="menu-title">我的订单</view>
-        <view class="muted">装备与支付状态</view>
+
       </view>
     </view>
+    <view class="menu-row" bindtap="waitlist"><view class="menu-title">我的候补</view><text>›</text></view>
+    <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><text>›</text></view>
+    <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><text>›</text></view>
     <view class="section-head compact">
       <view class="section-title">继续探索</view>
     </view>
     <view class="menu-row" bindtap="explore">
-      <view><view class="menu-title">发现下一次出发</view><view class="muted">本周活动、山水旅行与休闲时光</view></view>
+      <view><view class="menu-title">发现下一次出发</view></view>
       <text>↗</text>
     </view>
     <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="manage">
-      <view><view class="menu-title">活动管理 <text class="badge">仅管理员</text></view><view class="muted">创建活动、编辑安排、查看报名名单</view></view>
+      <view><view class="menu-title">活动管理</view></view>
       <text>›</text>
     </view>
     <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="legalManage">
-      <view><view class="menu-title">协议管理 <text class="badge">仅管理员</text></view><view class="muted">隐私政策与用户协议版本</view></view>
+      <view><view class="menu-title">协议管理</view></view>
       <text>›</text>
     </view>
-    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="shopManage"><view><view class="menu-title">商品管理 <text class="badge">仅管理员</text></view><view class="muted">商品编辑、库存与上下架</view></view><text>›</text></view>
-    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="orderManage"><view><view class="menu-title">订单管理 <text class="badge">仅管理员</text></view><view class="muted">订单筛选、收件信息与发货</view></view><text>›</text></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="shopManage"><view><view class="menu-title">商品管理</view></view><text>›</text></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="orderManage"><view><view class="menu-title">订单管理</view></view><text>›</text></view>
     <view class="links">
       <view bindtap="privacy">隐私政策<text>›</text></view>
       <view bindtap="terms">用户协议<text>›</text></view>
       <view wx:if="{{user}}" bindtap="signOut">退出当前账号<text>›</text></view>
     </view>
-    <view wx:if="{{!loading && user.role !== 'ADMIN'}}" class="admin-auth" bindtap="adminSignIn">管理员身份验证 ↗</view>
-    <view class="notice">管理身份由服务器确认。普通用户不能访问活动管理、订单管理或报名名单。</view>
+    <view wx:if="{{!loading && user.role !== 'ADMIN'}}" class="admin-auth" bindtap="adminSignIn">管理员登录 ↗</view>
   </view>
 </view>

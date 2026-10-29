@@ -112,6 +112,8 @@ Page({
     const id = safeId(e.currentTarget.dataset.id);
     if (id) wx.navigateTo({ url: `/pages/detail/index?id=${id}` });
   },
+  waitlist() { wx.navigateTo({url:"/pages/waitlist/index"}); },
+  messages() { wx.navigateTo({url:"/pages/notifications/index"}); },
   explore() {
     wx.switchTab({ url: "/pages/activities/index" });
   },

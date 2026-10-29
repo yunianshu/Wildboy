@@ -1,13 +1,13 @@
-<view class="page"><view class="section-title">订单与发货</view><view class="muted">仅已支付订单可标记发货。请核对实际发货情况。</view>
+<view class="page"><view class="section-title">订单与发货</view>
  <view class="filters"><button wx:for="{{statuses}}" wx:key="value" size="mini" class="{{status === item.value ? 'active' : 'secondary'}}" data-status="{{item.value}}" bindtap="filter" disabled="{{busyId}}">{{item.label}}</button></view>
  <view wx:if="{{loading}}" class="state">加载中…</view><view wx:if="{{error}}" class="state error">{{error}}<button bindtap="retry" disabled="{{busyId}}">刷新核对</button></view>
  <button wx:if="{{!authorized && !loading}}" bindtap="login">管理员身份验证</button>
- <block wx:if="{{authorized}}"><view wx:if="{{!loading && !items.length}}" class="state">当前没有该状态的订单</view>
- <view wx:for="{{items}}" wx:key="id" class="order"><view class="title">{{item.statusLabel}} · {{item.money}}</view><view wx:if="{{item.reconciliationRequired}}" class="error">需要核对微信订单状态，库存暂保留，请勿手动回库。</view><view class="number">订单号 {{item.orderNo}}</view>
+ <block wx:if="{{authorized}}"><view wx:if="{{!loading && !items.length}}" class="state">暂无该状态的订单</view>
+ <view wx:for="{{items}}" wx:key="id" class="order"><view class="title">{{item.statusLabel}} · {{item.money}}</view><view wx:if="{{item.reconciliationRequired}}" class="error">微信订单待核对，库存暂保留，请勿手动回库。</view><view class="number">订单号 {{item.orderNo}}</view>
  <view wx:for="{{item.items}}" wx:for-item="line" wx:key="id" class="line">{{line.productName}} × {{line.quantity}}</view>
  <view class="muted">{{item.recipientName}} · {{item.phoneMasked}}</view>
- <button size="mini" class="secondary" data-id="{{item.id}}" bindtap="reveal" disabled="{{busyId}}">{{revealedId === item.id ? '隐藏收件信息' : '核验并查看收件信息'}}</button>
+ <button size="mini" class="secondary" data-id="{{item.id}}" bindtap="reveal" disabled="{{busyId}}">{{revealedId === item.id ? '隐藏收件信息' : '查看收件信息'}}</button>
  <view wx:if="{{revealedId === item.id}}" class="address"><view>{{item.phone}}</view><view>{{item.address}}</view></view>
- <view wx:if="{{pendingId === item.id}}" class="confirmation"><view>请确认订单 {{item.orderNo}} 已实际发货，确认后将标记为已发货。</view><button bindtap="confirmShip" disabled="{{busyId}}">确认已实际发货</button><button class="secondary" bindtap="cancelShip" disabled="{{busyId}}">取消</button></view>
- <button wx:if="{{item.status === 'PAID' && pendingId !== item.id}}" data-id="{{item.id}}" bindtap="ship" loading="{{busyId === item.id}}" disabled="{{busyId}}">确认实际发货</button></view>
+ <view wx:if="{{pendingId === item.id}}" class="confirmation"><view>确认订单 {{item.orderNo}} 已实际发货？</view><button bindtap="confirmShip" disabled="{{busyId}}">确认发货</button><button class="secondary" bindtap="cancelShip" disabled="{{busyId}}">取消</button></view>
+ <button wx:if="{{item.status === 'PAID' && pendingId !== item.id}}" data-id="{{item.id}}" bindtap="ship" loading="{{busyId === item.id}}" disabled="{{busyId}}">标记发货</button></view>
  <button wx:if="{{hasMore}}" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore || busyId}}">加载更多订单</button><view wx:elif="{{items.length}}" class="muted">已显示全部订单</view></block></view>

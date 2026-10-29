@@ -6,7 +6,8 @@ COPY src ./src
 RUN mvn -B package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN groupadd --system wildboy && useradd --system --gid wildboy wildboy
+RUN groupadd --system wildboy && useradd --system --gid wildboy wildboy \
+    && mkdir -p /app/data/uploads && chown -R wildboy:wildboy /app/data
 COPY --from=build /app/target/wildboy-server-0.1.0.jar /app/app.jar
 USER wildboy
 EXPOSE 8080

@@ -58,6 +58,8 @@ public class AuthService {
     legal.requireCurrent(privacyVersion, termsVersion);
     if (appId.isBlank() || appSecret.isBlank())
       throw new ApiException(503, "WECHAT_NOT_CONFIGURED", "微信登录尚未配置");
+    if (code == null || code.isBlank() || code.length() > 512)
+      throw new ApiException(400, "WECHAT_CODE_INVALID", "微信登录凭证无效，请重试");
     String openid;
     try {
       String payload =
@@ -76,15 +78,34 @@ public class AuthService {
       JsonNode r =
           new com.fasterxml.jackson.databind.ObjectMapper()
               .readTree(payload == null ? "{}" : payload);
-      if (r == null || r.path("errcode").asInt(0) != 0 || r.path("openid").asText().isBlank())
-        throw new ApiException(401, "WECHAT_CODE_INVALID", "微信登录凭证无效，请重试");
-      openid = r.path("openid").asText();
+      openid = parseWechatIdentity(r);
     } catch (ApiException e) {
       throw e;
     } catch (Exception e) {
       throw new ApiException(502, "WECHAT_UNAVAILABLE", "微信登录暂不可用，请稍后重试");
     }
     return finishWechat(openid, privacyVersion, termsVersion);
+  }
+
+  // Never propagate provider payloads: they can contain session keys or identifiers.
+  static String parseWechatIdentity(JsonNode response) {
+    if (response == null || !response.isObject())
+      throw new ApiException(502, "WECHAT_RESPONSE_INVALID", "微信登录响应异常，请稍后重试");
+    JsonNode error = response.get("errcode");
+    if (error != null && (!error.isIntegralNumber() || !error.canConvertToInt()))
+      throw new ApiException(502, "WECHAT_RESPONSE_INVALID", "微信登录响应异常，请稍后重试");
+    int code = error == null ? 0 : error.intValue();
+    if (code == 40029 || code == 40163)
+      throw new ApiException(401, "WECHAT_CODE_INVALID", "微信登录凭证已失效，请重新登录");
+    if (code == 45011)
+      throw new ApiException(429, "WECHAT_LOGIN_RATE_LIMITED", "登录过于频繁，请稍后重试");
+    if (code != 0)
+      throw new ApiException(503, "WECHAT_UNAVAILABLE", "微信登录暂不可用，请稍后重试");
+    JsonNode openid = response.get("openid");
+    if (openid == null || !openid.isTextual() || openid.textValue().isBlank()
+        || openid.textValue().length() > 128 || !openid.textValue().matches("[A-Za-z0-9_-]+"))
+      throw new ApiException(502, "WECHAT_RESPONSE_INVALID", "微信登录响应异常，请稍后重试");
+    return openid.textValue();
   }
 
   Login finishWechat(String openid, Long privacyVersion, Long termsVersion) {

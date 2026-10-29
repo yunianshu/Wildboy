@@ -106,3 +106,17 @@ WECHAT_PAY_NOTIFY_URL=https://你的API域名/api/v1/payments/wechat/notify
 - Payment intent is committed before calling WeChat. Prepay, cancellation, expiry and notifications serialize on the order row. The same order number is reused. Prepay includes the same gateway expiry time. A failed/unknown gateway close never releases inventory; a verified successful query reconciles payment, and a verified CLOSED query permits release. NOT_EXIST after an uncertain prepay is deliberately not proof that a late request cannot create a payable order.
 - Configuration missing before prepay does not mark an order initiated. Unknown gateway orders remain reserved and retried; monitor `Order expiry deferred` logs and pending orders past `expiresAt`, then reconcile through the merchant console. Do not manually set CANCELLED or restock until gateway final state is established. This conservative recovery can retain stock during an outage and is intentional to avoid accepting payment for released stock.
 - No real merchant credentials or live payment were used by the regression suite; gateway mocks plus real PostgreSQL exercise timeout, concurrency, idempotency and rollback.
+
+### 收货地址
+
+`V8` 增加按账号隔离的地址簿，最多 20 条。`GET /api/v1/me/addresses` 返回 `{items:[{id,recipientName,phone,address,isDefault}]}`；`POST` 新增（201），`PUT /{id}` 修改，`DELETE /{id}` 删除（204）。输入为姓名、手机号、完整地址与 `isDefault`。姓名 2–40 字、手机号为中国大陆 11 位、地址 5–300 字；所有操作必须登录，不能访问其他账号地址。
+
+首条自动设为默认；切换默认及删除后的默认递补在同一事务内完成，并按账号串行化写入。非空地址簿始终保留一个默认地址。修改、删除地址簿不改变已创建订单的收货快照。接口禁止缓存；地址不写入操作日志，生产存储、备份与传输应按既有个人信息保护配置管理。
+
+### 微信登录与支付确认
+
+参考 Pike 的微信接口隔离、错误分类及主动查单流程，保留 Wildboy 当前协议确认和用户会话隔离，不复制其账号配置、凭据或自动登录行为。微信登录 code 使用服务端交换；客户端校验完整会话响应，取消、切号或超时后丢弃迟到结果。微信繁忙、限流、配置错误与无效 code 分别返回可识别错误，不输出微信敏感响应。
+
+`POST /api/v1/orders/{id}/verify` 仅允许订单本人主动查询微信并核对交易，返回最新订单。客户端支付弹窗成功后最多确认四次；也可从结算结果或订单列表点击“刷新支付结果”。只有服务端核实的支付状态作为成功依据。查询失败或状态不明保留订单和库存，不自动新建订单、取消或重付。地址簿和既有订单快照保持不变。
+
+真实微信登录、商户支付和通知域名联调仍需部署环境的有效配置，本轮仅使用合成测试身份、签名/密文与隔离数据库，不启用实际收款。

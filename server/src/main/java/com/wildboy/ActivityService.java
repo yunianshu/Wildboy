@@ -18,6 +18,8 @@ public class ActivityService {
   final ObjectMapper json;
   final LegalService legal;
   final IdentityProtection identity;
+  @org.springframework.beans.factory.annotation.Autowired org.springframework.beans.factory.ObjectProvider<WaitlistService> waitlists;
+  @org.springframework.beans.factory.annotation.Autowired NotificationService notifications;
 
   public ActivityService(JdbcTemplate db, ObjectMapper json, LegalService legal, IdentityProtection identity) {
     this.db = db;
@@ -229,8 +231,10 @@ public class ActivityService {
     checkVersion(a, i.version());
     if (a.status().equals("CANCELLED"))
       throw ApiException.conflict("ACTIVITY_CANCELLED", "已取消活动不能编辑");
-    if (a.registeredCount() > i.capacity())
-      throw ApiException.conflict("CAPACITY_BELOW_ENROLLED", "人数上限不能小于已报名人数");
+    if (db.queryForObject("SELECT COALESCE(MAX(party_size),0) FROM activity_waitlist WHERE activity_id=? AND status IN ('WAITING','OFFERED')",Integer.class,id) > i.capacity())
+      throw ApiException.conflict("CAPACITY_BELOW_WAITLIST_PARTY", "人数上限不能小于候补同行组人数");
+    if (a.registeredCount() + waitlists.getObject().reserved(id) > i.capacity())
+      throw ApiException.conflict("CAPACITY_BELOW_ENROLLED", "人数上限不能小于已报名及候补保留人数");
     if (a.status().equals("PUBLISHED")
         && (!a.startAt().isAfter(OffsetDateTime.now())
             || !i.startAt().isAfter(OffsetDateTime.now())))
@@ -253,7 +257,10 @@ public class ActivityService {
         i.capacity(), i.identityRequired() == null ? a.identityRequired() : i.identityRequired(),
         id);
     audit(actor, id, "ACTIVITY_EDIT");
-    return get(id, true);
+    Activity edited = get(id, true);
+    if (a.status().equals("PUBLISHED") && (!a.startAt().equals(edited.startAt()) || !a.meetingPoint().equals(edited.meetingPoint()) || !a.location().equals(edited.location()))) notifications.activityNotice(edited, "ACTIVITY_CHANGED", "时间或集合地点已更新，请查看活动");
+    waitlists.getObject().promoteLocked(edited);
+    return edited;
   }
 
   void checkVersion(Activity a, Long v) {
@@ -284,6 +291,8 @@ public class ActivityService {
     if (a.status().equals("CANCELLED")) return a;
     if (!a.startAt().isAfter(OffsetDateTime.now()))
       throw ApiException.conflict("ACTIVITY_STARTED", "已开始活动不能取消");
+    notifications.activityNotice(a, "ACTIVITY_CANCELLED", "活动已取消");
+    waitlists.getObject().activityCancelled(a);
     db.update(
         "UPDATE registration SET status='CANCELLED',updated_at=CURRENT_TIMESTAMP WHERE"
             + " activity_id=? AND status='CONFIRMED'",
@@ -364,6 +373,14 @@ public class ActivityService {
 
   @Transactional
   public RegisterResult register(String id, String user, RegistrationInput input) {
+    return registerInternal(id,user,input,false);
+  }
+
+  RegisterResult registerPriority(String id, String user, RegistrationInput input) {
+    return registerInternal(id,user,input,true);
+  }
+
+  RegisterResult registerInternal(String id, String user, RegistrationInput input, boolean priority) {
     legal.requireCurrent(input.privacyVersion(), input.termsVersion());
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
@@ -374,6 +391,10 @@ public class ActivityService {
       return new RegisterResult(existing, false);
     }
     enrollmentOpen(a);
+    if (!priority) {
+      waitlists.getObject().promoteLocked(a);
+      if (waitlists.getObject().hasQueue(id)) throw ApiException.conflict("WAITLIST_PRIORITY", "已有候补队列，请加入候补");
+    }
     if (a.identityRequired()) identity.requireReady();
     if (participants.size() > a.capacity() - a.registeredCount())
       throw ApiException.conflict("ACTIVITY_FULL", "名额已满或剩余名额不足，请减少参与人数后重试");
@@ -431,6 +452,7 @@ public class ActivityService {
         existing.participants().size(),
         id);
     audit(user, id, "UNREGISTER");
+    waitlists.getObject().promoteLocked(get(id,true));
   }
 
   public Page<Registration> registrations(String user, String activity, int page, int size) {

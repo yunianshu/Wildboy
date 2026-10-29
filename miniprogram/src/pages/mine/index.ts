@@ -90,6 +90,11 @@ Page({
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },
+  waitlist() { wx.navigateTo({url:"/pages/waitlist/index"}); },
+  notifications() { wx.navigateTo({url:"/pages/notifications/index"}); },
+  addresses() {
+    wx.navigateTo({ url: "/pages/addresses/index" });
+  },
   orders() {
     wx.navigateTo({ url: "/pages/orders/index" });
   },

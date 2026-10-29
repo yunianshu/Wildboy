@@ -25,6 +25,14 @@ management:
     health:
       show-details: never
 wildboy:
+  media-dir: ${MEDIA_DIR:./data/uploads}
+  notifications:
+    enabled: ${WECHAT_NOTIFICATIONS_ENABLED:false}
+    template-id: ${WECHAT_NOTIFICATION_TEMPLATE_ID:}
+    title-key: ${WECHAT_NOTIFICATION_TITLE_KEY:thing1}
+    time-key: ${WECHAT_NOTIFICATION_TIME_KEY:time2}
+    detail-key: ${WECHAT_NOTIFICATION_DETAIL_KEY:thing3}
+    state: ${WECHAT_NOTIFICATION_STATE:formal}
   identity:
     encryption-key: ${IDENTITY_ENCRYPTION_KEY:}
   wechat:

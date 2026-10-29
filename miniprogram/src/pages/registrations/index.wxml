@@ -1,9 +1,8 @@
 <view class="page">
-  <text class="eyebrow">YOUR OUTDOOR STORIES</text
-  ><view class="title">我的报名</view>
-  <view class="muted">每一次出发，都有迹可循。</view>
+  <view><button class="text-button" bindtap="waitlist">我的候补</button><button class="text-button" bindtap="messages">活动消息</button></view>
+  <view class="title">我的报名</view>
   <view wx:if="{{!loggedIn}}" class="state"
-    ><view>请登录微信账号查看自己的报名。</view
+    ><view>登录后查看报名</view
     ><button
       class="primary"
       bindtap="signIn"
@@ -32,7 +31,7 @@
         >已取消</view
       ></view
     >
-    <view wx:if="{{loading}}" class="state">正在查找你的出发记录…</view>
+    <view wx:if="{{loading}}" class="state">正在加载报名…</view>
     <view wx:elif="{{!items.length && !error}}" class="state"
       >{{status === 'CANCELLED' ? '还没有取消记录' :
       '这里还没有报名记录'}}<button class="secondary" bindtap="explore">
@@ -60,11 +59,11 @@
       </button></view
     >
     <view wx:elif="{{items.length}}" class="loading-line"
-      >{{loadingMore ? '正在加载…' : (hasMore ? '继续向下查看更多报名' :
+      >{{loadingMore ? '正在加载…' : (hasMore ? '上拉加载更多' :
       '已显示全部 ' + total + ' 条记录')}}</view
     >
     <view class="notice"
-      >“已报名”表示报名状态，不代表活动尚未结束。活动时间和取消规则请查看详情。</view
+      >“已报名”含已结束活动；活动时间与取消规则见详情。</view
     >
   </block>
 </view>

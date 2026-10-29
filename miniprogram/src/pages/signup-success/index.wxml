@@ -1,5 +1,5 @@
 <view class="page success-page">
-  <view wx:if="{{loading}}" class="state">正在核对服务器报名记录…</view>
+  <view wx:if="{{loading}}" class="state">正在核对报名…</view>
   <view wx:elif="{{error}}" class="state error"
     >{{error}}<button class="secondary" bindtap="retry">重新核对</button
     ><button class="secondary" bindtap="registrations">我的报名</button></view
@@ -32,7 +32,7 @@
       ></view
     >
     <view class="notice"
-      >出发前请再次核对活动安排。天气或组织计划可能变化；请按自身能力准备装备。取消规则见活动详情。</view
+      >活动安排可能变化，出发前请核对并备齐装备。取消规则见活动详情。</view
     >
     <button class="primary" bindtap="details">查看活动安排</button
     ><button class="secondary" bindtap="registrations">我的报名</button>

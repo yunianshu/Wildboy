@@ -3,10 +3,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
-test("all twenty-one registered native pages have compiled JS WXML WXSS JSON", () => {
+test("all twenty-five registered native pages have compiled JS WXML WXSS JSON", () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
-  assert.equal(app.pages.length, 21);
+  assert.equal(app.pages.length, 25);
   for (const route of [
+    "waitlist",
+    "notifications",
+    "admin-content",
     "mine",
     "login",
     "admin-legal",

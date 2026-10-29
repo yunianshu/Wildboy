@@ -84,7 +84,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
 }
-export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED";
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
 export interface OrderItem {
   id: string;
   productId: string;
@@ -118,4 +118,12 @@ export interface PaymentRequest {
   package: string;
   signType: string;
   paySign: string;
+}
+
+export interface ShippingAddress {
+  id: string;
+  recipientName: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
 }

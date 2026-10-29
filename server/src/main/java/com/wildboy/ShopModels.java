@@ -15,7 +15,8 @@ public final class ShopModels {
     PENDING_PAYMENT,
     PAID,
     CANCELLED,
-    SHIPPED
+    SHIPPED,
+    REFUNDED
   }
 
   public record Product(

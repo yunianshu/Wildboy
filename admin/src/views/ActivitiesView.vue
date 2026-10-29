@@ -67,23 +67,11 @@ onUnmounted(() => {
   <main class="workspace">
     <section class="page-heading">
       <div>
-        <p class="eyebrow">YOUR NEXT ADVENTURE</p>
-        <h1>把热爱，变成一场出发。</h1>
-        <p class="muted">从草稿到成行，在这里安排好每一个细节。</p>
+        <h1>活动管理</h1>
       </div>
       <RouterLink class="primary button" to="/activities/new"
         >＋ 新建活动</RouterLink
       >
-    </section>
-    <section class="workspace-note">
-      <span class="note-icon">↗</span>
-      <div>
-        <strong>活动发布与报名工作台</strong>
-        <p>
-          草稿仅管理员可见；发布后用户即可报名。目前所有活动仅支持免费报名。
-        </p>
-      </div>
-      <span class="small-tag">FREE REGISTRATION</span>
     </section>
     <form class="filterbar" @submit.prevent>
       <label class="search-label"
@@ -117,15 +105,12 @@ onUnmounted(() => {
     <div v-if="error" class="error-box" role="alert">
       {{ error }} <button class="text-button" @click="load">重新加载</button>
     </div>
-    <div v-if="busy" class="empty-state" aria-live="polite">
-      正在读取最新活动…
-    </div>
+    <div v-if="busy" class="empty-state" aria-live="polite">加载中…</div>
     <div v-else-if="!filteredItems.length && !error" class="empty-state">
       <span>⌁</span>
-      <h3>下一次出发，从这里开始</h3>
-      <p>当前页没有匹配活动。可以清空筛选、切换页面，或创建新草稿。</p>
+      <h3>当前页暂无匹配活动</h3>
       <RouterLink class="secondary button" to="/activities/new"
-        >创建第一场活动</RouterLink
+        >新建活动</RouterLink
       >
     </div>
     <div v-else-if="!error" class="activity-grid">

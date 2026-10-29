@@ -15,6 +15,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 @SpringBootTest
+@org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 class OrderReliabilityTest {
   static final EmbeddedPostgres pg;
   static { try { pg = EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start(); }
@@ -25,6 +26,7 @@ class OrderReliabilityTest {
     r.add("spring.datasource.password", () -> "");
     r.add("wildboy.orders.expiry-scan-ms", () -> 3600000);
   }
+  @Autowired org.springframework.test.web.servlet.MockMvc mvc;
   @Autowired ShopService shop;
   @Autowired AuthService auth;
   @Autowired LegalService legal;
@@ -41,7 +43,7 @@ class OrderReliabilityTest {
       var d = legal.save(kind,new LegalModels.DraftInput("QA " + kind,"Synthetic fixture legal document only.",0L),"fixture");
       legal.publish(kind,d.draft().revision(),"fixture");
     }
-    when(pay.enabled()).thenReturn(true);when(pay.merchantId()).thenReturn("merchant");
+    when(pay.enabled()).thenReturn(true);when(pay.merchantId()).thenReturn("merchant");when(pay.appId()).thenReturn("app");
     user = auth.user("wechat:reliability-user", "QA", "USER");
     product = shop.createProduct(new ShopModels.ProductInput("QA gear","Synthetic gear","/assets/equipment.jpg",100,100,ShopModels.ProductStatus.ON_SALE,null),"fixture");
   }
@@ -50,7 +52,9 @@ class OrderReliabilityTest {
   }
   Transaction transaction(ShopModels.Order order, Transaction.TradeStateEnum state) {
     var tx = new Transaction(); tx.setMchid("merchant");tx.setOutTradeNo(order.orderNo());tx.setTradeState(state);tx.setTransactionId("tx-"+order.id());
-    var amount = new TransactionAmount();amount.setTotal(order.totalCents());tx.setAmount(amount);
+    tx.setAppid("app");tx.setTradeType(Transaction.TradeTypeEnum.JSAPI);
+    var payer = new com.wechat.pay.java.service.payments.model.TransactionPayer();payer.setOpenid("reliability-user");tx.setPayer(payer);
+    var amount = new TransactionAmount();amount.setTotal(order.totalCents());amount.setCurrency("CNY");tx.setAmount(amount);
     return tx;
   }
   @Test void concurrentRetriesReturnOneOrderAndReserveStockOnce() throws Exception {
@@ -167,4 +171,80 @@ class OrderReliabilityTest {
     assertThat(shop.createOrder(user.id(),input("request-0",1))).isNotNull();
     assertThat(shop.product(product.id(),true).stock()).isEqualTo(90);
   }
+  @Test void activeVerificationReconcilesMissingCallbackIdempotently() {
+    var order = shop.createOrder(user.id(),input("verify-request",1));
+    db.update("UPDATE shop_order SET payment_initiated=TRUE WHERE id=?",order.id());
+    when(pay.queryOrder(order.orderNo())).thenReturn(transaction(order,Transaction.TradeStateEnum.SUCCESS));
+    assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PAID");
+    assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PAID");
+    verify(pay,times(1)).queryOrder(order.orderNo());
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+    assertThat(db.queryForObject("SELECT COUNT(*) FROM audit_event WHERE entity_id=? AND action='ORDER_PAID'",Integer.class,order.id())).isEqualTo(1);
+  }
+  @Test void verificationIsOwnerScopedAndUnknownNeverMarksPaidOrRestocks() {
+    var order = shop.createOrder(user.id(),input("verify-request",1));
+    var other=auth.user("wechat:other","Other","USER");
+    assertThatThrownBy(() -> shop.verifyPayment(order.id(),other.id())).isInstanceOf(ApiException.class);
+    assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PENDING_PAYMENT");
+    verify(pay,never()).queryOrder(any());
+    db.update("UPDATE shop_order SET payment_initiated=TRUE WHERE id=?",order.id());
+    when(pay.queryOrder(order.orderNo())).thenReturn(null);
+    assertThatThrownBy(() -> shop.verifyPayment(order.id(),user.id())).hasMessageContaining("暂无法确认");
+    for(var state : List.of(Transaction.TradeStateEnum.NOTPAY,Transaction.TradeStateEnum.USERPAYING,Transaction.TradeStateEnum.CLOSED)) {
+      when(pay.queryOrder(order.orderNo())).thenReturn(transaction(order,state));
+      assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PENDING_PAYMENT");
+      assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+    }
+  }
+  @Test void verificationRejectsMismatchedOrderAndCallbackRejectsCurrencyTypePayerAndNullAmount() {
+    var order = shop.createOrder(user.id(),input("verify-request",1));
+    db.update("UPDATE shop_order SET payment_initiated=TRUE WHERE id=?",order.id());
+    var tx=transaction(order,Transaction.TradeStateEnum.SUCCESS);tx.setOutTradeNo("different");
+    when(pay.queryOrder(order.orderNo())).thenReturn(tx);
+    assertThatThrownBy(() -> shop.verifyPayment(order.id(),user.id())).hasMessageContaining("不匹配");
+    tx.setOutTradeNo(order.orderNo());tx.getAmount().setTotal(null);
+    assertThatThrownBy(() -> shop.completePayment(tx)).hasMessageContaining("金额不匹配");
+    tx.getAmount().setTotal(order.totalCents());tx.getAmount().setCurrency("USD");
+    assertThatThrownBy(() -> shop.completePayment(tx)).hasMessageContaining("金额不匹配");
+    tx.getAmount().setCurrency("CNY");tx.setTradeType(Transaction.TradeTypeEnum.NATIVE);
+    assertThatThrownBy(() -> shop.completePayment(tx)).hasMessageContaining("付款账号不匹配");
+    tx.setTradeType(Transaction.TradeTypeEnum.JSAPI);tx.getPayer().setOpenid("other");
+    assertThatThrownBy(() -> shop.completePayment(tx)).hasMessageContaining("付款账号不匹配");
+    assertThat(shop.order(order.id(),user.id(),false).status()).isEqualTo("PENDING_PAYMENT");
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+  }
+
+  @Test void httpVerificationRequiresOwnerAndReturnsReconciledOrder() throws Exception {
+    var order=shop.createOrder(user.id(),input("http-verify",1));
+    db.update("UPDATE shop_order SET payment_initiated=TRUE WHERE id=?",order.id());
+    when(pay.queryOrder(order.orderNo())).thenReturn(transaction(order,Transaction.TradeStateEnum.SUCCESS));
+    String endpoint="/api/v1/orders/"+order.id()+"/verify";
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+    var other=auth.user("wechat:foreign","Foreign","USER");
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint).header("Authorization","Bearer "+auth.login(other).token()))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
+    verify(pay,never()).queryOrder(any());
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(endpoint).header("Authorization","Bearer "+auth.login(user).token()))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value("PAID"));
+  }
+
+  @Test void concurrentVerificationAndCallbackApplyPaymentOnce() throws Exception {
+    var order=shop.createOrder(user.id(),input("verify-callback",1));
+    db.update("UPDATE shop_order SET payment_initiated=TRUE WHERE id=?",order.id());
+    var tx=transaction(order,Transaction.TradeStateEnum.SUCCESS);
+    var entered=new CountDownLatch(1);var release=new CountDownLatch(1);
+    when(pay.queryOrder(order.orderNo())).thenAnswer(inv -> {entered.countDown();assertThat(release.await(10,TimeUnit.SECONDS)).isTrue();return tx;});
+    try(var executor=Executors.newFixedThreadPool(2)) {
+      var verifying=executor.submit(() -> shop.verifyPayment(order.id(),user.id()));
+      assertThat(entered.await(10,TimeUnit.SECONDS)).isTrue();
+      var callback=executor.submit(() -> shop.completePayment(tx));
+      assertThatThrownBy(() -> callback.get(150,TimeUnit.MILLISECONDS)).isInstanceOf(TimeoutException.class);
+      release.countDown();assertThat(verifying.get(10,TimeUnit.SECONDS).status()).isEqualTo("PAID");callback.get(10,TimeUnit.SECONDS);
+    } finally {release.countDown();}
+    assertThat(db.queryForObject("SELECT COUNT(*) FROM audit_event WHERE entity_id=? AND action='ORDER_PAID'",Integer.class,order.id())).isEqualTo(1);
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+  }
+
 }

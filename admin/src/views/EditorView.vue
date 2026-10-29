@@ -15,6 +15,9 @@ import {
 } from "../types";
 import { fromShanghaiInput, toShanghaiInput, validateActivity } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import ImageUpload from "../components/ImageUpload.vue";
+import RichContentEditor from "../components/RichContentEditor.vue";
+const contentOpen = ref(false);
 const route = useRoute(),
   router = useRouter(),
   id = computed(() =>
@@ -221,15 +224,10 @@ onUnmounted(() => {
     <RouterLink class="back-link" to="/activities">← 返回活动目录</RouterLink>
     <section class="page-heading">
       <div>
-        <p class="eyebrow">MAKE ROOM FOR ADVENTURE</p>
-        <h1>{{ id ? "编辑活动" : "筹备一场新活动" }}</h1>
+        <h1>{{ id ? "编辑活动" : "新建活动" }}</h1>
         <p class="muted">
-          {{
-            current
-              ? `当前状态：${statuses[current.status]} · ${current.registeredCount} 人已报名`
-              : "先保存草稿，检查无误后再发布。"
-          }}
-          所有时间均为北京时间。
+          {{ current ? `${current.registeredCount} 人已报名 ·` : "" }}
+          时间均为北京时间
         </p>
       </div>
       <span
@@ -256,8 +254,7 @@ onUnmounted(() => {
             <div class="section-title">
               <span>01</span>
               <div>
-                <h2>让人想出发的第一眼</h2>
-                <p>标题、分类与图片，是活动的第一印象。</p>
+                <h2>基本信息</h2>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
@@ -266,7 +263,7 @@ onUnmounted(() => {
                 ><input
                   v-model="fields.title"
                   maxlength="100"
-                  placeholder="例如：走进山海之间 · 周末轻徒步"
+                  placeholder="活动名称"
                 /><small class="field-error">{{ errors.title }}</small></label
               >
               <div class="field-row">
@@ -283,7 +280,10 @@ onUnmounted(() => {
                   ><small class="field-error">{{
                     errors.category
                   }}</small></label
-                ><label class="field"><input v-model="fields.identityRequired" type="checkbox" /> 本活动必须核验身份证（仅确有需要时开启，并说明用途）</label>
+                ><label class="field"
+                  ><input v-model="fields.identityRequired" type="checkbox" />
+                  核验身份证（仅必要时开启，须说明用途）</label
+                >
                 <label
                   >人数上限 <span>*</span
                   ><input
@@ -303,12 +303,14 @@ onUnmounted(() => {
                   v-model="fields.summary"
                   rows="2"
                   maxlength="300"
-                  placeholder="用一两句话描述这次出发。"
+                  placeholder="活动简介"
                 /><small class="field-error">{{ errors.summary }}</small></label
               >
-              <div class="preset-heading">
-                选择原创封面，或填写自己的图片地址
-              </div>
+              <div class="preset-heading">封面预设</div>
+              <ImageUpload
+                :disabled="saving || readonly"
+                @uploaded="fields.coverUrl = $event"
+              />
               <div class="cover-presets">
                 <button
                   v-for="preset in coverPresets"
@@ -337,7 +339,7 @@ onUnmounted(() => {
                   placeholder="https://… 或 /assets/hiking.jpg"
                 /><small class="field-error">{{ errors.coverUrl }}</small
                 ><small class="field-hint"
-                  >使用已托管的图片，不会上传本机文件。图片服务须允许小程序访问。</small
+                  >图片须已托管并允许小程序访问。</small
                 ></label
               ><label
                 >更多图片地址<textarea
@@ -354,8 +356,7 @@ onUnmounted(() => {
             <div class="section-title">
               <span>02</span>
               <div>
-                <h2>时间与集合地点</h2>
-                <p>出发和返程都要有清晰的安排。</p>
+                <h2>时间与地点</h2>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
@@ -409,22 +410,20 @@ onUnmounted(() => {
             <div class="section-title">
               <span>03</span>
               <div>
-                <h2>把出发的细节讲清楚</h2>
-                <p>建议包含行程、难度、装备建议、注意事项和取消规则。</p>
+                <h2>活动详情</h2>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
               <label
-                >活动完整说明 <span>*</span
+                >活动说明（纯文本） <span>*</span
                 ><textarea
                   v-model="fields.description"
                   rows="13"
                   maxlength="20000"
                   placeholder="【活动行程】\n\n【适合人群与路线难度】\n\n【装备建议】\n\n【天气与安全提示】\n\n【取消与变更说明】"
-                /><small class="field-error">{{ errors.description }}</small
-                ><small class="field-hint"
-                  >以纯文本保存并保留换行，不执行 HTML 或脚本。</small
-                ></label
+                /><small class="field-error">{{
+                  errors.description
+                }}</small></label
               >
             </fieldset>
           </section>
@@ -441,19 +440,15 @@ onUnmounted(() => {
             </div>
             <div class="preview-copy">
               <p class="card-category">{{ categories[fields.category] }}</p>
-              <h3>{{ fields.title || "下一次出发的名字" }}</h3>
+              <h3>{{ fields.title || "活动名称" }}</h3>
               <p>
-                {{ fields.summary || "填写活动摘要，让参与者了解你的安排。" }}
+                {{ fields.summary || "活动简介" }}
               </p>
-              <span>⌖ {{ fields.location || "等待填写目的地" }}</span>
+              <span>⌖ {{ fields.location || "目的地" }}</span>
             </div>
           </section>
           <div class="editor-tip">
-            <strong>发布前，最后检查一次</strong>
-            <p>图片是否准确？集合点是否清楚？路线和安全说明是否完整？</p>
-            <p>
-              本期为免费报名，未接入微信支付。活动发布后仍可编辑；已报名人数不能被缩减。
-            </p>
+            <p>仅支持免费报名，人数上限不得低于已报名人数。</p>
           </div>
         </aside>
       </div>
@@ -509,6 +504,19 @@ onUnmounted(() => {
       :confirm-label="dialog === 'publish' ? '确认发布' : '确认取消活动'"
       @confirm="confirmAction"
       @cancel="!saving && (dialog = null)"
+    />
+    <button
+      v-if="id && !contentOpen"
+      type="button"
+      class="secondary button"
+      @click="contentOpen = true"
+    >
+      编辑图文详情
+    </button>
+    <RichContentEditor
+      v-if="id && contentOpen"
+      :path="`/admin/activities/${id}/content`"
+      :disabled="saving || readonly"
     />
   </main>
 </template>

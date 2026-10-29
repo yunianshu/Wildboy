@@ -6,9 +6,11 @@ import {
 } from "../../utils/api";
 import { Order, PageResult } from "../../utils/models";
 import { message, safeId, dateLabel, RequestEpoch } from "../../utils/domain";
-import { money, orderStatusLabel, payOrder } from "../../utils/shop";
+import { money, orderStatusLabel, payOrder, verifyPayment } from "../../utils/shop";
 
 const epoch = new RequestEpoch();
+type Refund = { id:string; orderId:string; status:string; reason:string; decisionNote:string; lastError:string; amountCents:number };
+const refundLabels:Record<string,string>={REQUESTED:"待审核",REJECTED:"已拒绝",PROCESSING:"退款中",UNKNOWN:"结果待核对",SUCCESS:"已退款",ABNORMAL:"退款异常",CLOSED:"退款关闭"};
 type OrderView = Order & {
   statusText: string;
   totalText: string;
@@ -30,8 +32,10 @@ Page({
       { code: "PAID", name: "待发货" },
       { code: "SHIPPED", name: "已发货" },
       { code: "CANCELLED", name: "已取消" },
+      { code: "REFUNDED", name: "已退款" },
     ],
     busyId: "",
+    refundOrderId: "", refundRecord: null as Refund | null, refundStatusText: "", refundReason: "", refundError: "",
     error: "",
   },
   onShow() {
@@ -40,7 +44,7 @@ Page({
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ items: [], busyId: "" });
+    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundReason:"",refundError:"" });
   },
   onReachBottom() {
     void this.load(false);
@@ -169,6 +173,49 @@ Page({
     } finally {
       if (epoch.valid(current)) this.setData({ busyId: "" });
     }
+  },
+  async verify(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore) return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    this.setData({ busyId: id, error: "" });
+    try {
+      const order = await verifyPayment(id, () => epoch.valid(current));
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        this.updateOrder(order);
+        if (order.status === "PENDING_PAYMENT") this.setData({ error: "尚未确认到账，请稍后刷新，勿重复下单" });
+      }
+    } catch (error) {
+      if (epoch.valid(current)) this.setData({ error: message(error), ...(!hasSession() ? {items: [], loggedIn: false, hasMore: false} : {}) });
+    } finally {
+      if (epoch.valid(current)) this.setData({busyId: ""});
+    }
+  },
+  async openRefund(event:WechatMiniprogram.TouchEvent) {
+    const id=safeId(event.currentTarget.dataset.id);
+    if(!id||this.data.busyId)return;
+    const current=epoch.next(),session=sessionVersion();
+    this.setData({busyId:id,error:""});
+    try {
+      const record=await request<Refund|null>(`/orders/${id}/refund`);
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
+    } catch(error){if(epoch.valid(current))this.setData({error:message(error),...(!hasSession()?{items:[],loggedIn:false}:{})});}
+    finally{if(epoch.valid(current))this.setData({busyId:""});}
+  },
+  refundInput(event:WechatMiniprogram.Input){if(!this.data.busyId)this.setData({refundReason:event.detail.value,refundError:""});},
+  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundReason:"",refundError:""});},
+  stopRefundEvent(){},
+  async requestRefund(){
+    const id=this.data.refundOrderId,reason=this.data.refundReason.trim();
+    if(!id||this.data.busyId||this.data.refundRecord)return;
+    if(!reason||reason.length>200){this.setData({refundError:"请填写退款原因"});return;}
+    const current=epoch.next(),session=sessionVersion();this.setData({busyId:id,refundError:""});
+    try {
+      const record=await request<Refund>(`/orders/${id}/refund`,"POST",{reason});
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundRecord:record,refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
+    } catch(error){if(epoch.valid(current))this.setData({refundError:message(error),...(!hasSession()?{items:[],loggedIn:false,refundOrderId:"",refundRecord:null}:{})});}
+    finally{if(epoch.valid(current))this.setData({busyId:""});}
   },
   async cancel(event: WechatMiniprogram.TouchEvent) {
     const id = safeId(event.currentTarget.dataset.id);

@@ -27,11 +27,19 @@ Page({
     success: false,
   },
   _epoch: 0,
+  _reloadOnShow: false,
   onLoad(o) {
     this.setData({ mode: o.mode === "consent" ? "consent" : "login" });
     void this.load();
   },
+  onShow() {
+    if (this._reloadOnShow) {
+      this._reloadOnShow = false;
+      void this.load();
+    }
+  },
   onHide() {
+    this._reloadOnShow = this.data.loading;
     this._epoch++;
     this.setData({ busy: false });
   },

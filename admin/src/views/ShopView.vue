@@ -3,8 +3,12 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { errorMessage, request } from "../api";
 import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import ImageUpload from "../components/ImageUpload.vue";
+import RichContentEditor from "../components/RichContentEditor.vue";
 import type { Order, Page, Product, ProductStatus } from "../types";
 
+const contentOpen = ref(false);
+const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const products = ref<Product[]>([]),
   orders = ref<Page<Order>>({
     items: [],
@@ -36,6 +40,7 @@ const orderStatuses = {
   PAID: "已支付",
   CANCELLED: "已取消",
   SHIPPED: "已发货",
+  REFUNDED: "已退款",
 };
 function maskPhone(phone: string) {
   return phone.length > 7
@@ -70,6 +75,8 @@ function changePage(delta: number) {
   void load();
 }
 function edit(product: Product) {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
   editingId.value = product.id;
   form.value = {
     name: product.name,
@@ -81,6 +88,8 @@ function edit(product: Product) {
   };
 }
 function reset() {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
   editingId.value = "";
   form.value = {
     name: "",
@@ -182,9 +191,7 @@ onUnmounted(() => {
   <main class="workspace">
     <section class="page-heading">
       <div>
-        <p class="eyebrow">FIELD SUPPLY</p>
         <h1>商城运营</h1>
-        <p class="muted">商品、库存、订单与发货</p>
       </div>
       <button class="secondary button" @click="reset">＋ 新商品</button>
     </section>
@@ -198,6 +205,7 @@ onUnmounted(() => {
           取消编辑
         </button>
       </div>
+      <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
       <form class="form-grid" @submit.prevent="save">
         <label
           >商品名称<input
@@ -279,10 +287,9 @@ onUnmounted(() => {
     <section class="editor-section">
       <div class="section-heading">
         <h2>装备订单</h2>
-        <span class="muted">支付状态由服务端通知确认</span>
       </div>
       <div class="privacy-note">
-        收货资料仅用于订单履约，默认遮罩；请勿公开或用于无关营销。
+        收货资料仅用于订单履约，请勿公开或用于无关营销。
       </div>
       <div v-if="!orders.items.length" class="empty-state">还没有订单</div>
       <article
@@ -298,7 +305,9 @@ onUnmounted(() => {
               {{ money(order.totalCents) }}</strong
             >
             <p class="muted">订单号 {{ order.orderNo }}</p>
-            <p v-if="order.reconciliationRequired" class="error">需核对微信订单状态，库存暂保留，请勿手动回库。</p>
+            <p v-if="order.reconciliationRequired" class="error">
+              需核对微信订单状态，库存暂保留，请勿手动回库。
+            </p>
           </div>
           <button
             v-if="order.status === 'PAID'"
@@ -354,6 +363,20 @@ onUnmounted(() => {
       confirm-label="确认发货"
       @cancel="shipping = null"
       @confirm="ship"
+    />
+    <button
+      v-if="editingId && !contentOpen"
+      type="button"
+      class="secondary button"
+      @click="contentOpen = true"
+    >
+      编辑图文详情
+    </button>
+    <RichContentEditor
+      ref="contentEditor"
+      v-if="editingId && contentOpen"
+      :path="`/admin/shop/products/${editingId}/content`"
+      :disabled="busy"
     />
   </main>
 </template>
