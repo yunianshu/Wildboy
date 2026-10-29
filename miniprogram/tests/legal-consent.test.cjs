@@ -257,3 +257,22 @@ test("stale inline document callbacks cannot mark a replacement policy version r
     assert.equal(p.data.privacyRead, false, name);
   }
 });
+
+test("returning after interrupted login initialization reloads agreements", async () => {
+  const p = page("login");
+  let finish;
+  response = () => new Promise(resolve => { finish = resolve; });
+  const initial = p.load();
+  p.onHide();
+  finish(structuredClone(legal));
+  await initial;
+  assert.equal(p.data.loading, true);
+  response = async () => structuredClone(legal);
+  p.onShow();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(p.data.loading, false);
+  assert.equal(p.data.current.privacy.version, 1);
+  p.setData({privacyRead: true, termsRead: true, agreed: true});
+  p.onHide(); p.onShow();
+  assert.equal(p.data.agreed, true);
+});

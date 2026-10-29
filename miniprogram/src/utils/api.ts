@@ -19,7 +19,9 @@ export async function getCurrentUser(): Promise<User> {
 function saveAuthentication(result: AuthResult, attempt: number): AuthResult {
   if (attempt !== authenticationAttempt)
     throw new ApiError("登录状态已改变，请重试", 409, "SESSION_CHANGED");
-  if (!result || typeof result.token !== "string" || !result.token)
+  if (!result || typeof result.token !== "string" || !result.token.trim()
+      || typeof result.user?.id !== "string" || !result.user.id.trim()
+      || !["USER", "ADMIN"].includes(result.user.role))
     throw new Error("登录响应异常");
   sessionEpoch++;
   wx.setStorageSync(TOKEN_KEY, result.token);
@@ -205,24 +207,41 @@ export function login(
         ...versions,
       });
     else {
-      const code = await new Promise<string>((resolve, reject) =>
-        wx.login({
-          success(r) {
-            r.code
-              ? resolve(r.code)
-              : reject(new Error("微信登录失败，请重试"));
-          },
-          fail() {
-            reject(new Error("微信登录取消或失败"));
-          },
-        }),
-      );
+      const code = await new Promise<string>((resolve, reject) => {
+        let settled = false;
+        const finish = (code?: string, error?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          if (error) reject(error);
+          else resolve(code!);
+        };
+        const timer = setTimeout(() => finish(undefined,
+          new Error("微信登录超时，请重试")), 10000);
+        try {
+          wx.login({
+            timeout: 10000,
+            success(r) {
+              typeof r.code === "string" && r.code.trim()
+                ? finish(r.code)
+                : finish(undefined, new Error("微信登录失败，请重试"));
+            },
+            fail() { finish(undefined, new Error("微信登录取消或失败")); },
+          });
+        } catch (_) {
+          finish(undefined, new Error("微信登录暂不可用，请重试"));
+        }
+      });
+      if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
+      if (attempt !== authenticationAttempt)
+        throw new ApiError("登录状态已改变，请重试", 409, "SESSION_CHANGED");
       result = await request<AuthResult>("/auth/wechat", "POST", {
         code,
         ...versions,
       });
     }
     if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
+    if (result?.user?.role !== "USER") throw new Error("微信登录响应异常");
     const authenticated = saveAuthentication(result, attempt);
     return authenticated;
   })().finally(() => {

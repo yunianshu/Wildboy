@@ -6,7 +6,7 @@ import {
 } from "../../utils/api";
 import { Order, PageResult } from "../../utils/models";
 import { message, safeId, dateLabel, RequestEpoch } from "../../utils/domain";
-import { money, orderStatusLabel, payOrder } from "../../utils/shop";
+import { money, orderStatusLabel, payOrder, verifyPayment } from "../../utils/shop";
 
 const epoch = new RequestEpoch();
 type OrderView = Order & {
@@ -168,6 +168,24 @@ Page({
         });
     } finally {
       if (epoch.valid(current)) this.setData({ busyId: "" });
+    }
+  },
+  async verify(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore) return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    this.setData({ busyId: id, error: "" });
+    try {
+      const order = await verifyPayment(id, () => epoch.valid(current));
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        this.updateOrder(order);
+        if (order.status === "PENDING_PAYMENT") this.setData({ error: "尚未确认到账，请稍后刷新，勿重复下单" });
+      }
+    } catch (error) {
+      if (epoch.valid(current)) this.setData({ error: message(error), ...(!hasSession() ? {items: [], loggedIn: false, hasMore: false} : {}) });
+    } finally {
+      if (epoch.valid(current)) this.setData({busyId: ""});
     }
   },
   async cancel(event: WechatMiniprogram.TouchEvent) {

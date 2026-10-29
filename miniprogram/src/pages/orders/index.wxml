@@ -13,7 +13,7 @@
       <view wx:if="{{item.status === 'PENDING_PAYMENT' && item.deadlineText}}" class="muted small">付款截止 {{item.deadlineText}}</view>
       <view wx:if="{{item.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留，请联系管理员。</view>
       <view class="order-number">订单号 {{item.orderNo}}</view>
-      <view class="order-actions"><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" loading="{{busyId === item.id}}" disabled="{{busyId || loading || loadingMore}}">继续支付</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="cancel" disabled="{{busyId || loading || loadingMore}}">取消订单</button></view>
+      <view class="order-actions"><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="verify" disabled="{{busyId || loading || loadingMore}}">刷新支付结果</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" loading="{{busyId === item.id}}" disabled="{{busyId || loading || loadingMore}}">继续支付</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="cancel" disabled="{{busyId || loading || loadingMore}}">取消订单</button></view>
     </view>
     <view wx:if="{{error}}" class="state error">{{error}}</view>
     <button wx:if="{{hasMore}}" class="secondary" bindtap="more" loading="{{loadingMore}}" disabled="{{loading || loadingMore || busyId}}">{{loadingMore ? '正在加载…' : '加载更多订单'}}</button>

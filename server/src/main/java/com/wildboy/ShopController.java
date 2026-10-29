@@ -61,6 +61,11 @@ public class ShopController {
     return shop.payment(id, user.id());
   }
 
+  @PostMapping("/orders/{id}/verify")
+  Order verifyPayment(@PathVariable String id, @AuthenticationPrincipal Models.User user) {
+    return shop.verifyPayment(id, user.id());
+  }
+
   @PostMapping("/orders/{id}/cancel")
   Order cancel(@PathVariable String id, @AuthenticationPrincipal Models.User user) {
     return shop.cancelOrder(id, user.id());

@@ -29,6 +29,7 @@ public class WechatPayService {
   private final String publicKeyId;
   private final String apiV3Key;
   private final String notifyUrl;
+  private volatile Config cachedConfig;
 
   public WechatPayService(
       @Value("${wildboy.wechat.app-id}") String appId,
@@ -61,7 +62,7 @@ public class WechatPayService {
   }
 
   public void requireConfigured() {
-    if (!enabled()) throw new ApiException(503, "PAYMENT_NOT_CONFIGURED", "微信支付尚未完成商户配置");
+    config();
   }
 
   public String appId() { return appId; }
@@ -70,17 +71,28 @@ public class WechatPayService {
     return merchantId;
   }
 
-  private Config config() {
-    if (!enabled())
+  private synchronized Config config() {
+    if (cachedConfig != null) return cachedConfig;
+    if (!enabled() || apiV3Key.getBytes(java.nio.charset.StandardCharsets.UTF_8).length != 32)
       throw new ApiException(503, "PAYMENT_NOT_CONFIGURED", "微信支付尚未完成商户配置");
-    return new RSAPublicKeyConfig.Builder()
-        .merchantId(merchantId)
-        .privateKeyFromPath(privateKeyPath)
-        .publicKeyFromPath(publicKeyPath)
-        .publicKeyId(publicKeyId)
-        .merchantSerialNumber(merchantSerialNumber)
-        .apiV3Key(apiV3Key)
-        .build();
+    try {
+      var uri = java.net.URI.create(notifyUrl);
+      if (!"https".equals(uri.getScheme()) || uri.getHost() == null
+          || uri.getUserInfo() != null || uri.getFragment() != null)
+        throw new IllegalArgumentException("Invalid notification URL");
+      cachedConfig = new RSAPublicKeyConfig.Builder()
+          .merchantId(merchantId)
+          .privateKeyFromPath(privateKeyPath)
+          .publicKeyFromPath(publicKeyPath)
+          .publicKeyId(publicKeyId)
+          .merchantSerialNumber(merchantSerialNumber)
+          .apiV3Key(apiV3Key)
+          .build();
+      return cachedConfig;
+    } catch (Exception e) {
+      // Never expose paths, key material or upstream response internals to clients.
+      throw new ApiException(503, "PAYMENT_NOT_CONFIGURED", "微信支付商户配置无效，请联系管理员");
+    }
   }
 
   private JsapiServiceExtension service() {
@@ -100,6 +112,7 @@ public class WechatPayService {
       request.setTimeExpire(order.expiresAt().format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
       var amount = new Amount();
       amount.setTotal(order.totalCents());
+      amount.setCurrency("CNY");
       request.setAmount(amount);
       var payer = new Payer();
       payer.setOpenid(openid);
@@ -145,6 +158,16 @@ public class WechatPayService {
 
   public Transaction parseNotification(Map<String, String> headers, String body) {
     try {
+      if (headers == null || body == null || body.isBlank() || body.length() > 65536)
+        throw new ApiException(400, "INVALID_PAYMENT_NOTIFICATION", "支付通知内容无效");
+      for (String name : java.util.List.of("wechatpay-serial", "wechatpay-nonce", "wechatpay-signature", "wechatpay-timestamp")) {
+        if (headers.get(name) == null || headers.get(name).isBlank())
+          throw new ApiException(401, "INVALID_PAYMENT_SIGNATURE", "支付通知签名信息缺失");
+      }
+      long timestamp = Long.parseLong(headers.get("wechatpay-timestamp"));
+      long now = java.time.Instant.now().getEpochSecond();
+      if (timestamp < now - 300 || timestamp > now + 300)
+        throw new ApiException(401, "INVALID_PAYMENT_SIGNATURE", "支付通知签名已过期");
       NotificationConfig config =
           new RSAPublicKeyNotificationConfig.Builder()
               .publicKeyFromPath(publicKeyPath)
@@ -159,7 +182,14 @@ public class WechatPayService {
               .timestamp(headers.get("wechatpay-timestamp"))
               .body(body)
               .build();
-      return new NotificationParser(config).parse(request, Transaction.class);
+      Transaction transaction = new NotificationParser(config).parse(request, Transaction.class);
+      var envelope = new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+      if (!"TRANSACTION.SUCCESS".equals(envelope.path("event_type").asText())
+          || !"encrypt-resource".equals(envelope.path("resource_type").asText())
+          || !"transaction".equals(envelope.path("resource").path("original_type").asText())
+          || transaction == null || transaction.getTradeState() != Transaction.TradeStateEnum.SUCCESS)
+        throw new ApiException(400, "INVALID_PAYMENT_NOTIFICATION", "支付通知类型无效");
+      return transaction;
     } catch (ValidationException e) {
       throw new ApiException(401, "INVALID_PAYMENT_SIGNATURE", "支付通知验签失败");
     } catch (ApiException e) {

@@ -1005,18 +1005,20 @@ class BackendIntegrationTest {
   @Test
   void onlyVerifiedPaymentNotificationMarksPaidOnce() {
     var product = product(3600, 1);
-    User customer = user();
+    User customer = auth.user("wechat:payment-fixture", "Test user", "USER");
     var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
     when(pay.enabled()).thenReturn(true);
     when(pay.merchantId()).thenReturn("merchant-qa");
     var transaction = new com.wechat.pay.java.service.payments.model.Transaction();
     transaction.setMchid("merchant-qa");
+    transaction.setTradeType(com.wechat.pay.java.service.payments.model.Transaction.TradeTypeEnum.JSAPI);
+    var payer = new com.wechat.pay.java.service.payments.model.TransactionPayer();payer.setOpenid("payment-fixture");transaction.setPayer(payer);
     transaction.setOutTradeNo(order.orderNo());
     transaction.setTransactionId("transaction-qa");
     transaction.setTradeState(
         com.wechat.pay.java.service.payments.model.Transaction.TradeStateEnum.SUCCESS);
     var amount = new com.wechat.pay.java.service.payments.model.TransactionAmount();
-    amount.setTotal(order.totalCents());
+    amount.setTotal(order.totalCents());amount.setCurrency("CNY");
     transaction.setAmount(amount);
     shop.completePayment(transaction);
     assertThat(shop.order(order.id(), customer.id(), false).status()).isEqualTo("PAID");

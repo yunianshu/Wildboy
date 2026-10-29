@@ -13,6 +13,7 @@ import { message, safeId, RequestEpoch, dateLabel } from "../../utils/domain";
 import {
   money,
   payOrder,
+  verifyPayment,
   orderStatusLabel,
   checkoutRequestId,
   finishCheckoutIntent,
@@ -447,7 +448,7 @@ Page({
     const session = sessionVersion();
     this.setData({ busy: true, error: "" });
     try {
-      const order = await request<Order>(`/orders/${this.data.order.id}`);
+      const order = await verifyPayment(this.data.order.id, () => epoch.valid(current));
       if (epoch.valid(current) && isSessionCurrent(session))
         this.showOrder(order);
     } catch (error) {
