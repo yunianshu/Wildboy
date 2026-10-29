@@ -61,6 +61,9 @@ class BackendIntegrationTest {
 
   @BeforeEach
   void clean() {
+    db.update("DELETE FROM notification_outbox");
+    db.update("DELETE FROM notification_permission");
+    db.update("DELETE FROM activity_waitlist");
     db.execute("TRUNCATE legal_consent,legal_document_version");
     db.update(
         "UPDATE legal_document_state SET"

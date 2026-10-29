@@ -273,3 +273,16 @@ test("wx login synchronous failure rejects without backend request", async () =>
   await assert.rejects(api.login(versions), /暂不可用/);
   assert.equal(requestCount, 0);
 });
+
+test("AnyService materializes uploaded images through JSON with bounded app cache", async () => {
+  config.apiMode="anyservice";config.anyServiceEnvId="env";config.anyServiceName="service";
+  const name="11111111-1111-1111-1111-111111111111.png",path=`/assets/uploads/${name}`,calls=[],writes=[],removed=[];
+  wx.env={USER_DATA_PATH:"/app-cache"};
+  wx.getFileSystemManager=()=>({mkdirSync(){},readdirSync(){return Array.from({length:64},(_,i)=>`${String(i).padStart(8,'0')}-0000-0000-0000-000000000000.png`)},unlinkSync:p=>removed.push(p),writeFile:o=>{writes.push(o.filePath);o.success({})}});
+  wx.cloud={callContainer:o=>{calls.push(o.path);o.success({statusCode:200,data:o.path.includes('/media/')?{dataBase64:'AAAA'}:{imageUrl:path}})}};
+  const value=await api.request('/shop/products');
+  assert.equal(value.imageUrl,path);assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
+  assert.equal(api.mediaUrl(path),`/app-cache/wildboy-public-images/${name}`);assert.equal(writes.length,1);assert.equal(removed.length,1);
+  await api.request('/shop/products');assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
+  delete wx.env;delete wx.cloud;
+});

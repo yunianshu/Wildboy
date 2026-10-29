@@ -25,6 +25,7 @@ const emptyParticipant = (): ParticipantInput => ({
 Page({
   data: {
     id: "",
+    waitlistMode: false,
     activity: null as ReturnType<typeof activityView> | null,
     loading: true,
     error: "",
@@ -45,7 +46,7 @@ Page({
   },
   onLoad(o) {
     const id = safeId(o.id);
-    this.setData({ id });
+    this.setData({ id, waitlistMode: o.waitlist === "1" });
     if (id) void this.load();
     else this.setData({ error: "活动链接无效", loading: false });
   },
@@ -104,7 +105,7 @@ Page({
   },
   addParticipant() {
     if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
-    if (this.data.participants.length >= (this.data.activity?.available || 0)) {
+    if (this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity?.available || 0)) {
       this.setData({ fieldError: "添加人数不能超过当前剩余名额" });
       return;
     }
@@ -151,7 +152,7 @@ Page({
       this.setData({ participantError: "该身份证号已在报名名单中" });
       return;
     }
-    if (!this.data.activity?.enabled || this.data.participants.length >= this.data.activity.available) {
+    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled) || this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity!.available)) {
       this.setData({ participantError: "当前剩余名额不足，请返回刷新" });
       return;
     }
@@ -227,11 +228,11 @@ Page({
       this.setData({ fieldError });
       return;
     }
-    if (!this.data.activity?.enabled) {
+    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled)) {
       this.setData({ fieldError: "当前活动不可报名，请返回刷新" });
       return;
     }
-    if (this.data.participants.length > this.data.activity.available) {
+    if (!this.data.waitlistMode && this.data.participants.length > this.data.activity!.available) {
       this.setData({ fieldError: "报名人数超过剩余名额，请减少参与人" });
       return;
     }
@@ -263,6 +264,12 @@ Page({
         idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
       }));
+      if (this.data.waitlistMode) {
+        const result = await request<{id:string;activityId:string;status:string}>(`/activities/${this.data.id}/waitlist`, "POST", {participants,...versions});
+        if (!result?.id || result.activityId !== this.data.id || !["WAITING","OFFERED"].includes(result.status)) throw new Error("候补结果未确认，请到我的候补核对");
+        if(epoch.valid(n)){this.setData({participants:[{participantName:"",idNumber:"",phone:""}]});wx.redirectTo({url:"/pages/waitlist/index"});}
+        return;
+      }
       const result = await request<Registration>(
         `/activities/${this.data.id}/registrations`,
         "POST",
@@ -306,6 +313,7 @@ Page({
       if (epoch.valid(n)) this.setData({ submitting: false });
     }
   },
+  joinWaitlist() { if(!this.data.submitting && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },
   done() {
     wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
   },

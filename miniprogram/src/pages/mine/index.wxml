@@ -50,6 +50,8 @@
 
       </view>
     </view>
+    <view class="menu-row" bindtap="waitlist"><view class="menu-title">我的候补</view><text>›</text></view>
+    <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><text>›</text></view>
     <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><text>›</text></view>
     <view class="section-head compact">
       <view class="section-title">继续探索</view>

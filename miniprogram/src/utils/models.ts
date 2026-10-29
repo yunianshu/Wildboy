@@ -84,7 +84,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
 }
-export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED";
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
 export interface OrderItem {
   id: string;
   productId: string;

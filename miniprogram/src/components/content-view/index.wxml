@@ -1,0 +1,5 @@
+<view class="rich-content"><block wx:for="{{blocks}}" wx:key="index" wx:for-item="block">
+<text wx:if="{{block.type==='text'}}" class="rich-text">{{block.text}}</text>
+<view wx:elif="{{block.type==='image'}}" class="rich-image"><image src="{{block.url}}" mode="widthFix" lazy-load/><text wx:if="{{block.caption}}">{{block.caption}}</text></view>
+<scroll-view wx:elif="{{block.type==='table'}}" scroll-x class="rich-table-scroll"><view class="rich-table"><view wx:for="{{block.rows}}" wx:key="index" wx:for-item="row" class="rich-row"><text wx:for="{{row}}" wx:key="index" wx:for-item="cell" class="rich-cell">{{cell}}</text></view></view></scroll-view>
+</block></view>

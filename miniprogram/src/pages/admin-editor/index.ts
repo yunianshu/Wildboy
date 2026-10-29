@@ -1,3 +1,4 @@
+import { uploadImage } from "../../utils/content";
 import { request, isSessionCurrent, mediaUrl, ApiError } from "../../utils/api";
 import { Activity } from "../../utils/models";
 import { message, safeId, categories } from "../../utils/domain";
@@ -30,6 +31,8 @@ Page({
     categories,
     categoryIndex: 0,
   },
+  _uploading: false,
+  _alive: true,
   _epoch: 0,
   _session: -1,
   _loaded: false,
@@ -55,6 +58,7 @@ Page({
     });
   },
   onUnload() {
+    this._alive = false;
     this._epoch++;
   },
   async load(force = false) {
@@ -163,6 +167,18 @@ Page({
     if (!presets.includes(path)) return;
     this.setData({ "form.coverUrl": path, cover: path });
     this.markDirty();
+  },
+  editContent() { if (this.data.id && this.data.authorized && !this.data.busy) wx.navigateTo({url:`/pages/admin-content/index?id=${this.data.id}&kind=activity`}); },
+  async uploadCover() {
+    if (!this.data.authorized || this.data.busy) return;
+    if(this._uploading)return;
+    this._uploading=true;
+    const session=this._session;
+    this.setData({error:""});
+    try { const url=await uploadImage(); if(this._alive && isSessionCurrent(session)) {
+      this.setData({"form.coverUrl":url,dirty:true,cover:mediaUrl(url)});
+      wx.enableAlertBeforeUnload({message:"有未保存修改"});
+    } } catch(e) { if(this._alive && isSessionCurrent(session) && !message(e).includes("cancel")) this.setData({error:message(e)}); } finally {this._uploading=false;}
   },
   async reload() {
     if (this.data.busy) return;

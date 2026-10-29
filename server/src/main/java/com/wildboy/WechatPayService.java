@@ -198,4 +198,57 @@ public class WechatPayService {
       throw new ApiException(400, "INVALID_PAYMENT_NOTIFICATION", "支付通知内容无效");
     }
   }
+  private com.wechat.pay.java.service.refund.RefundService refunds() {
+    return new com.wechat.pay.java.service.refund.RefundService.Builder().config(config()).build();
+  }
+  private RefundModels.GatewayResult refundResult(com.wechat.pay.java.service.refund.model.Refund r) {
+    if(r==null || r.getAmount()==null || r.getStatus()==null || r.getAmount().getTotal()==null || r.getAmount().getRefund()==null)
+      throw new ApiException(502,"INVALID_REFUND_RESPONSE","微信退款响应不完整");
+    return new RefundModels.GatewayResult(r.getOutRefundNo(),r.getOutTradeNo(),r.getTransactionId(),r.getRefundId(),
+        r.getAmount().getTotal(),r.getAmount().getRefund(),r.getAmount().getCurrency(),r.getStatus().name());
+  }
+  public RefundModels.GatewayResult createRefund(ShopModels.Order order,RefundModels.Refund refund) {
+    try {
+      var request=new com.wechat.pay.java.service.refund.model.CreateRequest();
+      request.setTransactionId(order.paymentTransactionId());
+      request.setOutTradeNo(order.orderNo());request.setOutRefundNo(refund.outRefundNo());request.setReason(refund.reason());
+      request.setNotifyUrl(java.net.URI.create(notifyUrl).resolve("refund-notify").toString());
+      var amount=new com.wechat.pay.java.service.refund.model.AmountReq();
+      amount.setTotal((long)order.totalCents());amount.setRefund((long)refund.amountCents());amount.setCurrency("CNY");
+      request.setAmount(amount);return refundResult(refunds().create(request));
+    } catch(ApiException e){throw e;} catch(Exception e){throw new ApiException(502,"REFUND_UNCERTAIN","退款结果待核对");}
+  }
+  public RefundModels.GatewayResult queryRefund(String outRefundNo) {
+    try {
+      var request=new com.wechat.pay.java.service.refund.model.QueryByOutRefundNoRequest();request.setOutRefundNo(outRefundNo);
+      return refundResult(refunds().queryByOutRefundNo(request));
+    } catch(ApiException e){throw e;} catch(Exception e){throw new ApiException(502,"REFUND_QUERY_FAILED","退款结果暂无法确认");}
+  }
+  public RefundModels.GatewayResult parseRefundNotification(Map<String,String> headers,String body) {
+    try {
+      if(headers==null||body==null||body.isBlank()||body.length()>65536)throw new IllegalArgumentException();
+      for(String name:java.util.List.of("wechatpay-serial","wechatpay-nonce","wechatpay-signature","wechatpay-timestamp"))
+        if(headers.get(name)==null||headers.get(name).isBlank())throw new ApiException(401,"INVALID_REFUND_SIGNATURE","退款通知签名缺失");
+      long timestamp=Long.parseLong(headers.get("wechatpay-timestamp")),now=java.time.Instant.now().getEpochSecond();
+      if(timestamp<now-300||timestamp>now+300)throw new ApiException(401,"INVALID_REFUND_SIGNATURE","退款通知签名已过期");
+      NotificationConfig nc=new RSAPublicKeyNotificationConfig.Builder().publicKeyFromPath(publicKeyPath).publicKeyId(publicKeyId).apiV3Key(apiV3Key).build();
+      var request=new RequestParam.Builder().serialNumber(headers.get("wechatpay-serial")).nonce(headers.get("wechatpay-nonce"))
+          .signature(headers.get("wechatpay-signature")).timestamp(headers.get("wechatpay-timestamp")).body(body).build();
+      com.fasterxml.jackson.databind.JsonNode data=new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(new NotificationParser(nc).parse(request,Map.class));
+      var envelope=new com.fasterxml.jackson.databind.ObjectMapper().readTree(body);
+      String state=data.get("refund_status").asText();
+      if(!java.util.Set.of("SUCCESS","ABNORMAL","CLOSED").contains(state)
+          || !("REFUND."+state).equals(envelope.path("event_type").asText())
+          || !"encrypt-resource".equals(envelope.path("resource_type").asText())
+          || !"refund".equals(envelope.path("resource").path("original_type").asText())
+          || !merchantId.equals(data.get("mchid").asText()) || merchantId.isBlank())
+        throw new ApiException(400,"REFUND_MERCHANT_MISMATCH","退款通知类型或商户无效");
+      var amount=data.get("amount");
+      return new RefundModels.GatewayResult(data.get("out_refund_no").asText(),data.get("out_trade_no").asText(),
+          data.get("transaction_id").asText(),data.get("refund_id").asText(),amount.get("total").decimalValue().longValueExact(),
+          amount.get("refund").decimalValue().longValueExact(),amount.has("currency")?amount.get("currency").asText():"CNY",state);
+    } catch(ValidationException e){throw new ApiException(401,"INVALID_REFUND_SIGNATURE","退款通知验签失败");}
+      catch(ApiException e){throw e;} catch(Exception e){throw new ApiException(400,"INVALID_REFUND_NOTIFICATION","退款通知内容无效");}
+  }
+
 }

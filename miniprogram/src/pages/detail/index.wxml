@@ -27,7 +27,7 @@
     </view>
     <view class="article-section">
       <view class="section-bar">线路与流程</view>
-      <view class="section-body"><text class="body-copy">{{activity.description}}</text></view>
+      <view class="section-body"><content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}"/><text wx:else class="body-copy">{{activity.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view></view>
     </view>
     <view class="article-section" wx:if="{{registration && registration.status === 'CONFIRMED'}}">
       <view class="section-bar">我的报名</view>
@@ -43,7 +43,7 @@
     </view>
     <view class="sticky-action">
       <button wx:if="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
-      <button wx:else class="primary" disabled="{{!activity.enabled || !!registrationError}}" bindtap="register">{{activity.label}}</button>
+      <block wx:else><button wx:if="{{activity.canCancel && !activity.available}}" class="primary" disabled="{{!!registrationError}}" bindtap="waitlist">加入候补</button><button wx:else class="primary" disabled="{{!activity.enabled || !!registrationError}}" bindtap="register">{{activity.label}}</button></block>
     </view>
   </block>
 </view>

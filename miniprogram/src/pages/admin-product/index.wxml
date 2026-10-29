@@ -6,7 +6,7 @@
  <label>商品名称<input value="{{form.name}}" maxlength="120" data-field="name" bindinput="input" disabled="{{saving}}"/></label>
  <label>商品说明<textarea value="{{form.description}}" maxlength="20000" data-field="description" bindinput="input" disabled="{{saving}}"/></label>
  <label>封面图片 HTTPS 地址<input value="{{form.imageUrl}}" maxlength="2048" data-field="imageUrl" bindinput="input" disabled="{{saving}}"/></label>
- <view class="presets"><image wx:for="{{presets}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="preset"/></view>
+ <button class="secondary" bindtap="uploadCover" disabled="{{saving}}">上传封面</button><button wx:if="{{id}}" class="secondary" bindtap="editContent" disabled="{{saving}}">编辑图文详情</button><view class="presets"><image wx:for="{{presets}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="preset"/></view>
  <label>售价（元）<input value="{{form.price}}" type="digit" data-field="price" bindinput="input" disabled="{{saving}}"/></label>
  <label>可售库存<input value="{{form.stock}}" type="number" data-field="stock" bindinput="input" disabled="{{saving}}"/></label>
  <view class="muted">可售库存不含待付款订单占用数量。</view>

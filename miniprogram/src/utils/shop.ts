@@ -12,6 +12,7 @@ export function orderStatusLabel(status: OrderStatus): string {
       PAID: "已支付",
       CANCELLED: "已取消",
       SHIPPED: "已发货",
+    REFUNDED: "已退款",
     }[status] || "状态待确认"
   );
 }

@@ -22,6 +22,7 @@
     </button>
   </view>
   <block wx:if="{{authorized&&!loading}}">
+    <button class="secondary" bindtap="uploadCover" disabled="{{busy}}">上传封面</button><button wx:if="{{id}}" class="secondary" bindtap="editContent" disabled="{{busy}}">编辑图文详情</button>
     <image class="cover" src="{{cover}}" mode="aspectFill" />
     <view class="muted small">示意封面 · 可使用自有 HTTPS 图片</view>
     <scroll-view class="presets" scroll-x>

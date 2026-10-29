@@ -3,8 +3,12 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { errorMessage, request } from "../api";
 import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import ImageUpload from "../components/ImageUpload.vue";
+import RichContentEditor from "../components/RichContentEditor.vue";
 import type { Order, Page, Product, ProductStatus } from "../types";
 
+const contentOpen = ref(false);
+const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const products = ref<Product[]>([]),
   orders = ref<Page<Order>>({
     items: [],
@@ -36,6 +40,7 @@ const orderStatuses = {
   PAID: "已支付",
   CANCELLED: "已取消",
   SHIPPED: "已发货",
+  REFUNDED: "已退款",
 };
 function maskPhone(phone: string) {
   return phone.length > 7
@@ -70,6 +75,8 @@ function changePage(delta: number) {
   void load();
 }
 function edit(product: Product) {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
   editingId.value = product.id;
   form.value = {
     name: product.name,
@@ -81,6 +88,8 @@ function edit(product: Product) {
   };
 }
 function reset() {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
   editingId.value = "";
   form.value = {
     name: "",
@@ -196,6 +205,7 @@ onUnmounted(() => {
           取消编辑
         </button>
       </div>
+      <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
       <form class="form-grid" @submit.prevent="save">
         <label
           >商品名称<input
@@ -353,6 +363,20 @@ onUnmounted(() => {
       confirm-label="确认发货"
       @cancel="shipping = null"
       @confirm="ship"
+    />
+    <button
+      v-if="editingId && !contentOpen"
+      type="button"
+      class="secondary button"
+      @click="contentOpen = true"
+    >
+      编辑图文详情
+    </button>
+    <RichContentEditor
+      ref="contentEditor"
+      v-if="editingId && contentOpen"
+      :path="`/admin/shop/products/${editingId}/content`"
+      :disabled="busy"
     />
   </main>
 </template>

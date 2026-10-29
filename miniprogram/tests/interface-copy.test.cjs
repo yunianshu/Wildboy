@@ -30,7 +30,9 @@ test("concise forms retain personal-data purposes and financial uncertainty warn
   assert.match(page("checkout"), /订单履约处理收货与支付信息/);
   assert.match(page("checkout"), /支付状态待核对，库存暂时保留/);
   assert.match(page("checkout"), /已付款请刷新结果，勿重复下单/);
-  assert.match(page("orders"), /暂不支持在线退款或修改地址/);
+  assert.match(page("orders"), /已发货订单售后请联系客服/);
+  assert.match(page("orders"), /订单地址不可修改/);
+  assert.match(page("orders"), /仅支持已付款未发货订单全额退款/);
   assert.match(page("detail"), /天气、路况可能变化/);
   assert.match(page("privacy"), /document.content/);
 });

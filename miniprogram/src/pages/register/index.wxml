@@ -15,7 +15,7 @@
     <button class="secondary" bindtap="myActivities">我的报名</button>
   </view>
   <block wx:else>
-    <view class="title">活动报名</view>
+    <view class="title">{{waitlistMode ? "活动候补" : "活动报名"}}</view>
     <view wx:if="{{loading}}" class="state">正在确认活动…</view>
     <view wx:elif="{{error}}" class="state error">
       {{error}}
@@ -88,7 +88,7 @@
       <button
         class="secondary add-participant"
         bindtap="addParticipant"
-        disabled="{{submitting || participants.length >= activity.available}}"
+        disabled="{{submitting || participants.length >= (waitlistMode ? activity.capacity : activity.available)}}"
       >＋ 新增报名人</button>
       <checkbox-group bindchange="consentChange">
         <view class="consent">
@@ -115,11 +115,13 @@
       <button
         class="primary submit"
         loading="{{submitting}}"
-        disabled="{{submitting || !activity.enabled || !legal}}"
+        disabled="{{submitting || !(waitlistMode ? activity.canCancel : activity.enabled) || !legal}}"
         bindtap="submit"
       >
-        {{submitting ? '正在确认名额…' : activity.label}}
+        {{submitting ? '正在确认…' : (waitlistMode ? '整组加入候补' : activity.label)}}
       </button>
+      <button wx:if="{{!waitlistMode && activity.canCancel}}" class="text-button" bindtap="joinWaitlist" disabled="{{submitting}}">名额不足？整组候补</button>
+      <view wx:if="{{waitlistMode}}" class="notice">按整组顺序候补，有名额后须在 30 分钟内确认，临近报名截止以显示时间为准。</view>
       <view class="muted small center">
         报名结果请以“我的报名”为准。
       </view>

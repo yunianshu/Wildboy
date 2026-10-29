@@ -67,7 +67,39 @@ export class ApiError extends Error {
     super(message);
   }
 }
+const uploadedImages = new Map<string, string>();
+const uploadedImageRequests = new Map<string, Promise<void>>();
+let imageWriteQueue: Promise<void> = Promise.resolve();
+const uploadedImagePattern = /^\/assets\/uploads\/[0-9a-f-]{36}\.png$/;
+async function cacheUploadedImage(path: string): Promise<void> {
+  if (uploadedImages.has(path)) return;
+  const pending=uploadedImageRequests.get(path); if(pending)return pending;
+  const task=(async()=>{
+    const name=path.slice(path.lastIndexOf("/")+1);
+    const data=await request<{dataBase64:string}>(`/media/${name}`);
+    if(typeof data.dataBase64!=="string"||data.dataBase64.length>5592408||!wx.env?.USER_DATA_PATH)return;
+    const directory=`${wx.env.USER_DATA_PATH}/wildboy-public-images`,filePath=`${directory}/${name}`;
+    const write=imageWriteQueue.catch(()=>{}).then(async()=>{
+      const fs=wx.getFileSystemManager();
+      try{fs.mkdirSync(directory,true)}catch(_){}
+      const names=fs.readdirSync(directory).filter(n=>/^[0-9a-f-]{36}\.png$/.test(n));
+      while(names.length>=64){const old=names.shift()!;if(old===name)continue;const oldPath=`${directory}/${old}`;try{fs.unlinkSync(oldPath);for(const [key,value] of uploadedImages)if(value===oldPath)uploadedImages.delete(key)}catch(_){}}
+      await new Promise<void>((resolve,reject)=>fs.writeFile({filePath,data:data.dataBase64,encoding:"base64",success:()=>resolve(),fail:reject}));
+      uploadedImages.set(path,filePath);
+    });
+    imageWriteQueue=write;await write;
+  })().finally(()=>uploadedImageRequests.delete(path));
+  uploadedImageRequests.set(path,task);return task;
+}
+async function cacheResponseImages(payload: unknown): Promise<void> {
+  const paths=new Set<string>();
+  function visit(value:unknown,depth=0){if(depth>8)return;if(typeof value==="string"){if(uploadedImagePattern.test(value))paths.add(value)}else if(Array.isArray(value)){value.forEach(v=>visit(v,depth+1))}else if(value&&typeof value==="object"){Object.values(value).forEach(v=>visit(v,depth+1))}}
+  visit(payload);
+  const queue=[...paths];
+  await Promise.all(Array.from({length:Math.min(4,queue.length)},async()=>{while(queue.length){const path=queue.shift()!;try{await cacheUploadedImage(path)}catch(_){/* Keep API data usable when only an image fails; a later request retries. */}}}));
+}
 export function mediaUrl(value: string): string {
+  if(requiresAnyService() && uploadedImagePattern.test(value))return uploadedImages.get(value)||"/assets/equipment.jpg";
   return /^\/assets\/(hero-hiking|category-weekly|category-domestic|category-holiday|category-leisure|equipment)\.jpg$/.test(
     value,
   )
@@ -122,7 +154,12 @@ export function request<T>(
         return;
       }
       if (statusCode >= 200 && statusCode < 300) {
-        resolve(payload as T);
+        if(requiresAnyService() && !path.startsWith("/media/") && wx.env?.USER_DATA_PATH) {
+          void cacheResponseImages(payload).then(()=>{
+            if(token && (version!==sessionEpoch || token!==wx.getStorageSync(TOKEN_KEY))) reject(new ApiError("账号已切换，请刷新页面",409,"SESSION_CHANGED"));
+            else resolve(payload as T);
+          },reject);
+        } else resolve(payload as T);
         return;
       }
       const body = (

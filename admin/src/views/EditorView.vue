@@ -15,6 +15,9 @@ import {
 } from "../types";
 import { fromShanghaiInput, toShanghaiInput, validateActivity } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import ImageUpload from "../components/ImageUpload.vue";
+import RichContentEditor from "../components/RichContentEditor.vue";
+const contentOpen = ref(false);
 const route = useRoute(),
   router = useRouter(),
   id = computed(() =>
@@ -304,6 +307,10 @@ onUnmounted(() => {
                 /><small class="field-error">{{ errors.summary }}</small></label
               >
               <div class="preset-heading">封面预设</div>
+              <ImageUpload
+                :disabled="saving || readonly"
+                @uploaded="fields.coverUrl = $event"
+              />
               <div class="cover-presets">
                 <button
                   v-for="preset in coverPresets"
@@ -497,6 +504,19 @@ onUnmounted(() => {
       :confirm-label="dialog === 'publish' ? '确认发布' : '确认取消活动'"
       @confirm="confirmAction"
       @cancel="!saving && (dialog = null)"
+    />
+    <button
+      v-if="id && !contentOpen"
+      type="button"
+      class="secondary button"
+      @click="contentOpen = true"
+    >
+      编辑图文详情
+    </button>
+    <RichContentEditor
+      v-if="id && contentOpen"
+      :path="`/admin/activities/${id}/content`"
+      :disabled="saving || readonly"
     />
   </main>
 </template>

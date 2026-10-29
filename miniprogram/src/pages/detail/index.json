@@ -1,4 +1,7 @@
 {
   "navigationBarTitleText": "活动详情",
-  "enablePullDownRefresh": true
+  "enablePullDownRefresh": true,
+  "usingComponents": {
+    "content-view": "../../components/content-view/index"
+  }
 }

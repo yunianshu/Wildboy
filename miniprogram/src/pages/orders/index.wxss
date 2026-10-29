@@ -16,3 +16,7 @@
 .filter { flex: 0 0 auto; margin: 0; padding: 0 22rpx; font-size: 24rpx; line-height: 68rpx; border-radius: 40rpx; background: #edf0e8; }
 .filter.active { color: #fff; background: #193f34; }
 .end { text-align: center; margin-top: 24rpx; }
+
+.refund-overlay { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.4); display:flex;align-items:center;justify-content:center;padding:32rpx;}
+.refund-dialog {width:100%;max-width:620rpx;max-height:80vh;overflow-y:auto;background:#fafaf6;border-radius:24rpx;padding:32rpx;}
+.refund-dialog button {margin-top:24rpx;}

@@ -1,3 +1,4 @@
+import { loadContent, ContentBlock } from "../../utils/content";
 import {
   request,
   mediaUrl,
@@ -15,8 +16,11 @@ import {
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
 Page({
+  _contentGeneration: 0,
   data: {
     id: "",
+    contentBlocks: [] as ContentBlock[],
+    contentError: "",
     activity: null as ReturnType<typeof activityView> | null,
     registration: null as Registration | null,
     loading: true,
@@ -32,13 +36,14 @@ Page({
     if (!id) this.setData({ loading: false, error: "活动链接无效" });
   },
   onShow() {
-    if (this.data.id) void this.load();
+    if (this.data.id) { void this.load(); void this.loadRichContent(); }
   },
   onHide() {
     epoch.invalidate();
     this.setData({ registration: null, cancelling: false });
   },
   onUnload() {
+    this._contentGeneration++;
     epoch.invalidate();
   },
   onPullDownRefresh() {
@@ -80,9 +85,16 @@ Page({
       if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
+  async loadRichContent() {
+    const id = this.data.id, generation = ++this._contentGeneration;
+    try { const document = await loadContent(`/activities/${id}/content`);
+      if (this.data.id === id && generation === this._contentGeneration) this.setData({contentBlocks: document.blocks, contentError: ""});
+    } catch (_) { if (this.data.id === id && generation === this._contentGeneration) this.setData({contentError: "图文暂未加载"}); }
+  },
   retry() {
     void this.load();
   },
+  waitlist() { if (this.data.activity?.canCancel && !this.data.activity.available) wx.navigateTo({url:`/pages/register/index?id=${this.data.id}&waitlist=1`}); },
   register() {
     if (this.data.activity?.enabled)
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });

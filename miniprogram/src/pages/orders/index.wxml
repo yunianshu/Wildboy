@@ -13,11 +13,20 @@
       <view wx:if="{{item.status === 'PENDING_PAYMENT' && item.deadlineText}}" class="muted small">付款截止 {{item.deadlineText}}</view>
       <view wx:if="{{item.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留，请联系管理员。</view>
       <view class="order-number">订单号 {{item.orderNo}}</view>
-      <view class="order-actions"><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="verify" disabled="{{busyId || loading || loadingMore}}">刷新支付结果</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" loading="{{busyId === item.id}}" disabled="{{busyId || loading || loadingMore}}">继续支付</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="cancel" disabled="{{busyId || loading || loadingMore}}">取消订单</button></view>
+      <view class="order-actions"><button wx:if="{{item.status === 'PAID' || item.status === 'REFUNDED'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="openRefund" disabled="{{busyId || loading || loadingMore}}">退款 / 售后</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="verify" disabled="{{busyId || loading || loadingMore}}">刷新支付结果</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" loading="{{busyId === item.id}}" disabled="{{busyId || loading || loadingMore}}">继续支付</button><button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="cancel" disabled="{{busyId || loading || loadingMore}}">取消订单</button></view>
     </view>
     <view wx:if="{{error}}" class="state error">{{error}}</view>
     <button wx:if="{{hasMore}}" class="secondary" bindtap="more" loading="{{loadingMore}}" disabled="{{loading || loadingMore || busyId}}">{{loadingMore ? '正在加载…' : '加载更多订单'}}</button>
     <view wx:elif="{{items.length}}" class="muted end">已显示全部订单</view>
-    <view class="notice">支付状态以订单确认为准；暂不支持在线退款或修改地址。</view>
+    <view class="notice">已发货订单售后请联系客服；订单地址不可修改。</view>
   </block>
+</view>
+
+<view wx:if="{{refundOrderId}}" class="refund-overlay" catchtap="closeRefund" catchtouchmove="stopRefundEvent">
+ <view class="refund-dialog" catchtap="stopRefundEvent">
+  <view class="title">退款 / 售后</view>
+  <block wx:if="{{refundRecord}}"><view class="badge">{{refundStatusText}}</view><view class="notice">{{refundRecord.reason}}</view><view>{{refundRecord.decisionNote || refundRecord.lastError}}</view></block>
+  <block wx:else><view class="notice">仅支持已付款未发货订单全额退款，提交后等待审核。</view><textarea placeholder="退款原因" maxlength="200" value="{{refundReason}}" bindinput="refundInput" disabled="{{busyId}}" /><button class="primary" bindtap="requestRefund" disabled="{{busyId}}" loading="{{busyId}}">提交申请</button></block>
+  <view wx:if="{{refundError}}" class="error">{{refundError}}</view><button class="secondary" bindtap="closeRefund" disabled="{{busyId}}">关闭</button>
+ </view>
 </view>

@@ -391,3 +391,21 @@ test("order list provides active reconciliation without repeat payment", async (
   assert.equal(p.data.items[0].status,"PAID");
   assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
 });
+
+test("refund modal only submits after reason and shows pending review, not refunded",async()=>{
+ const p=page("orders");api.request=async(path,method,data)=>{requests.push({path,method,data});return method==="POST"?{id:"r",orderId:"order-1",status:"REQUESTED",reason:data.reason}:null;};
+ await p.openRefund(event("order-1"));assert.equal(p.data.refundOrderId,"order-1");assert.equal(p.data.refundRecord,null);
+ await p.requestRefund();assert.match(p.data.refundError,/原因/);assert.equal(requests.length,1);
+ p.refundInput({detail:{value:"不再需要"}});await p.requestRefund();assert.equal(p.data.refundRecord.status,"REQUESTED");assert.equal(p.data.refundStatusText,"待审核");
+ await p.requestRefund();assert.equal(requests.filter(r=>r.method==="POST").length,1);
+ p.closeRefund();assert.equal(p.data.refundOrderId,"");
+});
+test("refund cancellation and hidden-page responses do not retain private data",async()=>{
+ const p=page("orders");let resolve;api.request=()=>new Promise(r=>resolve=r);
+ const pending=p.openRefund(event("order-1"));p.onHide();resolve({id:"r",status:"REQUESTED",reason:"private"});await pending;
+ assert.equal(p.data.refundOrderId,"");assert.equal(p.data.refundRecord,null);
+});
+test("refund submission uses current identity and duplicate clicks send once",async()=>{
+ const p=page("orders");p.setData({refundOrderId:"order-1",refundReason:"不再需要"});let resolve;let calls=0;api.request=()=>{calls++;return new Promise(r=>resolve=r);};
+ const pending=p.requestRefund();await p.requestRefund();assert.equal(calls,1);session++;resolve({id:"r",status:"REQUESTED"});await pending;assert.equal(p.data.refundRecord,null);
+});
