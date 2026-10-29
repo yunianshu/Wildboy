@@ -92,7 +92,7 @@ describe("editor workflow", () => {
       .findAll("button")
       .find((b) => b.text() === "返回检查")
       ?.trigger("click");
-    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("发布这场活动？");
     expect(fetch).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
@@ -137,7 +137,7 @@ describe("editor workflow", () => {
       .find((b) => b.text() === "发布活动 ↗")
       ?.trigger("click");
     expect(wrapper.get("[role=alert]").text()).toContain("请先保存");
-    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("发布这场活动？");
     expect(fetch).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });

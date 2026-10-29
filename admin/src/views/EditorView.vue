@@ -15,9 +15,11 @@ import {
 } from "../types";
 import { fromShanghaiInput, toShanghaiInput, validateActivity } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
 const contentOpen = ref(false);
+const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const route = useRoute(),
   router = useRouter(),
   id = computed(() =>
@@ -195,6 +197,13 @@ function reload() {
   if (!dirty.value || window.confirm("重新加载会丢弃未保存的修改，是否继续？"))
     void load();
 }
+function closeEditor() {
+  void router.push("/activities");
+}
+function closeContent() {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
+}
 function beforeUnload(event: BeforeUnloadEvent) {
   if (dirty.value) {
     event.preventDefault();
@@ -220,8 +229,7 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <main class="workspace editor-workspace">
-    <RouterLink class="back-link" to="/activities">← 返回活动目录</RouterLink>
+  <FormModal class="editor-workspace" size="xl" @close="closeEditor">
     <section class="page-heading">
       <div>
         <h1>{{ id ? "编辑活动" : "新建活动" }}</h1>
@@ -464,6 +472,14 @@ onUnmounted(() => {
         >
         <div>
           <button
+            v-if="id"
+            type="button"
+            class="secondary"
+            :disabled="saving"
+            @click="contentOpen = true"
+          >
+            编辑图文详情</button
+          ><button
             v-if="current?.status === 'PUBLISHED'"
             type="button"
             class="danger-outline"
@@ -491,7 +507,15 @@ onUnmounted(() => {
         </div>
       </div>
     </form>
-    <ConfirmDialog
+  </FormModal>
+  <FormModal v-if="id && contentOpen" size="lg" @close="closeContent">
+    <RichContentEditor
+      ref="contentEditor"
+      :path="`/admin/activities/${id}/content`"
+      :disabled="saving || readonly"
+    />
+  </FormModal>
+  <ConfirmDialog
       v-if="dialog"
       :busy="saving"
       :danger="dialog === 'cancel'"
@@ -505,18 +529,4 @@ onUnmounted(() => {
       @confirm="confirmAction"
       @cancel="!saving && (dialog = null)"
     />
-    <button
-      v-if="id && !contentOpen"
-      type="button"
-      class="secondary button"
-      @click="contentOpen = true"
-    >
-      编辑图文详情
-    </button>
-    <RichContentEditor
-      v-if="id && contentOpen"
-      :path="`/admin/activities/${id}/content`"
-      :disabled="saving || readonly"
-    />
-  </main>
 </template>

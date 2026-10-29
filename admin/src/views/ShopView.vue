@@ -3,11 +3,13 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { errorMessage, request } from "../api";
 import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
 import type { Order, Page, Product, ProductStatus } from "../types";
 
 const contentOpen = ref(false);
+const formOpen = ref(false);
 const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const products = ref<Product[]>([]),
   orders = ref<Page<Order>>({
@@ -74,20 +76,7 @@ function changePage(delta: number) {
   page.value = Math.max(0, page.value + delta);
   void load();
 }
-function edit(product: Product) {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
-  contentOpen.value = false;
-  editingId.value = product.id;
-  form.value = {
-    name: product.name,
-    description: product.description,
-    imageUrl: product.imageUrl,
-    priceYuan: (product.priceCents / 100).toFixed(2),
-    stock: String(product.stock),
-    status: product.status,
-  };
-}
-function reset() {
+function openNew() {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
   contentOpen.value = false;
   editingId.value = "";
@@ -99,6 +88,38 @@ function reset() {
     stock: "0",
     status: "ON_SALE",
   };
+  formOpen.value = true;
+}
+function edit(product: Product) {
+  contentOpen.value = false;
+  editingId.value = product.id;
+  form.value = {
+    name: product.name,
+    description: product.description,
+    imageUrl: product.imageUrl,
+    priceYuan: (product.priceCents / 100).toFixed(2),
+    stock: String(product.stock),
+    status: product.status,
+  };
+  formOpen.value = true;
+}
+function reset() {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
+  editingId.value = "";
+  formOpen.value = false;
+  form.value = {
+    name: "",
+    description: "",
+    imageUrl: "/assets/equipment.jpg",
+    priceYuan: "99.00",
+    stock: "0",
+    status: "ON_SALE",
+  };
+}
+function closeContent() {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  contentOpen.value = false;
 }
 async function save() {
   if (busy.value) return;
@@ -193,65 +214,11 @@ onUnmounted(() => {
       <div>
         <h1>商城运营</h1>
       </div>
-      <button class="secondary button" @click="reset">＋ 新商品</button>
+      <button class="secondary button" @click="openNew">＋ 新商品</button>
     </section>
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
-    <section class="editor-section">
-      <div class="section-heading">
-        <h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2>
-        <button v-if="editingId" class="text-button" @click="reset">
-          取消编辑
-        </button>
-      </div>
-      <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
-      <form class="form-grid" @submit.prevent="save">
-        <label
-          >商品名称<input
-            v-model="form.name"
-            required
-            maxlength="120"
-            :disabled="busy"
-        /></label>
-        <label
-          >图片地址<input v-model="form.imageUrl" required :disabled="busy"
-        /></label>
-        <label
-          >价格（元）<input
-            v-model="form.priceYuan"
-            inputmode="decimal"
-            required
-            :disabled="busy"
-        /></label>
-        <label
-          >库存<input
-            v-model="form.stock"
-            type="number"
-            min="0"
-            max="1000000"
-            required
-            :disabled="busy"
-        /></label>
-        <label
-          >销售状态<select v-model="form.status" :disabled="busy">
-            <option value="ON_SALE">上架销售</option>
-            <option value="OFF_SHELF">下架</option>
-          </select></label
-        >
-        <label class="full-field"
-          >商品说明<textarea
-            v-model="form.description"
-            required
-            maxlength="20000"
-            :disabled="busy"
-          />
-        </label>
-        <button class="primary" :disabled="busy">
-          {{ busy ? "正在保存…" : editingId ? "保存商品" : "创建商品" }}
-        </button>
-      </form>
-    </section>
     <section class="editor-section">
       <div class="section-heading">
         <h2>商品目录</h2>
@@ -364,20 +331,76 @@ onUnmounted(() => {
       @cancel="shipping = null"
       @confirm="ship"
     />
-    <button
-      v-if="editingId && !contentOpen"
-      type="button"
-      class="secondary button"
-      @click="contentOpen = true"
-    >
-      编辑图文详情
-    </button>
-    <RichContentEditor
-      ref="contentEditor"
+    <FormModal v-if="formOpen" size="lg" @close="reset">
+      <div class="section-heading">
+        <h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2>
+      </div>
+      <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
+      <form class="form-grid" @submit.prevent="save">
+        <label
+          >商品名称<input
+            v-model="form.name"
+            required
+            maxlength="120"
+            :disabled="busy"
+        /></label>
+        <label
+          >图片地址<input v-model="form.imageUrl" required :disabled="busy"
+        /></label>
+        <label
+          >价格（元）<input
+            v-model="form.priceYuan"
+            inputmode="decimal"
+            required
+            :disabled="busy"
+        /></label>
+        <label
+          >库存<input
+            v-model="form.stock"
+            type="number"
+            min="0"
+            max="1000000"
+            required
+            :disabled="busy"
+        /></label>
+        <label
+          >销售状态<select v-model="form.status" :disabled="busy">
+            <option value="ON_SALE">上架销售</option>
+            <option value="OFF_SHELF">下架</option>
+          </select></label
+        >
+        <label class="full-field"
+          >商品说明<textarea
+            v-model="form.description"
+            required
+            maxlength="20000"
+            :disabled="busy"
+          />
+        </label>
+        <button class="primary" :disabled="busy">
+          {{ busy ? "正在保存…" : editingId ? "保存商品" : "创建商品" }}
+        </button>
+      </form>
+      <button
+        v-if="editingId"
+        type="button"
+        class="secondary content-button"
+        @click="contentOpen = true"
+      >
+        编辑图文详情
+      </button>
+    </FormModal>
+    <FormModal
       v-if="editingId && contentOpen"
-      :path="`/admin/shop/products/${editingId}/content`"
-      :disabled="busy"
-    />
+      size="lg"
+      @close="closeContent"
+    >
+      <RichContentEditor
+        ref="contentEditor"
+        :path="`/admin/shop/products/${editingId}/content`"
+        :disabled="busy"
+      />
+    </FormModal>
   </main>
 </template>
 
@@ -417,6 +440,9 @@ onUnmounted(() => {
 }
 .form-grid .primary {
   justify-self: start;
+}
+.content-button {
+  margin-top: 18px;
 }
 .order-admin-card {
   padding: 22px 0;

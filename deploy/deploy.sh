@@ -49,12 +49,16 @@ if [ ! -f "$CRED_FILE" ]; then
   echo "ERROR: AnyService credential file not found: $CRED_FILE" >&2
   exit 1
 fi
-# shellcheck disable=SC1090
-. "$CRED_FILE"
-if [ -z "${ANYSERVICE_AUTHORIZATION_HEADER:-}" ]; then
-  echo "ERROR: ANYSERVICE_AUTHORIZATION_HEADER missing in $CRED_FILE" >&2
-  exit 1
-fi
+# Extract by parsing, not sourcing: the file's values are unquoted and the
+# header value contains spaces, which `.` would split into word fragments.
+ANY_AUTH=$(grep -E '^ANYSERVICE_AUTHORIZATION_HEADER=' "$CRED_FILE" | head -1 | cut -d= -f2- | tr -d '\r')
+case "$ANY_AUTH" in
+  "Basic "*) ;;
+  *)
+    echo "ERROR: ANYSERVICE_AUTHORIZATION_HEADER must start with 'Basic ' (got: ${ANY_AUTH:-empty})" >&2
+    exit 1
+    ;;
+esac
 
 RUNTIME_DIR=/root/wildboy-deploy
 mkdir -p "$RUNTIME_DIR/edge" "$RUNTIME_DIR/admin"

@@ -1,6 +1,6 @@
 // Upload dist/ to WeChat as a development version via miniprogram-ci.
 // Requires the code upload key: WILDBOY_UPLOAD_KEY or
-// %USERPROFILE%/.wechat-keys/private.wx659060b1117220e5.key.
+// %USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key.
 // The uploaded package must already be built: npm run build first
 // (src/config.ts already carries the AnyService trial values).
 const path = require("node:path");
@@ -8,11 +8,11 @@ const ci = require("miniprogram-ci");
 
 const keyPath =
   process.env.WILDBOY_UPLOAD_KEY ||
-  path.join(process.env.USERPROFILE || "", ".wechat-keys", "private.wx659060b1117220e5.key");
+  path.join(process.env.USERPROFILE || "", ".wechat-keys", "private.wxa62bfca387e6809b.key");
 
 (async () => {
   const project = new ci.Project({
-    appid: "wx659060b1117220e5",
+    appid: "wxa62bfca387e6809b",
     type: "miniProgram",
     projectPath: path.resolve(__dirname, ".."),
     privateKeyPath: keyPath,
