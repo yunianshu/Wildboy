@@ -186,6 +186,64 @@ function filled() {
   });
   return p;
 }
+
+test("register resumes interrupted loading when returning to the page", async () => {
+  const p = page("register");
+  p.setData({id: activity.id, loading: true});
+  p.onHide();
+  response = async () => activity;
+  p.onShow();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(p.data.loading, false);
+  assert.equal(p.data.activity.id, activity.id);
+});
+
+test("failed native cancel confirmation unlocks the detail without cancelling registration", async () => {
+  const p = page("detail");
+  p.setData({id: activity.id, activity: {...activity, canCancel: true}, loading: false});
+  const originalModal = wx.showModal;
+  wx.showModal = async () => { throw new Error("native modal failed"); };
+  try {
+    await p.cancel();
+    assert.equal(p.data.cancelling, false);
+    assert.equal(calls.filter(c => c.method === "DELETE").length, 0);
+    assert.match(p.data.registrationError, /native modal failed/);
+  } finally {
+    wx.showModal = originalModal;
+  }
+});
+
+test("register discards personal draft and consent after switching accounts", () => {
+  const p = filled();
+  p.setData({session: 1, loading: false});
+  p.onHide();
+  api.sessionVersion = () => 2;
+  p.onShow();
+  assert.equal(p.data.participants[0].participantName, "");
+  assert.equal(p.data.participants[0].phone, "");
+  assert.equal(p.data.participants[0].idNumber, "");
+  assert.equal(p.data.consent, false);
+  assert.equal(p.data.privacyRead, false);
+});
+
+test("register cannot send an earlier user's draft after identity changes during legal refresh", async () => {
+  const p = filled();
+  let session = 1;
+  api.sessionVersion = () => session;
+  api.isSessionCurrent = value => value === session;
+  api.request = async (path, method) => {
+    calls.push({path, method});
+    if (path === "/legal/current") {
+      session++;
+      return structuredClone(legal);
+    }
+    return registration;
+  };
+  await p.submit();
+  assert.equal(calls.filter(c => c.method === "POST").length, 0);
+  assert.equal(p.data.participants[0].participantName, "");
+  assert.equal(p.data.submitting, false);
+});
 test("signup navigates only after confirmed response", async () => {
   const p = filled();
   response = async () => registration;

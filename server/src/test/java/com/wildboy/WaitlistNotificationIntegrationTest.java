@@ -21,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class WaitlistNotificationIntegrationTest {
  static final EmbeddedPostgres pg;static{try{pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();}catch(Exception e){throw new ExceptionInInitializerError(e);}}
  @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->pg.getJdbcUrl("postgres","postgres"));r.add("spring.datasource.username",()->"postgres");r.add("spring.datasource.password",()->"");r.add("wildboy.notifications.scan-ms",()->"3600000");}
+ @DynamicPropertySource static void identityProperties(DynamicPropertyRegistry r){r.add("wildboy.identity.encryption-key",()->Base64.getEncoder().encodeToString(new byte[32]));}
  @Autowired WaitlistService waitlists;@Autowired ActivityService activities;@Autowired LegalService legal;@Autowired AuthService auth;@Autowired JdbcTemplate db;@Autowired NotificationService notifications;@Autowired MockMvc mvc;
  @MockitoBean WechatNotificationGateway gateway;
  @BeforeEach void setup(){db.update("DELETE FROM notification_outbox");db.update("DELETE FROM notification_permission");db.update("DELETE FROM activity_waitlist");db.update("DELETE FROM registration_participant");db.update("DELETE FROM registration");db.update("DELETE FROM activity");db.execute("TRUNCATE legal_consent,legal_document_version");db.update("UPDATE legal_document_state SET draft_title='',draft_content='',draft_revision=0,published_version=NULL");for(var kind:LegalModels.Kind.values()){var d=legal.save(kind,new LegalModels.DraftInput("Test "+kind,"Test synthetic policy for QA only.",0L),"test");legal.publish(kind,d.draft().revision(),"test");}reset(gateway);when(gateway.ready()).thenReturn(false);}
@@ -36,4 +37,22 @@ class WaitlistNotificationIntegrationTest {
  @Test void staleOfferAndRescheduledPretripNeverSend(){var a=activity(1);var holder=user();activities.register(a.id(),holder.id(),input(1));var owner=user();var e=waitlists.join(a.id(),owner.id(),input(1));activities.cancelOwn(a.id(),holder.id());when(gateway.ready()).thenReturn(true);notifications.subscribe(owner.id(),true);db.update("UPDATE activity_waitlist SET offer_expires_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE id=?",e.id());notifications.scan();assertThat(notifications.list(owner.id(),0,20).items().getFirst().status()).isEqualTo("OBSOLETE");waitlists.promote(a.id());activities.register(a.id(),holder.id(),input(1));notifications.activityNotice(activities.get(a.id(),true),"PRETRIP","准备出发");db.update("UPDATE activity SET start_at=start_at+INTERVAL '1 day',end_at=end_at+INTERVAL '1 day' WHERE id=?",a.id());notifications.scan();assertThat(notifications.list(holder.id(),0,20).items().getFirst().status()).isEqualTo("OBSOLETE");verify(gateway,never()).send(anyString(),anyString(),anyString(),anyString(),any());}
  @Test void capacityCannotRemoveReservedWholeGroup(){var a=activity(2);var holder=user();activities.register(a.id(),holder.id(),input(2));waitlists.join(a.id(),user().id(),input(2));activities.cancelOwn(a.id(),holder.id());var x=activities.get(a.id(),true);var edit=new ActivityInput(x.title(),x.category(),x.coverUrl(),x.galleryUrls(),x.summary(),x.description(),x.location(),x.meetingPoint(),x.startAt(),x.endAt(),x.registrationDeadline(),1,0,x.version(),false);assertThatThrownBy(()->activities.edit(x.id(),edit,"test")).isInstanceOf(ApiException.class);assertThat(waitlists.reserved(x.id())).isEqualTo(2);}
  @Test void capacityCannotStrandWaitingHead(){var a=activity(10);activities.register(a.id(),user().id(),input(3));waitlists.join(a.id(),user().id(),input(8));var x=activities.get(a.id(),true);var edit=new ActivityInput(x.title(),x.category(),x.coverUrl(),x.galleryUrls(),x.summary(),x.description(),x.location(),x.meetingPoint(),x.startAt(),x.endAt(),x.registrationDeadline(),5,0,x.version(),false);assertThatThrownBy(()->activities.edit(x.id(),edit,"test")).isInstanceOf(ApiException.class);}
+ @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+ void identityRequirementCannotStrandWaitingOrOfferedParticipants(boolean required){
+   var a=activity(1);
+   if(required) a=activities.edit(a.id(),new ActivityInput(a.title(),a.category(),a.coverUrl(),a.galleryUrls(),a.summary(),a.description(),a.location(),a.meetingPoint(),a.startAt(),a.endAt(),a.registrationDeadline(),a.capacity(),0,a.version(),true),"test");
+   var people=required?new RegistrationInput(List.of(new ParticipantInput("QA identity","11010519491231002X","13800000000")),1L,1L):input(1);
+   var holder=user();activities.register(a.id(),holder.id(),people);
+   var owner=user();var e=waitlists.join(a.id(),owner.id(),people);
+   for(String expected:List.of("WAITING","OFFERED")) {
+     var x=activities.get(a.id(),true);
+     var edit=new ActivityInput(x.title(),x.category(),x.coverUrl(),x.galleryUrls(),x.summary(),x.description(),x.location(),x.meetingPoint(),x.startAt(),x.endAt(),x.registrationDeadline(),x.capacity(),0,x.version(),!required);
+     assertThat(waitlists.entry(e.id(),owner.id()).status()).isEqualTo(expected);
+     assertThatThrownBy(()->activities.edit(x.id(),edit,"test")).isInstanceOf(ApiException.class).hasMessageContaining("候补");
+     assertThat(activities.get(x.id(),true).identityRequired()).isEqualTo(required);
+     if(expected.equals("WAITING")) activities.cancelOwn(a.id(),holder.id());
+   }
+   // The original queued data remains usable after the refused configuration change.
+   assertThat(waitlists.confirm(e.id(),owner.id(),new LegalModels.ConsentInput(1L,1L)).participants()).hasSize(1);
+ }
 }

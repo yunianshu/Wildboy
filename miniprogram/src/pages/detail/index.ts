@@ -100,16 +100,23 @@ Page({
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });
   },
   async cancel() {
-    if (this.data.cancelling || !this.data.activity?.canCancel) return;
+    if (this.data.cancelling || this.data.loading || !this.data.activity?.canCancel) return;
     const n = epoch.next(),
       session = sessionVersion();
     this.setData({ cancelling: true });
-    const answer = await wx.showModal({
-      title: "取消这次报名？",
-      content: "取消后整单所有参与人的名额都会释放；重新报名取决于剩余名额与截止时间。",
-      confirmText: "确认取消",
-      confirmColor: "#8A4B31",
-    });
+    let answer;
+    try {
+      answer = await wx.showModal({
+        title: "取消这次报名？",
+        content: "取消后整单所有参与人的名额都会释放；重新报名取决于剩余名额与截止时间。",
+        confirmText: "确认取消",
+        confirmColor: "#8A4B31",
+      });
+    } catch (error) {
+      if (epoch.valid(n) && isSessionCurrent(session))
+        this.setData({ cancelling: false, registrationError: message(error) });
+      return;
+    }
     if (!epoch.valid(n) || !isSessionCurrent(session)) return;
     if (!answer.confirm) {
       this.setData({ cancelling: false });

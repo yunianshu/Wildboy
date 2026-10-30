@@ -1,21 +1,8 @@
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn } = require("node:child_process");
-const automator = require("../../miniprogram/node_modules/miniprogram-automator");
+const { connectWeChat } = require("./wechat-session.cjs");
 (async () => {
-  const cli = "C:/Program Files (x86)/Tencent/微信web开发者工具/cli.bat";
-  const project = path.resolve(__dirname, "../../miniprogram");
-  const child = spawn(`"${cli}" auto --project "${project}" --auto-port 9420 --trust-project`, { shell: true, stdio: "ignore" });
-  let miniProgram;
-  for (let attempt = 0; attempt < 30; attempt++) {
-    try {
-      miniProgram = await automator.connect({ wsEndpoint: "ws://127.0.0.1:9420" });
-      break;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-  }
-  if (!miniProgram) throw new Error("Automation unavailable");
+  const miniProgram = await connectWeChat();
   try {
     await miniProgram.reLaunch("/pages/admin-login/index");
     const login = await miniProgram.currentPage();
@@ -37,7 +24,6 @@ const automator = require("../../miniprogram/node_modules/miniprogram-automator"
     console.log("PASS real admin legal management");
   } finally {
     await miniProgram.disconnect();
-    child.kill();
   }
 })().catch((error) => {
   console.error(error);

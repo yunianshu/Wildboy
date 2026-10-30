@@ -5,7 +5,7 @@ import {
   sameVersions,
   LegalCurrent,
 } from "../../utils/legal";
-import { request, requireSession, ApiError } from "../../utils/api";
+import { request, requireSession, ApiError, sessionVersion, isSessionCurrent } from "../../utils/api";
 import {
   Activity,
   ParticipantInput,
@@ -23,8 +23,10 @@ const emptyParticipant = (): ParticipantInput => ({
   participantName: "", idNumber: "", phone: "",
 });
 Page({
+  _reloadOnShow: false,
   data: {
     id: "",
+    session: -1,
     waitlistMode: false,
     activity: null as ReturnType<typeof activityView> | null,
     loading: true,
@@ -46,11 +48,34 @@ Page({
   },
   onLoad(o) {
     const id = safeId(o.id);
-    this.setData({ id, waitlistMode: o.waitlist === "1" });
+    this.setData({ id, session: sessionVersion(), waitlistMode: o.waitlist === "1" });
     if (id) void this.load();
     else this.setData({ error: "活动链接无效", loading: false });
   },
+  onShow() {
+    if (this.data.session !== -1 && this.data.session !== sessionVersion())
+      this.resetPrivateForm();
+    this.setData({ session: sessionVersion() });
+    if (this._reloadOnShow && this.data.id) {
+      this._reloadOnShow = false;
+      void this.load();
+    }
+  },
+  resetPrivateForm() {
+    this.cancelParticipant();
+    this.setData({
+      session: sessionVersion(),
+      participants: [emptyParticipant()],
+      consent: false,
+      privacyRead: false,
+      termsRead: false,
+      submitting: false,
+      success: false,
+      fieldError: "账号已改变，请重新填写报名信息",
+    });
+  },
   onHide() {
+    this._reloadOnShow = this.data.loading;
     epoch.invalidate();
     this.cancelParticipant();
     this.setData({ submitting: false });
@@ -244,12 +269,13 @@ Page({
     }
     this.setData({ submitting: true, fieldError: "" });
     const n = epoch.next();
+    const session = sessionVersion();
     try {
       await requireSession();
-      if (!epoch.valid(n)) return;
+      if (!epoch.valid(n) || !isSessionCurrent(session)) return;
       const versions = versionsOf(this.data.legal!);
       const latest = await currentLegal();
-      if (!epoch.valid(n)) return;
+      if (!epoch.valid(n) || !isSessionCurrent(session)) return;
       if (!sameVersions(versions, versionsOf(latest))) {
         this.setData({
           legal: latest,
@@ -267,7 +293,7 @@ Page({
       if (this.data.waitlistMode) {
         const result = await request<{id:string;activityId:string;status:string}>(`/activities/${this.data.id}/waitlist`, "POST", {participants,...versions});
         if (!result?.id || result.activityId !== this.data.id || !["WAITING","OFFERED"].includes(result.status)) throw new Error("候补结果未确认，请到我的候补核对");
-        if(epoch.valid(n)){this.setData({participants:[{participantName:"",idNumber:"",phone:""}]});wx.redirectTo({url:"/pages/waitlist/index"});}
+        if(epoch.valid(n) && isSessionCurrent(session)){this.setData({participants:[{participantName:"",idNumber:"",phone:""}]});wx.redirectTo({url:"/pages/waitlist/index"});}
         return;
       }
       const result = await request<Registration>(
@@ -284,7 +310,7 @@ Page({
         result.participants.length !== participants.length
       )
         throw new Error("报名结果未确认，请到我的报名核对，勿重复提交");
-      if (epoch.valid(n)) {
+      if (epoch.valid(n) && isSessionCurrent(session)) {
         this.setData({
           success: true,
           participants: [{ participantName: "", idNumber: "", phone: "" }],
@@ -310,7 +336,10 @@ Page({
         this.setData({ fieldError: message(e) });
       }
     } finally {
-      if (epoch.valid(n)) this.setData({ submitting: false });
+      if (epoch.valid(n)) {
+        if (!isSessionCurrent(session)) this.resetPrivateForm();
+        else this.setData({ submitting: false });
+      }
     }
   },
   joinWaitlist() { if(!this.data.submitting && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },

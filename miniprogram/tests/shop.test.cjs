@@ -109,3 +109,11 @@ test("verification cannot treat another order response as this purchase", async 
   api.request = async () => ({...order,id:"other-order",status:"PAID"});
   await assert.rejects(shop.verifyPayment("order-1"), /暂未确认/);
 });
+
+test("verification accepts a server-refunded order without retry or payment", async () => {
+  let calls = 0;
+  api.request = async () => { calls++; return {...order, status: "REFUNDED"}; };
+  assert.equal((await shop.verifyPayment("order-1")).status, "REFUNDED");
+  assert.equal(calls, 1);
+  assert.equal(paymentOptions, undefined);
+});

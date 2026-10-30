@@ -1,8 +1,8 @@
 // Upload dist/ to WeChat as a development version via miniprogram-ci.
 // Requires the code upload key: WILDBOY_UPLOAD_KEY or
 // %USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key.
-// The uploaded package must already be built: npm run build first
-// (src/config.ts already carries the AnyService trial values).
+// The uploaded package must already be built with an owned HTTPS API origin.
+// Never upload a package configured for the local development server.
 const path = require("node:path");
 const ci = require("miniprogram-ci");
 
@@ -21,7 +21,7 @@ const keyPath =
   const result = await ci.upload({
     project,
     version: process.env.WILDBOY_VERSION || "0.2.0",
-    desc: process.env.WILDBOY_DESC || "AnyService 体验版：探索页数据走 AnyService 通道，首页改为野小子品牌",
+    desc: process.env.WILDBOY_DESC || "Wildboy 小程序体验版",
     setting: {
       es6: true,
       minified: true,

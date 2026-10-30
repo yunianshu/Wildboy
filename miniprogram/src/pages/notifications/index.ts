@@ -45,7 +45,7 @@ Page({
     wx.navigateTo({ url: "/pages/login/index" });
   },
   async load(reset = true) {
-    if (this.data.loading || !hasSession()) return;
+    if (this.data.loading || this.data.busy || !hasSession()) return;
     const n = epoch.next(),
       session = sessionVersion();
     this.setData({ loading: true, error: "" });
@@ -83,7 +83,7 @@ Page({
     if (this.data.hasMore) void this.load(false);
   },
   async subscribe() {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.loading) return;
     const n = epoch.next(),
       s = sessionVersion();
     this.setData({ busy: true, error: "" });

@@ -1,8 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
-const automator = require("../../miniprogram/node_modules/miniprogram-automator");
-const BASE = "http://127.0.0.1:8080/api/v1";
+const { connectWeChat } = require("./wechat-session.cjs");
+const BASE = `${process.env.WILDBOY_LOCAL_API || "http://127.0.0.1:8080"}/api/v1`;
 
 async function api(pathname, options = {}) {
   const response = await fetch(BASE + pathname, {
@@ -24,22 +23,7 @@ function date(days) {
 (async () => {
   const output = path.resolve(__dirname, "../../test-results/wechat-admin");
   fs.mkdirSync(output, { recursive: true });
-  const cli = "C:/Program Files (x86)/Tencent/微信web开发者工具/cli.bat";
-  const project = path.resolve(__dirname, "../../miniprogram");
-  const child = spawn(`"${cli}" auto --project "${project}" --auto-port 9420 --trust-project`, { shell: true, stdio: "ignore" });
-  let miniProgram;
-  for (let attempt = 0; attempt < 30; attempt++) {
-    try {
-      miniProgram = await automator.connect({ wsEndpoint: "ws://127.0.0.1:9420" });
-      break;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
-  }
-  if (!miniProgram) {
-    child.kill();
-    throw new Error("WeChat DevTools automation port did not open");
-  }
+  const miniProgram = await connectWeChat();
   const exceptions = [];
   const checks = [];
   miniProgram.on("exception", (error) => exceptions.push(String(error)));
@@ -78,9 +62,10 @@ function date(days) {
       deadlineDate: date(13),
       deadlineTime: "18:00",
       capacity: "8",
+      identityRequired: true,
     };
     await editor.setData({ form, cover: form.coverUrl, categoryIndex: 0 });
-    console.log("native editor loaded; publishing", await miniProgram.evaluate(() => getCurrentPages().map((page) => ({ route: page.route, session: page._session, authorized: page.data.authorized, busy: page.data.busy, conflict: page.data.conflict, uncertain: page.data.uncertain, error: page.data.error }))));
+    console.log("native editor loaded; publishing", await miniProgram.evaluate(() => getCurrentPages().map((page) => ({ route: page.route, hasSession: Boolean(page._session), authorized: page.data.authorized, busy: page.data.busy, conflict: page.data.conflict, uncertain: page.data.uncertain, error: page.data.error }))));
     await miniProgram.pageScrollTo(10000);
     await editor.waitFor(500);
     const publishButton = await editor.$(".sticky-action .primary");
@@ -159,7 +144,6 @@ function date(days) {
     console.log(`PASS real WeChat admin flow: ${checks.length} checks, activity ${activityId}`);
   } finally {
     await miniProgram.disconnect();
-    child.kill();
   }
 })().catch((error) => {
   console.error(error);

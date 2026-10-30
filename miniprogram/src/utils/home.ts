@@ -1,15 +1,13 @@
 import { activityView } from "./domain";
 import { Activity, Home } from "./models";
 
-export const HOME_ACTIVITY_COUNT = 6;
+export const HOME_ACTIVITY_COUNT = 4;
 
-// Slots are presentation-only: retain the original activity ID for navigation
-// and registration. Empty data never becomes fabricated activities.
+// Keep the API's departure-time order and original IDs; never repeat activities
+// to fill empty positions.
 export function homeActivitySlots(activities: Activity[]) {
-  const source = activities.slice(0, HOME_ACTIVITY_COUNT);
-  if (!source.length) return [];
-  return Array.from({ length: HOME_ACTIVITY_COUNT }, (_, index) => ({
-    ...activityView(source[index % source.length]),
+  return activities.slice(0, HOME_ACTIVITY_COUNT).map((activity, index) => ({
+    ...activityView(activity),
     slotKey: `home-activity-${index}`,
   }));
 }

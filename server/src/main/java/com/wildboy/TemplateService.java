@@ -47,7 +47,7 @@ public class TemplateService {
     // Validate all before creating any rows; the transaction also rolls back on late failures.
     var shifted=input.starts().stream().map(t->shifted(template.activity(),t)).toList();var result=new ArrayList<Activity>();
     for(int n=0;n<input.starts().size();n++) {
-      var start=input.starts().get(n);var prior=db.queryForList("SELECT activity_id FROM activity_generation WHERE template_id=? AND start_at=?",String.class,id,start);
+      var start=shifted.get(n).startAt();var prior=db.queryForList("SELECT activity_id FROM activity_generation WHERE template_id=? AND start_at=?",String.class,id,start);
       if(!prior.isEmpty()){result.add(activities.get(prior.getFirst(),true));continue;}
       var a=activities.create(shifted.get(n),actor);copyRich(a.id(),db.queryForObject("SELECT rich_blocks FROM activity_template WHERE id=?",String.class,id));db.update("INSERT INTO activity_generation(template_id,start_at,activity_id) VALUES (?,?,?)",id,start,a.id());result.add(a);
     }
@@ -56,9 +56,12 @@ public class TemplateService {
   @Transactional public Activity copy(String sourceId,Copy input,String actor) {
     // Per-actor row serializes idempotency without exposing another administrator's requests.
     db.queryForObject("SELECT id FROM app_user WHERE id=? FOR UPDATE",String.class,actor);
+    // Use the same precision for the activity and its idempotency record. JDBC otherwise
+    // rounds nanoseconds when persisting timestamps, while shifted() truncates them.
+    var start=input.startAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     var old=db.queryForList("SELECT source_id,start_at,activity_id FROM activity_copy_request WHERE actor_id=? AND request_id=?",actor,input.requestId());
-    if(!old.isEmpty()) { var row=old.getFirst();var at=((java.sql.Timestamp)row.get("start_at")).toInstant();if(!sourceId.equals(row.get("source_id"))||!input.startAt().toInstant().truncatedTo(java.time.temporal.ChronoUnit.MICROS).equals(at))throw ApiException.conflict("REQUEST_CONFLICT","请求号已用于其他复制操作");return activities.get((String)row.get("activity_id"),true); }
-    Activity source=activities.get(sourceId,true);activities.checkVersion(source,input.version());var a=activities.create(shifted(snapshot(source),input.startAt()),actor);
-    db.update("INSERT INTO activity_copy_request(actor_id,request_id,source_id,start_at,activity_id) VALUES (?,?,?,?,?)",actor,input.requestId(),sourceId,input.startAt(),a.id());copyRich(a.id(),rich(source.id()));activities.audit(actor,a.id(),"ACTIVITY_COPY");return a;
+    if(!old.isEmpty()) { var row=old.getFirst();var at=((java.sql.Timestamp)row.get("start_at")).toInstant();if(!sourceId.equals(row.get("source_id"))||!start.toInstant().equals(at))throw ApiException.conflict("REQUEST_CONFLICT","请求号已用于其他复制操作");return activities.get((String)row.get("activity_id"),true); }
+    Activity source=activities.get(sourceId,true);activities.checkVersion(source,input.version());var a=activities.create(shifted(snapshot(source),start),actor);
+    db.update("INSERT INTO activity_copy_request(actor_id,request_id,source_id,start_at,activity_id) VALUES (?,?,?,?,?)",actor,input.requestId(),sourceId,start,a.id());copyRich(a.id(),rich(source.id()));activities.audit(actor,a.id(),"ACTIVITY_COPY");return a;
   }
 }

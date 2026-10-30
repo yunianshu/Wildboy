@@ -70,7 +70,7 @@ export async function verifyPayment(
       const order = await request<Order>(`/orders/${orderId}/verify`, "POST");
       if (!isSessionCurrent(session) || !isCurrent())
         throw new Error("页面或登录状态已改变，请在我的订单中核对付款结果");
-      if (!order || order.id !== orderId || !["PENDING_PAYMENT", "PAID", "SHIPPED", "CANCELLED"].includes(order.status))
+      if (!order || order.id !== orderId || !["PENDING_PAYMENT", "PAID", "SHIPPED", "CANCELLED", "REFUNDED"].includes(order.status))
         throw new Error("订单状态响应异常，请稍后核对付款结果");
       if (order.status !== "PENDING_PAYMENT" || attempt === 3) return order;
     } catch (error) {

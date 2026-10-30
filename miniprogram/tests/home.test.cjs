@@ -38,24 +38,24 @@ test("zero real activities remains empty, never fabricates signups", () => {
   assert.deepEqual(homeActivitySlots([]), []);
 });
 for (const count of [1, 2, 3, 4, 5, 6, 7, 10]) {
-  test(`${count} real activities produces exactly six ordered presentation slots`, () => {
+  test(`${count} real activities displays at most four ordered activities without repetition`, () => {
     const source = Array.from({length: count}, (_, i) => activity(`a-${i}`));
     const before = structuredClone(source);
     const slots = homeActivitySlots(source);
-    assert.equal(slots.length, 6);
-    assert.equal(new Set(slots.map(x => x.slotKey)).size, 6);
-    assert.deepEqual(slots.map(x => x.id), Array.from({length: 6}, (_, i) => source[i % Math.min(count, 6)].id));
+    assert.equal(slots.length, Math.min(count, 4));
+    assert.equal(new Set(slots.map(x => x.slotKey)).size, slots.length);
+    assert.deepEqual(slots.map(x => x.id), source.slice(0, 4).map(x => x.id));
     assert.deepEqual(source, before);
     assert.deepEqual(homeActivitySlots(source).map(x => x.slotKey), slots.map(x => x.slotKey));
   });
 }
-test("home only reads six activities, duplicate cards navigate using original ID", async () => {
+test("home reads four activities and cards navigate using original IDs", async () => {
   responses([activity("real-1"), activity("real-2")]);
   const p = page(); await p.load();
-  assert.deepEqual(calls, [{path: "/home", method: "GET"}, {path: "/activities?page=0&size=6", method: "GET"}]);
-  assert.equal(p.data.items.length, 6);
+  assert.deepEqual(calls, [{path: "/home", method: "GET"}, {path: "/activities?page=0&size=4", method: "GET"}]);
+  assert.equal(p.data.items.length, 2);
   assert.equal(p.onReachBottom, undefined);
-  p.openActivity({currentTarget: {dataset: {id: p.data.items[4].id}}});
+  p.openActivity({currentTarget: {dataset: {id: p.data.items[0].id}}});
   assert.deepEqual(navigation, ["/pages/detail/index?id=real-1"]);
 });
 test("bottom carousel has safe local fallback", async () => {
@@ -72,7 +72,7 @@ test("server banners retain matching activity navigation", async () => {
   p.openActivity({currentTarget: {dataset: {id:p.data.banners[0].activityId}}});
   assert.deepEqual(navigation, ["/pages/detail/index?id=real-1"]);
 });
-test("empty refresh removes old display copies; failure offers retry without fake data", async () => {
+test("empty refresh removes old activities; failure offers retry without fake data", async () => {
   responses([activity("a")]); const p = page(); await p.load();
   responses([]); await p.load(); assert.deepEqual(p.data.items, []);
   api.request = async () => { throw new Error("网络失败"); }; await p.load();
@@ -81,13 +81,13 @@ test("empty refresh removes old display copies; failure offers retry without fak
   responses([activity("b")]); await p.load();
   assert.equal(p.data.error, ""); assert.equal(p.data.items[0].id, "b");
 });
-test("late refresh cannot overwrite newer six slots", async () => {
+test("late refresh cannot overwrite newer activities", async () => {
   let resolveOld;
   api.request = async (path) => path === "/home" ? home : new Promise(resolve => {resolveOld = resolve;});
   const p = page(); const old = p.load();
   responses([activity("new")]); await p.load();
   resolveOld({items:[activity("old")]}); await old;
-  assert.deepEqual(p.data.items.map(x => x.id), Array(6).fill("new"));
+  assert.deepEqual(p.data.items.map(x => x.id), ["new"]);
 });
 test("unload invalidates inflight home response", async () => {
   let finish;
@@ -103,7 +103,7 @@ test("all activities clears an earlier category and keeps separate pagination ro
   assert.equal(listing.data.selected, "");
   assert.ok(calls.some(x => x.path === "/activities?page=0&size=10"));
 });
-test("native template order matches reference: static hero, four categories, six slots, shop, carousel", () => {
+test("native template order matches reference: static hero, four categories, activity grid, shop, carousel", () => {
   const markup = fs.readFileSync("dist/pages/home/index.wxml", "utf8");
   const positions = ['class="hero"', 'class="category-grid"', 'class="grid"', 'class="shop"', '<swiper class="scenery-swiper"'].map(x => markup.indexOf(x));
   assert.ok(positions.every((x,i) => x >= 0 && (!i || x > positions[i-1])));

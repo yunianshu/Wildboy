@@ -2,7 +2,7 @@ import { config } from "../../config";
 import { request, mediaUrl } from "../../utils/api";
 import { Home, Activity, PageResult } from "../../utils/models";
 import { categories, message, RequestEpoch, safeId } from "../../utils/domain";
-import { homeActivitySlots, fallbackBanners } from "../../utils/home";
+import { HOME_ACTIVITY_COUNT, homeActivitySlots, fallbackBanners } from "../../utils/home";
 const epoch = new RequestEpoch();
 Page({
   data: {
@@ -42,7 +42,7 @@ Page({
     try {
       const [home, page] = await Promise.all([
         request<Home>("/home"),
-        request<PageResult<Activity>>("/activities?page=0&size=6"),
+        request<PageResult<Activity>>(`/activities?page=0&size=${HOME_ACTIVITY_COUNT}`),
       ]);
       if (!epoch.valid(n)) return;
       this.setData({

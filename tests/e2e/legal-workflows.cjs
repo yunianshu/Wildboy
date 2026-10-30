@@ -45,7 +45,7 @@ function fresh() {
     getMenuButtonBoundingClientRect: () => ({ top: 28, bottom: 60 }),
   };
   config = require(path.join(DIST, "config.js")).config;
-  // This isolated transport harness mocks wx.request, not the deployed AnyService adapter.
+  // This isolated transport harness mocks wx.request; native runtime checks run separately.
   config.apiMode = "request";
   config.apiOrigin = "https://wildboy.test";
   config.devLogin = false;

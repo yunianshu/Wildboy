@@ -29,7 +29,6 @@ beforeEach(() => {
   requestCount = 0;
   loginCount = 0;
   env = "develop";
-  config.apiMode = "request";
   config.apiOrigin = "https://wildboy.test";
   config.devLogin = false;
   reply = (o) =>
@@ -274,15 +273,15 @@ test("wx login synchronous failure rejects without backend request", async () =>
   assert.equal(requestCount, 0);
 });
 
-test("AnyService materializes uploaded images through JSON with bounded app cache", async () => {
-  config.apiMode="anyservice";config.anyServiceEnvId="env";config.anyServiceName="service";
-  const name="11111111-1111-1111-1111-111111111111.png",path=`/assets/uploads/${name}`,calls=[],writes=[],removed=[];
-  wx.env={USER_DATA_PATH:"/app-cache"};
-  wx.getFileSystemManager=()=>({mkdirSync(){},readdirSync(){return Array.from({length:64},(_,i)=>`${String(i).padStart(8,'0')}-0000-0000-0000-000000000000.png`)},unlinkSync:p=>removed.push(p),writeFile:o=>{writes.push(o.filePath);o.success({})}});
-  wx.cloud={callContainer:o=>{calls.push(o.path);o.success({statusCode:200,data:o.path.includes('/media/')?{dataBase64:'AAAA'}:{imageUrl:path}})}};
-  const value=await api.request('/shop/products');
-  assert.equal(value.imageUrl,path);assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
-  assert.equal(api.mediaUrl(path),`/app-cache/wildboy-public-images/${name}`);assert.equal(writes.length,1);assert.equal(removed.length,1);
-  await api.request('/shop/products');assert.equal(calls.filter(p=>p.includes('/media/')).length,1);
-  delete wx.env;delete wx.cloud;
+test("uploaded images use the configured HTTP API without a cloud transport", async () => {
+  const path = "/assets/uploads/11111111-1111-1111-1111-111111111111.png";
+  let url;
+  reply = (o) => {
+    url = o.url;
+    o.success({statusCode: 200, data: {imageUrl: path}});
+  };
+  const value = await api.request("/shop/products");
+  assert.equal(url, "https://wildboy.test/api/v1/shop/products");
+  assert.equal(api.mediaUrl(value.imageUrl), "https://wildboy.test" + path);
+  assert.equal(requestCount, 1);
 });

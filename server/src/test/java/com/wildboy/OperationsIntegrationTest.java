@@ -52,6 +52,21 @@ class OperationsIntegrationTest {
    assertThat(db.queryForObject("SELECT COUNT(*) FROM activity_generation WHERE template_id=?",Integer.class,t.id())).isEqualTo(2);
    assertThatThrownBy(()->templates.generate(t.id(),new TemplateService.Generate(List.of(at),99L),admin.id())).isInstanceOf(ApiException.class);
  }
+ @Test void copyRetryNormalizesNanosecondPrecision(){
+   var at=OffsetDateTime.now().plusDays(21).withNano(123456789);
+   var input=new TemplateService.Copy(at,"nano-copy-"+UUID.randomUUID(),source.version());
+   var first=templates.copy(source.id(),input,admin.id());
+   var second=templates.copy(source.id(),input,admin.id());
+   assertThat(second.id()).isEqualTo(first.id());
+   assertThat(first.startAt().toInstant()).isEqualTo(at.toInstant().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
+ }
+ @Test void generationRetryUsesReturnedMicrosecondPrecision(){
+   var t=template();var at=OffsetDateTime.now().plusDays(28).withNano(123456789);
+   var first=templates.generate(t.id(),new TemplateService.Generate(List.of(at),t.version()),admin.id()).getFirst();
+   var retried=templates.generate(t.id(),new TemplateService.Generate(List.of(first.startAt()),t.version()),admin.id()).getFirst();
+   assertThat(retried.id()).isEqualTo(first.id());
+   assertThat(db.queryForObject("SELECT COUNT(*) FROM activity_generation WHERE template_id=?",Integer.class,t.id())).isEqualTo(1);
+ }
  @Test void auditDoesNotReturnPrivatePayloadsAndRangesAreBounded(){
    var t=template();var page=operations.audit(0,20,t.id());assertThat(page.items()).hasSize(1);assertThat(page.items().getFirst()).containsKeys("actor","action","entity_id").doesNotContainKeys("phone","address","id_number","token");
    assertThat(operations.dashboard(7)).containsKeys("activities","orders","pendingShipping","lowStock","trend");assertThatThrownBy(()->operations.exceptions(0,501)).isInstanceOf(ApiException.class);

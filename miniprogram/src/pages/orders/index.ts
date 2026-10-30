@@ -194,7 +194,7 @@ Page({
   },
   async openRefund(event:WechatMiniprogram.TouchEvent) {
     const id=safeId(event.currentTarget.dataset.id);
-    if(!id||this.data.busyId)return;
+    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore)return;
     const current=epoch.next(),session=sessionVersion();
     this.setData({busyId:id,error:""});
     try {
@@ -208,7 +208,7 @@ Page({
   stopRefundEvent(){},
   async requestRefund(){
     const id=this.data.refundOrderId,reason=this.data.refundReason.trim();
-    if(!id||this.data.busyId||this.data.refundRecord)return;
+    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore||this.data.refundRecord)return;
     if(!reason||reason.length>200){this.setData({refundError:"请填写退款原因"});return;}
     const current=epoch.next(),session=sessionVersion();this.setData({busyId:id,refundError:""});
     try {

@@ -133,3 +133,23 @@ test("waitlist join preserves modal input flow and uses separate explicit action
   const src = fs.readFileSync("src/pages/register/index.wxml", "utf8");
   assert.match(src, /整组加入候补/);
 });
+
+test("subscription during list loading cannot invalidate the response and leave loading stuck", async () => {
+  for (const name of ["waitlist", "notifications"]) {
+    let release;
+    calls = [];
+    api.request = (path) => {
+      calls.push(path);
+      if (path === "/notifications/config")
+        return Promise.resolve({ready: false, templateId: ""});
+      return new Promise(resolve => release = resolve);
+    };
+    const p = page(name);
+    const loading = p.load();
+    await p.subscribe();
+    release({items: [], page: 0, hasMore: false});
+    await loading;
+    assert.equal(p.data.loading, false, name);
+    assert.equal(calls.length, 1, name);
+  }
+});

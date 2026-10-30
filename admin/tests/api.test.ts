@@ -50,6 +50,49 @@ describe("API boundary", () => {
     await expect(request("/me")).rejects.toMatchObject({ status: 401 });
     expect(currentUser.value).toBeNull();
   });
+  it("does not expire a new login when an old session returns 401", async () => {
+    acceptAuth({
+      token: "old",
+      user: { id: "a", nickname: "a", role: "ADMIN" },
+    });
+    let respond!: (value: unknown) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise((r) => (respond = r))),
+    );
+    const pending = expect(request("/me")).rejects.toMatchObject({
+      code: "SESSION_CHANGED",
+    });
+    acceptAuth({
+      token: "new",
+      user: { id: "b", nickname: "b", role: "ADMIN" },
+    });
+    respond({
+      ok: false,
+      status: 401,
+      json: async () => ({ code: "EXPIRED" }),
+    });
+    await pending;
+    expect(currentUser.value?.id).toBe("b");
+  });
+  it("rejects private data that arrives after logout", async () => {
+    acceptAuth({
+      token: "old",
+      user: { id: "a", nickname: "a", role: "ADMIN" },
+    });
+    let respond!: (value: unknown) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise((r) => (respond = r))),
+    );
+    const pending = expect(request("/admin/orders")).rejects.toMatchObject({
+      code: "SESSION_CHANGED",
+    });
+    clearSession();
+    respond({ ok: true, status: 200, json: async () => ({ private: true }) });
+    await pending;
+    expect(currentUser.value).toBeNull();
+  });
   it("reports stale version without automatic overwrite", () =>
     expect(errorMessage(new ApiError(409, "VERSION_CONFLICT", "x"))).toContain(
       "不会自动覆盖",

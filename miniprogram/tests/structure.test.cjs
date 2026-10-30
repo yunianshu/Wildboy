@@ -67,12 +67,7 @@ test("custom page headers remove old titles and center compact activity tabs", (
 });
 test("production configuration fails closed and domain validation stays enabled", () => {
   const config = require("../dist/config.js").config;
-  // Trial phase: the server runs the dev profile without WeChat credentials,
-  // so devLogin is intentionally on for develop-env previews. The client and
-  // server both restrict dev-login to non-release builds; flip this back to
-  // false together with config.ts once WECHAT_APP_ID/SECRET are configured.
-  assert.equal(config.devLogin, true);
-  assert.equal(config.apiMode, "anyservice");
+  assert.equal(config.devLogin, false);
   const project = require("../project.config.json");
   assert.equal(project.setting.urlCheck, true);
   assert.ok(

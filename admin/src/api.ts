@@ -2,6 +2,7 @@ import { ref } from "vue";
 import type { Auth, User } from "./types";
 // Keep credentials in memory, not localStorage/sessionStorage. Reload requires sign-in.
 let token = "";
+let sessionVersion = 0;
 export const currentUser = ref<User | null>(null);
 export class ApiError extends Error {
   constructor(
@@ -13,6 +14,7 @@ export class ApiError extends Error {
   }
 }
 export function clearSession() {
+  sessionVersion++;
   token = "";
   currentUser.value = null;
 }
@@ -21,6 +23,7 @@ export function acceptAuth(auth: Auth) {
     clearSession();
     throw new ApiError(403, "FORBIDDEN", "此账号没有管理权限");
   }
+  sessionVersion++;
   token = auth.token;
   currentUser.value = auth.user;
 }
@@ -28,6 +31,7 @@ export async function request<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const startedSession = sessionVersion;
   const response = await fetch(`/api/v1${path}`, {
     ...options,
     headers: {
@@ -39,6 +43,8 @@ export async function request<T>(
   });
   const body =
     response.status === 204 ? null : await response.json().catch(() => null);
+  if (startedSession !== sessionVersion)
+    throw new ApiError(0, "SESSION_CHANGED", "登录身份已变化，请重新操作。");
   if (!response.ok) {
     if (response.status === 401) clearSession();
     const fallback =

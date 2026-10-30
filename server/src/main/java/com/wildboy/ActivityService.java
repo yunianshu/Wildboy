@@ -231,6 +231,11 @@ public class ActivityService {
     checkVersion(a, i.version());
     if (a.status().equals("CANCELLED"))
       throw ApiException.conflict("ACTIVITY_CANCELLED", "已取消活动不能编辑");
+    // Pending parties confirm with their stored participant data. Changing the identity
+    // requirement would make those payloads invalid in either direction.
+    if (i.identityRequired() != null && i.identityRequired() != a.identityRequired()
+        && waitlists.getObject().hasQueue(id))
+      throw ApiException.conflict("IDENTITY_REQUIREMENT_HAS_WAITLIST", "存在候补人员，暂不能修改身份证采集设置");
     if (db.queryForObject("SELECT COALESCE(MAX(party_size),0) FROM activity_waitlist WHERE activity_id=? AND status IN ('WAITING','OFFERED')",Integer.class,id) > i.capacity())
       throw ApiException.conflict("CAPACITY_BELOW_WAITLIST_PARTY", "人数上限不能小于候补同行组人数");
     if (a.registeredCount() + waitlists.getObject().reserved(id) > i.capacity())

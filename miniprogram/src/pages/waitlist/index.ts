@@ -63,7 +63,7 @@ Page({
     wx.navigateTo({ url: "/pages/login/index" });
   },
   async load(reset = true) {
-    if (this.data.loading || !hasSession()) return;
+    if (this.data.loading || this.data.busy || !hasSession()) return;
     const n = epoch.next(),
       s = sessionVersion();
     this.setData({ loading: true, error: "" });
@@ -102,7 +102,7 @@ Page({
     if (this.data.hasMore) void this.load(false);
   },
   async choose(e: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.loading) return;
     const id = safeId(e.currentTarget.dataset.id);
     if (!id) return;
     const n = epoch.next(),
@@ -162,7 +162,7 @@ Page({
     });
   },
   async confirm() {
-    if (this.data.busy || !this.data.confirmId || !this.data.legal) return;
+    if (this.data.busy || this.data.loading || !this.data.confirmId || !this.data.legal) return;
     if (!this.data.consent) {
       this.setData({ error: "请阅读并同意当前协议" });
       return;
@@ -188,7 +188,7 @@ Page({
     }
   },
   async cancel(e: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.loading) return;
     const id = safeId(e.currentTarget.dataset.id);
     if (!id) return;
     const n = epoch.next(),
@@ -218,7 +218,7 @@ Page({
     }
   },
   async subscribe() {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.loading) return;
     const n = epoch.next(),
       s = sessionVersion();
     this.setData({ busy: true });

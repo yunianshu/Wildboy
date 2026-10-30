@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
-import { errorMessage, request } from "../api";
+import { onMounted, onUnmounted, ref, watch } from "vue";
+import { currentUser, errorMessage, request } from "../api";
 import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import FormModal from "../components/FormModal.vue";
@@ -23,6 +23,7 @@ const products = ref<Product[]>([]),
   busy = ref(false),
   error = ref(""),
   editingId = ref(""),
+  editingVersion = ref<number | null>(null),
   revealed = ref(new Set<string>()),
   shipping = ref<Order | null>(null),
   form = ref({
@@ -33,6 +34,20 @@ const products = ref<Product[]>([]),
     stock: "0",
     status: "ON_SALE" as ProductStatus,
   });
+let generation = 0;
+function clear() {
+  generation++;
+  products.value = [];
+  orders.value = { items: [], total: 0, page: 0, size: 20, hasMore: false };
+  revealed.value = new Set();
+  shipping.value = null;
+  contentOpen.value = false;
+  formOpen.value = false;
+  editingId.value = "";
+  editingVersion.value = null;
+  busy.value = false;
+}
+watch(currentUser, clear, { flush: "sync" });
 
 function money(cents: number) {
   return `¥${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
@@ -56,6 +71,7 @@ function toggle(id: string) {
   revealed.value = next;
 }
 async function load() {
+  const n = ++generation;
   busy.value = true;
   error.value = "";
   revealed.value = new Set();
@@ -64,12 +80,13 @@ async function load() {
       request<Product[]>("/admin/shop/products"),
       request<Page<Order>>(`/admin/orders?page=${page.value}&size=20`),
     ]);
+    if (n !== generation) return;
     products.value = productData;
     orders.value = orderData;
   } catch (e) {
-    error.value = errorMessage(e);
+    if (n === generation) error.value = errorMessage(e);
   } finally {
-    busy.value = false;
+    if (n === generation) busy.value = false;
   }
 }
 function changePage(delta: number) {
@@ -80,6 +97,7 @@ function openNew() {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
   contentOpen.value = false;
   editingId.value = "";
+  editingVersion.value = null;
   form.value = {
     name: "",
     description: "",
@@ -91,8 +109,10 @@ function openNew() {
   formOpen.value = true;
 }
 function edit(product: Product) {
+  if (contentEditor.value && !contentEditor.value.canLeave()) return;
   contentOpen.value = false;
   editingId.value = product.id;
+  editingVersion.value = product.version;
   form.value = {
     name: product.name,
     description: product.description,
@@ -107,6 +127,7 @@ function reset() {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
   contentOpen.value = false;
   editingId.value = "";
+  editingVersion.value = null;
   formOpen.value = false;
   form.value = {
     name: "",
@@ -152,10 +173,9 @@ async function save() {
     return;
   }
   busy.value = true;
+  const n = generation;
   try {
-    const current = products.value.find(
-      (product) => product.id === editingId.value,
-    );
+    const id = editingId.value;
     const payload = {
       name,
       description: form.value.description,
@@ -163,10 +183,10 @@ async function save() {
       priceCents,
       stock,
       status: form.value.status,
-      ...(current ? { version: current.version } : {}),
+      ...(id ? { version: editingVersion.value } : {}),
     };
-    if (current)
-      await request<Product>(`/admin/shop/products/${current.id}`, {
+    if (id)
+      await request<Product>(`/admin/shop/products/${encodeURIComponent(id)}`, {
         method: "PUT",
         body: JSON.stringify(payload),
       });
@@ -175,17 +195,19 @@ async function save() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+    if (n !== generation) return;
     reset();
     await load();
   } catch (e) {
-    error.value = errorMessage(e);
+    if (n === generation) error.value = errorMessage(e);
   } finally {
-    busy.value = false;
+    if (n === generation) busy.value = false;
   }
 }
 async function ship() {
   if (!shipping.value || busy.value) return;
   const order = shipping.value;
+  const n = generation;
   busy.value = true;
   error.value = "";
   try {
@@ -193,19 +215,17 @@ async function ship() {
       method: "POST",
       body: JSON.stringify({ version: order.version }),
     });
+    if (n !== generation) return;
     shipping.value = null;
     await load();
   } catch (e) {
-    error.value = errorMessage(e);
+    if (n === generation) error.value = errorMessage(e);
   } finally {
-    busy.value = false;
+    if (n === generation) busy.value = false;
   }
 }
 onMounted(load);
-onUnmounted(() => {
-  orders.value.items = [];
-  revealed.value.clear();
-});
+onUnmounted(clear);
 </script>
 
 <template>
@@ -328,7 +348,8 @@ onUnmounted(() => {
       title="确认订单已发货？"
       description="只有实际交给物流后才应标记发货，操作会写入订单状态。"
       confirm-label="确认发货"
-      @cancel="shipping = null"
+      :busy="busy"
+      @cancel="!busy && (shipping = null)"
       @confirm="ship"
     />
     <FormModal v-if="formOpen" size="lg" @close="reset">
@@ -390,11 +411,7 @@ onUnmounted(() => {
         编辑图文详情
       </button>
     </FormModal>
-    <FormModal
-      v-if="editingId && contentOpen"
-      size="lg"
-      @close="closeContent"
-    >
+    <FormModal v-if="editingId && contentOpen" size="lg" @close="closeContent">
       <RichContentEditor
         ref="contentEditor"
         :path="`/admin/shop/products/${editingId}/content`"
