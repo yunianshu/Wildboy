@@ -1,17 +1,25 @@
 import { config } from "../../config";
 import { request, mediaUrl } from "../../utils/api";
 import { Home, Activity, PageResult } from "../../utils/models";
-import { categories, message, RequestEpoch, safeId } from "../../utils/domain";
-import { HOME_ACTIVITY_COUNT, homeActivitySlots, fallbackBanners } from "../../utils/home";
+import { message, RequestEpoch, safeId } from "../../utils/domain";
+import {
+  HOME_ACTIVITY_COUNT,
+  homeActivitySlots,
+  homeEntries,
+} from "../../utils/home";
+import { ArticleSummary } from "../../utils/articles";
 const epoch = new RequestEpoch();
+const articleEpoch = new RequestEpoch();
 Page({
   data: {
     devMode: false,
     topInset: 48,
     home: null as Home | null,
-    categories,
+    categories: homeEntries,
     items: [] as ReturnType<typeof homeActivitySlots>,
-    banners: fallbackBanners,
+    articles: [] as ArticleSummary[],
+    articleLoading: false,
+    articleError: "",
     loading: false,
     error: "",
   },
@@ -24,25 +32,33 @@ Page({
     });
     void this.load();
   },
+  onShow() {
+    if (this._shown) void this.loadArticles();
+    this._shown = true;
+  },
+  _shown: false,
   onUnload() {
+    articleEpoch.invalidate();
     epoch.invalidate();
   },
   onPullDownRefresh() {
     void this.load().finally(() => wx.stopPullDownRefresh());
   },
   async load() {
+    void this.loadArticles();
     const n = epoch.next();
     this.setData({
       loading: true,
       error: "",
       home: null,
-      banners: fallbackBanners,
       items: [],
     });
     try {
       const [home, page] = await Promise.all([
         request<Home>("/home"),
-        request<PageResult<Activity>>(`/activities?page=0&size=${HOME_ACTIVITY_COUNT}`),
+        request<PageResult<Activity>>(
+          `/activities?page=0&size=${HOME_ACTIVITY_COUNT}`,
+        ),
       ]);
       if (!epoch.valid(n)) return;
       this.setData({
@@ -57,9 +73,6 @@ Page({
             imageUrl: mediaUrl(x.imageUrl),
           })),
         },
-        banners: home.banners.length
-          ? home.banners.map((x) => ({ ...x, imageUrl: mediaUrl(x.imageUrl) }))
-          : fallbackBanners,
         items: homeActivitySlots(
           page.items.map((x) => ({ ...x, coverUrl: mediaUrl(x.coverUrl) })),
         ),
@@ -70,6 +83,32 @@ Page({
       if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
+  async loadArticles() {
+    const n = articleEpoch.next();
+    this.setData({ articles: [], articleLoading: true, articleError: "" });
+    try {
+      const page = await request<PageResult<ArticleSummary>>(
+        "/articles?page=0&size=10",
+      );
+      if (!articleEpoch.valid(n)) return;
+      this.setData({
+        articles: page.items
+          .filter((x) => !x.isOfficial)
+          .map((x) => ({ ...x, coverUrl: mediaUrl(x.coverUrl || "") })),
+      });
+    } catch (e) {
+      if (articleEpoch.valid(n)) this.setData({ articleError: message(e) });
+    } finally {
+      if (articleEpoch.valid(n)) this.setData({ articleLoading: false });
+    }
+  },
+  retryArticles() {
+    void this.loadArticles();
+  },
+  openArticle(e: WechatMiniprogram.TouchEvent) {
+    const id = safeId(e.currentTarget.dataset.id);
+    if (id) wx.navigateTo({ url: `/pages/article/index?id=${id}` });
+  },
   retry() {
     void this.load();
   },
@@ -79,6 +118,11 @@ Page({
   },
   openCategory(e: WechatMiniprogram.TouchEvent) {
     const category = e.currentTarget.dataset.code;
+    if (category === "INTRO") {
+      wx.navigateTo({ url: "/pages/article/index?official=1" });
+      return;
+    }
+    if (!homeEntries.some((entry) => entry.code === category)) return;
     wx.setStorageSync("wildboy-category", category);
     wx.switchTab({ url: "/pages/activities/index" });
   },

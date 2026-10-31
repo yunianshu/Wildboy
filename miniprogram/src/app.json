@@ -24,7 +24,8 @@
     "pages/addresses/index",
     "pages/waitlist/index",
     "pages/notifications/index",
-    "pages/admin-content/index"
+    "pages/admin-content/index",
+    "pages/article/index"
   ],
   "window": {
     "navigationBarTitleText": "Wildboy",

@@ -116,14 +116,17 @@
         <view class="section-title">山野之间</view>
       </view>
     </view>
-    <swiper class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
-      <swiper-item wx:for="{{banners}}" wx:key="id">
-        <view class="scenery-slide" data-id="{{item.activityId}}" bindtap="openActivity">
-          <image class="scenery-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+    <view wx:if="{{articleLoading}}" class="state">正在加载活动回顾…</view>
+    <view wx:elif="{{articleError}}" class="state">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></view>
+    <view wx:elif="{{!articles.length}}" class="state">活动回顾即将发布</view>
+    <swiper wx:else class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
+      <swiper-item wx:for="{{articles}}" wx:key="id">
+        <view class="scenery-slide" data-id="{{item.id}}" bindtap="openArticle">
+          <image class="scenery-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
           <view class="scenery-shade" />
           <view class="scenery-copy">
             <view class="scenery-title">{{item.title}}</view>
-            <view class="scenery-sub">{{item.subtitle}}</view>
+            <view class="scenery-sub">{{item.summary}}</view>
           </view>
         </view>
       </swiper-item>

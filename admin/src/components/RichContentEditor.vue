@@ -10,7 +10,12 @@ type Block = {
   caption?: string;
   rows?: string[][];
 };
-const props = defineProps<{ path: string; disabled?: boolean }>();
+const props = defineProps<{
+  path: string;
+  disabled?: boolean;
+  managedNavigation?: boolean;
+}>();
+const emit = defineEmits<{ saved: [version: number] }>();
 const blocks = ref<Block[]>([]),
   version = ref(0),
   busy = ref(false),
@@ -91,6 +96,7 @@ async function save() {
       blocks.value = d.blocks;
       version.value = d.version;
       dirty.value = false;
+      emit("saved", d.version);
     }
   } catch (e) {
     if (n === generation) error.value = errorMessage(e);
@@ -101,8 +107,10 @@ async function save() {
 function canLeave() {
   return !dirty.value || window.confirm("图文尚未保存，确定离开吗？");
 }
-defineExpose({ canLeave });
-onBeforeRouteLeave((to) => to.path === "/login" || canLeave());
+defineExpose({ canLeave, dirty, busy, loaded });
+onBeforeRouteLeave(
+  (to) => props.managedNavigation || to.path === "/login" || canLeave(),
+);
 </script>
 <template>
   <section class="editor-section rich-editor">

@@ -1,7 +1,15 @@
-import { activityView } from "./domain";
-import { Activity, Home } from "./models";
+import { activityView, categories } from "./domain";
+import { Activity } from "./models";
 
 export const HOME_ACTIVITY_COUNT = 4;
+
+// The brand introduction is a homepage shortcut, not an activity category.
+// Keep LEISURE unchanged in activity filters, forms and existing records.
+export const homeEntries = categories.map((category) =>
+  category.code === "LEISURE"
+    ? { ...category, code: "INTRO", name: "野小子", en: "WILDBOY" }
+    : { ...category },
+);
 
 // Keep the API's departure-time order and original IDs; never repeat activities
 // to fill empty positions.
@@ -11,27 +19,3 @@ export function homeActivitySlots(activities: Activity[]) {
     slotKey: `home-activity-${index}`,
   }));
 }
-
-export const fallbackBanners: Home["banners"] = [
-  {
-    id: "scenery-mountains",
-    title: "把周末还给山野",
-    subtitle: "原创山野影像 · 一起向外走",
-    imageUrl: "/assets/category-weekly.jpg",
-    activityId: "",
-  },
-  {
-    id: "scenery-camp",
-    title: "在星空下，慢下来",
-    subtitle: "原创露营影像 · 留一点时间给自己",
-    imageUrl: "/assets/category-holiday.jpg",
-    activityId: "",
-  },
-  {
-    id: "scenery-coast",
-    title: "沿着海风去出发",
-    subtitle: "原创海岸影像 · 发现日常之外",
-    imageUrl: "/assets/category-leisure.jpg",
-    activityId: "",
-  },
-];

@@ -1,0 +1,11 @@
+<view class="page">
+  <view wx:if="{{loading}}" class="state">正在读取文章…</view>
+  <view wx:elif="{{error}}" class="state">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
+  <view wx:elif="{{empty}}" class="state">{{empty}}<button class="secondary" bindtap="retry">刷新</button></view>
+  <block wx:elif="{{article}}">
+    <image wx:if="{{article.coverUrl}}" class="article-cover" src="{{article.coverUrl}}" mode="widthFix" />
+    <view class="title">{{article.title}}</view>
+    <view wx:if="{{article.summary}}" class="article-summary">{{article.summary}}</view>
+    <content-view blocks="{{article.blocks}}" />
+  </block>
+</view>

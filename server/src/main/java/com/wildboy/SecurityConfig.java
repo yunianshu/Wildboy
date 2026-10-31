@@ -48,6 +48,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(
                         org.springframework.http.HttpMethod.GET,
+                        "/api/v1/articles",
+                        "/api/v1/articles/*",
                         "/api/v1/activities",
                         "/api/v1/activities/*",
                         "/api/v1/shop/products",
