@@ -12,6 +12,7 @@ import OperationsView from "./views/OperationsView.vue";
 import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
 import ArticlesView from "./views/ArticlesView.vue";
+import SettingsView from "./views/SettingsView.vue";
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -26,6 +27,7 @@ export const router = createRouter({
     { path: "/notifications", component: NotificationsView },
     { path: "/legal", component: LegalView },
     { path: "/articles", component: ArticlesView },
+    { path: "/settings", component: SettingsView },
     { path: "/activities/new", component: EditorView },
     { path: "/activities/:id/edit", component: EditorView },
     { path: "/activities/:id/registrations", component: RosterView },

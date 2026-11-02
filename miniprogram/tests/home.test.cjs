@@ -21,11 +21,18 @@ global.Page = (value) => {
   definition = value;
 };
 global.wx = {
-  navigateTo: ({ url }) => navigation.push(url),
-  switchTab: ({ url }) => navigation.push(url),
+  navigateTo: ({ url, complete }) => {
+    navigation.push(url);
+    complete?.();
+  },
+  switchTab: ({ url, complete }) => {
+    navigation.push(url);
+    complete?.();
+  },
   setStorageSync: (key, value) => storage.set(key, value),
   getStorageSync: (key) => storage.get(key),
   removeStorageSync: (key) => storage.delete(key),
+  showToast: () => {},
   showModal: async () => ({ confirm: true }),
 };
 function page(name = "home") {
@@ -52,14 +59,16 @@ const home = {
 function responses(items) {
   api.request = async (path, method = "GET") => {
     calls.push({ path, method });
-    return path === "/home"
-      ? home
-      : {
-          items: path.startsWith("/articles") ? [] : items,
-          total: items.length,
-          page: 0,
-          hasMore: true,
-        };
+    return path === "/home/shortcuts"
+      ? { version: 0, items: homeEntries }
+      : path === "/home"
+        ? home
+        : {
+            items: path.startsWith("/articles") ? [] : items,
+            total: items.length,
+            page: 0,
+            hasMore: true,
+          };
   };
 }
 beforeEach(() => {
@@ -72,14 +81,19 @@ beforeEach(() => {
 test("home fourth shortcut is Wildboy without renaming the leisure activity category", () => {
   assert.equal(homeEntries.length, 4);
   assert.deepEqual(
-    homeEntries.map((x) => x.code),
-    ["WEEKLY", "DOMESTIC", "HOLIDAY", "INTRO"],
+    homeEntries.map((x) => x.icon),
+    ["WEEKLY", "DOMESTIC", "QRCODE", "INTRO"],
   );
   assert.equal(homeEntries[3].name, "野小子");
   const domain = require("../dist/utils/domain.js");
   assert.equal(domain.categoryName("LEISURE"), "休闲活动");
   assert.equal(domain.validCategory("INTRO"), false);
-  assert.deepEqual(page().data.categories, homeEntries);
+  assert.deepEqual(
+    page().data.categories.map(({ image, ...x }) => x),
+    homeEntries,
+  );
+  assert.equal(homeEntries[2].name, "二维码");
+  assert.equal(domain.categoryName("HOLIDAY"), "假期活动");
 });
 
 test("zero real activities remains empty, never fabricates signups", () => {
@@ -109,6 +123,7 @@ test("home reads four activities and cards navigate using original IDs", async (
   await p.load();
   assert.deepEqual(calls, [
     { path: "/articles?page=0&size=10", method: "GET" },
+    { path: "/home/shortcuts", method: "GET" },
     { path: "/home", method: "GET" },
     { path: "/activities?page=0&size=4", method: "GET" },
   ]);
@@ -126,25 +141,27 @@ test("empty carousel never fabricates articles", async () => {
 });
 test("carousel opens article and official shortcut resolves current designation", async () => {
   api.request = async (path) =>
-    path === "/home"
-      ? home
-      : {
-          items: path.startsWith("/articles")
-            ? [
-                {
-                  id: "article-1",
-                  coverUrl: "/assets/category-weekly.jpg",
-                  isOfficial: false,
-                },
-                { id: "intro", isOfficial: true },
-              ]
-            : [],
-        };
+    path === "/home/shortcuts"
+      ? { version: 0, items: homeEntries }
+      : path === "/home"
+        ? home
+        : {
+            items: path.startsWith("/articles")
+              ? [
+                  {
+                    id: "article-1",
+                    coverUrl: "/assets/category-weekly.jpg",
+                    isOfficial: false,
+                  },
+                  { id: "intro", isOfficial: true },
+                ]
+              : [],
+          };
   const p = page();
   await p.load();
   assert.equal(p.data.articles.length, 1);
   p.openArticle({ currentTarget: { dataset: { id: p.data.articles[0].id } } });
-  p.openCategory({ currentTarget: { dataset: { code: "INTRO" } } });
+  await p.openCategory({ currentTarget: { dataset: { slot: 4 } } });
   assert.deepEqual(navigation, [
     "/pages/article/index?id=article-1",
     "/pages/article/index?official=1",
@@ -189,13 +206,15 @@ test("empty refresh removes old activities; failure offers retry without fake da
 test("late refresh cannot overwrite newer activities", async () => {
   let resolveOld;
   api.request = async (path) =>
-    path === "/home"
-      ? home
-      : path.startsWith("/articles")
-        ? { items: [] }
-        : new Promise((resolve) => {
-            resolveOld = resolve;
-          });
+    path === "/home/shortcuts"
+      ? { version: 0, items: homeEntries }
+      : path === "/home"
+        ? home
+        : path.startsWith("/articles")
+          ? { items: [] }
+          : new Promise((resolve) => {
+              resolveOld = resolve;
+            });
   const p = page();
   const old = p.load();
   responses([activity("new")]);
@@ -210,13 +229,15 @@ test("late refresh cannot overwrite newer activities", async () => {
 test("unload invalidates inflight home response", async () => {
   let finish;
   api.request = async (path) =>
-    path === "/home"
-      ? home
-      : path.startsWith("/articles")
-        ? { items: [] }
-        : new Promise((resolve) => {
-            finish = resolve;
-          });
+    path === "/home/shortcuts"
+      ? { version: 0, items: homeEntries }
+      : path === "/home"
+        ? home
+        : path.startsWith("/articles")
+          ? { items: [] }
+          : new Promise((resolve) => {
+              finish = resolve;
+            });
   const p = page();
   const pending = p.load();
   p.onUnload();
@@ -288,4 +309,154 @@ test("returning to Explore refreshes the article publication state", async () =>
   p.onShow();
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(calls[0].path, "/articles?page=0&size=10");
+});
+
+test("QR popup defaults to honest unconfigured state; repeated taps and dismissal do not navigate", async () => {
+  const p = page();
+  await p.loadShortcuts();
+  await p.openCategory({ currentTarget: { dataset: { slot: 3 } } });
+  assert.deepEqual(p.data.popup, { title: "二维码", text: "", image: "" });
+  await p.openCategory({ currentTarget: { dataset: { slot: 1 } } });
+  assert.deepEqual(navigation, []);
+  p.keepPopup();
+  assert.ok(p.data.popup);
+  p.closePopup();
+  assert.equal(p.data.popup, null);
+  await p.openCategory({ currentTarget: { dataset: { slot: 1 } } });
+  assert.deepEqual(navigation, ["/pages/activities/index"]);
+  assert.equal(storage.get("wildboy-category"), "WEEKLY");
+});
+test("configured popup renders uploaded image and plain text; image failure is explicit and hide closes", async () => {
+  const p = page();
+  const items = structuredClone(homeEntries);
+  items[2].popupImageUrl = "/assets/uploads/real.png";
+  items[2].popupText = "<b>plain text</b>";
+  api.request = async () => ({ version: 2, items });
+  await p.loadShortcuts();
+  await p.openCategory({ currentTarget: { dataset: { slot: 3 } } });
+  assert.match(p.data.popup.image, /\/assets\/uploads\/real.png$/);
+  assert.equal(p.data.popup.text, "<b>plain text</b>");
+  p.popupImageFailed({
+    currentTarget: { dataset: { generation: p.data.popupGeneration - 1 } },
+  });
+  assert.equal(p.data.popupImageError, false);
+  p.popupImageFailed({
+    currentTarget: { dataset: { generation: p.data.popupGeneration } },
+  });
+  assert.equal(p.data.popupImageError, true);
+  p.onHide();
+  assert.equal(p.data.popup, null);
+});
+test("page allowlist rejects injected target and invalid four-slot configuration", () => {
+  const { shortcutViews } = require("../dist/utils/home-shortcuts.js");
+  for (const mutate of [
+    (a) => a.pop(),
+    (a) => (a[1].slot = 1),
+    (a) => (a[0].page = "../../admin"),
+    (a) => (a[0].icon = "__proto__"),
+    (a) => (a[0].name = ""),
+    (a) => (a[3].articleId = "a?admin=1"),
+  ]) {
+    const items = structuredClone(homeEntries);
+    mutate(items);
+    assert.throws(() => shortcutViews({ version: 0, items }));
+  }
+});
+test("unsafe popup image is never handed to native image component", () => {
+  const { safeShortcutImage } = require("../dist/utils/home-shortcuts.js");
+  for (const url of [
+    "javascript:alert(1)",
+    "//evil.test/x",
+    "/assets/../secret.png",
+    "https://user@host/x",
+    "https://host/\\evil",
+    "/api/v1/admin",
+  ])
+    assert.equal(safeShortcutImage(url), "");
+});
+test("all allowlisted destinations dispatch correctly without arbitrary routes", async () => {
+  const p = page();
+  for (const [target, url] of [
+    ["WEEKLY", "activities"],
+    ["DOMESTIC", "activities"],
+    ["ACTIVITIES", "activities"],
+    ["SHOP", "shop"],
+    ["PROFILE", "mine"],
+  ]) {
+    const items = structuredClone(homeEntries);
+    items[0].page = target;
+    api.request = async () => ({ version: 1, items });
+    await p.loadShortcuts();
+    await p.openCategory({ currentTarget: { dataset: { slot: 1 } } });
+    assert.equal(navigation.at(-1), `/pages/${url}/index`);
+  }
+});
+test("article is checked at click; unpublished article never navigates and repeated clicks coalesce", async () => {
+  const p = page();
+  await p.loadShortcuts();
+  let finish;
+  let calls = 0;
+  api.request = () => {
+    calls++;
+    return new Promise((resolve, reject) => {
+      finish = reject;
+    });
+  };
+  const tap = p.openCategory({ currentTarget: { dataset: { slot: 4 } } });
+  await p.openCategory({ currentTarget: { dataset: { slot: 4 } } });
+  assert.equal(calls, 1);
+  finish(new Error("文章已下架"));
+  await tap;
+  assert.deepEqual(navigation, []);
+  assert.equal(p.data.shortcutBusy, false);
+});
+test("late article check after hide cannot navigate; config refresh closes old popup", async () => {
+  const p = page();
+  await p.loadShortcuts();
+  let finish;
+  api.request = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const tap = p.openCategory({ currentTarget: { dataset: { slot: 4 } } });
+  p.onHide();
+  finish({});
+  await tap;
+  assert.deepEqual(navigation, []);
+  responses([]);
+  await p.loadShortcuts();
+  await p.openCategory({ currentTarget: { dataset: { slot: 3 } } });
+  await p.loadShortcuts();
+  assert.equal(p.data.popup, null);
+});
+test("late shortcut load cannot overwrite refresh or unload; failure does not leave old actions active", async () => {
+  const p = page();
+  let finish;
+  api.request = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const old = p.loadShortcuts();
+  const items = structuredClone(homeEntries);
+  items[0].name = "新入口";
+  api.request = async () => ({ version: 1, items });
+  await p.loadShortcuts();
+  finish({ version: 0, items: homeEntries });
+  await old;
+  assert.equal(p.data.categories[0].name, "新入口");
+  api.request = async () => {
+    throw Error("断网");
+  };
+  await p.loadShortcuts();
+  await p.openCategory({ currentTarget: { dataset: { slot: 1 } } });
+  assert.deepEqual(navigation, []);
+  api.request = () =>
+    new Promise((resolve) => {
+      finish = resolve;
+    });
+  const last = p.loadShortcuts();
+  p.onUnload();
+  finish({ version: 0, items: homeEntries });
+  await last;
+  assert.equal(p.data.categories[0].name, "新入口");
 });

@@ -103,6 +103,8 @@
   font-size: 24rpx;
   font-weight: 650;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .shop {
   height: 298rpx;
@@ -175,23 +177,93 @@
   color: #919684;
 }
 
-.home-body .section-head { margin-top: 36rpx; }
-.home-body .activity-image { height: 212rpx; }
-.home-body .card-meta { letter-spacing: 0; }
+.home-body .section-head {
+  margin-top: 36rpx;
+}
+.home-body .activity-image {
+  height: 212rpx;
+}
+.home-body .card-meta {
+  letter-spacing: 0;
+}
 .home-body .card-detail {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.home-body .card-footer { flex-wrap: wrap; gap: 4rpx 10rpx; }
-.scenery-swiper { height: 330rpx; border-radius: 12rpx; overflow: hidden; }
-.scenery-slide { position: relative; height: 100%; background: #2b4e40; }
-.scenery-image { width: 100%; height: 100%; }
+.home-body .card-footer {
+  flex-wrap: wrap;
+  gap: 4rpx 10rpx;
+}
+.scenery-swiper {
+  height: 330rpx;
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+.scenery-slide {
+  position: relative;
+  height: 100%;
+  background: #2b4e40;
+}
+.scenery-image {
+  width: 100%;
+  height: 100%;
+}
 .scenery-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(transparent 20%, rgba(9, 30, 22, .75));
+  background: linear-gradient(transparent 20%, rgba(9, 30, 22, 0.75));
 }
-.scenery-copy { position: absolute; left: 28rpx; right: 28rpx; bottom: 52rpx; color: #fff; }
-.scenery-title { font-size: 36rpx; font-weight: 650; }
-.scenery-sub { font-size: 21rpx; margin-top: 10rpx; line-height: 1.5; }
+.scenery-copy {
+  position: absolute;
+  left: 28rpx;
+  right: 28rpx;
+  bottom: 52rpx;
+  color: #fff;
+}
+.scenery-title {
+  font-size: 36rpx;
+  font-weight: 650;
+}
+.scenery-sub {
+  font-size: 21rpx;
+  margin-top: 10rpx;
+  line-height: 1.5;
+}
+
+.shortcut-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+}
+.shortcut-dialog {
+  width: 100%;
+  max-width: 600rpx;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+}
+.shortcut-title {
+  font-size: 34rpx;
+  font-weight: 650;
+  margin-bottom: 24rpx;
+}
+.shortcut-body {
+  height: 55vh;
+}
+.shortcut-image {
+  width: 100%;
+  display: block;
+}
+.shortcut-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.7;
+  margin: 20rpx 0;
+}

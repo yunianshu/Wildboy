@@ -2,7 +2,7 @@
 import { ref, onUnmounted } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 const props = defineProps<{ disabled?: boolean }>();
-const emit = defineEmits<{ uploaded: [url: string] }>();
+const emit = defineEmits<{ uploaded: [url: string]; busy: [value: boolean] }>();
 const busy = ref(false),
   error = ref("");
 let alive = true;
@@ -23,6 +23,7 @@ async function upload(event: Event) {
   }
   const actor = currentUser.value;
   busy.value = true;
+  emit("busy", true);
   error.value = "";
   try {
     const data = await new Promise<string>((resolve, reject) => {
@@ -40,7 +41,10 @@ async function upload(event: Event) {
   } catch (e) {
     if (alive && currentUser.value === actor) error.value = errorMessage(e);
   } finally {
-    if (alive) busy.value = false;
+    if (alive) {
+      busy.value = false;
+      emit("busy", false);
+    }
   }
 }
 </script>

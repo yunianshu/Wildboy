@@ -16,12 +16,16 @@
     <view wx:if="{{devMode}}" class="notice">
       开发演示账号 · 非真实用户
     </view>
-    <view class="category-grid">
+    <view wx:if="{{shortcutLoading}}" class="state">正在加载首页入口…</view>
+    <view wx:if="{{shortcutError}}" class="state">入口加载失败：{{shortcutError}}<button class="secondary" bindtap="retryShortcuts">重试</button></view>
+    <view class="category-grid" aria-busy="{{shortcutLoading}}">
       <view
         class="category"
         wx:for="{{categories}}"
-        wx:key="code"
-        data-code="{{item.code}}"
+        wx:key="slot"
+        data-slot="{{item.slot}}"
+        aria-label="{{item.name}}"
+        aria-role="button"
         bindtap="openCategory"
       >
         <image src="{{item.image}}" mode="aspectFill" />
@@ -135,5 +139,18 @@
       wildboy.
       <text>LEAVE NO TRACE. TAKE GOOD MEMORIES.</text>
     </view>
+  </view>
+</view>
+
+<view wx:if="{{popup}}" class="shortcut-mask" catchtap="closePopup" catchtouchmove="keepPopup">
+  <view class="shortcut-dialog" catchtap="keepPopup" role="dialog" aria-label="{{popup.title}}">
+    <view class="shortcut-title">{{popup.title}}</view>
+    <scroll-view scroll-y class="shortcut-body">
+      <image wx:if="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-generation="{{popupGeneration}}" binderror="popupImageFailed" />
+      <view wx:if="{{popupImageError}}" class="state">图片加载失败，请关闭后重试</view>
+      <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
+      <view wx:if="{{!popup.image && !popup.text}}" class="state">暂未配置内容，请联系主理人在后台上传二维码或设置弹窗内容。</view>
+    </scroll-view>
+    <button class="secondary" bindtap="closePopup">关闭</button>
   </view>
 </view>
