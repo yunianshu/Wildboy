@@ -33,7 +33,16 @@
 .product-image-wrap { position: relative; height: 250rpx; overflow: hidden; border-radius: 14rpx; background: #e3e7dc; }
 .product-image-wrap image { width: 100%; height: 100%; }
 .sold-out { position: absolute; left: 16rpx; bottom: 16rpx; padding: 7rpx 14rpx; border-radius: 24rpx; background: rgba(246, 244, 237, .92); color: #626b5e; font-size: 20rpx; }
-.product-name { margin-top: 16rpx; font-size: 28rpx; font-weight: 650; line-height: 1.5; }
+.product-name {
+  margin-top: 16rpx;
+  font-size: 28rpx;
+  font-weight: 650;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .product-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8rpx; margin-top: 10rpx; }
 .price { color: #8a4b31; font-size: 29rpx; font-weight: 700; }
 .stock { color: #818779; font-size: 20rpx; }
