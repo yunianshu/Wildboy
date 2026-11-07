@@ -1,9 +1,31 @@
 <script setup lang="ts">
-import { watch } from "vue";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { currentUser, clearSession } from "./api";
 const route = useRoute(),
   router = useRouter();
+const pageTitles: Record<string, string> = {
+  "/settings/admin-account": "管理员账号",
+  "/users": "用户管理",
+  "/shop/categories": "商品分类",
+  "/settings": "基础配置",
+  "/articles": "文章管理",
+  "/waitlist": "候补名单",
+  "/operations": "运营工作台",
+  "/templates": "活动模板",
+  "/refunds": "退款售后",
+  "/notifications": "消息管理",
+  "/shop": "商城管理",
+  "/legal": "协议管理",
+};
+const pageTitle = computed(() => {
+  const path = route.path;
+  if (pageTitles[path]) return pageTitles[path];
+  if (path.endsWith("registrations")) return "报名名单";
+  if (path.endsWith("edit")) return "编辑活动";
+  if (path.endsWith("new")) return "新建活动";
+  return "活动工作台";
+});
 watch(currentUser, (user) => {
   if (!user && route.path !== "/login") void router.replace("/login");
 });
@@ -41,6 +63,12 @@ function logout() {
       <RouterLink class="nav-link" to="/shop"
         ><span>▣</span>商城管理</RouterLink
       >
+      <RouterLink class="nav-link" to="/shop/categories"
+        ><span>▦</span>商品分类</RouterLink
+      >
+      <RouterLink class="nav-link" to="/users"
+        ><span>◒</span>用户管理</RouterLink
+      >
       <RouterLink class="nav-link" to="/articles"
         ><span>▤</span>文章管理</RouterLink
       >
@@ -50,39 +78,13 @@ function logout() {
       <RouterLink class="nav-link" to="/settings"
         ><span>⚙</span>基础配置</RouterLink
       >
+      <RouterLink class="nav-link" to="/settings/admin-account"
+        ><span>✦</span>管理员账号</RouterLink
+      >
     </aside>
     <div class="main-shell">
       <header class="topbar">
-        <span
-          >户外活动管理 /
-          <strong>{{
-            route.path === "/settings"
-              ? "基础配置"
-              : route.path === "/articles"
-                ? "文章管理"
-                : route.path === "/waitlist"
-                  ? "候补名单"
-                  : route.path === "/operations"
-                    ? "运营工作台"
-                    : route.path === "/templates"
-                      ? "活动模板"
-                      : route.path === "/refunds"
-                        ? "退款售后"
-                        : route.path === "/notifications"
-                          ? "消息管理"
-                          : route.path === "/shop"
-                            ? "商城管理"
-                            : route.path === "/legal"
-                              ? "协议管理"
-                              : route.path.endsWith("registrations")
-                                ? "报名名单"
-                                : route.path.endsWith("edit")
-                                  ? "编辑活动"
-                                  : route.path.endsWith("new")
-                                    ? "新建活动"
-                                    : "活动工作台"
-          }}</strong></span
-        >
+        <span>户外活动管理 / <strong>{{ pageTitle }}</strong></span>
         <div class="user-tools">
           <span>{{ currentUser?.nickname || "管理员" }}</span
           ><button class="text-button" @click="logout">退出登录</button>

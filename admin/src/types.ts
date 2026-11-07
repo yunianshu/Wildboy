@@ -31,11 +31,12 @@ export interface Participant {
   idNumber: string;
   phone: string;
 }
+export type RegistrationStatus = "CONFIRMED" | "CANCELLED";
 export interface Registration {
   id: string;
   activityId: string;
   activityTitle: string;
-  status: "CONFIRMED" | "CANCELLED";
+  status: RegistrationStatus;
   createdAt: string;
   participants: Participant[];
 }
@@ -44,15 +45,78 @@ export interface ProductInput {
   name: string;
   description: string;
   imageUrl: string;
+  categoryId: string;
   priceCents: number;
+  originalPriceCents: number;
   stock: number;
   status: ProductStatus;
 }
 export interface Product extends ProductInput {
   id: string;
+  categoryName?: string;
   version: number;
   createdAt: string;
   updatedAt: string;
+}
+export interface ProductCategory {
+  id: string;
+  name: string;
+  sortOrder: number;
+  version: number;
+  productCount?: number;
+}
+export type AdminUserRole = "USER" | "ADMIN";
+export type AdminAccountSource = "WECHAT" | "PASSWORD" | "DEMO" | "OTHER";
+export interface AdminUser {
+  id: string;
+  nickname: string;
+  realName: string | null;
+  phone: string | null;
+  profileCompleted: boolean;
+  createdAt: string;
+  profileUpdatedAt: string | null;
+  registrationCount: number;
+  confirmedRegistrationCount: number;
+  lastRegistrationAt: string | null;
+  role: AdminUserRole;
+  accountSource: AdminAccountSource;
+  wechatVerified: boolean;
+  canChangeRole: boolean;
+  roleChangeBlockReason: string | null;
+  version: number;
+}
+export interface AdminUserDetail {
+  user: AdminUser;
+  registrations: Page<Registration>;
+}
+export interface AdminAccountSettings {
+  configured: boolean;
+  username: string;
+  version: number;
+  canConfigure: boolean;
+  configurationBlockReason: string | null;
+}
+export type NotificationStatus =
+  | "PENDING"
+  | "SENDING"
+  | "SENT"
+  | "FAILED"
+  | "NO_PERMISSION"
+  | "UNCONFIGURED"
+  | "OBSOLETE"
+  | "UNKNOWN";
+export interface NotificationNotice {
+  id: string;
+  status: NotificationStatus;
+  kind?: string;
+  title: string;
+  detail: string;
+  lastError: string;
+  attempts: number;
+}
+export interface NotificationConfig {
+  ready: boolean;
+  templateId: string;
 }
 export type OrderStatus =
   "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
@@ -93,6 +157,7 @@ export interface User {
   id: string;
   nickname: string;
   role: string;
+  accountSource?: AdminAccountSource;
 }
 export interface Auth {
   token: string;

@@ -6,6 +6,9 @@ import EditorView from "./views/EditorView.vue";
 import RosterView from "./views/RosterView.vue";
 import LegalView from "./views/LegalView.vue";
 import ShopView from "./views/ShopView.vue";
+import ProductCategoriesView from "./views/ProductCategoriesView.vue";
+import UsersView from "./views/UsersView.vue";
+import AdminAccountView from "./views/AdminAccountView.vue";
 import WaitlistView from "./views/WaitlistView.vue";
 import TemplatesView from "./views/TemplatesView.vue";
 import OperationsView from "./views/OperationsView.vue";
@@ -20,6 +23,8 @@ export const router = createRouter({
     { path: "/", redirect: "/activities" },
     { path: "/activities", component: ActivitiesView },
     { path: "/shop", component: ShopView },
+    { path: "/shop/categories", component: ProductCategoriesView },
+    { path: "/users", component: UsersView },
     { path: "/templates", component: TemplatesView },
     { path: "/waitlist", component: WaitlistView },
     { path: "/operations", component: OperationsView },
@@ -28,6 +33,7 @@ export const router = createRouter({
     { path: "/legal", component: LegalView },
     { path: "/articles", component: ArticlesView },
     { path: "/settings", component: SettingsView },
+    { path: "/settings/admin-account", component: AdminAccountView },
     { path: "/activities/new", component: EditorView },
     { path: "/activities/:id/edit", component: EditorView },
     { path: "/activities/:id/registrations", component: RosterView },

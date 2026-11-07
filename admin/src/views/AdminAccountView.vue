@@ -268,12 +268,7 @@ onUnmounted(() => {
     </p>
   </template>
   <button v-else-if="!loading && !error" @click="load">重新加载</button>
-  <FormModal
-    v-if="editing && settings?.canConfigure"
-    title="修改管理员账号"
-    :busy="busy"
-    @close="closeEditor"
-  >
+  <FormModal v-if="editing && settings?.canConfigure" @close="closeEditor">
     <form
       id="admin-account-form"
       class="form-section account-form"

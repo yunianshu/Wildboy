@@ -144,6 +144,7 @@ async function load(next = 0) {
   const n = ++epoch;
   loading.value = true;
   error.value = "";
+  let clampTo: number | null = null;
   try {
     const params = new URLSearchParams({
       page: String(next),
@@ -161,12 +162,20 @@ async function load(next = 0) {
     page.value = result.page;
     total.value = result.total;
     hasMore.value = result.hasMore;
+    // 页码超界时收敛回最后一页（对齐商品分类的做法，避免停留在空白页）。
+    const lastPage = Math.max(
+      0,
+      Math.ceil(result.total / Math.max(1, result.size || 8)) - 1,
+    );
+    if (!result.items.length && next > lastPage) clampTo = lastPage;
   } catch (reason) {
     if (n === epoch && active(identity, actor) && !accessFailed(reason))
       error.value = errorMessage(reason);
   } finally {
     if (n === epoch && active(identity, actor)) loading.value = false;
   }
+  if (clampTo !== null && n === epoch && active(identity, actor))
+    void load(clampTo);
 }
 function openFilters() {
   if (loading.value || interactionLocked.value) return;
@@ -474,7 +483,7 @@ function dateTime(value: string | null) {
     </div>
   </nav>
 
-  <FormModal v-if="filterOpen" title="筛选用户" @close="filterOpen = false">
+  <FormModal v-if="filterOpen" @close="filterOpen = false">
     <form class="form-section" @submit.prevent="applyFilters">
       <h2>筛选用户</h2>
       <label
@@ -514,18 +523,13 @@ function dateTime(value: string | null) {
     </form>
   </FormModal>
 
-  <FormModal
-    v-if="detailId"
-    title="用户详情"
-    size="lg"
-    :busy="interactionLocked"
-    @close="closeUser"
-  >
-    <h2>用户详情</h2>
-    <p class="record-id">
-      {{ detail?.user.nickname || "正在读取用户" }} · 用户编号：{{ detailId }}
-    </p>
-    <nav class="user-detail-tabs" aria-label="用户详情视图">
+  <FormModal v-if="detailId" size="lg" @close="closeUser">
+    <div aria-label="用户详情">
+      <h2>用户详情</h2>
+      <p class="record-id">
+        {{ detail?.user.nickname || "正在读取用户" }} · 用户编号：{{ detailId }}
+      </p>
+      <nav class="user-detail-tabs" aria-label="用户详情视图">
       <button
         :class="{ primary: detailTab === 'profile' }"
         :aria-pressed="detailTab === 'profile'"
@@ -696,6 +700,7 @@ function dateTime(value: string | null) {
         </nav>
       </section>
     </template>
+    </div>
     <div class="dialog-actions">
       <button
         :disabled="detailLoading || interactionLocked"

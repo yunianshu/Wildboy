@@ -1,5 +1,11 @@
 import { ref } from "vue";
-import type { Auth, User } from "./types";
+import type {
+  AdminAccountSettings,
+  AdminUser,
+  AdminUserRole,
+  Auth,
+  User,
+} from "./types";
 // Keep credentials in memory, not localStorage/sessionStorage. Reload requires sign-in.
 let token = "";
 let sessionVersion = 0;
@@ -77,6 +83,31 @@ export async function devLogin() {
       body: JSON.stringify({ role: "ADMIN" }),
     }),
   );
+}
+export function updateAdminUserRole(
+  id: string,
+  body: { role: AdminUserRole; version: number },
+) {
+  return request<AdminUser>(`/admin/users/${encodeURIComponent(id)}/role`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+export function getAdminAccountSettings() {
+  return request<AdminAccountSettings>("/admin/settings/admin-account", {
+    cache: "no-store",
+  });
+}
+export function updateAdminAccountSettings(body: {
+  username: string;
+  currentPassword: string;
+  newPassword: string;
+  version: number;
+}) {
+  return request<AdminAccountSettings>("/admin/settings/admin-account", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 }
 export function errorMessage(error: unknown) {
   if (error instanceof ApiError && error.status === 409)

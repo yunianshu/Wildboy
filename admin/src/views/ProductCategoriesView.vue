@@ -346,12 +346,7 @@ onUnmounted(() => {
       </button>
     </div>
   </nav>
-  <FormModal
-    v-if="editing"
-    :title="editingId ? '编辑商品分类' : '创建商品分类'"
-    :busy="busy || reloadConfirmation"
-    @close="close"
-  >
+  <FormModal v-if="editing" @close="close">
     <form class="form-section" @submit.prevent="save">
       <h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2>
       <p v-if="error" class="error-box" role="alert">{{ error }}</p>
