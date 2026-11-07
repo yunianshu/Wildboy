@@ -13,7 +13,7 @@ class WaitlistRetirementMigrationTest {
   @Test void upgradePreservesHistoricalDataAndOnlyRetiresRemovedFeatureNotifications() throws Exception {
     try (var pg = EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start()) {
       var source = new DriverManagerDataSource(pg.getJdbcUrl("postgres", "postgres"), "postgres", "");
-      var before = Flyway.configure().dataSource(source).target("13").load(); before.migrate();
+      var before = Flyway.configure().dataSource(source).target("18").load(); before.migrate();
       var db = new JdbcTemplate(source);
       Integer originalChecksum = db.queryForObject("SELECT checksum FROM flyway_schema_history WHERE version='11'", Integer.class);
       for (String user : List.of("owner", "waiting-user", "offered-user"))
@@ -33,7 +33,7 @@ class WaitlistRetirementMigrationTest {
       notice(db, "changed", "ACTIVITY_CHANGED", "ACTIVITY_CHANGED:activity:owner", "PENDING");
       notice(db, "pretrip", "PRETRIP", "PRETRIP:activity:owner", "FAILED");
       notice(db, "cancelled", "ACTIVITY_CANCELLED", "ACTIVITY_CANCELLED:activity:owner", "PENDING");
-      var after = Flyway.configure().dataSource(source).target("14").load();
+      var after = Flyway.configure().dataSource(source).target("19").load();
       assertThat(after.migrate().migrationsExecuted).isEqualTo(1);
       after.validate(); assertThat(after.migrate().migrationsExecuted).isZero();
       assertThat(db.queryForObject("SELECT checksum FROM flyway_schema_history WHERE version='11'", Integer.class)).isEqualTo(originalChecksum);

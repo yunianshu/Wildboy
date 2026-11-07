@@ -55,6 +55,7 @@ public class SecurityConfig {
                         "/api/v1/activities/*",
                         "/api/v1/shop/products",
                         "/api/v1/shop/products/*",
+                        "/api/v1/shop/categories",
                         "/api/v1/activities/*/content",
                         "/api/v1/media/*",
                         "/api/v1/shop/products/*/content")
@@ -79,7 +80,11 @@ public class SecurityConfig {
           protected void doFilterInternal(
               HttpServletRequest req, HttpServletResponse res, FilterChain chain)
               throws ServletException, IOException {
-            if (req.getRequestURI().startsWith("/api/v1/auth/") && req.getMethod().equals("POST")) {
+            boolean loginOrReauthentication =
+                (req.getRequestURI().startsWith("/api/v1/auth/") && req.getMethod().equals("POST"))
+                    || (req.getRequestURI().equals("/api/v1/admin/settings/admin-account")
+                        && req.getMethod().equals("PUT"));
+            if (loginOrReauthentication) {
               long minute = System.currentTimeMillis() / 60000;
               String ip = req.getRemoteAddr();
               if (buckets.size() > 10000)

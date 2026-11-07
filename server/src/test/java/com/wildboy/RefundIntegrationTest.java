@@ -26,7 +26,7 @@ class RefundIntegrationTest {
  @MockitoBean WechatPayService pay;
  String user,order,product,orderNo,transaction,token;
  @BeforeEach void setup(){reset(pay);var owner=auth.user("refund-test:"+UUID.randomUUID(),"Refund QA","USER");user=owner.id();token="Bearer "+auth.login(owner).token();order=UUID.randomUUID().toString();product=UUID.randomUUID().toString();orderNo=UUID.randomUUID().toString().replace("-","");transaction="tx-"+UUID.randomUUID();
-  db.update("INSERT INTO product(id,name,description,image_url,price_cents,stock,status) VALUES(?,'测试商品','描述','/assets/a.jpg',100,2,'ON_SALE')",product);
+  db.update("INSERT INTO product(id,name,description,image_url,category_id,price_cents,original_price_cents,stock,status) VALUES(?,?,?,?,?,?,?,?,?)",product,"测试商品","描述","/assets/a.jpg","uncategorized",100,100,2,"ON_SALE");
   db.update("INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address,payment_transaction_id,paid_at) VALUES(?,?,?,100,'PAID','测试收件人','13800000000','测试完整地址',?,CURRENT_TIMESTAMP)",order,orderNo,user,transaction);
   db.update("INSERT INTO shop_order_item(id,order_id,product_id,product_name,image_url,price_cents,quantity) VALUES(?,?,?,'测试商品','/assets/a.jpg',100,1)",UUID.randomUUID().toString(),order,product);
  }

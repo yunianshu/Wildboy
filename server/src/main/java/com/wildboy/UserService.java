@@ -34,12 +34,12 @@ public class UserService {
           + " (SELECT MAX(r.created_at) FROM registration r WHERE r.user_id=u.id) AS last_registration_at"
           + " FROM app_user u";
 
-  private RowMapper<AdminUser> adminMapper(User actor) {
+  private RowMapper<AdminUser> adminMapper(User actor, boolean passwordLoginAvailable) {
     return (r, n) -> {
       String id = r.getString("id"), role = r.getString("role");
       var source = accountSource(r.getString("external_id"));
       boolean verified = r.getObject("wechat_verified_at", OffsetDateTime.class) != null;
-      String block = roleBlockReason(actor, id, source, verified, role);
+      String block = roleBlockReason(actor, id, source, verified, role, passwordLoginAvailable);
       return new AdminUser(
               r.getString("id"),
               r.getString("nickname"),
@@ -67,11 +67,13 @@ public class UserService {
             || actor.accountSource() == AccountSource.WECHAT && actor.wechatVerified());
   }
 
-  private String roleBlockReason(User actor, String id, AccountSource source, boolean verified, String role) {
+  private String roleBlockReason(User actor, String id, AccountSource source, boolean verified, String role, boolean passwordLoginAvailable) {
     if (!eligibleActor(actor)) return "ROLE_MANAGEMENT_FORBIDDEN";
     if (actor.id().equals(id)) return "SELF_ROLE_CHANGE_FORBIDDEN";
     if (source != AccountSource.WECHAT || !verified) return "ROLE_TARGET_NOT_ELIGIBLE";
-    if ("ADMIN".equals(role) && !adminAccounts.passwordLoginAvailable()
+    // The row mapper precomputes login availability once per request; this per-row count
+    // only runs for the rare last-admin decision.
+    if ("ADMIN".equals(role) && !passwordLoginAvailable
         && db.queryForObject("SELECT COUNT(*) FROM app_user WHERE role='ADMIN' AND external_id LIKE 'wechat:%' AND wechat_verified_at IS NOT NULL", Long.class) <= 1)
       return "LAST_ADMIN_REQUIRED";
     return null;
@@ -93,8 +95,8 @@ public class UserService {
       throw new ApiException(403, "USER_PROFILE_ONLY", "仅微信活动账号可填写用户资料");
     String name = input.realName() == null ? "" : input.realName().strip();
     String phone = input.phone() == null ? "" : input.phone().strip();
-    if (name.length() < 2
-        || name.length() > 40
+    if (name.codePointCount(0, name.length()) < 2
+        || name.codePointCount(0, name.length()) > 40
         || name.codePoints().anyMatch(Character::isISOControl))
       throw new ApiException(400, "INVALID_PROFILE_NAME", "姓名须为 2–40 字，且不含控制字符");
     if (!phone.matches("1[3-9][0-9]{9}"))
@@ -143,10 +145,11 @@ public class UserService {
             "SELECT COUNT(*) FROM app_user u" + where, Long.class, args.toArray());
     args.add(size);
     args.add(page * size);
+    boolean passwordLoginAvailable = adminAccounts.passwordLoginAvailable();
     var items =
         db.query(
             ADMIN_SELECT + where + " ORDER BY u.created_at DESC,u.id LIMIT ? OFFSET ?",
-            adminMapper(actor),
+            adminMapper(actor, passwordLoginAvailable),
             args.toArray());
     return new Page<>(items, total, page, size, (long) (page + 1) * size < total);
   }
@@ -155,7 +158,7 @@ public class UserService {
       User actor, String id, RegistrationStatus status, int page, int size) {
     ActivityService.pageCheck(page, size);
     var users =
-        db.query(ADMIN_SELECT + " WHERE u.id=?", adminMapper(actor), id);
+        db.query(ADMIN_SELECT + " WHERE u.id=?", adminMapper(actor, adminAccounts.passwordLoginAvailable()), id);
     if (users.isEmpty()) throw ApiException.notFound();
     var registrations = activities.registrations(id, null, status, page, size);
     var masked =
@@ -202,7 +205,7 @@ public class UserService {
     User target = targets.getFirst();
     if (input.version() == null || input.version() != target.version())
       throw ApiException.conflict("STALE_VERSION", "用户权限已更新，请重新读取后核对");
-    String block = roleBlockReason(currentActor, id, target.accountSource(), target.wechatVerified(), target.role());
+    String block = roleBlockReason(currentActor, id, target.accountSource(), target.wechatVerified(), target.role(), adminAccounts.passwordLoginAvailable());
     if (block != null) throw ApiException.conflict(block, switch (block) {
       case "SELF_ROLE_CHANGE_FORBIDDEN" -> "不能修改自己的管理员角色，请由其他正式管理员操作";
       case "LAST_ADMIN_REQUIRED" -> "必须保留至少一个可登录的正式管理员";
@@ -214,6 +217,6 @@ public class UserService {
       db.update("DELETE FROM auth_session WHERE user_id=?", id);
       activities.audit(currentActor.id(), id, "USER_ROLE_" + input.role().name());
     }
-    return db.queryForObject(ADMIN_SELECT + " WHERE u.id=?", adminMapper(currentActor), id);
+    return db.queryForObject(ADMIN_SELECT + " WHERE u.id=?", adminMapper(currentActor, adminAccounts.passwordLoginAvailable()), id);
   }
 }

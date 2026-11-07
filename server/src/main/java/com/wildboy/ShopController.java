@@ -22,8 +22,8 @@ public class ShopController {
   }
 
   @GetMapping("/shop/products")
-  java.util.List<Product> products() {
-    return shop.products(false);
+  java.util.List<Product> products(@RequestParam(required = false) String categoryId) {
+    return shop.products(false, categoryId);
   }
 
   @GetMapping("/shop/products/{id}")
@@ -72,8 +72,8 @@ public class ShopController {
   }
 
   @GetMapping("/admin/shop/products")
-  java.util.List<Product> adminProducts() {
-    return shop.products(true);
+  java.util.List<Product> adminProducts(@RequestParam(required = false) String categoryId) {
+    return shop.products(true, categoryId);
   }
 
   @PostMapping("/admin/shop/products")

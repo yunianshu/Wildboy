@@ -6,6 +6,15 @@ import org.springframework.boot.SpringApplication;
 
 /** Local-only QA runner. Not packaged into the executable application. */
 public class LocalSmokeServer {
+  // Single place decides where smoke credentials land, so QA tools and manual runs cannot
+  // drift between the legacy tmpdir file and an explicitly isolated override.
+  static Path envFilePath(String override) {
+    if (override == null) return Path.of(System.getProperty("java.io.tmpdir"), "wildboy-smoke-env");
+    if (override.isBlank())
+      throw new IllegalArgumentException("Blank smoke env path would overwrite the default credentials file");
+    return Path.of(override).toAbsolutePath().normalize();
+  }
+
   public static void main(String[] args) throws Exception {
     var pg = EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start();
     System.setProperty("spring.datasource.url", pg.getJdbcUrl("postgres", "postgres"));
@@ -23,7 +32,7 @@ public class LocalSmokeServer {
     String admin = auth.dev("ADMIN", null, null).token();
     String user = auth.dev("USER", 1L, 1L).token();
     String user2 = auth.login(auth.user("smoke:user2", "Smoke second user", "USER")).token();
-    Path path = Path.of(System.getProperty("java.io.tmpdir"), "wildboy-smoke-env");
+    Path path = envFilePath(null);
     Files.writeString(
         path, "ADMIN_TOKEN=" + admin + "\nUSER_TOKEN=" + user + "\nUSER_TOKEN_2=" + user2 + "\n");
     try {

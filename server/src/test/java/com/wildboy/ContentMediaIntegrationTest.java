@@ -24,7 +24,7 @@ class ContentMediaIntegrationTest {
  @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->pg.getJdbcUrl("postgres","postgres"));r.add("spring.datasource.username",()->"postgres");r.add("spring.datasource.password",()->"");r.add("wildboy.media-dir",()->media.toString());}
  @Autowired AuthService auth; @Autowired JdbcTemplate db; @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired ContentService content;
  String admin,user,id;
- @BeforeEach void setup(){admin="Bearer "+auth.login(auth.user("content-admin:"+UUID.randomUUID(),"QA","ADMIN")).token();user="Bearer "+auth.login(auth.user("content-user:"+UUID.randomUUID(),"QA","USER")).token();id=UUID.randomUUID().toString();db.update("INSERT INTO product(id,name,description,image_url,price_cents,stock,status) VALUES(?,?,?,?,?,?,?)",id,"测试装备","说明","/assets/equipment.jpg",100,3,"ON_SALE");}
+ @BeforeEach void setup(){admin="Bearer "+auth.login(auth.user("content-admin:"+UUID.randomUUID(),"QA","ADMIN")).token();user="Bearer "+auth.login(auth.user("content-user:"+UUID.randomUUID(),"QA","USER")).token();id=UUID.randomUUID().toString();db.update("INSERT INTO product(id,name,description,image_url,category_id,price_cents,original_price_cents,stock,status) VALUES(?,?,?,?,?,?,?,?,?)",id,"测试装备","说明","/assets/equipment.jpg","uncategorized",100,100,3,"ON_SALE");}
  @AfterAll static void cleanup()throws Exception{pg.close();try(var files=Files.list(media)){for(var p:files.toList())Files.deleteIfExists(p);}Files.deleteIfExists(media);}
  String path(){return "/api/v1/admin/shop/products/"+id+"/content";}
  @Test void publicReadRequiresPublicEntityAndWriteIsAdminOnly()throws Exception{

@@ -7,12 +7,21 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiErrors {
   @ExceptionHandler(ApiException.class)
   ResponseEntity<?> api(ApiException e) {
     return ResponseEntity.status(e.status).body(Map.of("code", e.code, "message", e.getMessage()));
+  }
+
+  // Missing routes answer JSON 404 directly instead of a Servlet /error re-dispatch that
+  // can surface as 401 for authenticated sessions.
+  @ExceptionHandler(NoResourceFoundException.class)
+  ResponseEntity<?> missing(NoResourceFoundException e) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND)
+        .body(Map.of("code", "NOT_FOUND", "message", "资源不存在"));
   }
 
   @ExceptionHandler(MethodArgumentNotValidException.class)

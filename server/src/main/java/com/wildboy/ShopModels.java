@@ -1,5 +1,6 @@
 package com.wildboy;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.time.OffsetDateTime;
@@ -24,7 +25,10 @@ public final class ShopModels {
       String name,
       String description,
       String imageUrl,
+      String categoryId,
+      String categoryName,
       int priceCents,
+      int originalPriceCents,
       int stock,
       String status,
       long version,
@@ -35,10 +39,18 @@ public final class ShopModels {
       @NotBlank @Size(max = 120) String name,
       @NotBlank @Size(max = 20000) String description,
       @NotBlank @Size(max = 2048) String imageUrl,
-      @Min(1) @Max(100000000) int priceCents,
-      @Min(0) @Max(1000000) int stock,
+      @Size(max = 36) String categoryId,
+      @Min(1) @Max(100000000) @JsonDeserialize(using = StrictIntegerDeserializer.class) int priceCents,
+      @Min(1) @Max(100000000) @JsonDeserialize(using = StrictIntegerDeserializer.class) Integer originalPriceCents,
+      @Min(0) @Max(1000000) @JsonDeserialize(using = StrictIntegerDeserializer.class) int stock,
       @NotNull ProductStatus status,
-      Long version) {}
+      Long version) {
+    // Legacy shape used by demo seeding: no category, strikethrough price defaults to the price.
+    public ProductInput(String name, String description, String imageUrl, int priceCents,
+        int stock, ProductStatus status, Long version) {
+      this(name, description, imageUrl, null, priceCents, null, stock, status, version);
+    }
+  }
 
   public record OrderItemInput(
       @NotBlank String productId, @Min(1) @Max(99) int quantity) {}

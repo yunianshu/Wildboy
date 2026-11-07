@@ -24,6 +24,7 @@ public class ShopService {
   private final AuthService auth;
   private final ActivityService activities;
   private final WechatPayService pay;
+  private final ShopCategoryService categories;
   private final TransactionTemplate transactions;
 
   public ShopService(
@@ -31,14 +32,23 @@ public class ShopService {
       LegalService legal,
       AuthService auth,
       ActivityService activities,
-      WechatPayService pay, PlatformTransactionManager transactionManager) {
+      WechatPayService pay,
+      ShopCategoryService categories,
+      PlatformTransactionManager transactionManager) {
     this.db = db;
     this.legal = legal;
     this.auth = auth;
     this.activities = activities;
     this.pay = pay;
+    this.categories = categories;
     this.transactions = new TransactionTemplate(transactionManager);
   }
+
+  // The category name is resolved at read time so renaming a category updates every product
+  // label immediately without touching product rows.
+  private static final String PRODUCT_SELECT =
+      "SELECT p.*, c.name AS category_name FROM product p"
+          + " LEFT JOIN product_category c ON c.id=p.category_id";
 
   private final RowMapper<Product> productMapper =
       (r, n) ->
@@ -47,7 +57,10 @@ public class ShopService {
               r.getString("name"),
               r.getString("description"),
               r.getString("image_url"),
+              r.getString("category_id"),
+              r.getString("category_name"),
               r.getInt("price_cents"),
+              r.getInt("original_price_cents"),
               r.getInt("stock"),
               r.getString("status"),
               r.getLong("version"),
@@ -76,15 +89,26 @@ public class ShopService {
               List.of());
 
   public List<Product> products(boolean admin) {
+    return products(admin, null);
+  }
+
+  public List<Product> products(boolean admin, String categoryId) {
+    List<Object> args = new ArrayList<>();
+    var where = new StringBuilder();
+    if (!admin) where.append(" WHERE p.status='ON_SALE'");
+    if (categoryId != null) {
+      categories.requireExists(categoryId);
+      where.append(where.length() == 0 ? " WHERE" : " AND").append(" p.category_id=?");
+      args.add(categoryId);
+    }
     return db.query(
-        "SELECT * FROM product" + (admin ? "" : " WHERE status='ON_SALE'") + " ORDER BY created_at,id",
-        productMapper);
+        PRODUCT_SELECT + where + " ORDER BY p.created_at,p.id", productMapper, args.toArray());
   }
 
   public Product product(String id, boolean admin) {
     var result =
         db.query(
-            "SELECT * FROM product WHERE id=?" + (admin ? "" : " AND status='ON_SALE'"),
+            PRODUCT_SELECT + " WHERE p.id=?" + (admin ? "" : " AND p.status='ON_SALE'"),
             productMapper,
             id);
     if (result.isEmpty()) throw ApiException.notFound();
@@ -95,21 +119,38 @@ public class ShopService {
     activities.validateUrl(input.imageUrl());
     if (input.priceCents() < 1 || input.priceCents() > 100000000)
       throw new ApiException(400, "INVALID_PRICE", "商品价格超出范围");
+    if (input.originalPriceCents() != null && input.originalPriceCents() < input.priceCents())
+      throw new ApiException(400, "ORIGINAL_PRICE_BELOW_CURRENT", "划线原价不能低于现价");
     if (input.stock() < 0 || input.stock() > 1000000)
       throw new ApiException(400, "INVALID_STOCK", "商品库存超出范围");
+  }
+
+  // A blank category on create means the default bucket; on edit it keeps the current one.
+  private String categoryId(ProductInput input, Product current) {
+    String id =
+        input.categoryId() == null || input.categoryId().isBlank()
+            ? current == null ? ShopCategoryService.DEFAULT_ID : current.categoryId()
+            : input.categoryId().strip();
+    categories.requireExists(id);
+    return id;
   }
 
   @Transactional
   public Product createProduct(ProductInput input, String actor) {
     validateProduct(input);
     String id = UUID.randomUUID().toString();
+    int originalPrice =
+        input.originalPriceCents() == null ? input.priceCents() : input.originalPriceCents();
     db.update(
-        "INSERT INTO product(id,name,description,image_url,price_cents,stock,status) VALUES(?,?,?,?,?,?,?)",
+        "INSERT INTO product(id,name,description,image_url,category_id,price_cents,original_price_cents,stock,status)"
+            + " VALUES(?,?,?,?,?,?,?,?,?)",
         id,
         input.name().strip(),
         input.description(),
         input.imageUrl(),
+        categoryId(input, null),
         input.priceCents(),
+        originalPrice,
         input.stock(),
         input.status().name());
     activities.audit(actor, id, "PRODUCT_CREATE");
@@ -120,17 +161,25 @@ public class ShopService {
   public Product editProduct(String id, ProductInput input, String actor) {
     validateProduct(input);
     var current =
-        db.query("SELECT * FROM product WHERE id=? FOR UPDATE", productMapper, id).stream()
+        db.query(PRODUCT_SELECT + " WHERE p.id=? FOR UPDATE OF p", productMapper, id).stream()
             .findFirst()
             .orElseThrow(ApiException::notFound);
     if (input.version() == null || input.version() != current.version())
       throw ApiException.conflict("STALE_VERSION", "商品已被修改，请刷新后重试");
+    // Omitted strikethrough price keeps the stored one, except it may never sit below the
+    // selling price: raising the price floors the strikethrough to the new price instead.
+    int originalPrice =
+        input.originalPriceCents() == null
+            ? Math.max(current.originalPriceCents(), input.priceCents())
+            : input.originalPriceCents();
     db.update(
-        "UPDATE product SET name=?,description=?,image_url=?,price_cents=?,stock=?,status=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE product SET name=?,description=?,image_url=?,category_id=?,price_cents=?,original_price_cents=?,stock=?,status=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         input.name().strip(),
         input.description(),
         input.imageUrl(),
+        categoryId(input, current),
         input.priceCents(),
+        originalPrice,
         input.stock(),
         input.status().name(),
         id);
@@ -266,7 +315,7 @@ public class ShopService {
     var products = new HashMap<String, Product>();
     for (String productId : productIds) {
       var product =
-          db.query("SELECT * FROM product WHERE id=? FOR UPDATE", productMapper, productId).stream()
+          db.query(PRODUCT_SELECT + " WHERE p.id=? FOR UPDATE OF p", productMapper, productId).stream()
               .findFirst()
               .orElseThrow(ApiException::notFound);
       if (!product.status().equals("ON_SALE"))

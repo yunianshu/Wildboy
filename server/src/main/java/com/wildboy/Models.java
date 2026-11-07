@@ -24,7 +24,16 @@ public final class Models {
     CANCELLED
   }
 
-  public record User(String id, String nickname, String role) {}
+  public record User(
+      String id,
+      String nickname,
+      String role,
+      UserModels.AccountSource accountSource,
+      boolean wechatVerified,
+      String realName,
+      String phone,
+      boolean profileCompleted,
+      long version) {}
 
   public record Login(String token, User user) {}
 

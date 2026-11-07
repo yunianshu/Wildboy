@@ -11,7 +11,7 @@ class ProductCategoryMigrationTest {
   @Test void migrationBackfillsEqualOriginalPriceAndDefaultCategoryWithoutChangingOrdersOrStock() throws Exception {
     try (var pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories", "").start()) {
       var source=new DriverManagerDataSource(pg.getJdbcUrl("postgres","postgres"),"postgres","");
-      Flyway.configure().dataSource(source).target("16").load().migrate(); var db=new JdbcTemplate(source);
+      Flyway.configure().dataSource(source).target("21").load().migrate(); var db=new JdbcTemplate(source);
       db.update("INSERT INTO app_user(id,external_id,nickname,role) VALUES('owner','fixture:owner','QA','USER')");
       db.update("INSERT INTO product(id,name,description,image_url,price_cents,stock,status,version) VALUES('gear','Legacy gear','Fixture','/assets/a.jpg',199,8,'ON_SALE',3),('off','Legacy off','Fixture','/assets/a.jpg',400,0,'OFF_SHELF',2)");
       db.update("INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address) VALUES('order','FIXTURE_ORDER','owner',398,'PENDING_PAYMENT','QA buyer','13800000000','Synthetic street')");
@@ -19,7 +19,7 @@ class ProductCategoryMigrationTest {
       var products=db.queryForList("SELECT * FROM product ORDER BY id");
       var order=db.queryForMap("SELECT * FROM shop_order WHERE id='order'");
       var item=db.queryForMap("SELECT * FROM shop_order_item WHERE id='item'");
-      var migration=Flyway.configure().dataSource(source).target("17").load();
+      var migration=Flyway.configure().dataSource(source).target("22").load();
       assertThat(migration.migrate().migrationsExecuted).isEqualTo(1);
       migration.validate(); assertThat(migration.migrate().migrationsExecuted).isZero();
       for (var original:products) {

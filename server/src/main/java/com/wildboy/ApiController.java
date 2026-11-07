@@ -189,6 +189,9 @@ public class ApiController {
                         "name", product.name(),
                         "imageUrl", product.imageUrl(),
                         "description", product.description(),
+                        "categoryName", product.categoryName() == null ? "" : product.categoryName(),
+                        "priceCents", product.priceCents(),
+                        "originalPriceCents", product.originalPriceCents(),
                         "priceLabel", String.format("¥%.2f", product.priceCents() / 100.0)))
             .toList(),
         "paymentEnabled",

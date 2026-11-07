@@ -3,6 +3,8 @@ package com.wildboy;
 import static com.wildboy.Models.*;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
@@ -12,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -20,31 +21,29 @@ import org.springframework.web.client.RestClient;
 public class AuthService {
   private final JdbcTemplate db;
   private final Environment env;
-  private final String appId, appSecret, adminUsername, adminHash;
+  private final String appId, appSecret;
   private final boolean devEnabled;
-  private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder(12);
   private final RestClient wechat;
   private final LegalService legal;
+  private final AdminAccountService adminAccounts;
   private final org.springframework.transaction.support.TransactionTemplate tx;
 
   public AuthService(
       JdbcTemplate db,
       Environment env,
       LegalService legal,
+      AdminAccountService adminAccounts,
       org.springframework.transaction.PlatformTransactionManager transactionManager,
       @Value("${wildboy.wechat.app-id}") String appId,
       @Value("${wildboy.wechat.app-secret}") String appSecret,
-      @Value("${wildboy.admin.username}") String adminUsername,
-      @Value("${wildboy.admin.password-hash}") String adminHash,
       @Value("${wildboy.dev-login-enabled:false}") boolean devEnabled) {
     this.db = db;
     this.legal = legal;
+    this.adminAccounts = adminAccounts;
     this.tx = new org.springframework.transaction.support.TransactionTemplate(transactionManager);
     this.env = env;
     this.appId = appId;
     this.appSecret = appSecret;
-    this.adminUsername = adminUsername;
-    this.adminHash = adminHash;
     this.devEnabled = devEnabled;
     var factory =
         new JdkClientHttpRequestFactory(
@@ -112,26 +111,31 @@ public class AuthService {
     return tx.execute(
         status -> {
           legal.requireCurrent(privacyVersion, termsVersion);
+          // A validated provider login is the only proof of a real WeChat account; it
+          // marks the row eligible for role management on this and future logins.
           User user = user("wechat:" + openid, "微信用户", "USER");
+          db.update(
+              "UPDATE app_user SET wechat_verified_at=CURRENT_TIMESTAMP"
+                  + " WHERE id=? AND wechat_verified_at IS NULL",
+              user.id());
           legal.accept(user.id(), privacyVersion, termsVersion, "LOGIN");
-          return login(user);
+          return login(byId(user.id()));
         });
   }
 
   public Login admin(String username, String password) {
-    if (adminUsername.isBlank() || adminHash.isBlank())
-      throw new ApiException(503, "ADMIN_NOT_CONFIGURED", "管理登录尚未配置");
-    boolean matches;
-    try {
-      matches = encoder.matches(password, adminHash);
-    } catch (Exception e) {
-      matches = false;
-    }
-    if (!MessageDigest.isEqual(
-            username.getBytes(StandardCharsets.UTF_8),
-            adminUsername.getBytes(StandardCharsets.UTF_8))
-        || !matches) throw new ApiException(401, "INVALID_CREDENTIALS", "账号或密码错误");
-    return login(user("admin:" + adminUsername, "管理员", "ADMIN"));
+    // One transaction spans credential verification and session creation so a rotation
+    // cannot commit between checking the old password and issuing its session.
+    return tx.execute(
+        status -> {
+          AdminAccountService.Credentials credentials =
+              adminAccounts.verifyLogin(username, password);
+          User admin =
+              credentials.userId() == null
+                  ? user("admin:" + credentials.username(), "管理员", "ADMIN")
+                  : adminAccounts.configuredUser(credentials.userId());
+          return login(admin);
+        });
   }
 
   public boolean isDev() {
@@ -161,13 +165,16 @@ public class AuthService {
         external,
         nickname,
         role);
-    return db.queryForObject(
-        "SELECT id,nickname,role FROM app_user WHERE external_id=?",
-        (r, n) -> new User(r.getString(1), r.getString(2), r.getString(3)),
-        external);
+    return db.queryForObject("SELECT * FROM app_user WHERE external_id=?", AuthService::mapUser, external);
   }
 
   Login login(User user) {
+    // Never trust a caller-supplied snapshot: the session always carries the current
+    // database role and the expiry that follows from it.
+    User current =
+        db.query("SELECT * FROM app_user WHERE id=?", AuthService::mapUser, user.id()).stream()
+            .findFirst()
+            .orElse(user);
     byte[] bytes = new byte[32];
     new SecureRandom().nextBytes(bytes);
     String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
@@ -175,9 +182,9 @@ public class AuthService {
     db.update(
         "INSERT INTO auth_session(token_hash,user_id,expires_at) VALUES(?,?,?)",
         hash(token),
-        user.id(),
-        OffsetDateTime.now().plusHours(user.role().equals("ADMIN") ? 8 : 168));
-    return new Login(token, user);
+        current.id(),
+        OffsetDateTime.now().plusHours(current.role().equals("ADMIN") ? 8 : 168));
+    return new Login(token, current);
   }
 
   public String wechatOpenid(String userId) {
@@ -192,13 +199,35 @@ public class AuthService {
     if (token == null || token.length() > 100) return null;
     return db
         .query(
-            "SELECT u.id,u.nickname,u.role FROM app_user u JOIN auth_session s ON s.user_id=u.id"
+            "SELECT u.* FROM app_user u JOIN auth_session s ON s.user_id=u.id"
                 + " WHERE s.token_hash=? AND s.expires_at>CURRENT_TIMESTAMP",
-            (r, n) -> new User(r.getString(1), r.getString(2), r.getString(3)),
+            AuthService::mapUser,
             hash(token))
         .stream()
         .findFirst()
         .orElse(null);
+  }
+
+  public User byId(String id) {
+    return db
+        .query("SELECT * FROM app_user WHERE id=?", AuthService::mapUser, id)
+        .stream()
+        .findFirst()
+        .orElseThrow(() -> new ApiException(401, "UNAUTHENTICATED", "请重新登录"));
+  }
+
+  // Maps a full app_user row (SELECT *); provenance columns come from V20/V21 migrations.
+  static User mapUser(ResultSet r, int n) throws SQLException {
+    return new User(
+        r.getString("id"),
+        r.getString("nickname"),
+        r.getString("role"),
+        UserModels.accountSource(r.getString("external_id")),
+        r.getObject("wechat_verified_at", OffsetDateTime.class) != null,
+        r.getString("real_name"),
+        r.getString("phone"),
+        r.getObject("profile_completed_at", OffsetDateTime.class) != null,
+        r.getLong("role_version"));
   }
 
   static String hash(String token) {

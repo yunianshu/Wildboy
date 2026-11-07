@@ -20,8 +20,8 @@ public class NotificationController {
   public record SubscribeInput(boolean accepted) {}
 
   @PostMapping("/me/notifications/subscribe")
-  void subscribe(@AuthenticationPrincipal User user, @RequestBody SubscribeInput in) {
-    notifications.subscribe(user.id(), in.accepted());
+  void subscribe(@AuthenticationPrincipal User user, @RequestBody(required = false) SubscribeInput in) {
+    notifications.subscribe(user.id(), in != null && in.accepted());
   }
 
   @GetMapping("/me/notifications")

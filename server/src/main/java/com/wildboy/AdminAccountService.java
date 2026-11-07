@@ -91,7 +91,7 @@ public class AdminAccountService {
   private String blockReason(State state, User actor) {
     if (actor == null || !"ADMIN".equals(actor.role())) return "PASSWORD_LOGIN_REQUIRED";
     var external = db.queryForList("SELECT external_id FROM app_user WHERE id=? AND role='ADMIN'", String.class, actor.id());
-    if (external.isEmpty() || external.getFirst().startsWith("dev:")) return "PASSWORD_LOGIN_REQUIRED";
+    if (external.isEmpty() || external.getFirst().startsWith("dev:") || external.getFirst().startsWith("smoke:")) return "PASSWORD_LOGIN_REQUIRED";
     if (state.configured()) return actor.id().equals(state.userId()) ? null : "PASSWORD_LOGIN_REQUIRED";
     if (!bootstrapReady()) return "ADMIN_BOOTSTRAP_NOT_CONFIGURED";
     return external.getFirst().equals("admin:" + bootstrapUsername) ? null : "PASSWORD_LOGIN_REQUIRED";
