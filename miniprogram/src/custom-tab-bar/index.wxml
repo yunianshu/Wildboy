@@ -1,0 +1,5 @@
+<view class="tab-bar">
+  <view class="tab-row">
+    <button wx:for="{{items}}" wx:key="pagePath" class="tab-item {{selected === item.pagePath ? 'is-current' : ''}}" data-path="{{item.pagePath}}" bindtap="selectTab" hover-class="tab-item-pressed" aria-label="{{item.text}}{{selected === item.pagePath ? '，当前页面' : ''}}">{{item.text}}</button>
+  </view>
+</view>

@@ -1,0 +1,81 @@
+.uf-page {
+  --color-surface: #ffffff;
+  --color-secondary: #e8eedf;
+  --color-muted: #596a60;
+  --color-border: #dde4db;
+  --color-text: #203e34;
+  --color-danger: #923b31;
+  --color-error: #923b31;
+  padding: 16px 16px calc(24px + env(safe-area-inset-bottom));
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.uf-page .title, .uf-title { margin: 0; font-size: 24px; line-height: 1.5; font-weight: 600; letter-spacing: 0; color: var(--color-primary); overflow-wrap: break-word; }
+.uf-page .section-title, .uf-section-title { font-size: 18px; font-weight: 600; letter-spacing: 0; line-height: 1.5; color: var(--color-primary); }
+.uf-page .muted, .uf-muted { color: var(--color-muted); font-size: 14px; line-height: 1.5; }
+.uf-caption, .uf-page .small { font-size: 12px; color: var(--color-muted); line-height: 1.5; }
+.uf-header { margin-bottom: 20px; }
+.uf-header .uf-muted { margin-top: 8px; }
+.uf-header > .uf-muted:first-child { margin-top: 0; }
+.uf-custom-header { padding-bottom: 20px; }
+.uf-capsule-row { display: flex; align-items: center; min-width: 0; }
+.uf-custom-header .uf-title { min-width: 0; max-width: 100%; line-height: 30px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uf-stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.uf-card { padding: 16px; border-radius: 12px; background: var(--color-surface); min-width: 0; }
+.uf-card-title { font-size: 18px; line-height: 1.5; font-weight: 600; color: var(--color-primary); }
+.uf-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.uf-between { justify-content: space-between; }
+.uf-grow { flex: 1; min-width: 0; }
+.uf-row-start { align-items: flex-start; }
+.uf-gap-8 { display: flex; flex-direction: column; gap: 8px; }
+.uf-gap-12 { display: flex; flex-direction: column; gap: 12px; }
+.uf-actions { display: flex; flex-direction: column; gap: 12px; }
+.uf-action-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; align-items: stretch; }
+.uf-page .section-head { margin: 24px 0 12px; align-items: center; gap: 12px; }
+.uf-rule { height: 1px; background: var(--color-border); margin: 12px 0; }
+.uf-page .badge { display: inline-block; width: fit-content; max-width: 100%; padding: 5px 9px; border-radius: 6px; background: var(--color-secondary); color: var(--color-primary); font-size: 12px; line-height: 1.4; }
+.uf-page .badge.cancelled { color: var(--color-muted); background: var(--color-page); }
+.uf-page .notice, .uf-note { margin: 0; padding: 12px; background: var(--color-secondary); border-radius: 12px; color: var(--color-muted); font-size: 13px; line-height: 1.5; overflow-wrap: break-word; }
+.uf-note .ui-icon { width: 20px; height: 20px; flex-basis: 20px; }
+.uf-page .error { color: var(--color-error); font-size: 14px; line-height: 1.5; overflow-wrap: break-word; }
+.uf-page .error button { margin-top: 12px; }
+.uf-page .loading-line, .uf-end { margin: 0; padding: 16px 0; font-size: 12px; line-height: 1.5; color: var(--color-muted); text-align: center; }
+.uf-page .field { margin: 0; }
+.uf-page .label { display: block; margin-bottom: 8px; font-size: 14px; line-height: 1.5; font-weight: 500; }
+.uf-page input, .uf-page textarea, .participant-dialog input, .participant-dialog textarea, .refund-dialog textarea {
+  box-sizing: border-box; width: 100%; min-width: 0; padding: 0 12px; height: 48px; border: 1px solid var(--color-border,#dde4db); border-radius: 12px; background: #fff; font-size: 14px; font-family: inherit; color: var(--color-text,#203e34);
+}
+.uf-page textarea, .participant-dialog textarea, .refund-dialog textarea { min-height: 96px; height: 112px; padding: 12px; line-height: 1.5; }
+.uf-page .consent, .uf-page .agreement { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 0; }
+.uf-page .consent checkbox, .uf-page .agreement checkbox { display: flex; flex: 0 0 44px; align-items: center; justify-content: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+.uf-page .consent-copy { flex: 1; min-width: 0; padding-top: 4px; color: var(--color-muted); font-size: 14px; line-height: 1.5; }
+.uf-legal-files { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+.uf-legal-file { position: relative; min-width: 0; border-radius: 12px; background: var(--color-secondary); }
+.uf-legal-file .legal-link { display: block; min-height: 48px; padding: 12px 40px 12px 8px; color: var(--color-primary); font-size: 14px; line-height: 24px; text-decoration: none; }
+.uf-read-status { position: absolute; right: 8px; top: 16px; color: var(--color-muted); font-size: 12px; line-height: 16px; pointer-events: none; }
+.uf-price { font-size: 24px; line-height: 1.5; font-weight: 600; color: var(--color-primary); }
+.uf-icon-disc { display: flex; width: 56px; height: 56px; align-items: center; justify-content: center; border-radius: 50%; background: var(--color-secondary); flex-shrink: 0; }
+.uf-result { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 0; text-align: center; }
+.uf-result .ui-icon-status { width: 32px; height: 32px; }
+.uf-has-footer { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+.uf-sticky { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: var(--color-page); border-top: 1px solid var(--color-border); }
+.uf-sticky .uf-caption { margin-top: 8px; text-align: center; }
+.uf-page .text-button { min-height: 44px; }
+.uf-page .end { text-align: center; padding: 16px 0; }
+.uf-page .body-copy { display: block; white-space: pre-wrap; font-size: 14px; line-height: 1.65; overflow-wrap: break-word; }
+.participant-overlay, .refund-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(25,63,52,.35); }
+.participant-dialog, .refund-dialog { box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 440px; max-height: calc(100vh - 64px); padding: 16px; border-radius: 12px; background: #fff; color: #203e34; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; overflow: hidden; }
+.dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dialog-head .section-title, .refund-dialog .title { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.5; letter-spacing: 0; }
+button.dialog-close { display: flex; flex-shrink: 0; width: 44px; height: 44px; min-height: 44px; padding: 10px; background: transparent; }
+.dialog-body { height: 208px; max-height: 50vh; }
+.dialog-body-identity { height: 304px; }
+.dialog-body .field { margin: 0 0 16px; }
+.dialog-body .label { display: block; margin-bottom: 8px; font-size: 14px; }
+.dialog-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+.dialog-error { color: #923b31; line-height: 1.5; }
+.refund-dialog .notice { padding: 12px; margin: 0; border-radius: 12px; background: #e8eedf; line-height: 1.5; }
+.uf-dialog-scroll { overflow-y: auto; min-height: 0; }
+@media (max-width: 340px) { .uf-legal-file .legal-link { padding-right: 8px; padding-bottom: 24px; } .uf-read-status { top: auto; bottom: 5px; right: 8px; } }

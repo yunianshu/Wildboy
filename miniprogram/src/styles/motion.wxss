@@ -1,0 +1,51 @@
+/* Keep native routing and fixed-position controls under the host's control. */
+.page-motion {
+  opacity: 1;
+}
+
+.page-motion.motion-enter-a,
+.page-motion.motion-enter-b {
+  animation-duration: 170ms;
+  animation-timing-function: var(--motion-ease, cubic-bezier(0.16, 1, 0.3, 1));
+  animation-iteration-count: 1;
+  animation-fill-mode: none;
+}
+
+.page-motion.motion-enter-a {
+  animation-name: wildboy-page-enter-a;
+}
+
+.page-motion.motion-enter-b {
+  animation-name: wildboy-page-enter-b;
+}
+
+@keyframes wildboy-page-enter-a {
+  from { opacity: .92; }
+  to { opacity: 1; }
+}
+
+@keyframes wildboy-page-enter-b {
+  from { opacity: .92; }
+  to { opacity: 1; }
+}
+
+/* Dialog panels get a bounded arrival; the page root never scales. */
+.motion-dialog-enter {
+  opacity: 1;
+  animation: wildboy-dialog-enter 180ms var(--motion-spring, cubic-bezier(.22, .9, .25, 1.1));
+}
+
+@keyframes wildboy-dialog-enter {
+  from { opacity: .92; transform: scale(.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* WebView hosts can expose the system preference here. The official wx
+   system/MediaQueryObserver APIs do not expose a Reduce Motion JS flag. */
+@media (prefers-reduced-motion: reduce) {
+  .page-motion.motion-enter-a,
+  .page-motion.motion-enter-b,
+  .motion-dialog-enter {
+    animation: none !important;
+  }
+}

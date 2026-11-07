@@ -1,0 +1,6 @@
+@import "../../styles/admin-flow.wxss";
+@import "../../styles/user-flow.wxss";
+.admin-users-picker { min-width: 120px; }
+.user-detail-body { height: 56vh; max-height: 60vh; }
+.user-detail-dialog .na-picker { padding: 8px; height: auto; min-height: 44px; }
+.user-detail-dialog .na-record { background: var(--color-page); }

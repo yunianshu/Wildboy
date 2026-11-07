@@ -1,0 +1,7 @@
+@import "../../styles/user-flow.wxss";
+.profile-page .uf-title { display: block; margin-bottom: 8px; }
+.profile-dialog-body { height: 360px; max-height: 55vh; }
+.profile-dialog-body .uf-legal-files { margin-top: 16px; }
+.profile-dialog-body .consent { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+.profile-dialog-body .consent checkbox { flex: 0 0 44px; width: 44px; height: 44px; }
+.profile-dialog-body .consent-copy { padding-top: 4px; color: var(--color-muted); line-height: 1.5; }

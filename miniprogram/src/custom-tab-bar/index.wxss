@@ -1,0 +1,46 @@
+:host { display: block; }
+.tab-bar {
+  position: fixed;
+  z-index: 500;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: #f6f4ed;
+}
+.tab-bar::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  content: "";
+  background: #fff;
+  pointer-events: none;
+}
+.tab-row { display: flex; height: 50px; }
+.tab-item {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  width: 25%;
+  height: 50px;
+  min-height: 50px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #85877f;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  white-space: nowrap;
+}
+.tab-item::after { border: 0; }
+.tab-item.is-current { color: #173f35; font-weight: 600; }
+.tab-item-pressed { opacity: .7; }

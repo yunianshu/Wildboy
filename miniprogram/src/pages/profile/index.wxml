@@ -1,0 +1,36 @@
+<view class="uf-page profile-page page-motion {{pageMotionClass}}">
+  <view class="uf-header"><view class="uf-muted">参加活动前，请完善当前账号的本人姓名与手机号。</view></view>
+  <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后管理活动联系资料<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
+  <view wx:else class="uf-stack">
+    <ui-state wx:if="{{loading}}" kind="loading">正在读取用户资料…</ui-state>
+    <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
+    <block wx:elif="{{activityUser}}">
+      <view class="uf-card uf-gap-12">
+        <view class="section-title">{{user.nickname || '微信用户'}}</view>
+        <view class="field"><text class="label">本人姓名</text><view>{{user.realName || '尚未填写'}}</view></view>
+        <view class="field"><text class="label">联系手机号</text><view>{{user.phone || '尚未填写'}}</view></view>
+        <text class="badge">{{user.profileCompleted ? '资料已完善' : '资料未完善'}}</text>
+      </view>
+      <view class="notice">资料用于活动组织、身份核验和联系。添加其他参与人时，仍需分别填写并确认其信息。资料仅由本人修改，历史报名的参与人快照不会自动更改。</view>
+      <view wx:if="{{notice}}" class="notice" aria-role="status">{{notice}}</view>
+      <button class="primary ui-button ui-button-block {{(saving) ? 'primary-disabled' : ''}}" bindtap="openEditor" disabled="{{saving}}">{{user.profileCompleted ? '修改联系资料' : '完善联系资料'}}</button>
+      <button wx:if="{{fromRegister && user.profileCompleted}}" class="secondary ui-button ui-button-block" bindtap="finish">返回报名</button>
+    </block>
+    <ui-state wx:elif="{{user}}" kind="empty">此账号不用于活动联系人资料，请使用微信活动账号</ui-state>
+  </view>
+</view>
+<view wx:if="{{editing}}" class="participant-overlay" catchtap="cancel" catchtouchmove="stopModalEvent">
+  <view class="participant-dialog motion-dialog-enter" catchtap="stopModalEvent" aria-role="dialog" aria-modal="true" aria-label="编辑活动联系人">
+    <view class="dialog-head"><view class="section-title">{{user.profileCompleted ? '修改联系资料' : '完善联系资料'}}</view><button class="dialog-close ui-button {{(saving) ? 'button-disabled' : ''}}" bindtap="cancel" disabled="{{saving}}" aria-label="关闭资料编辑"><image class="ui-icon" src="/assets/icons/close.svg" mode="aspectFit" aria-hidden="{{true}}" /></button></view>
+    <scroll-view scroll-y class="dialog-body profile-dialog-body">
+      <view class="field"><text class="label">本人姓名</text><input value="{{draft.realName}}" maxlength="40" data-field="realName" bindinput="input" disabled="{{saving}}" placeholder="请填写真实姓名" /></view>
+      <view class="field"><text class="label">中国大陆手机号</text><input value="{{draft.phone}}" type="number" maxlength="11" data-field="phone" bindinput="input" disabled="{{saving}}" placeholder="用于活动联系" /></view>
+      <view class="uf-caption">我们会按当前隐私政策处理上述资料。手机号由你主动填写，不会未经操作自动读取。</view>
+      <view wx:if="{{legalError || !legal}}" class="notice" aria-role="status">{{legalLoading ? '正在重新获取当前协议…' : (legalError || '当前协议尚未就绪，请重新获取后决定是否同意。')}}<button class="secondary ui-button ui-button-block {{(saving || legalLoading) ? 'button-disabled' : ''}}" bindtap="retryLegal" loading="{{legalLoading}}" disabled="{{saving || legalLoading}}">重新获取协议</button></view>
+      <view class="uf-legal-files"><view class="uf-legal-file"><text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text></view><view class="uf-legal-file"><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text></view></view>
+      <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" disabled="{{saving || legalLoading || !legal}}" color="#193F34" aria-label="同意资料处理说明"/><view class="consent-copy">我同意当前《隐私政策》和《用户协议》，同意将姓名和手机号用于活动组织、身份核验和联系。</view></view></checkbox-group>
+      <view wx:if="{{fieldError}}" class="error dialog-error" aria-role="alert">{{fieldError}}</view>
+    </scroll-view>
+    <view class="dialog-actions"><button class="secondary ui-button ui-button-block {{(saving) ? 'button-disabled' : ''}}" bindtap="cancel" disabled="{{saving}}">取消</button><button class="primary ui-button ui-button-block {{(saving || legalLoading || !consent || !legal) ? 'primary-disabled' : ''}}" bindtap="save" loading="{{saving}}" disabled="{{saving || legalLoading || !consent || !legal}}">保存资料</button></view>
+  </view>
+</view>
