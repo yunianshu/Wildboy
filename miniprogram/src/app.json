@@ -22,8 +22,9 @@
     "pages/admin-product/index",
     "pages/admin-orders/index",
     "pages/addresses/index",
-    "pages/waitlist/index",
     "pages/notifications/index",
+    "pages/profile/index",
+    "pages/admin-users/index",
     "pages/admin-content/index",
     "pages/article/index"
   ],
@@ -34,6 +35,7 @@
     "backgroundColor": "#F6F4ED"
   },
   "tabBar": {
+    "custom": true,
     "color": "#85877F",
     "selectedColor": "#173F35",
     "backgroundColor": "#F6F4ED",
@@ -58,5 +60,8 @@
     ]
   },
   "style": "v2",
+  "usingComponents": {
+    "ui-state": "/components/ui-state/index"
+  },
   "sitemapLocation": "sitemap.json"
 }

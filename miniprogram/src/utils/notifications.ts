@@ -20,22 +20,6 @@ export async function subscribeNotifications(): Promise<void> {
   if (result[config.templateId] !== "accept") throw new Error("未开启订阅提醒");
   await request("/me/notifications/subscribe", "POST", { accepted: true });
 }
-export type WaitlistEntry = {
-  id: string;
-  activityId: string;
-  activityTitle: string;
-  status: string;
-  partySize: number;
-  offerExpiresAt: string | null;
-  createdAt: string;
-};
-export const waitlistStatus: Record<string, string> = {
-  WAITING: "排队中",
-  OFFERED: "待确认名额",
-  CONFIRMED: "已确认报名",
-  CANCELLED: "已取消",
-  EXPIRED: "已过期",
-};
 export const notificationStatus: Record<string, string> = {
   PENDING: "待发送",
   SENDING: "发送中",

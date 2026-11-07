@@ -1,4 +1,4 @@
-<view class="welcome">
+<view class="welcome page-motion {{pageMotionClass}}">
   <view class="picture">
     <image src="/assets/hero-hiking.jpg" mode="aspectFill" />
     <view class="shade" />
@@ -15,7 +15,7 @@
     <view class="title">
       {{mode === 'consent' ? '协议已更新' : '欢迎加入 Wildboy'}}
     </view>
-    <view wx:if="{{loading}}" class="state">正在加载协议…</view>
+    <ui-state wx:if="{{loading}}" kind="loading">正在加载协议…</ui-state>
     <block wx:if="{{current}}">
       <checkbox-group bindchange="agreement">
         <view class="agreement">

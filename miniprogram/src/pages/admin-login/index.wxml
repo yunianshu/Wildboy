@@ -1,38 +1,53 @@
-<view class="page">
+<view class="page page-motion {{pageMotionClass}}">
   <view class="title">管理员身份验证</view>
   <view class="notice">
     登录后切换为管理身份，不改变微信账号权限。密码不保存到设备。
   </view>
-  <view class="field">
-    <text class="label">管理员账号</text>
-    <input
-      value="{{username}}"
-      maxlength="100"
-      data-field="username"
-      bindinput="input"
-      disabled="{{busy}}"
-    />
+  <view wx:if="{{capabilityState === 'pending'}}" class="state">
+    正在核对管理员入口…
   </view>
-  <view class="field">
-    <text class="label">密码</text>
-    <input
-      value="{{password}}"
-      password
-      maxlength="200"
-      data-field="password"
-      bindinput="input"
-      disabled="{{busy}}"
-    />
-  </view>
-  <view wx:if="{{error}}" class="error feedback">{{error}}</view>
-  <button
-    class="primary"
-    bindtap="submit"
-    loading="{{busy}}"
-    disabled="{{busy}}"
-  >
-    登录
-  </button>
+  <block wx:if="{{capabilityState !== 'pending'}}">
+    <view class="field">
+      <text class="label">管理员账号</text>
+      <input
+        value="{{username}}"
+        maxlength="100"
+        data-field="username"
+        bindinput="input"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view class="field">
+      <text class="label">密码</text>
+      <input
+        value="{{password}}"
+        password
+        maxlength="200"
+        data-field="password"
+        bindinput="input"
+        disabled="{{busy}}"
+      />
+    </view>
+    <view wx:if="{{error}}" class="error feedback">
+      {{error}}
+      <button
+        wx:if="{{capabilityState === 'error'}}"
+        class="secondary"
+        bindtap="loadCapability"
+        disabled="{{busy}}"
+      >
+        重新核对入口
+      </button>
+    </view>
+    <button
+      class="primary"
+      bindtap="submit"
+      loading="{{busy}}"
+      disabled="{{!adminLoginEnabled || busy}}"
+    >
+      登录
+    </button>
+  </block>
   <button class="secondary back" bindtap="back" disabled="{{busy}}">
     返回我的
   </button>

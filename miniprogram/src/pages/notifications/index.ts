@@ -19,8 +19,11 @@ type Notice = {
   status: string;
   statusText?: string;
 };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     items: [] as Notice[],
     loading: false,
     busy: false,
@@ -30,6 +33,7 @@ Page({
     hasMore: false,
   },
   onShow() {
+    enterPage(this);
     this.setData({ loggedIn: hasSession() });
     if (hasSession()) void this.load(true);
     else this.setData({ items: [] });

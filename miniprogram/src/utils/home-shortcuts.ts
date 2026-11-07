@@ -120,3 +120,8 @@ export function shortcutViews(config: ShortcutConfig) {
     };
   });
 }
+
+// Pre-rendered defaults ship with the bundle so the first paint never waits on
+// the shortcuts request; server refreshes replace them once they arrive.
+export const defaultShortcutViews: ReturnType<typeof shortcutViews> =
+  shortcutViews({ version: 0, items: defaultShortcuts });

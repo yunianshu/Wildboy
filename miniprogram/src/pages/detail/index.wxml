@@ -1,12 +1,12 @@
-<view class="back-space article-page">
-  <view wx:if="{{loading}}" class="state">正在读取活动…</view>
-  <view wx:elif="{{error}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
+<view class="back-space article-page page-motion {{pageMotionClass}}">
+  <ui-state wx:if="{{loading}}" kind="loading">正在读取活动…</ui-state>
+  <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
   <block wx:elif="{{activity}}">
     <view class="article-head">
       <view class="article-title">{{activity.title}}</view>
       <view class="article-meta">Wildboy 户外俱乐部 · {{activity.dateText}} 出发</view>
       <view class="article-meta">{{activity.categoryName}} · {{activity.location}}</view>
-      <button open-type="share" class="share">分享活动 ↗</button>
+      <button open-type="share" class="share">分享活动<image class="share-icon" src="/assets/icons/share.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
     <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" />
     <view class="article-intro">{{activity.summary}}</view>
@@ -43,7 +43,7 @@
     </view>
     <view class="sticky-action">
       <button wx:if="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
-      <block wx:else><button wx:if="{{activity.canCancel && !activity.available}}" class="primary" disabled="{{!!registrationError}}" bindtap="waitlist">加入候补</button><button wx:else class="primary" disabled="{{!activity.enabled || !!registrationError}}" bindtap="register">{{activity.label}}</button></block>
+      <block wx:else><button class="primary" disabled="{{!activity.enabled || !activity.available || !!registrationError}}" bindtap="register">{{activity.available ? activity.label : '名额已满'}}</button></block>
     </view>
   </block>
 </view>

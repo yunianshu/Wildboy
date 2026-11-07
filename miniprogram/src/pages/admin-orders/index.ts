@@ -4,8 +4,11 @@ import { message, safeId, mergeUnique } from "../../utils/domain";
 import { requireAdmin, maskPhone } from "../admin-editor/shared";
 import { adminOrderStatus, adminMoney } from "../../utils/admin-shop";
 type Row = Order & { statusLabel: string; money: string; phoneMasked: string };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     authorized: false,
     loading: false,
     loadingMore: false,
@@ -17,6 +20,8 @@ Page({
     busyId: "",
     pendingId: "",
     pendingConfirmed: false,
+    pendingOrder: null as Row | null,
+    resultOrder: null as Row | null,
     revealedId: "",
     query: "",
     statuses: [
@@ -24,12 +29,14 @@ Page({
       { value: "PENDING_PAYMENT", label: "待付款" },
       { value: "PAID", label: "待发货" },
       { value: "SHIPPED", label: "已发货" },
+      { value: "REFUNDED", label: "已退款" },
       { value: "CANCELLED", label: "已取消" },
     ],
   },
   _epoch: 0,
   _session: -1,
   onShow() {
+    enterPage(this);
     void this.load(true);
   },
   onHide() {
@@ -43,6 +50,8 @@ Page({
       busyId: "",
       pendingId: "",
       pendingConfirmed: false,
+      pendingOrder: null,
+      resultOrder: null,
     });
   },
   onUnload() {
@@ -52,6 +61,8 @@ Page({
     void this.load(false);
   },
   async load(reset = true) {
+    // A queued refresh must never invalidate an active write.
+    if (this.data.busyId) return;
     if (
       !reset &&
       (this.data.loading || this.data.loadingMore || !this.data.hasMore)
@@ -87,14 +98,20 @@ Page({
         hasMore: result.hasMore,
       });
     } catch (e) {
-      if (n === this._epoch)
+      if (n === this._epoch) {
+        // A failed page zero leaves nothing to page from: only the retry may
+        // re-read page zero before any later page loads.
+        const denied =
+          !isSessionCurrent(this._session) ||
+          (e instanceof ApiError && (e.status === 401 || e.status === 403));
         this.setData({
           error: message(e),
-          ...(!isSessionCurrent(this._session) ||
-          (e instanceof ApiError && (e.status === 401 || e.status === 403))
-            ? { authorized: false, items: [] }
+          ...(reset ? { hasMore: false } : {}),
+          ...(denied
+            ? { authorized: false, items: [], revealedId: "" }
             : {}),
         });
+      }
     } finally {
       if (n === this._epoch)
         this.setData({ loading: false, loadingMore: false });
@@ -111,7 +128,7 @@ Page({
     void this.load(false);
   },
   retry() {
-    void this.load(true);
+    void this.load(!this.data.items.length);
   },
   login() {
     wx.navigateTo({ url: "/pages/admin-login/index" });
@@ -134,6 +151,11 @@ Page({
     try {
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(s)) return;
+      const answer = await wx.showModal({
+        title: "显示收件人联系方式？",
+        content: "手机号与地址仅用于发货核对，请勿外传。",
+      });
+      if (!answer.confirm || n !== this._epoch || !isSessionCurrent(s)) return;
       this.setData({ revealedId: id });
     } catch (e) {
       if (n === this._epoch)
@@ -146,7 +168,7 @@ Page({
     }
   },
   cancelShip() {
-    this.setData({ pendingId: "", pendingConfirmed: false });
+    this.setData({ pendingId: "", pendingConfirmed: false, pendingOrder: null });
   },
   confirmShip() {
     if (!this.data.pendingId) return;
@@ -162,32 +184,72 @@ Page({
       !isSessionCurrent(this._session)
     )
       return;
-    const id = safeId(e.currentTarget.dataset.id),
-      row = this.data.items.find((x) => x.id === id);
-    if (!row || row.status !== "PAID") return;
+    const id = safeId(e.currentTarget.dataset.id);
     const n = this._epoch,
       s = this._session;
-    this.setData({ busyId: id, error: "" });
-    try {
-      if (this.data.pendingId !== id || !this.data.pendingConfirmed) {
-        this.setData({ pendingId: id, pendingConfirmed: false });
+    if (this.data.pendingId !== id || !this.data.pendingConfirmed) {
+      const row = this.data.items.find((x) => x.id === id);
+      if (!row || row.status !== "PAID") return;
+      if (row.reconciliationRequired) {
+        this.setData({
+          error: "该订单存在待核对的售后或对账，处理完成前不能发货。",
+        });
         return;
       }
-      this.setData({ pendingId: "", pendingConfirmed: false });
+      // The confirmation is only valid for the exact displayed snapshot.
+      this.setData({
+        pendingId: id,
+        pendingConfirmed: false,
+        pendingOrder: { ...row },
+      });
+      return;
+    }
+    const snapshot = this.data.pendingOrder;
+    const current = this.data.items.find((x) => x.id === id);
+    this.setData({
+      pendingId: "",
+      pendingConfirmed: false,
+      pendingOrder: null,
+    });
+    if (!snapshot || !current || current.version !== snapshot.version) {
+      this.setData({ error: "订单已变化，请重新核对后再操作" });
+      return;
+    }
+    this.setData({ busyId: id, error: "" });
+    try {
       if (n !== this._epoch || !isSessionCurrent(s)) return;
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(s)) return;
-      await request(`/admin/orders/${id}/ship`, "POST", {
-        version: row.version,
+      const result = await request<Order>(`/admin/orders/${id}/ship`, "POST", {
+        version: current.version,
       });
       if (n !== this._epoch || !isSessionCurrent(s)) return;
-      this.setData({ busyId: "" });
+      if (!result || result.status !== "SHIPPED") {
+        this.setData({
+          error: "服务器尚未确认发货结果，请刷新订单核对后再试",
+          busyId: "",
+        });
+        return;
+      }
+      this.setData({
+        resultOrder: {
+          ...result,
+          statusLabel: adminOrderStatus(result.status),
+          money: adminMoney(result.totalCents),
+          phoneMasked: maskPhone(result.phone),
+        },
+        busyId: "",
+      });
       await this.load(true);
     } catch (e) {
-      if (n === this._epoch)
+      if (n === this._epoch) {
+        // A refund block has its own accurate reason; do not suggest a stale version.
+        const refundBlock =
+          e instanceof ApiError && e.code === "REFUND_PENDING";
         this.setData({
-          error:
-            e instanceof ApiError && e.status === 409
+          error: refundBlock
+            ? message(e)
+            : e instanceof ApiError && e.status === 409
               ? "订单状态已变化，请刷新核对后再操作"
               : message(e),
           ...(!isSessionCurrent(s) ||
@@ -195,6 +257,7 @@ Page({
             ? { authorized: false, items: [], revealedId: "" }
             : {}),
         });
+      }
     } finally {
       if (n === this._epoch) this.setData({ busyId: "" });
     }

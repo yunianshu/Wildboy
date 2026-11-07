@@ -5,24 +5,28 @@ import { message, RequestEpoch, safeId } from "../../utils/domain";
 import {
   HOME_ACTIVITY_COUNT,
   homeActivitySlots,
-  homeEntries,
 } from "../../utils/home";
 import { ArticleSummary } from "../../utils/articles";
 import {
   ShortcutConfig,
   shortcutViews,
   shortcutPages,
+  defaultShortcutViews,
 } from "../../utils/home-shortcuts";
 const shortcutEpoch = new RequestEpoch();
 const tapEpoch = new RequestEpoch();
+import { syncTabBar } from "../../utils/tab-bar";
 const epoch = new RequestEpoch();
 const articleEpoch = new RequestEpoch();
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     devMode: false,
     topInset: 48,
     home: null as Home | null,
-    categories: shortcutViews({ version: 0, items: homeEntries }),
+    categories: defaultShortcutViews,
     shortcutLoading: true,
     shortcutError: "",
     shortcutBusy: false,
@@ -46,6 +50,8 @@ Page({
     void this.load();
   },
   onShow() {
+    enterPage(this);
+    syncTabBar(this);
     if (this._shown) {
       void this.loadArticles();
       void this.loadShortcuts();

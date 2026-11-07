@@ -1,4 +1,4 @@
-<view class="home">
+<view class="home page-motion {{pageMotionClass}}">
   <view class="hero">
     <image class="hero-image" src="/assets/hero-hiking.jpg" mode="aspectFill" />
     <view class="hero-shade" />
@@ -16,8 +16,8 @@
     <view wx:if="{{devMode}}" class="notice">
       开发演示账号 · 非真实用户
     </view>
-    <view wx:if="{{shortcutLoading}}" class="state">正在加载首页入口…</view>
-    <view wx:if="{{shortcutError}}" class="state">入口加载失败：{{shortcutError}}<button class="secondary" bindtap="retryShortcuts">重试</button></view>
+    <ui-state wx:if="{{shortcutLoading}}" kind="loading" compact="{{true}}">正在加载首页入口…</ui-state>
+    <ui-state wx:if="{{shortcutError}}" kind="error" compact="{{true}}">入口加载失败：{{shortcutError}}<button class="secondary" bindtap="retryShortcuts">重试</button></ui-state>
     <view class="category-grid" aria-busy="{{shortcutLoading}}">
       <view
         class="category"
@@ -42,17 +42,17 @@
         <view class="eyebrow">FIND YOUR NEXT ADVENTURE</view>
         <view class="section-title">正在发生的山野</view>
       </view>
-      <text class="section-link" bindtap="allActivities">全部 ↗</text>
+      <text class="section-link" bindtap="allActivities">全部活动</text>
     </view>
-    <view wx:if="{{error}}" class="state">
+    <ui-state wx:if="{{error}}" kind="error">
       <view>{{error}}</view>
       <button class="secondary" bindtap="retry">重新加载</button>
-    </view>
-    <view wx:elif="{{loading}}" class="state">正在加载活动…</view>
+    </ui-state>
+    <ui-state wx:elif="{{loading}}" kind="loading">正在加载活动…</ui-state>
     <block wx:else>
-      <view wx:if="{{!items.length}}" class="state">
+      <ui-state wx:if="{{!items.length}}" kind="empty">
         暂无活动
-      </view>
+      </ui-state>
       <view class="grid">
         <view
           class="activity-card"
@@ -84,7 +84,7 @@
         <view class="eyebrow">PACK LIGHT. GO FAR.</view>
         <view class="section-title">装备小店</view>
       </view>
-      <text class="section-link" bindtap="equipmentInfo">装备一览 ↗</text>
+      <text class="section-link" bindtap="equipmentInfo">装备一览</text>
     </view>
     <view class="shop" bindtap="equipmentInfo">
       <image src="/assets/equipment.jpg" mode="aspectFill" />
@@ -120,9 +120,9 @@
         <view class="section-title">山野之间</view>
       </view>
     </view>
-    <view wx:if="{{articleLoading}}" class="state">正在加载活动回顾…</view>
-    <view wx:elif="{{articleError}}" class="state">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></view>
-    <view wx:elif="{{!articles.length}}" class="state">活动回顾即将发布</view>
+    <ui-state wx:if="{{articleLoading}}" kind="loading">正在加载活动回顾…</ui-state>
+    <ui-state wx:elif="{{articleError}}" kind="error">{{articleError}}<button class="secondary ui-button ui-button-block" bindtap="retryArticles">重试</button></ui-state>
+    <ui-state wx:elif="{{!articles.length}}" kind="empty">活动回顾即将发布</ui-state>
     <swiper wx:else class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
       <swiper-item wx:for="{{articles}}" wx:key="id">
         <view class="scenery-slide" data-id="{{item.id}}" bindtap="openArticle">
@@ -143,13 +143,13 @@
 </view>
 
 <view wx:if="{{popup}}" class="shortcut-mask" catchtap="closePopup" catchtouchmove="keepPopup">
-  <view class="shortcut-dialog" catchtap="keepPopup" role="dialog" aria-label="{{popup.title}}">
+  <view class="shortcut-dialog motion-dialog-enter" catchtap="keepPopup" aria-role="dialog" aria-label="{{popup.title}}">
     <view class="shortcut-title">{{popup.title}}</view>
     <scroll-view scroll-y class="shortcut-body">
       <image wx:if="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-generation="{{popupGeneration}}" binderror="popupImageFailed" />
-      <view wx:if="{{popupImageError}}" class="state">图片加载失败，请关闭后重试</view>
+      <ui-state wx:if="{{popupImageError}}" kind="error">图片加载失败，请关闭后重试</ui-state>
       <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
-      <view wx:if="{{!popup.image && !popup.text}}" class="state">暂未配置内容，请联系主理人在后台上传二维码或设置弹窗内容。</view>
+      <ui-state wx:if="{{!popup.image && !popup.text}}" kind="empty">暂未配置内容，请联系主理人在后台上传二维码或设置弹窗内容。</ui-state>
     </scroll-view>
     <button class="secondary" bindtap="closePopup">关闭</button>
   </view>

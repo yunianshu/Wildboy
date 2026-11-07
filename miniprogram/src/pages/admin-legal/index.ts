@@ -14,8 +14,11 @@ type LegalState = {
   draft: { title: string; content: string; revision: number };
   published: LegalDocument | null;
 };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     kind: "PRIVACY" as Kind,
     label: "隐私政策",
     authorized: false,
@@ -29,24 +32,30 @@ Page({
     published: null as LegalDocument | null,
     history: [] as LegalDocument[],
     selected: null as LegalDocument | null,
+    historyMode: false,
     dirty: false,
     preview: false,
     conflict: false,
   },
   _epoch: 0,
+  _visible: true as boolean,
   _session: -1,
   _savedTitle: "",
   _savedContent: "",
   onShow() {
+    enterPage(this);
+    this._visible = true;
     void this.load(false);
   },
   onHide() {
+    this._visible = false;
     this.setData({
       authorized: false,
       loading: false,
       busy: false,
       history: [],
       selected: null,
+      historyMode: false,
       preview: false,
     });
   },
@@ -131,6 +140,9 @@ Page({
         });
       }
       this.setData({ authorized: true, published: state.published, history });
+      // Returning to this page restores its own leave protection for the
+      // retained draft without touching another page's warning.
+      this.alert(this.data.dirty && !this.data.conflict);
     } catch (e) {
       if (n === this._epoch) this.fail(e);
     } finally {
@@ -219,6 +231,10 @@ Page({
         content: this.data.content.trim(),
         revision: this.data.revision,
       });
+      // A save that resolves on a hidden page must neither reauthorize this
+      // page nor clear the leave warning of the page now on top; returning
+      // revalidates through load() instead.
+      if (this._visible === false) return;
       if (!this.live(n, session)) return;
       await this.load(true);
       if (isSessionCurrent(session) && this.data.authorized)
@@ -268,6 +284,13 @@ Page({
   togglePreview() {
     if (this.data.authorized)
       this.setData({ preview: !this.data.preview, selected: null });
+  },
+  showHistory() {
+    if (this.data.authorized)
+      this.setData({ historyMode: true, selected: null, preview: false });
+  },
+  returnToDraft() {
+    this.setData({ historyMode: false, selected: null, preview: false });
   },
   viewHistory(e: WechatMiniprogram.TouchEvent) {
     if (!this.data.authorized) return;

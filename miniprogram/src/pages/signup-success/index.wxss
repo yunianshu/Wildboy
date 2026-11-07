@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .success-page {
   text-align: center;
   padding-top: 54rpx;
@@ -53,3 +54,6 @@
 button {
   margin-top: 18rpx;
 }
+
+.status-icon { width: 64rpx; height: 64rpx; }
+.success-mark { display: flex; align-items: center; justify-content: center; }

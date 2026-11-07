@@ -1,8 +1,11 @@
 import { request } from "../../utils/api";
 import { LegalCurrent, LegalDocument, versionsOf } from "../../utils/legal";
 import { message } from "../../utils/domain";
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     document: null as LegalDocument | null,
     kind: "PRIVACY",
     version: 0,
@@ -10,6 +13,9 @@ Page({
     error: "",
   },
   _epoch: 0,
+  onShow() {
+    enterPage(this);
+  },
   onLoad(o) {
     const kind =
       o.kind === undefined || o.kind === "PRIVACY"

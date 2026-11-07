@@ -8,8 +8,11 @@ type Row = Activity & {
   statusText: string;
   editable: boolean;
 };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     authorized: false,
     loading: false,
     loadingMore: false,
@@ -17,6 +20,8 @@ Page({
     pendingId: "",
     pendingAction: "",
     pendingConfirmed: false,
+    pendingItem: null as Row | null,
+    resultItem: null as Row | null,
     error: "",
     items: [] as Row[],
     page: 0,
@@ -30,11 +35,17 @@ Page({
     ],
   },
   _epoch: 0,
+  _visible: true as boolean,
   _session: -1,
   onShow() {
+    enterPage(this);
+    this._visible = true;
     void this.load(true);
   },
   onHide() {
+    // Hiding invalidates in-flight reads so a hidden list can never repopulate.
+    this._epoch++;
+    this._visible = false;
     this.setData({
       authorized: false,
       items: [],
@@ -44,6 +55,8 @@ Page({
       pendingId: "",
       pendingAction: "",
       pendingConfirmed: false,
+      pendingItem: null,
+      resultItem: null,
     });
   },
   onUnload() {
@@ -56,6 +69,8 @@ Page({
     void this.load(true).finally(() => wx.stopPullDownRefresh());
   },
   async load(reset = true) {
+    // An in-flight write must never be invalidated by a queued refresh.
+    if (this.data.busyId) return;
     if (
       !reset &&
       (this.data.loading || this.data.loadingMore || !this.data.hasMore)
@@ -92,14 +107,18 @@ Page({
         hasMore: result.hasMore,
       });
     } catch (e) {
-      if (n === this._epoch)
+      if (n === this._epoch) {
+        // A failed page zero (filter) load leaves nothing to page from: loading
+        // more stays blocked until the retry re-reads page zero.
+        const denied =
+          !isSessionCurrent(this._session) ||
+          (e instanceof ApiError && (e.status === 401 || e.status === 403));
         this.setData({
           error: message(e),
-          ...(!isSessionCurrent(this._session) ||
-          (e instanceof ApiError && (e.status === 401 || e.status === 403))
-            ? { authorized: false, items: [] }
-            : {}),
+          ...(reset ? { hasMore: false } : {}),
+          ...(denied ? { authorized: false, items: [] } : {}),
         });
+      }
     } finally {
       if (n === this._epoch)
         this.setData({ loading: false, loadingMore: false });
@@ -147,14 +166,18 @@ Page({
       wx.navigateTo({ url: `/pages/admin-roster/index?id=${id}` });
   },
   cancelChange() {
-    this.setData({ pendingId: "", pendingAction: "", pendingConfirmed: false });
+    this.setData({
+      pendingId: "",
+      pendingAction: "",
+      pendingConfirmed: false,
+      pendingItem: null,
+    });
   },
   confirmChange() {
-    const id = this.data.pendingId,
-      action = this.data.pendingAction;
+    if (!this.data.pendingId) return;
     this.setData({ pendingConfirmed: true });
     return this.change({
-      currentTarget: { dataset: { id, action } },
+      currentTarget: { dataset: { id: this.data.pendingId, action: this.data.pendingAction } },
     } as unknown as WechatMiniprogram.TouchEvent);
   },
   async change(e: WechatMiniprogram.TouchEvent) {
@@ -167,27 +190,56 @@ Page({
     const id = safeId(e.currentTarget.dataset.id),
       action = e.currentTarget.dataset.action;
     if (action !== "publish" && action !== "cancel") return;
-    const item = this.data.items.find((x) => x.id === id);
-    if (!item) return;
     if (
       !this.data.pendingConfirmed ||
       this.data.pendingId !== id ||
       this.data.pendingAction !== action
     ) {
-      this.setData({ pendingId: id, pendingAction: action, pendingConfirmed: false });
+      const item = this.data.items.find((x) => x.id === id);
+      if (!item) return;
+      // Keep the exact displayed snapshot; the confirmation is only valid for it.
+      this.setData({
+        pendingId: id,
+        pendingAction: action,
+        pendingConfirmed: false,
+        pendingItem: { ...item },
+      });
       return;
     }
-    this.setData({ pendingId: "", pendingAction: "", pendingConfirmed: false });
+    const snapshot = this.data.pendingItem;
+    const current = this.data.items.find((x) => x.id === id);
+    this.setData({
+      pendingId: "",
+      pendingAction: "",
+      pendingConfirmed: false,
+      pendingItem: null,
+    });
+    if (!snapshot || !current || current.version !== snapshot.version) {
+      this.setData({ error: "活动已变化，请重新核对后再操作" });
+      return;
+    }
     const epoch = this._epoch,
       session = this._session;
     this.setData({ busyId: id, error: "" });
     try {
       await requireAdmin();
       if (epoch !== this._epoch || !isSessionCurrent(session)) return;
-      await request(`/admin/activities/${id}/${action}`, "POST", {
-        version: item.version,
-      });
+      const result = await request<Activity>(
+        `/admin/activities/${id}/${action}`,
+        "POST",
+        { version: current.version },
+      );
       if (epoch !== this._epoch || !isSessionCurrent(session)) return;
+      // Completion is announced only for the state the server confirmed.
+      const expected = action === "cancel" ? "CANCELLED" : "PUBLISHED";
+      if (!result || result.status !== expected) {
+        this.setData({
+          error: "服务器尚未确认本次操作，请刷新列表核对后再试",
+          busyId: "",
+        });
+        return;
+      }
+      this.setData({ resultItem: { ...result, cover: mediaUrl(result.coverUrl), dateText: dateLabel(result.startAt), statusText: statusLabel(result.status), editable: false }, busyId: "" });
       await this.load(true);
     } catch (e) {
       if (epoch === this._epoch) {

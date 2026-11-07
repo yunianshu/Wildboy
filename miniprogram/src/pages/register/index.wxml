@@ -1,6 +1,6 @@
-<view class="page">
+<view class="page page-motion {{pageMotionClass}}">
   <view wx:if="{{success}}" class="success">
-    <view class="success-symbol">✓</view>
+    <view class="success-symbol"><image class="status-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <text class="eyebrow">SEE YOU OUTSIDE</text>
     <view class="title">山野见！</view>
     <view class="muted">
@@ -15,12 +15,12 @@
     <button class="secondary" bindtap="myActivities">我的报名</button>
   </view>
   <block wx:else>
-    <view class="title">{{waitlistMode ? "活动候补" : "活动报名"}}</view>
-    <view wx:if="{{loading}}" class="state">正在确认活动…</view>
-    <view wx:elif="{{error}}" class="state error">
+    <view class="title">活动报名</view>
+    <ui-state wx:if="{{loading}}" kind="loading">正在确认活动…</ui-state>
+    <ui-state wx:elif="{{error}}" kind="error">
       {{error}}
-      <button class="secondary" bindtap="retry">重试</button>
-    </view>
+      <button class="secondary ui-button ui-button-block" bindtap="retry">重试</button>
+    </ui-state>
     <block wx:elif="{{activity}}">
       <view class="booking-summary">
         <text class="badge">免费报名 · 无需支付</text>
@@ -88,8 +88,8 @@
       <button
         class="secondary add-participant"
         bindtap="addParticipant"
-        disabled="{{submitting || participants.length >= (waitlistMode ? activity.capacity : activity.available)}}"
-      >＋ 新增报名人</button>
+        disabled="{{submitting || participants.length >= activity.available}}"
+      >新增报名人</button>
       <checkbox-group bindchange="consentChange">
         <view class="consent">
           <checkbox
@@ -115,13 +115,11 @@
       <button
         class="primary submit"
         loading="{{submitting}}"
-        disabled="{{submitting || !(waitlistMode ? activity.canCancel : activity.enabled) || !legal}}"
+        disabled="{{submitting || !activity.enabled || !legal}}"
         bindtap="submit"
       >
-        {{submitting ? '正在确认…' : (waitlistMode ? '整组加入候补' : activity.label)}}
+        {{submitting ? '正在确认…' : activity.label}}
       </button>
-      <button wx:if="{{!waitlistMode && activity.canCancel}}" class="text-button" bindtap="joinWaitlist" disabled="{{submitting}}">名额不足？整组候补</button>
-      <view wx:if="{{waitlistMode}}" class="notice">按整组顺序候补，有名额后须在 30 分钟内确认，临近报名截止以显示时间为准。</view>
       <view class="muted small center">
         报名结果请以“我的报名”为准。
       </view>
@@ -130,10 +128,11 @@
 </view>
 
 <view wx:if="{{participantModalOpen}}" class="participant-overlay" catchtap="cancelParticipant" catchtouchmove="stopModalEvent">
-  <view class="participant-dialog" catchtap="stopModalEvent" role="dialog" aria-modal="true" aria-label="新增报名人">
+  <view class="participant-dialog" catchtap="stopModalEvent" aria-role="dialog" aria-modal="true" aria-label="新增报名人">
+    <view class="participant-dialog motion-dialog-enter">
     <view class="dialog-head">
       <view class="section-title">新增报名人</view>
-      <button class="dialog-close" bindtap="cancelParticipant" aria-label="关闭新增报名人">×</button>
+      <button class="dialog-close" bindtap="cancelParticipant" aria-label="关闭新增报名人"><image class="dialog-close-icon" src="/assets/icons/close.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
     <scroll-view scroll-y class="dialog-body">
       <view class="field">
@@ -153,6 +152,7 @@
     <view class="dialog-actions">
       <button class="secondary" bindtap="cancelParticipant">取消</button>
       <button class="primary" bindtap="confirmParticipant">确认添加</button>
+    </view>
     </view>
   </view>
 </view>

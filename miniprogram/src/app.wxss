@@ -1,3 +1,4 @@
+@import "styles/motion.wxss";
 page {
   background: #f6f4ed;
   color: #193e33;

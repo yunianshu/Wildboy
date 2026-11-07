@@ -1,5 +1,6 @@
 import { activityView } from "./domain";
-import { Activity } from "./models";
+import { Activity, Home } from "./models";
+import { originalPriceText, priceText } from "./product-prices";
 
 export const HOME_ACTIVITY_COUNT = 4;
 
@@ -13,4 +14,25 @@ export function homeActivitySlots(activities: Activity[]) {
     ...activityView(activity),
     slotKey: `home-activity-${index}`,
   }));
+}
+
+export type EquipmentCard = Home["equipment"][number];
+
+/** Equipment cards keep the server label; a strikethrough original only appears
+ * for a genuine markdown, never derived from a legacy label. */
+export function homeEquipmentSlots(products: EquipmentCard[]) {
+  return products.map((product) => {
+    const original = originalPriceText(
+      product.priceCents,
+      product.originalPriceCents,
+    );
+    return {
+      ...product,
+      priceLabel:
+        typeof product.priceLabel === "string" && product.priceLabel.trim()
+          ? product.priceLabel
+          : priceText(product.priceCents),
+      ...(original ? { originalPriceText: original } : {}),
+    };
+  });
 }

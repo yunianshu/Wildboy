@@ -17,8 +17,11 @@ type OrderView = Order & {
   dateText: string;
   deadlineText: string;
 };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     loggedIn: false,
     items: [] as OrderView[],
     loading: true,
@@ -35,16 +38,17 @@ Page({
       { code: "REFUNDED", name: "已退款" },
     ],
     busyId: "",
-    refundOrderId: "", refundRecord: null as Refund | null, refundStatusText: "", refundReason: "", refundError: "",
+    refundOrderId: "", refundRecord: null as Refund | null, refundAmountText: "", refundStatusText: "", refundReason: "", refundError: "",
     error: "",
   },
   onShow() {
+    enterPage(this);
     this.setData({ loggedIn: hasSession() });
     void this.load();
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundReason:"",refundError:"" });
+    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:"" });
   },
   onReachBottom() {
     void this.load(false);
@@ -199,12 +203,12 @@ Page({
     this.setData({busyId:id,error:""});
     try {
       const record=await request<Refund|null>(`/orders/${id}/refund`);
-      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundAmountText:record&&Number.isFinite(record.amountCents)?`¥${(record.amountCents/100).toFixed(2)}`:"",refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
     } catch(error){if(epoch.valid(current))this.setData({error:message(error),...(!hasSession()?{items:[],loggedIn:false}:{})});}
     finally{if(epoch.valid(current))this.setData({busyId:""});}
   },
   refundInput(event:WechatMiniprogram.Input){if(!this.data.busyId)this.setData({refundReason:event.detail.value,refundError:""});},
-  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundReason:"",refundError:""});},
+  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:""});},
   stopRefundEvent(){},
   async requestRefund(){
     const id=this.data.refundOrderId,reason=this.data.refundReason.trim();

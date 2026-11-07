@@ -15,8 +15,11 @@ import {
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
 type Item = Registration & { dateText: string };
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     loggedIn: false,
     loading: false,
     loadingMore: false,
@@ -29,6 +32,7 @@ Page({
     total: 0,
   },
   onShow() {
+    enterPage(this);
     this.setData({ loggedIn: hasSession() });
     if (hasSession()) void this.load(true);
     else this.setData({ items: [], total: 0 });
@@ -112,7 +116,6 @@ Page({
     const id = safeId(e.currentTarget.dataset.id);
     if (id) wx.navigateTo({ url: `/pages/detail/index?id=${id}` });
   },
-  waitlist() { wx.navigateTo({url:"/pages/waitlist/index"}); },
   messages() { wx.navigateTo({url:"/pages/notifications/index"}); },
   explore() {
     wx.switchTab({ url: "/pages/activities/index" });

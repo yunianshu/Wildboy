@@ -103,7 +103,9 @@ export function validateParticipants(
     const idNumber = participant.idNumber.trim().toUpperCase();
     if (name.length < 2 || name.length > 40)
       return `${label}姓名须为 2–40 字`;
-    if ((identityRequired || idNumber) && !validIdNumber(idNumber)) return `请填写${label}的有效身份证号`;
+    // Identity-free activities never submit an ID: stray values are ignored (the
+    // submission clears them) instead of blocking the group.
+    if (identityRequired && !validIdNumber(idNumber)) return `请填写${label}的有效身份证号`;
     if (idNumber && idNumbers.has(idNumber)) return `${label}与前一位参与人身份证号重复`;
     idNumbers.add(idNumber);
     if (!/^1[3-9]\d{9}$/.test(participant.phone.trim()))

@@ -29,8 +29,11 @@ import {
 
 const epoch = new RequestEpoch();
 const addressEpoch = new RequestEpoch();
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     id: "",
     session: -1,
     quantity: 1,
@@ -67,6 +70,7 @@ Page({
     else this.setData({ loading: false, error: "商品链接无效" });
   },
   onShow() {
+    enterPage(this);
     if (this.data.session !== -1 && this.data.session !== sessionVersion()) {
       epoch.invalidate();
       this.setData({

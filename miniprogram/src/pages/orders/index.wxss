@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .orders-page .title { margin-bottom: 8rpx; }
 .order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #fffdf7; }
 .order-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }

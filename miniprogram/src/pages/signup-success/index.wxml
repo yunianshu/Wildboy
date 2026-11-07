@@ -1,11 +1,11 @@
-<view class="page success-page">
-  <view wx:if="{{loading}}" class="state">正在核对报名…</view>
-  <view wx:elif="{{error}}" class="state error"
-    >{{error}}<button class="secondary" bindtap="retry">重新核对</button
-    ><button class="secondary" bindtap="registrations">我的报名</button></view
+<view class="page success-page page-motion {{pageMotionClass}}">
+  <ui-state wx:if="{{loading}}" kind="loading">正在核对报名…</ui-state>
+  <ui-state wx:elif="{{error}}" kind="error"
+    >{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重新核对</button
+    ><button class="secondary ui-button ui-button-block" bindtap="registrations">我的报名</button></ui-state
   >
   <block wx:elif="{{confirmed && activity && registration}}">
-    <view class="success-mark">✓</view
+    <view class="success-mark"><image class="status-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view
     ><text class="eyebrow">SEE YOU OUTSIDE</text
     ><view class="title">山野见！</view
     ><view class="muted">已确认你的报名 · 免费，无需支付</view>

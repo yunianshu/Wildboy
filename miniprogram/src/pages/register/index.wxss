@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .booking-summary {
   padding: 28rpx;
   background: #e9eddf;
@@ -110,3 +111,8 @@
 .dialog-actions { margin-top: 24rpx; }
 .dialog-actions button { flex: 1; margin: 0; }
 .dialog-error { padding: 12rpx 0; font-size: 25rpx; }
+
+.status-icon { width: 56rpx; height: 56rpx; }
+.dialog-close-icon { width: 30rpx; height: 30rpx; }
+.success-symbol { display: flex; align-items: center; justify-content: center; }
+.dialog-panel { padding: 0; max-height: none; overflow: visible; background: transparent; }

@@ -2,21 +2,28 @@ import { loadContent, ContentBlock } from "../../utils/content";
 import { request, mediaUrl } from "../../utils/api";
 import { Product } from "../../utils/models";
 import { message, safeId, RequestEpoch } from "../../utils/domain";
-import { money } from "../../utils/shop";
+import { priceText, originalPriceText } from "../../utils/product-prices";
 
 const epoch = new RequestEpoch();
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   _contentGeneration: 0,
   data: {
+    pageMotionClass: "",
     id: "",
     contentBlocks: [] as ContentBlock[],
     contentError: "",
     product: null as Product | null,
     priceText: "",
+    originalPriceText: "",
     totalText: "",
     quantity: 1,
     loading: true,
     error: "",
+  },
+  onShow() {
+    enterPage(this);
   },
   onLoad(options: Record<string, string>) {
     const id = safeId(options.id);
@@ -36,8 +43,13 @@ Page({
       if (epoch.valid(current))
         this.setData({
           product: { ...product, imageUrl: mediaUrl(product.imageUrl) },
-          priceText: money(product.priceCents),
-          totalText: money(product.priceCents * this.data.quantity),
+          // Quantity math uses the current price only; the higher original is display-only.
+          priceText: priceText(product.priceCents),
+          originalPriceText: originalPriceText(
+            product.priceCents,
+            product.originalPriceCents,
+          ),
+          totalText: priceText(product.priceCents * this.data.quantity),
         });
     } catch (error) {
       if (epoch.valid(current)) this.setData({ error: message(error) });
@@ -63,7 +75,7 @@ Page({
     );
     this.setData({
       quantity,
-      totalText: money(this.data.product.priceCents * quantity),
+      totalText: priceText(this.data.product.priceCents * quantity),
     });
   },
   buy() {

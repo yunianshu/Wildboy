@@ -1,9 +1,9 @@
-<view class="page">
-  <view wx:if="{{loading}}" class="state">正在读取已发布协议…</view>
-  <view wx:elif="{{error}}" class="state error">
+<view class="page page-motion {{pageMotionClass}}">
+  <ui-state wx:if="{{loading}}" kind="loading">正在读取已发布协议…</ui-state>
+  <ui-state wx:elif="{{error}}" kind="error">
     {{error}}
-    <button class="secondary" bindtap="retry">重试</button>
-  </view>
+    <button class="secondary ui-button ui-button-block" bindtap="retry">重试</button>
+  </ui-state>
   <block wx:elif="{{document}}">
     <view class="title">{{document.title}}</view>
     <view class="muted">

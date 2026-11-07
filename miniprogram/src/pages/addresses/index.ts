@@ -14,10 +14,13 @@ const empty = () => ({
   address: "",
   isDefault: false,
 });
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   visible: false,
   mutation: 0,
   data: {
+    pageMotionClass: "",
     selecting: false,
     selectedId: "",
     session: -1,
@@ -38,6 +41,7 @@ Page({
     });
   },
   onShow() {
+    enterPage(this);
     this.visible = true;
     if (this.data.session !== sessionVersion()) {
       this.mutation++;

@@ -1,8 +1,11 @@
 import { ApiError, mediaUrl, request } from "../../utils/api";
 import { Article } from "../../utils/articles";
 import { message, safeId } from "../../utils/domain";
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     article: null as Article | null,
     loading: true,
     error: "",
@@ -19,6 +22,7 @@ Page({
     else this.setData({ loading: false, error: "文章链接无效" });
   },
   onShow() {
+    enterPage(this);
     if (this._path) void this.load();
   },
   onHide() {

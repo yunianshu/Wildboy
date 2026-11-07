@@ -7,11 +7,17 @@ import {
   emptyForm,
   formFromActivity,
   buildInput,
+  validateForm,
   presets,
   EditForm,
 } from "../admin-editor/shared";
+const UNCERTAIN_MESSAGE =
+  "保存结果尚不确定，请返回管理列表核对，避免重复创建。";
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     id: "",
     authorized: false,
     loading: false,
@@ -30,10 +36,13 @@ Page({
     presets,
     categories,
     categoryIndex: 0,
+    section: 0,
+    sections: ["基本信息", "时间与地点", "简介与详情"],
   },
   _uploading: false,
   _alive: true,
   _epoch: 0,
+  _visible: true as boolean,
   _session: -1,
   _loaded: false,
   _invalid: false,
@@ -46,9 +55,14 @@ Page({
     this.setData({ id: safeId(query.id) });
   },
   onShow() {
+    enterPage(this);
+    this._visible = true;
     if (!this._invalid) void this.load(false);
   },
   onHide() {
+    this._visible = false;
+    // A creation still in flight turns uncertain here: the server may commit
+    // while the page is hidden, so only the admin list can verify the outcome.
     this.setData({
       authorized: false,
       busy: false,
@@ -60,6 +74,39 @@ Page({
   onUnload() {
     this._alive = false;
     this._epoch++;
+  },
+  // Re-arms or clears this page's leave protection. Called only while this
+  // page is visible so a hidden page can never clear another page's warning.
+  rearmLeave() {
+    if (this._visible === false) return;
+    if (
+      typeof wx.enableAlertBeforeUnload !== "function" ||
+      typeof wx.disableAlertBeforeUnload !== "function"
+    )
+      return;
+    if (this.data.dirty && !this.data.conflict && !this.data.uncertain)
+      wx.enableAlertBeforeUnload({ message: "修改尚未保存，离开将丢失修改" });
+    else wx.disableAlertBeforeUnload();
+  },
+  sectionChange(e: WechatMiniprogram.TouchEvent) {
+    const section = Number(e.currentTarget.dataset.section);
+    if (!Number.isInteger(section) || section < 0 || section > 2) return;
+    this.setData({ section });
+  },
+  previousSection() {
+    if (this.data.section > 0)
+      this.setData({ section: this.data.section - 1 });
+  },
+  nextSection() {
+    if (this.data.section < 2)
+      this.setData({ section: this.data.section + 1 });
+  },
+  revealProblem(check: { section: number; error: string } | null): boolean {
+    if (!check) return false;
+    this.setData({ error: check.error, section: check.section });
+    if (typeof wx.pageScrollTo === "function")
+      wx.pageScrollTo({ scrollTop: 0, duration: 0 });
+    return true;
   },
   async load(force = false) {
     const n = ++this._epoch;
@@ -74,7 +121,12 @@ Page({
         this.setData({ form: emptyForm(), dirty: false, uncertain: false });
         this._loaded = false;
       }
-      if (this._loaded && !force && same) return;
+      if (this._loaded && !force && same) {
+        // Returning to an untouched editor only revalidates the session and
+        // restores this page's own leave protection for its current draft.
+        this.rearmLeave();
+        return;
+      }
       if (this.data.id) {
         const a = await request<Activity>(`/admin/activities/${this.data.id}`);
         if (n !== this._epoch || !isSessionCurrent(session)) return;
@@ -119,12 +171,14 @@ Page({
   },
   markDirty() {
     this.setData({ dirty: true, error: "" });
-    if (typeof wx.enableAlertBeforeUnload === "function")
-      wx.enableAlertBeforeUnload({ message: "修改尚未保存，离开将丢失修改" });
+    this.rearmLeave();
   },
   identityChange(e: WechatMiniprogram.SwitchChange) {
+    // A queued identity switch must never touch a form that is saving or
+    // whose authority is gone.
+    if (this.data.busy || !this.data.authorized) return;
     this.setData({ "form.identityRequired": e.detail.value, dirty: true });
-    if (typeof wx.enableAlertBeforeUnload === "function") wx.enableAlertBeforeUnload({message: "活动尚未保存"});
+    this.rearmLeave();
   },
   input(e: WechatMiniprogram.Input) {
     if (this.data.busy || !this.data.authorized) return;
@@ -168,17 +222,41 @@ Page({
     this.setData({ "form.coverUrl": path, cover: path });
     this.markDirty();
   },
-  editContent() { if (this.data.id && this.data.authorized && !this.data.busy) wx.navigateTo({url:`/pages/admin-content/index?id=${this.data.id}&kind=activity`}); },
+  editContent() {
+    if (this.data.id && this.data.authorized && !this.data.busy)
+      wx.navigateTo({
+        url: `/pages/admin-content/index?id=${this.data.id}&kind=activity`,
+      });
+  },
   async uploadCover() {
     if (!this.data.authorized || this.data.busy) return;
-    if(this._uploading)return;
-    this._uploading=true;
-    const session=this._session;
-    this.setData({error:""});
-    try { const url=await uploadImage(); if(this._alive && isSessionCurrent(session)) {
-      this.setData({"form.coverUrl":url,dirty:true,cover:mediaUrl(url)});
-      wx.enableAlertBeforeUnload({message:"有未保存修改"});
-    } } catch(e) { if(this._alive && isSessionCurrent(session) && !message(e).includes("cancel")) this.setData({error:message(e)}); } finally {this._uploading=false;}
+    if (this._uploading) return;
+    this._uploading = true;
+    const session = this._session;
+    this.setData({ error: "" });
+    try {
+      const url = await uploadImage();
+      // The result is kept even when the page hid mid-upload, but the leave
+      // warning is only re-armed by this page while it is visible again.
+      if (this._alive && isSessionCurrent(session)) {
+        this.setData({
+          "form.coverUrl": url,
+          dirty: true,
+          cover: mediaUrl(url),
+        });
+        if (this._visible !== false && typeof wx.enableAlertBeforeUnload === "function")
+          wx.enableAlertBeforeUnload({ message: "有未保存修改" });
+      }
+    } catch (e) {
+      if (
+        this._alive &&
+        isSessionCurrent(session) &&
+        !message(e).includes("cancel")
+      )
+        this.setData({ error: message(e) });
+    } finally {
+      this._uploading = false;
+    }
   },
   async reload() {
     if (this.data.busy) return;
@@ -207,78 +285,71 @@ Page({
       currentTarget: { dataset: { action: "publish" } },
     } as unknown as WechatMiniprogram.TouchEvent);
   },
-  async save(e: WechatMiniprogram.TouchEvent) {
-    if (
-      this.data.busy ||
-      !this.data.authorized ||
-      this.data.conflict ||
-      this.data.uncertain ||
-      !isSessionCurrent(this._session)
-    )
-      return;
-    const publish = e.currentTarget.dataset.action === "publish";
-    let input: ReturnType<typeof buildInput>;
-    try {
-      input = buildInput(this.data.form, this.data.registeredCount);
-    } catch (error) {
-      this.setData({ error: message(error) });
-      return;
-    }
-    if (publish && !this.data.publishConfirmed) {
-      this.setData({ confirming: true, publishConfirmed: false });
-      return;
-    }
-    if (publish) this.setData({ confirming: false, publishConfirmed: false });
+  // Shared write path for save / publish / save-and-edit-content. Returns the
+  // saved activity, or null when the outcome is unknown or the write failed.
+  async write(publish: boolean): Promise<Activity | null> {
     const n = this._epoch,
       session = this._session;
     this.setData({ busy: true, error: "" });
+    let sent = false;
     try {
       await requireAdmin();
-      if (n !== this._epoch || !isSessionCurrent(session)) return;
-      const a = await request<Activity>(
-        this.data.id
-          ? `/admin/activities/${this.data.id}`
-          : "/admin/activities",
-        this.data.id ? "PUT" : "POST",
-        { ...input, ...(this.data.id ? { version: this.data.version } : {}) },
+      if (n !== this._epoch || !isSessionCurrent(session)) return null;
+      const creating = !this.data.id;
+      const input = buildInput(this.data.form, this.data.registeredCount);
+      // The request may reach the server and still fail observably, so the
+      // uncertainty window opens the moment the write is sent.
+      sent = true;
+      let result = await request<Activity>(
+        creating ? "/admin/activities" : `/admin/activities/${this.data.id}`,
+        creating ? "POST" : "PUT",
+        creating ? input : { ...input, version: this.data.version },
       );
-      if (n !== this._epoch || !isSessionCurrent(session)) return;
+      if (n !== this._epoch || !isSessionCurrent(session)) return null;
+      if (publish) {
+        result = await request<Activity>(
+          `/admin/activities/${result.id}/publish`,
+          "POST",
+          { version: result.version },
+        );
+        if (n !== this._epoch || !isSessionCurrent(session)) return null;
+      }
+      // An uncertain creation keeps its draft until the admin list verifies it.
+      if (this.data.uncertain) return null;
+      this._loaded = true;
       this.setData({
-        id: a.id,
-        version: a.version,
-        status: a.status,
+        id: result.id,
+        version: result.version,
+        status: result.status,
         dirty: false,
       });
-      this._loaded = true;
-      if (typeof wx.disableAlertBeforeUnload === "function")
-        wx.disableAlertBeforeUnload();
-      if (publish) {
-        const result = await request<Activity>(
-          `/admin/activities/${a.id}/publish`,
-          "POST",
-          { version: a.version },
-        );
-        if (n !== this._epoch || !isSessionCurrent(session)) return;
-        this.setData({ version: result.version, status: result.status });
+      if (this._visible !== false) {
+        if (typeof wx.disableAlertBeforeUnload === "function")
+          wx.disableAlertBeforeUnload();
       }
-      wx.showToast({
-        title: publish ? "活动已发布" : "保存成功",
-        icon: "success",
-      });
+      return result;
     } catch (error) {
-      if (n !== this._epoch) return;
+      if (n !== this._epoch) return null;
       const denied =
         !isSessionCurrent(session) ||
         (error instanceof ApiError &&
           (error.status === 401 || error.status === 403));
       const conflict = error instanceof ApiError && error.status === 409;
+      // Uncertainty requires a request that actually left: only then can the
+      // server have applied it without this page knowing the outcome.
       const uncertain =
-        !denied && !(error instanceof ApiError) && !this.data.id;
+        sent &&
+        !this.data.id &&
+        !conflict &&
+        !denied &&
+        (!(error instanceof ApiError) ||
+          error.status === 0 ||
+          error.status >= 500);
       this.setData({
         error: conflict
           ? "活动已被修改或报名人数变化。请重新读取后再编辑，不会覆盖他人修改。"
           : uncertain
-            ? "保存结果尚不确定，请返回管理列表核对，避免重复创建。"
+            ? UNCERTAIN_MESSAGE
             : message(error),
         conflict,
         uncertain,
@@ -288,8 +359,57 @@ Page({
       });
       if (denied && typeof wx.disableAlertBeforeUnload === "function")
         wx.disableAlertBeforeUnload();
+      return null;
     } finally {
       if (n === this._epoch) this.setData({ busy: false });
     }
+  },
+  blockedByUncertain(): boolean {
+    if (this.data.uncertain) {
+      this.setData({ error: UNCERTAIN_MESSAGE });
+      return true;
+    }
+    return false;
+  },
+  async save(e: WechatMiniprogram.TouchEvent) {
+    if (this.data.busy || this.data.conflict) return;
+    if (this.blockedByUncertain()) return;
+    if (!this.data.authorized || !isSessionCurrent(this._session)) return;
+    const publish = e?.currentTarget?.dataset?.action === "publish";
+    if (
+      this.revealProblem(
+        validateForm(this.data.form, this.data.registeredCount),
+      )
+    )
+      return;
+    if (publish && !this.data.publishConfirmed) {
+      this.setData({ confirming: true, publishConfirmed: false });
+      return;
+    }
+    if (publish) this.setData({ confirming: false, publishConfirmed: false });
+    const saved = await this.write(publish);
+    if (saved && this._visible !== false)
+      wx.showToast({
+        title: publish ? "活动已发布" : "保存成功",
+        icon: "success",
+      });
+  },
+  async saveAndEditContent() {
+    if (this.data.busy || this.data.conflict) return;
+    if (this.blockedByUncertain()) return;
+    if (!this.data.authorized || !isSessionCurrent(this._session)) return;
+    // Hidden fields still validate first; a failing field reveals its section
+    // instead of navigating to the content editor.
+    if (
+      this.revealProblem(
+        validateForm(this.data.form, this.data.registeredCount),
+      )
+    )
+      return;
+    const saved = await this.write(false);
+    if (saved && this._visible !== false)
+      wx.navigateTo({
+        url: `/pages/admin-content/index?id=${saved.id}&kind=activity`,
+      });
   },
 });

@@ -59,14 +59,51 @@ export interface Home {
     name: string;
     imageUrl: string;
     description: string;
+    categoryName: string;
+    priceCents: number;
+    originalPriceCents: number;
     priceLabel: string;
   }[];
   paymentEnabled: boolean;
 }
+export type AccountSource = "WECHAT" | "PASSWORD" | "DEMO" | "OTHER";
+
 export interface User {
   id: string;
   nickname: string;
   role: string;
+  accountSource?: AccountSource;
+  wechatVerified?: boolean;
+  realName?: string;
+  phone?: string;
+  profileCompleted?: boolean;
+  version?: number;
+}
+
+export interface AdminUser {
+  id: string;
+  nickname: string;
+  realName: string;
+  phone: string;
+  profileCompleted: boolean;
+  createdAt: string;
+  profileUpdatedAt: string | null;
+  registrationCount: number;
+  confirmedRegistrationCount: number;
+  lastRegistrationAt: string | null;
+  role: string;
+  accountSource: AccountSource;
+  wechatVerified: boolean;
+  canChangeRole: boolean;
+  roleChangeBlockReason: string | null;
+  version: number;
+}
+
+export type RegistrationStatus = "CONFIRMED" | "CANCELLED";
+
+export interface AdminUserDetail {
+  user: AdminUser;
+  registrations: PageResult<Registration>;
 }
 export interface AuthResult {
   token: string;
@@ -77,7 +114,10 @@ export interface Product {
   name: string;
   description: string;
   imageUrl: string;
+  categoryId: string;
+  categoryName: string;
   priceCents: number;
+  originalPriceCents: number;
   stock: number;
   status: "ON_SALE" | "OFF_SHELF";
   version: number;

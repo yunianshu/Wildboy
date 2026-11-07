@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .article-page {
   background: #f6f4ed;
 }
@@ -109,3 +110,6 @@
 .article-page .sticky-action button {
   width: 100%;
 }
+
+.share { display: inline-flex; align-items: center; gap: 8rpx; }
+.share-icon { width: 28rpx; height: 28rpx; }

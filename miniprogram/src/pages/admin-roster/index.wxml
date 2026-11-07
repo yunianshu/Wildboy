@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page page-motion {{pageMotionClass}}">
   <view class="title">报名名单</view>
   <view wx:if="{{error}}" class="state error">
     {{error}}
@@ -8,6 +8,17 @@
     </button>
   </view>
   <view wx:if="{{loading}}" class="state">正在加载名单…</view>
+  <view class="tabs" wx:if="{{authorized&&activity}}">
+    <view
+      wx:for="{{statuses}}"
+      wx:key="value"
+      class="tab {{status===item.value?'active':''}}"
+      data-status="{{item.value}}"
+      bindtap="filter"
+    >
+      {{item.label}}
+    </view>
+  </view>
   <block wx:if="{{authorized&&activity}}">
     <view class="activity-title">{{activity.title}}</view>
     <view class="muted">{{dateText}} · {{activity.location}}</view>
@@ -23,6 +34,7 @@
     </view>
     <view class="section-head">
       <view class="section-title">报名成员</view>
+      <button wx:if="{{total}}" class="export" disabled="{{loading || loadingMore}}" bindtap="export">导出到微信</button>
     </view>
     <view wx:for="{{items}}" wx:key="id" class="member">
       <view class="participant-head">

@@ -5,7 +5,14 @@ import {
   sameVersions,
   LegalCurrent,
 } from "../../utils/legal";
-import { request, requireSession, ApiError, sessionVersion, isSessionCurrent } from "../../utils/api";
+import {
+  request,
+  requireSession,
+  getCurrentUser,
+  ApiError,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
 import {
   Activity,
   ParticipantInput,
@@ -18,16 +25,20 @@ import {
   validateParticipants,
   RequestEpoch,
 } from "../../utils/domain";
+import { isActivityUser } from "../../utils/user-profile";
+import { User } from "../../utils/models";
 const epoch = new RequestEpoch();
 const emptyParticipant = (): ParticipantInput => ({
   participantName: "", idNumber: "", phone: "",
 });
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   _reloadOnShow: false,
   data: {
+    pageMotionClass: "",
     id: "",
     session: -1,
-    waitlistMode: false,
     activity: null as ReturnType<typeof activityView> | null,
     loading: true,
     error: "",
@@ -48,11 +59,12 @@ Page({
   },
   onLoad(o) {
     const id = safeId(o.id);
-    this.setData({ id, session: sessionVersion(), waitlistMode: o.waitlist === "1" });
+    this.setData({ id, session: sessionVersion() });
     if (id) void this.load();
     else this.setData({ error: "活动链接无效", loading: false });
   },
   onShow() {
+    enterPage(this);
     if (this.data.session !== -1 && this.data.session !== sessionVersion())
       this.resetPrivateForm();
     this.setData({ session: sessionVersion() });
@@ -130,7 +142,7 @@ Page({
   },
   addParticipant() {
     if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
-    if (this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity?.available || 0)) {
+    if (this.data.participants.length >= (this.data.activity?.available || 0)) {
       this.setData({ fieldError: "添加人数不能超过当前剩余名额" });
       return;
     }
@@ -177,7 +189,7 @@ Page({
       this.setData({ participantError: "该身份证号已在报名名单中" });
       return;
     }
-    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled) || this.data.participants.length >= (this.data.waitlistMode ? Math.min(100,this.data.activity?.capacity || 0) : this.data.activity!.available)) {
+    if (!this.data.activity?.enabled || this.data.participants.length >= this.data.activity!.available) {
       this.setData({ participantError: "当前剩余名额不足，请返回刷新" });
       return;
     }
@@ -187,10 +199,24 @@ Page({
     });
     this.cancelParticipant();
   },
-  removeParticipant(e: WechatMiniprogram.TouchEvent) {
+  async removeParticipant(e: WechatMiniprogram.TouchEvent) {
     if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
     const index = Number(e.currentTarget.dataset.index);
     if (this.data.participants.length <= 1 || !this.data.participants[index])
+      return;
+    const target = this.data.participants[index];
+    const session = sessionVersion();
+    const answer = await wx.showModal({
+      title: "移除参与人",
+      content: `将从本次报名中移除「${target.participantName || "未命名参与人"}」。`,
+      confirmText: "移除",
+    });
+    if (
+      !answer.confirm ||
+      session !== sessionVersion() ||
+      this.data.participants.length <= 1 ||
+      !this.data.participants[index]
+    )
       return;
     this.setData({
       participants: this.data.participants.filter(
@@ -253,15 +279,15 @@ Page({
       this.setData({ fieldError });
       return;
     }
-    if (!(this.data.waitlistMode ? this.data.activity?.canCancel : this.data.activity?.enabled)) {
+    if (!this.data.activity?.enabled) {
       this.setData({ fieldError: "当前活动不可报名，请返回刷新" });
       return;
     }
-    if (!this.data.waitlistMode && this.data.participants.length > this.data.activity!.available) {
+    if (this.data.participants.length > this.data.activity!.available) {
       this.setData({ fieldError: "报名人数超过剩余名额，请减少参与人" });
       return;
     }
-    if (!this.data.legal || !this.data.privacyRead || !this.data.termsRead) {
+    if (!this.data.legal) {
       this.setData({
         fieldError: this.data.legalError || "请阅读当前隐私政策和用户协议",
       });
@@ -273,6 +299,16 @@ Page({
     try {
       await requireSession();
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+      // Registration requires a completed activity contact profile; anything else routes
+      // to the profile editor first and never reaches a registration write.
+      const user = await getCurrentUser();
+      if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+      // An explicitly incomplete contact profile must be finished before any
+      // registration write; an unreported profile stays with the server check.
+      if (!isActivityUser(user) || user.profileCompleted === false) {
+        wx.navigateTo({ url: "/pages/profile/index?from=register" });
+        return;
+      }
       const versions = versionsOf(this.data.legal!);
       const latest = await currentLegal();
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
@@ -290,12 +326,6 @@ Page({
         idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
       }));
-      if (this.data.waitlistMode) {
-        const result = await request<{id:string;activityId:string;status:string}>(`/activities/${this.data.id}/waitlist`, "POST", {participants,...versions});
-        if (!result?.id || result.activityId !== this.data.id || !["WAITING","OFFERED"].includes(result.status)) throw new Error("候补结果未确认，请到我的候补核对");
-        if(epoch.valid(n) && isSessionCurrent(session)){this.setData({participants:[{participantName:"",idNumber:"",phone:""}]});wx.redirectTo({url:"/pages/waitlist/index"});}
-        return;
-      }
       const result = await request<Registration>(
         `/activities/${this.data.id}/registrations`,
         "POST",
@@ -342,7 +372,27 @@ Page({
       }
     }
   },
-  joinWaitlist() { if(!this.data.submitting && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },
+  // Prefills the first participant from the saved contact profile; untouched fields only,
+  // so manual entries and identity numbers are never overwritten.
+  applyProfile(user: User) {
+    if (!isActivityUser(user) || user.profileCompleted !== true) return;
+    const first = this.data.participants[0];
+    if (!first) return;
+    this.setData({
+      participants: this.data.participants.map((participant, index) =>
+        index === 0
+          ? {
+              participantName:
+                first.participantName.trim() === ""
+                  ? user.realName || ""
+                  : first.participantName,
+              idNumber: first.idNumber,
+              phone: first.phone.trim() === "" ? user.phone || "" : first.phone,
+            }
+          : participant,
+      ),
+    });
+  },
   done() {
     wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
   },

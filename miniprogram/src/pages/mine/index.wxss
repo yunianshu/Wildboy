@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .my-hero {
   height: 420rpx;
   position: relative;
@@ -72,16 +73,18 @@
   box-shadow: 0 12rpx 36rpx rgba(25, 63, 52, .08);
 }
 .avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 76rpx;
   height: 76rpx;
   flex-shrink: 0;
   border-radius: 50%;
   background: #dbe6c8;
-  color: #193f34;
-  font-size: 36rpx;
-  font-weight: 700;
-  text-align: center;
-  line-height: 76rpx;
+}
+.avatar-icon {
+  width: 40rpx;
+  height: 40rpx;
 }
 .profile-main {
   flex: 1;
@@ -107,8 +110,9 @@
   font-size: 19rpx;
 }
 .profile-mark {
-  color: #8a947f;
-  font-size: 34rpx;
+  width: 32rpx;
+  height: 32rpx;
+  flex-shrink: 0;
 }
 .guest {
   flex-wrap: wrap;
@@ -144,8 +148,9 @@
 }
 .menu-icon {
   display: block;
+  width: 44rpx;
+  height: 44rpx;
   margin-bottom: 20rpx;
-  font-size: 28rpx;
 }
 .menu-title {
   font-size: 29rpx;
@@ -184,6 +189,20 @@
 }
 .links text {
   float: right;
+}
+.links image {
+  float: right;
+}
+.row-chevron {
+  width: 28rpx;
+  height: 28rpx;
+  flex-shrink: 0;
+}
+.admin-auth image {
+  width: 26rpx;
+  height: 26rpx;
+  vertical-align: middle;
+  margin-left: 6rpx;
 }
 .admin-auth {
   padding: 28rpx 20rpx 12rpx;

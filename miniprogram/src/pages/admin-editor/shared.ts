@@ -116,28 +116,36 @@ export function safeImage(value: string): boolean {
     /^https:\/\/[^\s]+$/.test(value)
   );
 }
-export function buildInput(f: EditForm, registered = 0, now = Date.now()) {
+// Sections mirror the editor tabs: 0 基本信息, 1 时间与地点, 2 简介与详情.
+// Saving from any tab must reveal the section that owns the first failing field.
+export type FormCheck = { section: number; error: string };
+export function validateForm(
+  f: EditForm,
+  registered = 0,
+  now = Date.now(),
+): FormCheck | null {
   const title = f.title.trim(),
     summary = f.summary.trim(),
     description = f.description.trim(),
     location = f.location.trim(),
     meetingPoint = f.meetingPoint.trim();
-  if (!title || title.length > 120) throw new Error("活动名称须为 1–120 字");
+  if (!title || title.length > 120)
+    return { section: 0, error: "活动名称须为 1–120 字" };
   if (!categories.some((x) => x.code === f.category))
-    throw new Error("请选择有效活动分类");
+    return { section: 0, error: "请选择有效活动分类" };
   if (!safeImage(f.coverUrl.trim()))
-    throw new Error("请选择内置封面或填写 HTTPS 图片地址");
+    return { section: 0, error: "请选择内置封面或填写 HTTPS 图片地址" };
   if (!summary || summary.length > 300)
-    throw new Error("活动简介须为 1–300 字");
+    return { section: 2, error: "活动简介须为 1–300 字" };
   if (!description || description.length > 20000)
-    throw new Error("活动详情须为 1–20000 字");
+    return { section: 2, error: "活动详情须为 1–20000 字" };
   if (
     !location ||
     location.length > 200 ||
     !meetingPoint ||
     meetingPoint.length > 200
   )
-    throw new Error("活动地点与集合地点须填写，且各不超过 200 字");
+    return { section: 1, error: "活动地点与集合地点须填写，且各不超过 200 字" };
   const capacity = Number(f.capacity);
   if (
     !/^\d+$/.test(f.capacity) ||
@@ -146,21 +154,54 @@ export function buildInput(f: EditForm, registered = 0, now = Date.now()) {
     capacity > 10000 ||
     capacity < registered
   )
-    throw new Error(`名额须为 ${Math.max(1, registered)}–10000 的整数`);
-  const startAt = chinaIso(f.startDate, f.startTime),
-    endAt = chinaIso(f.endDate, f.endTime),
-    registrationDeadline = chinaIso(f.deadlineDate, f.deadlineTime);
-  if (Date.parse(startAt) <= now) throw new Error("活动开始时间必须在未来");
-  if (Date.parse(endAt) <= Date.parse(startAt))
-    throw new Error("结束时间必须晚于开始时间");
-  if (Date.parse(registrationDeadline) > Date.parse(startAt))
-    throw new Error("报名截止不能晚于开始时间");
+    return {
+      section: 1,
+      error: `名额须为 ${Math.max(1, registered)}–10000 的整数`,
+    };
+  try {
+    const startAt = chinaIso(f.startDate, f.startTime),
+      endAt = chinaIso(f.endDate, f.endTime),
+      registrationDeadline = chinaIso(f.deadlineDate, f.deadlineTime);
+    if (Date.parse(startAt) <= now)
+      return { section: 1, error: "活动开始时间必须在未来" };
+    if (Date.parse(endAt) <= Date.parse(startAt))
+      return { section: 1, error: "结束时间必须晚于开始时间" };
+    if (Date.parse(registrationDeadline) > Date.parse(startAt))
+      return { section: 1, error: "报名截止不能晚于开始时间" };
+  } catch (error) {
+    return {
+      section: 1,
+      error: error instanceof Error ? error.message : "请填写完整日期与时间",
+    };
+  }
   const galleryUrls = f.galleryText
     .split(/\n/)
     .map((x) => x.trim())
     .filter(Boolean);
   if (galleryUrls.length > 12 || galleryUrls.some((x) => !safeImage(x)))
-    throw new Error("详情图片最多 12 张，请使用 HTTPS 地址或内置资源");
+    return {
+      section: 2,
+      error: "详情图片最多 12 张，请使用 HTTPS 地址或内置资源",
+    };
+  return null;
+}
+
+export function buildInput(f: EditForm, registered = 0, now = Date.now()) {
+  const check = validateForm(f, registered, now);
+  if (check) throw new Error(check.error);
+  const title = f.title.trim(),
+    summary = f.summary.trim(),
+    description = f.description.trim(),
+    location = f.location.trim(),
+    meetingPoint = f.meetingPoint.trim(),
+    capacity = Number(f.capacity);
+  const startAt = chinaIso(f.startDate, f.startTime),
+    endAt = chinaIso(f.endDate, f.endTime),
+    registrationDeadline = chinaIso(f.deadlineDate, f.deadlineTime);
+  const galleryUrls = f.galleryText
+    .split(/\n/)
+    .map((x) => x.trim())
+    .filter(Boolean);
   return {
     title,
     identityRequired: f.identityRequired,

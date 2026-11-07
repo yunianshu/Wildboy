@@ -13,8 +13,11 @@ import {
   RequestEpoch,
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     id: "",
     registrationId: "",
     loading: true,
@@ -30,6 +33,7 @@ Page({
     });
   },
   onShow() {
+    enterPage(this);
     void this.load();
   },
   onHide() {

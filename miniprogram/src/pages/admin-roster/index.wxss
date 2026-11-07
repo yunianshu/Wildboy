@@ -81,3 +81,14 @@
 .more {
   margin-top: 32rpx;
 }
+
+.export {
+  margin: 0;
+  padding: 0 24rpx;
+  height: 56rpx;
+  line-height: 56rpx;
+  font-size: 24rpx;
+  color: #173f35;
+  background: #e8efe8;
+  border-radius: 28rpx;
+}

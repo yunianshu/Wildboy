@@ -14,8 +14,11 @@ import {
   LegalCurrent,
 } from "../../utils/legal";
 import { message } from "../../utils/domain";
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   data: {
+    pageMotionClass: "",
     current: null as LegalCurrent | null,
     loading: true,
     busy: false,
@@ -25,14 +28,21 @@ Page({
     error: "",
     mode: "login",
     success: false,
+    adminLoginEnabled: false,
+    adminCapabilityLoading: false,
+    adminCapabilityError: "",
   },
   _epoch: 0,
   _reloadOnShow: false,
+  _capabilityEpoch: 0,
+  _capabilityFlight: undefined as Promise<void> | undefined,
   onLoad(o) {
     this.setData({ mode: o.mode === "consent" ? "consent" : "login" });
     void this.load();
+    void this.loadAdminCapability();
   },
   onShow() {
+    enterPage(this);
     if (this._reloadOnShow) {
       this._reloadOnShow = false;
       void this.load();
@@ -41,10 +51,46 @@ Page({
   onHide() {
     this._reloadOnShow = this.data.loading;
     this._epoch++;
-    this.setData({ busy: false });
+    this._capabilityEpoch++;
+    this._capabilityFlight = undefined;
+    this.setData({ busy: false, adminCapabilityLoading: false });
   },
   onUnload() {
     this._epoch++;
+    this._capabilityEpoch++;
+    this._capabilityFlight = undefined;
+  },
+  async loadAdminCapability() {
+    // Deduplicated fire-and-forget: a duplicate call neither re-requests nor waits on
+    // the shared in-flight request; callers needing the result keep the first promise.
+    if (this._capabilityFlight) return;
+    const n = ++this._capabilityEpoch;
+    this.setData({ adminCapabilityLoading: true, adminCapabilityError: "" });
+    const pending = (async () => {
+      try {
+        const result = await request<{ adminLoginEnabled?: unknown }>(
+          "/auth/capabilities",
+        );
+        if (n !== this._capabilityEpoch) return;
+        if (result?.adminLoginEnabled === true)
+          this.setData({ adminLoginEnabled: true, adminCapabilityError: "" });
+        else if (result?.adminLoginEnabled === false)
+          this.setData({ adminLoginEnabled: false, adminCapabilityError: "" });
+        else this.setData({ adminCapabilityError: "管理入口状态异常，请稍后重试" });
+      } catch (e) {
+        if (n === this._capabilityEpoch)
+          this.setData({ adminCapabilityError: message(e) });
+      } finally {
+        this.setData({ adminCapabilityLoading: false });
+      }
+    })();
+    this._capabilityFlight = pending;
+    try {
+      await pending;
+    } finally {
+      if (this._capabilityFlight === pending) this._capabilityFlight = undefined;
+    }
+    return pending;
   },
   async load() {
     const n = ++this._epoch;
@@ -164,6 +210,7 @@ Page({
     wx.switchTab({ url: "/pages/home/index" });
   },
   admin() {
+    if (!this.data.adminLoginEnabled) return;
     this._epoch++;
     wx.navigateTo({ url: "/pages/admin-login/index" });
   },

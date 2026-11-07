@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .order-product { display: flex; gap: 24rpx; padding: 24rpx; margin-top: 30rpx; border-radius: 16rpx; background: #e8ecdf; }
 .order-product image { width: 180rpx; height: 180rpx; flex-shrink: 0; border-radius: 10rpx; }
 .order-product-info { flex: 1; min-width: 0; }
@@ -20,3 +21,8 @@
 .shipping-name { font-weight: 600; font-size: 30rpx; }
 .shipping-detail { margin-top: 14rpx; font-size: 27rpx; line-height: 1.6; word-break: break-all; }
 .shipping-change { text-align: right; color: #486b45; margin-top: 18rpx; font-size: 25rpx; }
+
+.result-mark { display: flex; align-items: center; justify-content: center; }
+.result-icon { width: 44rpx; height: 44rpx; }
+.row-chevron { width: 26rpx; height: 26rpx; margin-left: 6rpx; vertical-align: middle; }
+.shipping-change { display: flex; align-items: center; justify-content: flex-end; }

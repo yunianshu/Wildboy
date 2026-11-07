@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page page-motion {{pageMotionClass}}">
  <view class="section-title">商品管理</view>
  <view wx:if="{{loading}}" class="state">加载中…</view><view wx:if="{{error}}" class="state error">{{error}}<button bindtap="retry">重试</button></view>
  <button wx:if="{{!authorized && !loading}}" bindtap="login">管理员身份验证</button>

@@ -15,9 +15,12 @@ import {
   RequestEpoch,
 } from "../../utils/domain";
 const epoch = new RequestEpoch();
+import { enterPage } from "../../utils/page-motion";
+
 Page({
   _contentGeneration: 0,
   data: {
+    pageMotionClass: "",
     id: "",
     contentBlocks: [] as ContentBlock[],
     contentError: "",
@@ -36,6 +39,7 @@ Page({
     if (!id) this.setData({ loading: false, error: "活动链接无效" });
   },
   onShow() {
+    enterPage(this);
     if (this.data.id) { void this.load(); void this.loadRichContent(); }
   },
   onHide() {
@@ -94,7 +98,6 @@ Page({
   retry() {
     void this.load();
   },
-  waitlist() { if (this.data.activity?.canCancel && !this.data.activity.available) wx.navigateTo({url:`/pages/register/index?id=${this.data.id}&waitlist=1`}); },
   register() {
     if (this.data.activity?.enabled)
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });

@@ -1,3 +1,4 @@
+@import "../../styles/user-flow.wxss";
 .activities-hero {
   position: relative;
   height: 390rpx;

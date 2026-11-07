@@ -1,4 +1,4 @@
-<view class="ui-state-content {{compact ? 'ui-state-compact' : ''}} {{kind === 'error' ? 'ui-state-error' : ''}}" role="status" aria-role="status" aria-live="polite">
+<view class="ui-state-content {{compact ? 'ui-state-compact' : ''}} {{kind === 'error' ? 'ui-state-error' : ''}}" aria-role="status" aria-live="polite">
   <view class="ui-state-visual" aria-hidden="{{true}}">
     <view wx:if="{{kind === 'loading'}}" class="ui-state-spinner" />
     <image wx:else class="ui-state-icon" src="{{kind === 'error' ? '/assets/icons/error.svg' : '/assets/icons/empty.svg'}}" mode="aspectFit" aria-hidden="{{true}}" />
