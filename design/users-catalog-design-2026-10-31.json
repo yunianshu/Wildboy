@@ -1,0 +1,772 @@
+{
+  "date": "2026-10-31",
+  "penDocument": "/C:/Users/59290/.pencil/documents/cbd623ad-6808-4e8c-9e6e-2d821034ed80/pencil-new.pen",
+  "rootReplacements": {
+    "Or33t": "E7QA9",
+    "UWfJn": "YbhOC",
+    "cyUUW": "asCpo",
+    "vKTKR": "IWwi8",
+    "z87Zde": "L50wpo",
+    "ZKG6G": "n2142A",
+    "l1TLM": "UcBWH",
+    "rqniq": "oVFOy",
+    "by6De": "AV1WF",
+    "dcQU8": "irybD",
+    "CCKt3": "ie3cy",
+    "BLCIT": "tZwlR"
+  },
+  "reviewedRoots": [
+    "E7QA9",
+    "YbhOC",
+    "asCpo",
+    "u9yYo",
+    "CX7SL",
+    "IWwi8",
+    "L50wpo",
+    "n2142A",
+    "Nwr2l",
+    "a35E2",
+    "z7k8T",
+    "wqrUO",
+    "a4YnM8",
+    "ie3cy",
+    "gbfMY",
+    "UcBWH",
+    "oVFOy",
+    "AV1WF",
+    "irybD",
+    "oi0IF",
+    "P9Nefw",
+    "tZwlR"
+  ],
+  "canvasRootCount": 99,
+  "layoutProblems": [],
+  "exportScale": 1,
+  "roots": [
+    {
+      "id": "bi8Au",
+      "name": "野小子 / 重设计范围",
+      "width": 800,
+      "height": 293
+    },
+    {
+      "id": "KN18e",
+      "name": "设计系统 / 按钮、字段与状态",
+      "width": 1000,
+      "height": 337
+    },
+    {
+      "id": "Q78i6",
+      "name": "探索页 / 保留原样参考",
+      "route": "pages/home/index",
+      "width": 390,
+      "height": 2157
+    },
+    {
+      "id": "zdkYd",
+      "name": "小程序 / 活动",
+      "route": "pages/activities/index",
+      "width": 390,
+      "height": 923
+    },
+    {
+      "id": "bm1M0",
+      "name": "后台 / 运营工作台 / overview",
+      "route": "/operations",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "w9oXh",
+      "name": "后台 / 活动管理 / list",
+      "route": "/activities",
+      "state": "list",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "Jt0Pi",
+      "name": "小程序管理 / 身份验证",
+      "route": "pages/admin-login/index",
+      "width": 390,
+      "height": 553
+    },
+    {
+      "id": "hRh1p",
+      "name": "小程序管理 / 活动目录",
+      "route": "pages/admin-activities/index",
+      "width": 390,
+      "height": 698
+    },
+    {
+      "id": "yNHlA",
+      "name": "小程序管理 / 活动编辑 · 基本",
+      "route": "pages/admin-editor/index",
+      "width": 390,
+      "height": 911
+    },
+    {
+      "id": "mzsV1",
+      "name": "小程序 / 活动详情",
+      "route": "pages/detail/index",
+      "width": 390,
+      "height": 978
+    },
+    {
+      "id": "gVzOL",
+      "name": "后台 / 异常待办 / exceptions",
+      "route": "/operations",
+      "state": "exceptions",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "Fgdi0",
+      "name": "后台 / 操作历史 / audit",
+      "route": "/operations",
+      "state": "audit",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "S8Pdj9",
+      "name": "后台 / 创建活动 / create-basic",
+      "route": "/activities/new",
+      "state": "create-basic",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "kxOC4",
+      "name": "后台 / 编辑活动 / edit-schedule",
+      "route": "/activities/:id/edit",
+      "state": "edit-schedule",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "v2aly",
+      "name": "小程序 / 填写报名",
+      "route": "pages/register/index",
+      "width": 390,
+      "height": 986
+    },
+    {
+      "id": "ScdDU",
+      "name": "小程序 / 报名结果",
+      "route": "pages/signup-success/index",
+      "width": 390,
+      "height": 818
+    },
+    {
+      "id": "bVFjG",
+      "name": "小程序 / 我的报名",
+      "route": "pages/registrations/index",
+      "width": 390,
+      "height": 811
+    },
+    {
+      "id": "E7QA9",
+      "name": "小程序 / 商城",
+      "route": "pages/shop/index",
+      "width": 390,
+      "height": 939
+    },
+    {
+      "id": "YI1t3",
+      "name": "后台 / 报名名单 / roster",
+      "route": "/activities/:id/registrations",
+      "state": "roster",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "UcBWH",
+      "name": "后台 / 商品与库存 / products",
+      "route": "/shop",
+      "state": "products",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "AV1WF",
+      "name": "后台 / 编辑商品 / product-edit",
+      "route": "/shop",
+      "state": "product-edit",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "oVFOy",
+      "name": "后台 / 订单与发货 / orders",
+      "route": "/shop",
+      "state": "orders",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "YbhOC",
+      "name": "小程序 / 商品详情",
+      "route": "pages/product/index",
+      "width": 390,
+      "height": 938
+    },
+    {
+      "id": "KgWt0",
+      "name": "小程序 / 确认订单",
+      "route": "pages/checkout/index",
+      "width": 390,
+      "height": 823
+    },
+    {
+      "id": "T4HNK",
+      "name": "后台 / 退款售后 / refund-list",
+      "route": "/refunds",
+      "state": "refund-list",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "rxboR",
+      "name": "后台 / 消息管理 / notifications",
+      "route": "/notifications",
+      "state": "notifications",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "RrTxX",
+      "name": "后台 / 活动模板 / templates",
+      "route": "/templates",
+      "state": "templates",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "kD4zv",
+      "name": "小程序 / 我的订单",
+      "route": "pages/orders/index",
+      "width": 390,
+      "height": 904
+    },
+    {
+      "id": "AIEqe",
+      "name": "小程序 / 收货地址",
+      "route": "pages/addresses/index",
+      "width": 390,
+      "height": 738
+    },
+    {
+      "id": "y49HRk",
+      "name": "后台 / 协议管理 / legal-draft",
+      "route": "/legal",
+      "state": "legal-draft",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "dkQG7",
+      "name": "后台 / 管理员账号 / account-unconfigured",
+      "route": "/settings/admin-account",
+      "state": "account-unconfigured",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "I5b1Y",
+      "name": "后台 / 商品图文详情 / product-content",
+      "route": "/shop",
+      "state": "product-content",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "xlXlV",
+      "name": "后台 / 管理员登录 / login",
+      "route": "/login",
+      "state": "login",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "asCpo",
+      "name": "小程序 / 我的山野",
+      "route": "pages/mine/index",
+      "width": 390,
+      "height": 816
+    },
+    {
+      "id": "X6euG",
+      "name": "小程序管理 / 报名名单",
+      "route": "pages/admin-roster/index",
+      "width": 390,
+      "height": 675
+    },
+    {
+      "id": "E7GexY",
+      "name": "小程序管理 / 协议草稿",
+      "route": "pages/admin-legal/index",
+      "width": 390,
+      "height": 751
+    },
+    {
+      "id": "W9vBy",
+      "name": "小程序管理 / 商品库存",
+      "route": "pages/admin-shop/index",
+      "width": 390,
+      "height": 659
+    },
+    {
+      "id": "IWwi8",
+      "name": "小程序管理 / 商品编辑 / 双价与分类",
+      "route": "pages/admin-product/index",
+      "width": 390,
+      "height": 1009
+    },
+    {
+      "id": "R9RNM",
+      "name": "小程序管理 / 订单发货",
+      "route": "pages/admin-orders/index",
+      "width": 390,
+      "height": 706
+    },
+    {
+      "id": "qF4od",
+      "name": "小程序管理 / 图文编辑",
+      "route": "pages/admin-content/index",
+      "width": 390,
+      "height": 757
+    },
+    {
+      "id": "h50occ",
+      "name": "小程序管理 / 活动编辑 · 报名",
+      "route": "pages/admin-editor/index",
+      "width": 390,
+      "height": 770
+    },
+    {
+      "id": "EBsbs",
+      "name": "后台 / 活动发布确认 / publish-confirm",
+      "route": "/activities/:id/edit",
+      "state": "edit-schedule",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "VrBZD",
+      "name": "后台 / 发货确认 / ship-confirm",
+      "route": "/shop",
+      "state": "orders",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "oDzAS",
+      "name": "后台 / 退款确认 / refund-confirm",
+      "route": "/refunds",
+      "state": "refund-list",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "i6B60V",
+      "name": "后台 / 协议发布确认 / legal-publish-confirm",
+      "route": "/legal",
+      "state": "legal-draft",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "AG35F",
+      "name": "后台 / 生成活动草稿 / template-generate",
+      "route": "/templates",
+      "state": "template-generate",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "dg1pU",
+      "name": "后台 / 保存活动模板 / template-create",
+      "route": "/templates",
+      "state": "template-create",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "fhwJH",
+      "name": "小程序 / 活动消息",
+      "route": "pages/notifications/index",
+      "width": 390,
+      "height": 950
+    },
+    {
+      "id": "r2Vg3F",
+      "name": "小程序 / 微信登录",
+      "route": "pages/login/index",
+      "width": 390,
+      "height": 833
+    },
+    {
+      "id": "b5wac",
+      "name": "后台 / 活动说明与图文 / activity-details",
+      "route": "/activities/:id/edit",
+      "state": "activity-details",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "MICIX",
+      "name": "后台 / 订单详情 / order-detail",
+      "route": "/shop",
+      "state": "order-detail",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "VgWXI",
+      "name": "后台 / 管理员账号 / account-readonly",
+      "route": "/settings/admin-account",
+      "state": "account-readonly",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "zGiQt",
+      "name": "后台 / 管理员账号 / account-success",
+      "route": "/settings/admin-account",
+      "state": "account-success",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "C5AQRs",
+      "name": "后台 / 共享状态与恢复 / shared-states",
+      "route": "/operations",
+      "state": "shared-states",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "r5wRDb",
+      "name": "小程序 / 隐私政策",
+      "route": "pages/privacy/index",
+      "width": 390,
+      "height": 816
+    },
+    {
+      "id": "wfShm",
+      "name": "小程序管理 / 活动编辑 · 详情",
+      "route": "pages/admin-editor/index",
+      "width": 390,
+      "height": 721
+    },
+    {
+      "id": "oXo8G",
+      "name": "小程序管理 / 协议历史",
+      "route": "pages/admin-legal/index",
+      "width": 390,
+      "height": 617
+    },
+    {
+      "id": "vm86H",
+      "name": "小程序管理 / 发布确认",
+      "route": "pages/admin-activities/index",
+      "width": 390,
+      "height": 478
+    },
+    {
+      "id": "ouWUv",
+      "name": "小程序管理 / 尚未配置账号",
+      "route": "pages/admin-login/index",
+      "width": 390,
+      "height": 506
+    },
+    {
+      "id": "ACw3S",
+      "name": "小程序管理 / 加载失败保留草稿",
+      "route": "pages/admin-product/index",
+      "width": 390,
+      "height": 465
+    },
+    {
+      "id": "IIzNy",
+      "name": "后台 / 表单反馈与恢复 / form-feedback",
+      "route": "/operations",
+      "state": "form-feedback",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "dbK4R",
+      "name": "后台 / 运营工作台 / compact-1280",
+      "route": "/operations",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "JLFre",
+      "name": "状态稿 / 活动与报名 · 状态",
+      "route": "pages/detail/index",
+      "width": 390,
+      "height": 1209
+    },
+    {
+      "id": "hlmk3",
+      "name": "状态稿 / 参与人与协议 · 恢复",
+      "route": "pages/register/index",
+      "width": 390,
+      "height": 1138
+    },
+    {
+      "id": "mGkPt",
+      "name": "状态稿 / 商城 · 加载与刷新",
+      "route": "pages/shop/index",
+      "width": 390,
+      "height": 959
+    },
+    {
+      "id": "vaPck",
+      "name": "状态稿 / 结算与支付 · 恢复",
+      "route": "pages/checkout/index",
+      "width": 390,
+      "height": 1011
+    },
+    {
+      "id": "kx38q",
+      "name": "状态稿 / 订单售后 · 申请与核对",
+      "route": "pages/orders/index",
+      "width": 390,
+      "height": 1084
+    },
+    {
+      "id": "MJO4e",
+      "name": "状态稿 / 收货地址 · 编辑与空态",
+      "route": "pages/addresses/index",
+      "width": 390,
+      "height": 1016
+    },
+    {
+      "id": "tZwlR",
+      "name": "状态稿 / 我的 · 身份与独立恢复",
+      "route": "pages/mine/index",
+      "width": 390,
+      "height": 1153
+    },
+    {
+      "id": "KGIQF",
+      "name": "状态稿 / 登录与协议 · 恢复",
+      "route": "pages/login/index",
+      "width": 390,
+      "height": 1033
+    },
+    {
+      "id": "irybD",
+      "name": "后台 / 商品保存确认 / product-save-confirm",
+      "route": "/shop",
+      "state": "product-edit",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "SLpMS",
+      "name": "后台 / 拒绝退款 / refund-reject",
+      "route": "/refunds",
+      "state": "refund-list",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "AypoA",
+      "name": "后台 / 活动取消确认 / cancel-confirm",
+      "route": "/activities/:id/edit",
+      "state": "edit-schedule",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "ba6jN",
+      "name": "后台 / 运营报表 / reports",
+      "route": "/operations",
+      "state": "reports",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "FKrkZ",
+      "name": "状态稿 / 列表与商品 · 边界",
+      "route": "pages/product/index",
+      "width": 390,
+      "height": 870
+    },
+    {
+      "id": "r2Js0",
+      "name": "小程序管理 / 入口状态查询失败",
+      "route": "pages/admin-login/index",
+      "width": 390,
+      "height": 488
+    },
+    {
+      "id": "NFbtm",
+      "name": "小程序管理 / 取消活动确认",
+      "route": "pages/admin-activities/index",
+      "width": 390,
+      "height": 500
+    },
+    {
+      "id": "YIDDP",
+      "name": "小程序管理 / 取消活动结果",
+      "route": "pages/admin-activities/index",
+      "width": 390,
+      "height": 499
+    },
+    {
+      "id": "p6tHR",
+      "name": "小程序管理 / 发货前核对",
+      "route": "pages/admin-orders/index",
+      "width": 390,
+      "height": 528
+    },
+    {
+      "id": "q9SqVI",
+      "name": "小程序管理 / 发货完成结果",
+      "route": "pages/admin-orders/index",
+      "width": 390,
+      "height": 527
+    },
+    {
+      "id": "KGp4I",
+      "name": "小程序 / 活动详情 · 已报名",
+      "route": "pages/detail/index",
+      "width": 390,
+      "height": 1082
+    },
+    {
+      "id": "Xwjvy",
+      "name": "状态稿 / 订单取消与退款结果",
+      "route": "pages/orders/index",
+      "width": 390,
+      "height": 1155
+    },
+    {
+      "id": "kNLGy",
+      "name": "后台 / 消息管理 / 条件恢复后重试",
+      "route": "/notifications",
+      "state": "notifications",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "iqDSq",
+      "name": "后台 / 消息管理 / 确认用户已重新订阅",
+      "route": "/notifications",
+      "state": "notifications",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "yxY9p",
+      "name": "小程序管理 / 图文版本冲突",
+      "route": "pages/admin-content/index",
+      "width": 390,
+      "height": 839
+    },
+    {
+      "id": "FGTf9",
+      "name": "小程序管理 / 确认重载图文",
+      "route": "pages/admin-content/index",
+      "width": 390,
+      "height": 386
+    },
+    {
+      "id": "Nwr2l",
+      "name": "后台 / 用户管理 / 列表",
+      "route": "/users",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "a35E2",
+      "name": "后台 / 用户管理 / 资料与权限",
+      "route": "/users",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "z7k8T",
+      "name": "后台 / 用户管理 / 报名历史",
+      "route": "/users",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "wqrUO",
+      "name": "后台 / 用户管理 / 授予权限确认",
+      "route": "/users",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "u9yYo",
+      "name": "小程序 / 活动联系人 / 资料摘要",
+      "route": "pages/profile/index",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "gbfMY",
+      "name": "小程序管理 / 用户管理",
+      "route": "pages/admin-users/index",
+      "width": 390,
+      "height": 845
+    },
+    {
+      "id": "n2142A",
+      "name": "小程序管理 / 用户资料与权限",
+      "route": "pages/admin-users/index",
+      "width": 390,
+      "height": 617
+    },
+    {
+      "id": "a4YnM8",
+      "name": "后台 / 商品分类 / 列表",
+      "route": "/shop/categories",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "ie3cy",
+      "name": "后台 / 商品分类 / 创建与编辑",
+      "route": "/shop/categories",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "L50wpo",
+      "name": "小程序管理 / 商品编辑 / 同页分类管理",
+      "route": "pages/admin-product/index",
+      "width": 390,
+      "height": 1551
+    },
+    {
+      "id": "CX7SL",
+      "name": "小程序 / 活动联系人 / 编辑与未同意",
+      "route": "pages/profile/index",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "oi0IF",
+      "name": "后台 / 分类、双价与用户权限 / 恢复状态",
+      "route": "/shop/categories",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "P9Nefw",
+      "name": "小程序管理 / 分类编辑 / 恢复状态",
+      "route": "pages/admin-product/index",
+      "width": 390,
+      "height": 676
+    }
+  ]
+}

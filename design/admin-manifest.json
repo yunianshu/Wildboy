@@ -1,0 +1,1622 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-10-31T01:07:58.000+08:00",
+  "designFile": "/C:/Users/59290/.pencil/documents/cbd623ad-6808-4e8c-9e6e-2d821034ed80/pencil-new.pen",
+  "reviewStatus": "43-current-design-frames; users-categories-prices-extension-layout-verified",
+  "scope": "全部网页后台；不改探索页，不含原生小程序画板",
+  "exportDirectory": "design/exports/admin",
+  "exportScale": 1,
+  "canvasRegion": {
+    "mainStart": {
+      "x": 1440,
+      "y": 8000
+    },
+    "columns": 2,
+    "columnStep": 1520,
+    "rowStep": 1100,
+    "compact": {
+      "x": 4480,
+      "y": 8000
+    }
+  },
+  "tokens": {
+    "source": "existing Pen variables only",
+    "background": "$wb-bg",
+    "surface": "$wb-surface",
+    "primary": "$wb-primary",
+    "ink": "$wb-ink",
+    "muted": "$wb-muted",
+    "line": "$wb-line",
+    "soft": "$wb-soft",
+    "danger": "$wb-danger",
+    "font": "$wb-font",
+    "desktopControlHeight": 36,
+    "controlRadius": 8,
+    "headerHeight": 56,
+    "mainPadding": 24,
+    "sectionGap": 20,
+    "tableRowHeight": 44,
+    "mobileTouchMin": 44
+  },
+  "components": {
+    "primaryButton": {
+      "nodeId": "B4F5UB",
+      "labelChild": "UJiWW"
+    },
+    "input": {
+      "nodeId": "ZBOM0",
+      "labelChild": "UdtZ3"
+    },
+    "icons": "lucide",
+    "selectors": "editable frame/text/lucide layers; leaf replacements removed after full-instance audit"
+  },
+  "sourceImplementationStatus": {
+    "visualImplementation": "implemented-and-browser-verified",
+    "note": "96/96 tests, production build and format checks pass. Actual browser at 1440/1280/390 inspected 30 states per width plus login. Business writes are separately recorded; read-only screenshots do not prove mutation flows.",
+    "noBusinessWritePerformed": false,
+    "businessWriteEvidence": "test-results/redesign-account/report.json",
+    "browserEvidence": "test-results/redesign-admin/summary.json",
+    "motionEvidence": "test-results/redesign-admin/motion.json",
+    "activityMutationEvidence": "test-results/redesign-web-activity/report.json",
+    "financialColumnEvidence": "test-results/redesign-admin/financial-columns.json",
+    "removalEvidence": "test-results/waitlist-removal-2026-10-31/browser-report.json",
+    "usersCatalogEvidence": "docs/users-categories-prices-2026-10-31.md",
+    "historicalCountNote": "Existing 96-test/browser-batch entries describe the earlier redesign batch; current integrated verification is in usersCatalogEvidence."
+  },
+  "validation": {
+    "screenCount": 43,
+    "resolvedInstanceLayoutAudit": "2026-10-31: all 99 current roots, zero resolved-instance layout problems; see current extension evidence.",
+    "placeholdersCleared": true,
+    "exportFormat": "PNG",
+    "desktop": {
+      "width": 1440,
+      "height": 900
+    },
+    "compact": {
+      "width": 1280,
+      "height": 800
+    },
+    "visualReview": "MCP screenshots per group plus full exported PNG inspection on core form/account/legal/compact/confirmation screens",
+    "browserVerificationOfThisDesign": true,
+    "renderedIndependentReview": "docs/redesign/implementation-review.md; 40 distinct actual PNGs inspected including latest narrow financial-column fix",
+    "extension": {
+      "date": "2026-10-31",
+      "status": "pen-layout-and-valid-png-verified",
+      "designEvidence": "design/users-catalog-design-2026-10-31.json",
+      "implementationEvidence": "docs/users-categories-prices-2026-10-31.md",
+      "layoutScope": "99 canvas roots checked; 22 extension-related roots inspected in scope",
+      "rootReplacements": {
+        "Or33t": "E7QA9",
+        "UWfJn": "YbhOC",
+        "cyUUW": "asCpo",
+        "vKTKR": "IWwi8",
+        "z87Zde": "L50wpo",
+        "ZKG6G": "n2142A",
+        "l1TLM": "UcBWH",
+        "rqniq": "oVFOy",
+        "by6De": "AV1WF",
+        "dcQU8": "irybD",
+        "CCKt3": "ie3cy",
+        "BLCIT": "tZwlR"
+      },
+      "pngExportScale": 1,
+      "note": "Pen screenshots and layout checks are design evidence. Runtime/API/payment assertions remain in their implementation reports; earlier test counts are historical batches."
+    }
+  },
+  "knownReviewIssues": [
+    {
+      "id": "PEN-ADMIN-NOTIFICATION-RECOVERY",
+      "nodeId": "rxboR",
+      "status": "closed-and-reviewed",
+      "description": "NO_PERMISSION/UNCONFIGURED当前仍统一显示重新发送，缺授权/配置前置恢复说明与可达行动；未在冻结后自行重绘。",
+      "resolution": "Prerequisite errors have explicit recovery guidance; readiness is queried before retry of the original notification, with two additional design frames for recovered conditions and authorization confirmation. Static design and behavior tests pass; QA browser config remains false, real delivery not claimed.",
+      "fixedAt": "2026-10-31T01:07:20.000+08:00"
+    },
+    {
+      "id": "PEN-ADMIN-ACTIVITY-MESSAGE-COPY",
+      "nodeIds": [
+        "kxOC4",
+        "EBsbs",
+        "AypoA"
+      ],
+      "status": "closed-and-reviewed",
+      "description": "Replaced blanket no-notice claims with accurate message-generation versus WeChat-delivery distinction.",
+      "fixedAt": "2026-10-31T01:07:58.000+08:00"
+    }
+  ],
+  "reviewEvidence": {
+    "activityControls": {
+      "screen": "S8Pdj9",
+      "categorySelector": "zcG0J",
+      "identityCheckbox": "NZKYd",
+      "uploadButton": "wKnex",
+      "png": "design/exports/admin/S8Pdj9.png"
+    },
+    "legalDirtyPublishDisabled": "y49HRk",
+    "legalSavedConfirmation": "i6B60V"
+  },
+  "domains": {
+    "operations": {
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "existingTests": [
+        "admin/tests/operations.test.ts"
+      ]
+    },
+    "activities": {
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "existingTests": [
+        "admin/tests/editor.test.ts",
+        "admin/tests/forms.test.ts",
+        "admin/tests/content.test.ts",
+        "admin/tests/navigation.test.ts",
+        "admin/tests/ui.test.ts"
+      ]
+    },
+    "roster": {
+      "bindings": [
+        "GET /api/v1/admin/activities/{id}",
+        "GET /api/v1/admin/activities/{id}/registrations?page={page}&size={size}",
+        "GET /api/v1/admin/activities/{id}/participants/{participantId}/reveal"
+      ],
+      "implementationConstraints": [
+        "身份证与手机号默认脱敏；按需 reveal，不把真实资料写进导出或截图。",
+        "活动切换、离开、身份变化后清除已揭示资料；保留取消报名记录。"
+      ],
+      "existingTests": [
+        "admin/tests/roster.test.ts"
+      ]
+    },
+    "shop": {
+      "bindings": [
+        "GET /api/v1/admin/shop/products",
+        "POST /api/v1/admin/shop/products",
+        "PUT /api/v1/admin/shop/products/{id}",
+        "GET /api/v1/admin/shop/products/{id}/content",
+        "PUT /api/v1/admin/shop/products/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "implementationConstraints": [
+        "商品接口返回数组，设计中的每页8条是客户端展示分页，不能伪报服务端总数。",
+        "商品与订单用独立焦点标签，不上下堆成长页；可用查询参数保存选中标签。",
+        "保存前确认价格、库存和销售状态；失败保留输入，409 禁止覆盖。",
+        "基础信息与图文各自保存；离开和关闭需遵守未保存保护。",
+        "上传使用已支持的JPG/PNG与4MB限制，不直接执行图文中的 HTML。"
+      ],
+      "existingTests": [
+        "admin/tests/shop.test.ts",
+        "admin/tests/content.test.ts"
+      ]
+    },
+    "orders": {
+      "bindings": [
+        "GET /api/v1/admin/orders?page={page}&size={size}",
+        "POST /api/v1/admin/orders/{id}/ship"
+      ],
+      "implementationConstraints": [
+        "仅实际交物流且订单可发货时显示确认发货；待支付/退款/需核对订单不可发货。",
+        "订单状态筛选必须绑定已支持的服务端参数；未确认能力前只使用当前页筛选并标明。",
+        "默认隐藏完整电话/地址；仅履约按需显示，退出/离页/身份变化清除。",
+        "发货二次确认，重复提交受busy保护；核对支付不替代发货。"
+      ],
+      "existingTests": [
+        "admin/tests/shop.test.ts"
+      ]
+    },
+    "refunds": {
+      "bindings": [
+        "GET /api/v1/admin/refunds?page={page}&size={size}",
+        "POST /api/v1/admin/refunds/{id}/approve",
+        "POST /api/v1/admin/refunds/{id}/reject",
+        "POST /api/v1/admin/refunds/{id}/verify",
+        "POST /api/v1/admin/refunds/{id}/retry"
+      ],
+      "implementationConstraints": [
+        "只处理已存在申请，保留 approve/reject/verify/retry 的真实状态约束。",
+        "退款确认说明不可撤回；结果未知前保留库存，retry沿用原退款单。",
+        "拒绝原因必填且最多200字；错误在当前确认层可见，不能假成功。"
+      ],
+      "existingTests": [
+        "admin/tests/refunds.test.ts"
+      ]
+    },
+    "notifications": {
+      "bindings": [
+        "GET /api/v1/admin/notifications?page={page}&size={size}",
+        "POST /api/v1/admin/notifications/{id}/retry"
+      ],
+      "implementationConstraints": [
+        "普通发送失败且前置条件满足时才启用原通知重试；NO_PERMISSION/UNCONFIGURED当前禁用，不调用retry。",
+        "等待授权明确提示用户先在小程序主动同意订阅消息，后台不代替用户授权。",
+        "配置未完成明确提示部署人员先完成微信订阅消息配置，不新增配置页或虚构API。",
+        "前置条件处理后使用现有刷新动作核对状态，不自动重放通知或把未知授权当成已完成。",
+        "发送结果以微信回执为准，不把请求提交成功当作已送达；保留attempts和lastError。"
+      ],
+      "existingTests": []
+    },
+    "templates": {
+      "bindings": [
+        "GET /api/v1/admin/templates?page={page}&size={size}",
+        "GET /api/v1/admin/activities?page={page}&size=50",
+        "POST /api/v1/admin/templates",
+        "PUT /api/v1/admin/templates/{id}",
+        "POST /api/v1/admin/templates/{id}/generate",
+        "POST /api/v1/admin/activities/{id}/copy"
+      ],
+      "implementationConstraints": [
+        "来源活动按真实分页读取，保留更多来源活动入口。",
+        "sourceVersion及模板version校验不移除；生成仅草稿，不自动发布。",
+        "北京时间与1–12场/1–365天范围保留；复制使用同一requestId重试。",
+        "生成成功逐条给出真实编辑入口。"
+      ],
+      "existingTests": [
+        "admin/tests/operations.test.ts"
+      ]
+    },
+    "legal": {
+      "bindings": [
+        "GET /api/v1/admin/legal/{PRIVACY|TERMS}",
+        "GET /api/v1/admin/legal/{kind}/versions",
+        "PUT /api/v1/admin/legal/{kind}/draft",
+        "POST /api/v1/admin/legal/{kind}/publish"
+      ],
+      "implementationConstraints": [
+        "PRIVACY/TERMS切换、重载、离开均保留未保存保护。",
+        "正文纯文本10–50000字，标题1–120字；预览不执行HTML。",
+        "dirty/conflict/loading/busy/invalid时禁止发布；发布独立二次确认。",
+        "历史只读，保留旧版本和同意记录；微信隐私声明另行配置。"
+      ],
+      "existingTests": [
+        "admin/tests/legal.test.ts"
+      ]
+    },
+    "account": {
+      "bindings": [
+        "GET /api/v1/admin/settings/admin-account",
+        "PUT /api/v1/admin/settings/admin-account",
+        "GET /api/v1/auth/capabilities"
+      ],
+      "implementationConstraints": [
+        "新增路由/settings/admin-account，ADMIN与canConfigure均检查；演示身份只读，不显示可提交表单。",
+        "GET失败保留恢复入口，不伪造configured或成功。",
+        "用户名3–64位ASCII字母数字/._-且首位字母数字；新密码12–72字符且含ASCII字母数字，UTF-8最多72字节。",
+        "PUT仅发送username/newPassword/currentPassword/version；confirmPassword只在前端比较，不发送。",
+        "密码type=password，不本地持久化、不日志；成功清空所有密码。",
+        "400密码错不清会话；409重新读取保留失败反馈；429稍后重试不自动重放凭据。",
+        "仅200成功后显示已配置状态；当前token保留，其他管理员会话撤销。",
+        "本轮19080已接入账号接口并完成隔离QA配置验证；旧18080及原QA账号数据保留。"
+      ],
+      "existingTests": []
+    },
+    "login": {
+      "bindings": [
+        "POST /api/v1/auth/admin",
+        "POST /api/v1/auth/dev-login"
+      ],
+      "implementationConstraints": [
+        "保留内存会话，刷新需重新登录；密码失败与成功后清空。",
+        "演示登录仅DEV且显式启用可见，不能用演示身份配置管理员账号。",
+        "登录错误不跳转，不伪造角色权限。"
+      ],
+      "existingTests": [
+        "admin/tests/ui.test.ts",
+        "admin/tests/api.test.ts"
+      ]
+    },
+    "shared": {
+      "bindings": [],
+      "implementationConstraints": [
+        "同一数据区加载/错误/空态互斥；原恢复按钮和slot事件保留。",
+        "加载、错误和无权限不暴露可提交敏感表单；失败保留可恢复输入。",
+        "表单错误就近可见并能定位；409后停止覆盖，不通过重试绕过版本。",
+        "按钮36px、圆角8px；主色/次色/危险语义保持一致，窄屏触控至少44px。",
+        "弹层保留焦点、Esc/遮罩取消约束和busy禁止重复提交；仅面板轻动效，遮罩不transform。"
+      ],
+      "existingTests": [
+        "admin/tests/ui.test.ts",
+        "admin/tests/navigation.test.ts"
+      ]
+    },
+    "users": {
+      "bindings": [
+        "GET /api/v1/admin/users?query=&profile=&role=&accountSource=&page=&size=8",
+        "GET /api/v1/admin/users/{id}?status=&page=&size=4",
+        "PUT /api/v1/admin/users/{id}/role"
+      ],
+      "implementationConstraints": [
+        "账号来源由API返回WECHAT/PASSWORD/DEMO/OTHER，不靠昵称判断。",
+        "只有已验证WECHAT目标可改角色；本人、密码、演示、其他来源目标不可写。操作者须为正式PASSWORD或已验证WECHAT的ADMIN；其他ADMIN仅此权限功能只读，原有活动/商品/订单管理保留。",
+        "PUT携带当前version，具体用户与权限影响确认后发送；角色改变使目标旧会话失效，需重新微信登录。",
+        "默认脱敏；完整联系方式复用对应活动名单的用途确认，不新增用户资料代编辑。",
+        "409停止旧版本重提，显式读取最新资料后核对；未知结果不自动重发，会话切换清空并拒绝迟到回填。"
+      ],
+      "existingTests": [
+        "admin/tests/users.test.ts"
+      ]
+    },
+    "product-categories": {
+      "bindings": [
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "implementationConstraints": [
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "existingTests": [
+        "admin/tests/product-categories.test.ts",
+        "admin/tests/shop.test.ts",
+        "admin/tests/navigation.test.ts"
+      ]
+    }
+  },
+  "screens": [
+    {
+      "route": "/operations",
+      "nodeId": "bm1M0",
+      "state": "overview",
+      "title": "运营工作台",
+      "primaryAction": "刷新数据",
+      "domain": "operations",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/bm1M0.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities",
+      "nodeId": "w9oXh",
+      "state": "list",
+      "title": "活动管理",
+      "primaryAction": "新建活动",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/w9oXh.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "gVzOL",
+      "state": "exceptions",
+      "title": "异常待办",
+      "primaryAction": "核对支付/去处理",
+      "domain": "operations",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/gVzOL.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "Fgdi0",
+      "state": "audit",
+      "title": "操作历史",
+      "primaryAction": "查询记录",
+      "domain": "operations",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/Fgdi0.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/new",
+      "nodeId": "S8Pdj9",
+      "state": "create-basic",
+      "title": "创建活动·基本信息",
+      "primaryAction": "保存草稿",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/S8Pdj9.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/:id/edit",
+      "nodeId": "kxOC4",
+      "state": "edit-schedule",
+      "title": "编辑活动·时间地点",
+      "primaryAction": "保存修改",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/kxOC4.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "nodeId": "YI1t3",
+      "state": "roster",
+      "title": "报名名单",
+      "primaryAction": "按需查看完整资料",
+      "domain": "roster",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/YI1t3.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "身份证与手机号默认脱敏；按需 reveal，不把真实资料写进导出或截图。",
+        "活动切换、离开、身份变化后清除已揭示资料；保留取消报名记录。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities/{id}",
+        "GET /api/v1/admin/activities/{id}/registrations?page={page}&size={size}",
+        "GET /api/v1/admin/activities/{id}/participants/{participantId}/reveal"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "UcBWH",
+      "state": "products",
+      "title": "商品与库存",
+      "primaryAction": "创建商品",
+      "domain": "shop",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/UcBWH.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "商品接口返回数组，设计中的每页8条是客户端展示分页，不能伪报服务端总数。",
+        "商品与订单用独立焦点标签，不上下堆成长页；可用查询参数保存选中标签。",
+        "保存前确认价格、库存和销售状态；失败保留输入，409 禁止覆盖。",
+        "基础信息与图文各自保存；离开和关闭需遵守未保存保护。",
+        "上传使用已支持的JPG/PNG与4MB限制，不直接执行图文中的 HTML。",
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/products",
+        "POST /api/v1/admin/shop/products",
+        "PUT /api/v1/admin/shop/products/{id}",
+        "GET /api/v1/admin/shop/products/{id}/content",
+        "PUT /api/v1/admin/shop/products/{id}/content",
+        "POST /api/v1/admin/media",
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "AV1WF",
+      "state": "product-edit",
+      "title": "编辑商品",
+      "primaryAction": "确认并保存",
+      "domain": "shop",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/AV1WF.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "商品接口返回数组，设计中的每页8条是客户端展示分页，不能伪报服务端总数。",
+        "商品与订单用独立焦点标签，不上下堆成长页；可用查询参数保存选中标签。",
+        "保存前确认价格、库存和销售状态；失败保留输入，409 禁止覆盖。",
+        "基础信息与图文各自保存；离开和关闭需遵守未保存保护。",
+        "上传使用已支持的JPG/PNG与4MB限制，不直接执行图文中的 HTML。",
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/products",
+        "POST /api/v1/admin/shop/products",
+        "PUT /api/v1/admin/shop/products/{id}",
+        "GET /api/v1/admin/shop/products/{id}/content",
+        "PUT /api/v1/admin/shop/products/{id}/content",
+        "POST /api/v1/admin/media",
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "oVFOy",
+      "state": "orders",
+      "title": "订单与发货",
+      "primaryAction": "确认发货",
+      "domain": "orders",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/oVFOy.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "仅实际交物流且订单可发货时显示确认发货；待支付/退款/需核对订单不可发货。",
+        "订单状态筛选必须绑定已支持的服务端参数；未确认能力前只使用当前页筛选并标明。",
+        "默认隐藏完整电话/地址；仅履约按需显示，退出/离页/身份变化清除。",
+        "发货二次确认，重复提交受busy保护；核对支付不替代发货。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/orders?page={page}&size={size}",
+        "POST /api/v1/admin/orders/{id}/ship"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/refunds",
+      "nodeId": "T4HNK",
+      "state": "refund-list",
+      "title": "退款售后",
+      "primaryAction": "审核申请/核对结果",
+      "domain": "refunds",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/T4HNK.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "只处理已存在申请，保留 approve/reject/verify/retry 的真实状态约束。",
+        "退款确认说明不可撤回；结果未知前保留库存，retry沿用原退款单。",
+        "拒绝原因必填且最多200字；错误在当前确认层可见，不能假成功。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/refunds?page={page}&size={size}",
+        "POST /api/v1/admin/refunds/{id}/approve",
+        "POST /api/v1/admin/refunds/{id}/reject",
+        "POST /api/v1/admin/refunds/{id}/verify",
+        "POST /api/v1/admin/refunds/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/notifications",
+      "nodeId": "rxboR",
+      "state": "notifications",
+      "title": "消息管理",
+      "primaryAction": "刷新消息 / 普通发送失败重试",
+      "domain": "notifications",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/rxboR.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "普通发送失败且前置条件满足时才启用原通知重试；NO_PERMISSION/UNCONFIGURED当前禁用，不调用retry。",
+        "等待授权明确提示用户先在小程序主动同意订阅消息，后台不代替用户授权。",
+        "配置未完成明确提示部署人员先完成微信订阅消息配置，不新增配置页或虚构API。",
+        "前置条件处理后使用现有刷新动作核对状态，不自动重放通知或把未知授权当成已完成。",
+        "发送结果以微信回执为准，不把请求提交成功当作已送达；保留attempts和lastError。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/notifications?page={page}&size={size}",
+        "POST /api/v1/admin/notifications/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/templates",
+      "nodeId": "RrTxX",
+      "state": "templates",
+      "title": "活动模板",
+      "primaryAction": "新建模板",
+      "domain": "templates",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/RrTxX.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "来源活动按真实分页读取，保留更多来源活动入口。",
+        "sourceVersion及模板version校验不移除；生成仅草稿，不自动发布。",
+        "北京时间与1–12场/1–365天范围保留；复制使用同一requestId重试。",
+        "生成成功逐条给出真实编辑入口。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/templates?page={page}&size={size}",
+        "GET /api/v1/admin/activities?page={page}&size=50",
+        "POST /api/v1/admin/templates",
+        "PUT /api/v1/admin/templates/{id}",
+        "POST /api/v1/admin/templates/{id}/generate",
+        "POST /api/v1/admin/activities/{id}/copy"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/legal",
+      "nodeId": "y49HRk",
+      "state": "legal-draft",
+      "title": "协议管理",
+      "primaryAction": "保存草稿",
+      "domain": "legal",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/y49HRk.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "PRIVACY/TERMS切换、重载、离开均保留未保存保护。",
+        "正文纯文本10–50000字，标题1–120字；预览不执行HTML。",
+        "dirty/conflict/loading/busy/invalid时禁止发布；发布独立二次确认。",
+        "历史只读，保留旧版本和同意记录；微信隐私声明另行配置。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/legal/{PRIVACY|TERMS}",
+        "GET /api/v1/admin/legal/{kind}/versions",
+        "PUT /api/v1/admin/legal/{kind}/draft",
+        "POST /api/v1/admin/legal/{kind}/publish"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/settings/admin-account",
+      "nodeId": "dkQG7",
+      "state": "account-unconfigured",
+      "title": "管理员账号·未配置",
+      "primaryAction": "验证并保存",
+      "domain": "account",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/dkQG7.png",
+      "newRoute": true,
+      "implementationConstraints": [
+        "新增路由/settings/admin-account，ADMIN与canConfigure均检查；演示身份只读，不显示可提交表单。",
+        "GET失败保留恢复入口，不伪造configured或成功。",
+        "用户名3–64位ASCII字母数字/._-且首位字母数字；新密码12–72字符且含ASCII字母数字，UTF-8最多72字节。",
+        "PUT仅发送username/newPassword/currentPassword/version；confirmPassword只在前端比较，不发送。",
+        "密码type=password，不本地持久化、不日志；成功清空所有密码。",
+        "400密码错不清会话；409重新读取保留失败反馈；429稍后重试不自动重放凭据。",
+        "仅200成功后显示已配置状态；当前token保留，其他管理员会话撤销。",
+        "本轮19080已接入账号接口并完成隔离QA配置验证；旧18080及原QA账号数据保留。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/settings/admin-account",
+        "PUT /api/v1/admin/settings/admin-account",
+        "GET /api/v1/auth/capabilities"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "I5b1Y",
+      "state": "product-content",
+      "title": "商品图文详情",
+      "primaryAction": "保存图文",
+      "domain": "shop",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/I5b1Y.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "商品接口返回数组，设计中的每页8条是客户端展示分页，不能伪报服务端总数。",
+        "商品与订单用独立焦点标签，不上下堆成长页；可用查询参数保存选中标签。",
+        "保存前确认价格、库存和销售状态；失败保留输入，409 禁止覆盖。",
+        "基础信息与图文各自保存；离开和关闭需遵守未保存保护。",
+        "上传使用已支持的JPG/PNG与4MB限制，不直接执行图文中的 HTML。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/products",
+        "POST /api/v1/admin/shop/products",
+        "PUT /api/v1/admin/shop/products/{id}",
+        "GET /api/v1/admin/shop/products/{id}/content",
+        "PUT /api/v1/admin/shop/products/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/login",
+      "nodeId": "xlXlV",
+      "state": "login",
+      "title": "管理员登录",
+      "primaryAction": "进入工作台",
+      "domain": "login",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/xlXlV.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "保留内存会话，刷新需重新登录；密码失败与成功后清空。",
+        "演示登录仅DEV且显式启用可见，不能用演示身份配置管理员账号。",
+        "登录错误不跳转，不伪造角色权限。"
+      ],
+      "bindings": [
+        "POST /api/v1/auth/admin",
+        "POST /api/v1/auth/dev-login"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/:id/edit",
+      "nodeId": "EBsbs",
+      "state": "publish-confirm",
+      "title": "活动发布确认",
+      "primaryAction": "确认发布",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/EBsbs.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "VrBZD",
+      "state": "ship-confirm",
+      "title": "发货确认",
+      "primaryAction": "确认发货",
+      "domain": "orders",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/VrBZD.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "仅实际交物流且订单可发货时显示确认发货；待支付/退款/需核对订单不可发货。",
+        "订单状态筛选必须绑定已支持的服务端参数；未确认能力前只使用当前页筛选并标明。",
+        "默认隐藏完整电话/地址；仅履约按需显示，退出/离页/身份变化清除。",
+        "发货二次确认，重复提交受busy保护；核对支付不替代发货。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/orders?page={page}&size={size}",
+        "POST /api/v1/admin/orders/{id}/ship"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/refunds",
+      "nodeId": "oDzAS",
+      "state": "refund-confirm",
+      "title": "退款确认",
+      "primaryAction": "确认退款",
+      "domain": "refunds",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/oDzAS.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "只处理已存在申请，保留 approve/reject/verify/retry 的真实状态约束。",
+        "退款确认说明不可撤回；结果未知前保留库存，retry沿用原退款单。",
+        "拒绝原因必填且最多200字；错误在当前确认层可见，不能假成功。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/refunds?page={page}&size={size}",
+        "POST /api/v1/admin/refunds/{id}/approve",
+        "POST /api/v1/admin/refunds/{id}/reject",
+        "POST /api/v1/admin/refunds/{id}/verify",
+        "POST /api/v1/admin/refunds/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/legal",
+      "nodeId": "i6B60V",
+      "state": "legal-publish-confirm",
+      "title": "协议发布确认",
+      "primaryAction": "确认发布",
+      "domain": "legal",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/i6B60V.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "PRIVACY/TERMS切换、重载、离开均保留未保存保护。",
+        "正文纯文本10–50000字，标题1–120字；预览不执行HTML。",
+        "dirty/conflict/loading/busy/invalid时禁止发布；发布独立二次确认。",
+        "历史只读，保留旧版本和同意记录；微信隐私声明另行配置。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/legal/{PRIVACY|TERMS}",
+        "GET /api/v1/admin/legal/{kind}/versions",
+        "PUT /api/v1/admin/legal/{kind}/draft",
+        "POST /api/v1/admin/legal/{kind}/publish"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/templates",
+      "nodeId": "AG35F",
+      "state": "template-generate",
+      "title": "生成活动草稿",
+      "primaryAction": "生成草稿",
+      "domain": "templates",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/AG35F.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "来源活动按真实分页读取，保留更多来源活动入口。",
+        "sourceVersion及模板version校验不移除；生成仅草稿，不自动发布。",
+        "北京时间与1–12场/1–365天范围保留；复制使用同一requestId重试。",
+        "生成成功逐条给出真实编辑入口。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/templates?page={page}&size={size}",
+        "GET /api/v1/admin/activities?page={page}&size=50",
+        "POST /api/v1/admin/templates",
+        "PUT /api/v1/admin/templates/{id}",
+        "POST /api/v1/admin/templates/{id}/generate",
+        "POST /api/v1/admin/activities/{id}/copy"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/templates",
+      "nodeId": "dg1pU",
+      "state": "template-create",
+      "title": "保存活动模板",
+      "primaryAction": "保存模板",
+      "domain": "templates",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/dg1pU.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "来源活动按真实分页读取，保留更多来源活动入口。",
+        "sourceVersion及模板version校验不移除；生成仅草稿，不自动发布。",
+        "北京时间与1–12场/1–365天范围保留；复制使用同一requestId重试。",
+        "生成成功逐条给出真实编辑入口。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/templates?page={page}&size={size}",
+        "GET /api/v1/admin/activities?page={page}&size=50",
+        "POST /api/v1/admin/templates",
+        "PUT /api/v1/admin/templates/{id}",
+        "POST /api/v1/admin/templates/{id}/generate",
+        "POST /api/v1/admin/activities/{id}/copy"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/:id/edit",
+      "nodeId": "b5wac",
+      "state": "activity-details",
+      "title": "活动说明与图文",
+      "primaryAction": "保存修改",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/b5wac.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "MICIX",
+      "state": "order-detail",
+      "title": "订单详情",
+      "primaryAction": "确认发货",
+      "domain": "orders",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/MICIX.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "仅实际交物流且订单可发货时显示确认发货；待支付/退款/需核对订单不可发货。",
+        "订单状态筛选必须绑定已支持的服务端参数；未确认能力前只使用当前页筛选并标明。",
+        "默认隐藏完整电话/地址；仅履约按需显示，退出/离页/身份变化清除。",
+        "发货二次确认，重复提交受busy保护；核对支付不替代发货。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/orders?page={page}&size={size}",
+        "POST /api/v1/admin/orders/{id}/ship"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/settings/admin-account",
+      "nodeId": "VgWXI",
+      "state": "account-readonly",
+      "title": "管理员账号·演示只读",
+      "primaryAction": "使用密码登录",
+      "domain": "account",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/VgWXI.png",
+      "newRoute": true,
+      "implementationConstraints": [
+        "新增路由/settings/admin-account，ADMIN与canConfigure均检查；演示身份只读，不显示可提交表单。",
+        "GET失败保留恢复入口，不伪造configured或成功。",
+        "用户名3–64位ASCII字母数字/._-且首位字母数字；新密码12–72字符且含ASCII字母数字，UTF-8最多72字节。",
+        "PUT仅发送username/newPassword/currentPassword/version；confirmPassword只在前端比较，不发送。",
+        "密码type=password，不本地持久化、不日志；成功清空所有密码。",
+        "400密码错不清会话；409重新读取保留失败反馈；429稍后重试不自动重放凭据。",
+        "仅200成功后显示已配置状态；当前token保留，其他管理员会话撤销。",
+        "本轮19080已接入账号接口并完成隔离QA配置验证；旧18080及原QA账号数据保留。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/settings/admin-account",
+        "PUT /api/v1/admin/settings/admin-account",
+        "GET /api/v1/auth/capabilities"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/settings/admin-account",
+      "nodeId": "zGiQt",
+      "state": "account-success",
+      "title": "管理员账号·成功",
+      "primaryAction": "更新账号",
+      "domain": "account",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/zGiQt.png",
+      "newRoute": true,
+      "implementationConstraints": [
+        "新增路由/settings/admin-account，ADMIN与canConfigure均检查；演示身份只读，不显示可提交表单。",
+        "GET失败保留恢复入口，不伪造configured或成功。",
+        "用户名3–64位ASCII字母数字/._-且首位字母数字；新密码12–72字符且含ASCII字母数字，UTF-8最多72字节。",
+        "PUT仅发送username/newPassword/currentPassword/version；confirmPassword只在前端比较，不发送。",
+        "密码type=password，不本地持久化、不日志；成功清空所有密码。",
+        "400密码错不清会话；409重新读取保留失败反馈；429稍后重试不自动重放凭据。",
+        "仅200成功后显示已配置状态；当前token保留，其他管理员会话撤销。",
+        "本轮19080已接入账号接口并完成隔离QA配置验证；旧18080及原QA账号数据保留。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/settings/admin-account",
+        "PUT /api/v1/admin/settings/admin-account",
+        "GET /api/v1/auth/capabilities"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "C5AQRs",
+      "state": "shared-states",
+      "title": "共享状态与恢复",
+      "primaryAction": "保留原恢复动作",
+      "domain": "shared",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/C5AQRs.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "同一数据区加载/错误/空态互斥；原恢复按钮和slot事件保留。",
+        "加载、错误和无权限不暴露可提交敏感表单；失败保留可恢复输入。",
+        "表单错误就近可见并能定位；409后停止覆盖，不通过重试绕过版本。",
+        "按钮36px、圆角8px；主色/次色/危险语义保持一致，窄屏触控至少44px。",
+        "弹层保留焦点、Esc/遮罩取消约束和busy禁止重复提交；仅面板轻动效，遮罩不transform。"
+      ],
+      "bindings": [],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "IIzNy",
+      "state": "form-feedback",
+      "title": "表单反馈与恢复",
+      "primaryAction": "检查并重试",
+      "domain": "shared",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/IIzNy.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "同一数据区加载/错误/空态互斥；原恢复按钮和slot事件保留。",
+        "加载、错误和无权限不暴露可提交敏感表单；失败保留可恢复输入。",
+        "表单错误就近可见并能定位；409后停止覆盖，不通过重试绕过版本。",
+        "按钮36px、圆角8px；主色/次色/危险语义保持一致，窄屏触控至少44px。",
+        "弹层保留焦点、Esc/遮罩取消约束和busy禁止重复提交；仅面板轻动效，遮罩不transform。"
+      ],
+      "bindings": [],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "dbK4R",
+      "state": "compact-1280",
+      "title": "运营工作台·1280紧凑",
+      "primaryAction": "刷新数据",
+      "domain": "operations",
+      "width": 1280,
+      "height": 800,
+      "png": "design/exports/admin/dbK4R.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/shop",
+      "nodeId": "irybD",
+      "state": "product-save-confirm",
+      "title": "商品保存确认",
+      "primaryAction": "确认保存",
+      "domain": "shop",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/irybD.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "商品接口返回数组，设计中的每页8条是客户端展示分页，不能伪报服务端总数。",
+        "商品与订单用独立焦点标签，不上下堆成长页；可用查询参数保存选中标签。",
+        "保存前确认价格、库存和销售状态；失败保留输入，409 禁止覆盖。",
+        "基础信息与图文各自保存；离开和关闭需遵守未保存保护。",
+        "上传使用已支持的JPG/PNG与4MB限制，不直接执行图文中的 HTML。",
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/products",
+        "POST /api/v1/admin/shop/products",
+        "PUT /api/v1/admin/shop/products/{id}",
+        "GET /api/v1/admin/shop/products/{id}/content",
+        "PUT /api/v1/admin/shop/products/{id}/content",
+        "POST /api/v1/admin/media",
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/refunds",
+      "nodeId": "SLpMS",
+      "state": "refund-reject",
+      "title": "拒绝退款",
+      "primaryAction": "确认拒绝",
+      "domain": "refunds",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/SLpMS.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "只处理已存在申请，保留 approve/reject/verify/retry 的真实状态约束。",
+        "退款确认说明不可撤回；结果未知前保留库存，retry沿用原退款单。",
+        "拒绝原因必填且最多200字；错误在当前确认层可见，不能假成功。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/refunds?page={page}&size={size}",
+        "POST /api/v1/admin/refunds/{id}/approve",
+        "POST /api/v1/admin/refunds/{id}/reject",
+        "POST /api/v1/admin/refunds/{id}/verify",
+        "POST /api/v1/admin/refunds/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/activities/:id/edit",
+      "nodeId": "AypoA",
+      "state": "cancel-confirm",
+      "title": "活动取消确认",
+      "primaryAction": "取消活动",
+      "domain": "activities",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/AypoA.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "编辑标签只切本地视图，共用同一草稿；保存跨标签校验并定位错误。",
+        "更新/发布/取消使用读取时的实体版本；409 保留输入并禁止静默覆盖。",
+        "仅免费活动，人数上限不低于已确认人数；所有时间明确北京时间。",
+        "发布与取消均需显式确认；取消保留报名记录。已发布活动的开始时间、地点、集合点调整生成ACTIVITY_CHANGED，取消生成ACTIVITY_CANCELLED；微信实际送达取决于订阅授权与服务，其他内容调整请另行联系。",
+        "图文独立保存，上传和暂时隐藏不能丢草稿；离开前确认未保存内容。",
+        "标题/状态仅筛选当前页，分类走服务端；不得把当前页筛选伪装成全库搜索。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/activities?page={page}&size={size}&category={optionalCategory}",
+        "GET /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities",
+        "PUT /api/v1/admin/activities/{id}",
+        "POST /api/v1/admin/activities/{id}/publish",
+        "POST /api/v1/admin/activities/{id}/cancel",
+        "GET /api/v1/admin/activities/{id}/content",
+        "PUT /api/v1/admin/activities/{id}/content",
+        "POST /api/v1/admin/media"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/operations",
+      "nodeId": "ba6jN",
+      "state": "reports",
+      "title": "运营报表",
+      "primaryAction": "更新统计",
+      "domain": "operations",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/ba6jN.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "不把核对请求成功当作支付成功；以返回状态刷新。",
+        "统计不造数；趋势与低库存复用 dashboard 响应，不引入虚构接口。",
+        "记录编号筛选只绑定现有 entityId；保留真实分页。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/dashboard?days={7|14|30}",
+        "GET /api/v1/admin/exceptions?page={page}&size={size}",
+        "GET /api/v1/admin/audit?page={page}&size={size}&entityId={optionalId}",
+        "POST /api/v1/admin/orders/{id}/verify"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/notifications",
+      "nodeId": "kNLGy",
+      "state": "notification-prerequisites-restored",
+      "title": "消息管理·条件恢复后重试",
+      "primaryAction": "重新排队",
+      "domain": "notifications",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/kNLGy.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "独立读取既有 GET /api/v1/notifications/config；ready=false 或查询失败时，NO_PERMISSION / UNCONFIGURED 禁用重试并给出恢复提示。",
+        "ready=true 时 UNCONFIGURED 可用原通知编号重新排队；NO_PERMISSION 须先确认用户已在小程序重新同意订阅，再调用原 retry。",
+        "FAILED 保留正常重试，SENT / UNKNOWN 等不可重发；取消确认不调用 POST。",
+        "重试只表示重新排队，不能假报微信送达；授权次数仍由服务端核验，状态仍可能返回 NO_PERMISSION。",
+        "身份切换后清除确认与列表，丢弃晚到的配置/重试结果；不新增配置页或 API。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/notifications?page={page}&size={size}",
+        "GET /api/v1/notifications/config",
+        "POST /api/v1/admin/notifications/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/notifications",
+      "nodeId": "iqDSq",
+      "state": "notification-subscription-confirm",
+      "title": "消息管理·确认用户已重新订阅",
+      "primaryAction": "已确认，重试原通知",
+      "domain": "notifications",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/iqDSq.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "独立读取既有 GET /api/v1/notifications/config；ready=false 或查询失败时，NO_PERMISSION / UNCONFIGURED 禁用重试并给出恢复提示。",
+        "ready=true 时 UNCONFIGURED 可用原通知编号重新排队；NO_PERMISSION 须先确认用户已在小程序重新同意订阅，再调用原 retry。",
+        "FAILED 保留正常重试，SENT / UNKNOWN 等不可重发；取消确认不调用 POST。",
+        "重试只表示重新排队，不能假报微信送达；授权次数仍由服务端核验，状态仍可能返回 NO_PERMISSION。",
+        "身份切换后清除确认与列表，丢弃晚到的配置/重试结果；不新增配置页或 API。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/notifications?page={page}&size={size}",
+        "GET /api/v1/notifications/config",
+        "POST /api/v1/admin/notifications/{id}/retry"
+      ],
+      "examples": "All rows marked 示例 or value placeholders; no live sales, stock or private identity claims."
+    },
+    {
+      "route": "/users",
+      "nodeId": "Nwr2l",
+      "state": "users-list",
+      "title": "后台 / 用户管理 / 列表",
+      "primaryAction": "筛选用户",
+      "domain": "users",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/Nwr2l.png",
+      "newRoute": true,
+      "implementationConstraints": [
+        "账号来源由API返回WECHAT/PASSWORD/DEMO/OTHER，不靠昵称判断。",
+        "只有已验证WECHAT目标可改角色；本人、密码、演示、其他来源目标不可写。操作者须为正式PASSWORD或已验证WECHAT的ADMIN；其他ADMIN仅此权限功能只读，原有活动/商品/订单管理保留。",
+        "PUT携带当前version，具体用户与权限影响确认后发送；角色改变使目标旧会话失效，需重新微信登录。",
+        "默认脱敏；完整联系方式复用对应活动名单的用途确认，不新增用户资料代编辑。",
+        "409停止旧版本重提，显式读取最新资料后核对；未知结果不自动重发，会话切换清空并拒绝迟到回填。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/users?query=&profile=&role=&accountSource=&page=&size=8",
+        "GET /api/v1/admin/users/{id}?status=&page=&size=4",
+        "PUT /api/v1/admin/users/{id}/role"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/users",
+      "nodeId": "a35E2",
+      "state": "user-profile-role",
+      "title": "后台 / 用户管理 / 资料与权限",
+      "primaryAction": "设为管理员",
+      "domain": "users",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/a35E2.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "账号来源由API返回WECHAT/PASSWORD/DEMO/OTHER，不靠昵称判断。",
+        "只有已验证WECHAT目标可改角色；本人、密码、演示、其他来源目标不可写。操作者须为正式PASSWORD或已验证WECHAT的ADMIN；其他ADMIN仅此权限功能只读，原有活动/商品/订单管理保留。",
+        "PUT携带当前version，具体用户与权限影响确认后发送；角色改变使目标旧会话失效，需重新微信登录。",
+        "默认脱敏；完整联系方式复用对应活动名单的用途确认，不新增用户资料代编辑。",
+        "409停止旧版本重提，显式读取最新资料后核对；未知结果不自动重发，会话切换清空并拒绝迟到回填。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/users?query=&profile=&role=&accountSource=&page=&size=8",
+        "GET /api/v1/admin/users/{id}?status=&page=&size=4",
+        "PUT /api/v1/admin/users/{id}/role"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/users",
+      "nodeId": "z7k8T",
+      "state": "user-registration-history",
+      "title": "后台 / 用户管理 / 报名历史",
+      "primaryAction": "查看活动名单",
+      "domain": "users",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/z7k8T.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "账号来源由API返回WECHAT/PASSWORD/DEMO/OTHER，不靠昵称判断。",
+        "只有已验证WECHAT目标可改角色；本人、密码、演示、其他来源目标不可写。操作者须为正式PASSWORD或已验证WECHAT的ADMIN；其他ADMIN仅此权限功能只读，原有活动/商品/订单管理保留。",
+        "PUT携带当前version，具体用户与权限影响确认后发送；角色改变使目标旧会话失效，需重新微信登录。",
+        "默认脱敏；完整联系方式复用对应活动名单的用途确认，不新增用户资料代编辑。",
+        "409停止旧版本重提，显式读取最新资料后核对；未知结果不自动重发，会话切换清空并拒绝迟到回填。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/users?query=&profile=&role=&accountSource=&page=&size=8",
+        "GET /api/v1/admin/users/{id}?status=&page=&size=4",
+        "PUT /api/v1/admin/users/{id}/role"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/users",
+      "nodeId": "wqrUO",
+      "state": "user-role-confirm",
+      "title": "后台 / 用户管理 / 授予权限确认",
+      "primaryAction": "确认设为管理员",
+      "domain": "users",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/wqrUO.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "账号来源由API返回WECHAT/PASSWORD/DEMO/OTHER，不靠昵称判断。",
+        "只有已验证WECHAT目标可改角色；本人、密码、演示、其他来源目标不可写。操作者须为正式PASSWORD或已验证WECHAT的ADMIN；其他ADMIN仅此权限功能只读，原有活动/商品/订单管理保留。",
+        "PUT携带当前version，具体用户与权限影响确认后发送；角色改变使目标旧会话失效，需重新微信登录。",
+        "默认脱敏；完整联系方式复用对应活动名单的用途确认，不新增用户资料代编辑。",
+        "409停止旧版本重提，显式读取最新资料后核对；未知结果不自动重发，会话切换清空并拒绝迟到回填。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/users?query=&profile=&role=&accountSource=&page=&size=8",
+        "GET /api/v1/admin/users/{id}?status=&page=&size=4",
+        "PUT /api/v1/admin/users/{id}/role"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/shop/categories",
+      "nodeId": "a4YnM8",
+      "state": "category-list",
+      "title": "后台 / 商品分类 / 列表",
+      "primaryAction": "新分类",
+      "domain": "product-categories",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/a4YnM8.png",
+      "newRoute": true,
+      "implementationConstraints": [
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/shop/categories",
+      "nodeId": "ie3cy",
+      "state": "category-editor",
+      "title": "后台 / 商品分类 / 创建与编辑",
+      "primaryAction": "保存分类",
+      "domain": "product-categories",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/ie3cy.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    },
+    {
+      "route": "/shop/categories",
+      "nodeId": "oi0IF",
+      "state": "category-price-role-recovery",
+      "title": "后台 / 分类、双价与用户权限 / 恢复状态",
+      "primaryAction": "按状态核对与重试",
+      "domain": "product-categories",
+      "width": 1440,
+      "height": 900,
+      "png": "design/exports/admin/oi0IF.png",
+      "newRoute": false,
+      "implementationConstraints": [
+        "分类为单层，无删除、禁用或多级分类。稳定默认ID uncategorized；可改名和排序，历史商品与订单保留。",
+        "name去首尾空白后1–40字，无控制字符，名称忽略大小写唯一；sortOrder为0–9999整数，小的在前。",
+        "CATEGORY_NAME_EXISTS保留可修改草稿；STALE_VERSION锁定旧版本保存，确认重读成功才采用新version，取消或失败保留输入。",
+        "创建结果未知时保留输入并禁止盲目重复创建，先核对最新列表。",
+        "商品新UI明确提交categoryId、originalPriceCents与priceCents；原价和现价均1–100000000整数分，原价>=现价。只有原价更高才划线，不改变历史订单成交金额。"
+      ],
+      "bindings": [
+        "GET /api/v1/admin/shop/categories",
+        "POST /api/v1/admin/shop/categories",
+        "PUT /api/v1/admin/shop/categories/{id}"
+      ],
+      "examples": "Illustrative data only; masked identities, prices and counts are not business writes."
+    }
+  ],
+  "remainingImplementation": [
+    "Physical-device, real WeChat merchant payment/refund and production delivery outcomes have not been executed; no production deployment claimed."
+  ],
+  "revisions": [
+    {
+      "at": "2026-10-31T01:07:20.000+08:00",
+      "nodeId": "rxboR",
+      "scope": "notification-prerequisite-recovery-only",
+      "disabledActionNodeIds": [
+        "KT1Qm",
+        "X78DjU",
+        "W46mlF",
+        "fWtrw"
+      ],
+      "getProblems": [],
+      "visualReview": "Full 1440x900 exported PNG inspected",
+      "pngsChanged": [
+        "rxboR.png"
+      ],
+      "otherPngsUnchanged": 34,
+      "sourceChanged": false
+    },
+    {
+      "at": "2026-10-31T01:07:58.000+08:00",
+      "nodeIds": [
+        "kxOC4",
+        "EBsbs",
+        "AypoA"
+      ],
+      "scope": "activity-message-generation-copy-only",
+      "evidence": "ActivityService.java:266 ACTIVITY_CHANGED and :299 ACTIVITY_CANCELLED, as verified in coordinated review",
+      "getProblems": [],
+      "visualReview": "MCP screenshots and full exported cancellation-confirm PNG inspected",
+      "pngsChanged": [
+        "AypoA.png",
+        "EBsbs.png",
+        "kxOC4.png"
+      ],
+      "otherPngsUnchanged": 32,
+      "sourceChanged": false,
+      "implementationFollowup": "Clear obsolete blanket 'no automatic notice' copy in admin source when implementing the approved Pen designs."
+    },
+    {
+      "at": "2026-10-31T01:48:00.000+08:00",
+      "nodeIds": [
+        "kNLGy",
+        "iqDSq"
+      ],
+      "scope": "notification-recovery-followup-approved-by-coordinated-review",
+      "originalScreensUnchanged": 35,
+      "getProblems": [],
+      "visualReview": "MCP full-screen screenshot inspected; confirmation overlay visible and both actions fit",
+      "sourceChanged": true
+    },
+    {
+      "at": "2026-10-31T07:18:56.186Z",
+      "scope": "remove-retired-feature",
+      "removedNodeIds": [
+        "BSuge"
+      ],
+      "navigationRowsRemoved": 35,
+      "remainingFrames": 36,
+      "getProblems": [],
+      "evidence": "docs/waitlist-removal-2026-10-31.md"
+    },
+    {
+      "date": "2026-10-31",
+      "change": "用户管理、商品分类、原价现价及第三商城任务入口；按当前Pen根ID重新导出43张有效PNG。",
+      "evidence": "design/users-catalog-design-2026-10-31.json"
+    }
+  ],
+  "currentExtension": {
+    "date": "2026-10-31",
+    "status": "pen-layout-and-valid-png-verified",
+    "designEvidence": "design/users-catalog-design-2026-10-31.json",
+    "implementationEvidence": "docs/users-categories-prices-2026-10-31.md",
+    "layoutScope": "99 canvas roots checked; 22 extension-related roots inspected in scope",
+    "rootReplacements": {
+      "Or33t": "E7QA9",
+      "UWfJn": "YbhOC",
+      "cyUUW": "asCpo",
+      "vKTKR": "IWwi8",
+      "z87Zde": "L50wpo",
+      "ZKG6G": "n2142A",
+      "l1TLM": "UcBWH",
+      "rqniq": "oVFOy",
+      "by6De": "AV1WF",
+      "dcQU8": "irybD",
+      "CCKt3": "ie3cy",
+      "BLCIT": "tZwlR"
+    },
+    "pngExportScale": 1,
+    "note": "Pen screenshots and layout checks are design evidence. Runtime/API/payment assertions remain in their implementation reports; earlier test counts are historical batches."
+  }
+}

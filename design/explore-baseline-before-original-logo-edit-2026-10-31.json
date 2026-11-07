@@ -1,0 +1,48 @@
+{
+  "capturedAt": "2026-10-31T04:04:06.752Z",
+  "preserve": "探索页其余布局、文案、四活动、通栏装备横幅、四商品、无斜箭头；底部采用用户2026-10-31授权的新透明野小子标识",
+  "files": [
+    {
+      "file": "miniprogram/src/pages/home/index.ts",
+      "sha256": "f27a9bda0be3ff844d8e3a78cae3533434fda3b1213cca4c058f54b74f2d24d1"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.wxml",
+      "sha256": "1bc74cf027a4d98716a867cac2af8530613d064aee8694ee9842ae7e1071256b"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.wxss",
+      "sha256": "ac54a3d9aaafc49b90daf73d2300cbfc80feff6d07b964b7e54cb290c563daf7"
+    },
+    {
+      "file": "miniprogram/src/app.wxss",
+      "sha256": "f9751fa33682e21172a809b515a440d45313060c8876cc37c20b401931686114"
+    },
+    {
+      "file": "miniprogram/src/assets/equipment-banner.jpg",
+      "sha256": "4e916619389a65b13812ff7c7baa0e35dabebefc2effe99bfc8623ef5d223f4c"
+    },
+    {
+      "file": "miniprogram/src/assets/platform-brand-transparent.png",
+      "sha256": "9dbb25f72bd6167d3c99ed5f4443e4a6a976eb7397c460d74417f186f0fa9147"
+    }
+  ],
+  "screenshot": "assets/explore-reference.png",
+  "amendments": [
+    {
+      "date": "2026-10-31",
+      "authorization": "用户明确要求：探索页底部图片重新设计为透明野小子图标，符合项目配色",
+      "scope": [
+        "new transparent PNG footer asset",
+        "home footer image source",
+        "platform-brand/platform-brand-image layout rules"
+      ],
+      "previousBaseline": "design/explore-baseline-2026-10-30.json",
+      "retainedOriginal": "miniprogram/src/assets/platform-brand.jpg",
+      "sourceScopeReport": "test-results/footer-logo-2026-10-31/source-scope.json",
+      "footerScreenshot": "test-results/footer-logo-2026-10-31/footer-native.png",
+      "nativeReport": "test-results/footer-logo-2026-10-31/native-report.json"
+    }
+  ],
+  "screenshotNote": "assets/explore-reference.png remains the prior full-page reference; the authorized footer update is shown by the amendment screenshot."
+}
