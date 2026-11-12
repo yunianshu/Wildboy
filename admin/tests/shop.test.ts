@@ -92,6 +92,48 @@ describe("shop administration", () => {
     expect(wrapper.text()).toContain("厦门市测试地址");
     wrapper.unmount();
   });
+  it("shows free-confirmed orders without fake payment and permits fulfillment", async () => {
+    const free = {
+      ...order,
+      status: "CONFIRMED_FREE",
+      totalCents: 0,
+      originalTotalCents: 19900,
+      paymentTransactionId: null,
+      paidAt: null,
+      items: [
+        {
+          ...order.items[0],
+          priceCents: 0,
+          originalPriceCents: 19900,
+          tierName: "黄金",
+        },
+      ],
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          path.includes("/admin/shop/products")
+            ? [product]
+            : { ...orderPage, items: [free] },
+      })),
+    );
+    const wrapper = mount(ShopView, { global: { stubs: { teleport: true } } });
+    await flushPromises();
+    const card = wrapper.get(".order-admin-card");
+    expect(card.text()).toContain("免支付已确认");
+    expect(card.text()).toContain("免支付订单，无微信交易号");
+    expect(card.text()).toContain("原价 ¥199.00");
+    expect(card.text()).toContain("黄金优惠价 ¥0.00 / 件");
+    expect(card.text()).not.toContain("已支付");
+    expect(card.text()).not.toContain("尚未确认支付");
+    expect(card.text()).not.toContain("退款");
+    await click(wrapper, "确认发货");
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
   it("clears revealed delivery data immediately when the operator logs out", async () => {
     vi.stubGlobal(
       "fetch",

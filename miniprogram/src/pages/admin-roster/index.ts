@@ -24,6 +24,7 @@ Page({
   data: {
     id: "",
     authorized: false,
+    paidActivity: false,
     loading: false,
     loadingMore: false,
     error: "",
@@ -91,12 +92,15 @@ Page({
       if (n !== this._epoch) return;
       this._session = session;
       this.setData({ authorized: true });
-      const [activity, result] = await Promise.all([
-        request<Activity>(`/admin/activities/${this.data.id}`),
-        request<PageResult<Registration>>(
-          `/admin/activities/${this.data.id}/registrations?page=${reset ? 0 : this.data.page + 1}&size=20`,
-        ),
-      ]);
+      const activity = await request<Activity>(`/admin/activities/${this.data.id}`);
+      if (n !== this._epoch || !isSessionCurrent(session)) return;
+      if(activity.priceCents > 0) {
+        this.setData({activity,paidActivity:true,items:[],hasMore:false,total:0});
+        wx.redirectTo({url:`/pages/admin-activity-orders/index?activityId=${encodeURIComponent(this.data.id)}`});
+        return;
+      }
+      this.setData({paidActivity:false});
+      const result = await request<PageResult<Registration>>(`/admin/activities/${this.data.id}/registrations?page=${reset ? 0 : this.data.page + 1}&size=20`);
       if (n !== this._epoch || !isSessionCurrent(session)) return;
       const rows = result.items.map((x) => ({
         id: x.id,
@@ -141,6 +145,7 @@ Page({
         this.setData({ loading: false, loadingMore: false });
     }
   },
+  paidOrders() {if(this.data.authorized && isSessionCurrent(this._session))wx.navigateTo({url:`/pages/admin-activity-orders/index?activityId=${encodeURIComponent(this.data.id)}`});},
   retry() {
     void this.load(!this.data.items.length);
   },

@@ -55,6 +55,7 @@ function money(cents: number) {
 const orderStatuses = {
   PENDING_PAYMENT: "待支付",
   PAID: "已支付",
+  CONFIRMED_FREE: "免支付已确认",
   CANCELLED: "已取消",
   SHIPPED: "已发货",
   REFUNDED: "已退款",
@@ -292,12 +293,21 @@ onUnmounted(clear);
               {{ money(order.totalCents) }}</strong
             >
             <p class="muted">订单号 {{ order.orderNo }}</p>
+            <p
+              v-if="
+                order.originalTotalCents != null &&
+                order.originalTotalCents !== order.totalCents
+              "
+            >
+              原价 {{ money(order.originalTotalCents) }} · 优惠
+              {{ money(order.originalTotalCents - order.totalCents) }}
+            </p>
             <p v-if="order.reconciliationRequired" class="error">
               需核对微信订单状态，库存暂保留，请勿手动回库。
             </p>
           </div>
           <button
-            v-if="order.status === 'PAID'"
+            v-if="order.status === 'PAID' || order.status === 'CONFIRMED_FREE'"
             class="secondary button"
             @click="shipping = order"
           >
@@ -306,6 +316,9 @@ onUnmounted(clear);
         </div>
         <p v-for="item in order.items" :key="item.id">
           {{ item.productName }} × {{ item.quantity }}
+          <span v-if="item.tierName">
+            · {{ item.tierName }}优惠价 {{ money(item.priceCents) }} / 件</span
+          >
         </p>
         <p>收货人：{{ order.recipientName }}</p>
         <p>
@@ -322,7 +335,19 @@ onUnmounted(clear);
           {{ revealed.has(order.id) ? "隐藏收货信息" : "查看收货信息" }}
         </button>
         <p class="muted">
-          微信交易号：{{ order.paymentTransactionId || "尚未确认支付" }} ·
+          <template
+            v-if="
+              order.totalCents === 0 &&
+              (order.status === 'CONFIRMED_FREE' || order.status === 'SHIPPED')
+            "
+            >免支付订单，无微信交易号</template
+          >
+          <template v-else
+            >微信交易号：{{
+              order.paymentTransactionId || "尚未确认支付"
+            }}</template
+          >
+          ·
           {{ displayDate(order.createdAt) }}
         </p>
       </article>

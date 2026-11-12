@@ -87,6 +87,10 @@ Page({
   confirmLegal() {
     wx.navigateTo({ url: "/pages/login/index?mode=consent" });
   },
+  activityOrders() {wx.navigateTo({url:"/pages/activity-orders/index"});},
+  activityOrderManage() {if(this.data.user?.role === "ADMIN")wx.navigateTo({url:"/pages/admin-activity-orders/index"});},
+  profile() { wx.navigateTo({ url: "/pages/profile/index" }); },
+  membershipManage() { if (this.data.user?.role === "ADMIN") wx.navigateTo({ url: "/pages/admin-memberships/index" }); },
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },

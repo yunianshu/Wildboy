@@ -94,7 +94,8 @@ Page({
   retry() {
     void this.load();
   },
-  waitlist() { if (this.data.activity?.canCancel && !this.data.activity.available) wx.navigateTo({url:`/pages/register/index?id=${this.data.id}&waitlist=1`}); },
+  waitlist() { if (this.data.activity?.priceCents === 0 && this.data.activity?.canCancel && !this.data.activity.available) wx.navigateTo({url:`/pages/register/index?id=${this.data.id}&waitlist=1`}); },
+  activityOrders() { wx.navigateTo({url:"/pages/activity-orders/index"}); },
   register() {
     if (this.data.activity?.enabled)
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });

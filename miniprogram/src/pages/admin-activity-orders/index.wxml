@@ -1,0 +1,58 @@
+<view class="page">
+  <view class="title">{{activityId ? '本活动收费报名名单' : '活动订单与退款'}}</view>
+  <view wx:if="{{activityId}}" class="notice">仅显示当前收费活动的订单。活动编号：{{activityId}}。待付款订单尚未确认报名，请以订单状态为准。</view>
+  <view wx:if="{{error}}" class="notice error">{{error}}</view>
+  <button class="secondary" bindtap="refresh" disabled="{{busy||loading}}">刷新订单</button>
+  <button wx:if="{{!authorized&&!loading}}" bindtap="login">验证管理员身份</button>
+  <view wx:if="{{loading}}" class="state">正在读取…</view>
+  <block wx:if="{{authorized}}">
+    <view wx:if="{{!orders.length&&!loading}}" class="state">暂无活动订单</view>
+    <view wx:for="{{orders}}" wx:key="id" class="card">
+      <view>{{item.activityTitle}}</view><view>订单号：{{item.orderNo}}</view>
+      <view>{{item.statusText}} · {{item.partySize}} 人 · ¥{{item.amount}}</view>
+      <button wx:if="{{item.status==='CONFIRMED_FREE'}}" data-id="{{item.id}}" data-action="cancel" bindtap="orderAction" disabled="{{busy||loading||blocked}}">取消免付报名</button>
+      <button wx:if="{{item.status==='PENDING_PAYMENT'}}" data-id="{{item.id}}" data-action="cancel" bindtap="orderAction" disabled="{{busy||loading||blocked}}">关闭待付款订单</button>
+      <button wx:if="{{item.status==='PENDING_PAYMENT'}}" data-id="{{item.id}}" data-action="verify" bindtap="orderAction" disabled="{{busy||loading||blocked}}">核对支付结果</button>
+      <button class="secondary" data-id="{{item.id}}" bindtap="toggleParticipants" disabled="{{busy||loading}}">{{participantsOrder===item.id ? '收起本单参与者' : '查看本单参与者'}}</button>
+      <view wx:if="{{participantsOrder===item.id}}" class="participants">
+        <view>{{item.status==='PENDING_PAYMENT' ? '待付款，报名尚未确认' : item.status==='PAID'||item.status==='CONFIRMED_FREE' ? '报名已确认' : '订单状态：'+item.statusText}}</view>
+        <view wx:if="{{!participants.length}}">本单暂无参与者</view>
+        <view wx:for="{{participants}}" wx:for-item="participant" wx:key="id">
+          <view>姓名：{{participant.participantName}}</view>
+          <view>身份证（脱敏）：{{participant.idNumber || '未要求提供'}}</view>
+          <view>电话：{{participant.phone}}</view>
+        </view>
+      </view>
+      <button class="secondary" data-id="{{item.id}}" bindtap="inspect" disabled="{{busy||loading}}">查看 / 刷新退款</button>
+    </view>
+    <button wx:if="{{hasMore}}" bindtap="more" disabled="{{busy||loading}}">加载更多</button>
+    <view wx:if="{{selected}}" class="card">
+      <view>退款对应订单：{{selected}}</view>
+      <view wx:if="{{!refund&&!busy&&!blocked}}">暂无退款申请</view>
+      <view wx:if="{{canRequestRefund}}">
+        <textarea value="{{requestReason}}" bindinput="requestReasonInput" maxlength="200" placeholder="填写管理员发起退款的原因" disabled="{{busy||blocked}}" />
+        <button bindtap="prepareRefundRequest" disabled="{{busy||blocked}}">发起全额退款</button>
+        <view class="muted">提交后进入待审核，批准后仍须等待微信确认退款结果。</view>
+      </view>
+      <block wx:if="{{refund}}">
+        <view>{{refund.statusText}} · ¥{{refund.amount}}</view><view>申请原因：{{refund.reason}}</view>
+        <view wx:if="{{refund.decision_note}}">审核说明：{{refund.decision_note}}</view>
+        <block wx:if="{{refund.status==='REQUESTED'}}">
+          <textarea value="{{note}}" bindinput="noteInput" maxlength="200" placeholder="拒绝退款时必须填写原因" disabled="{{busy||blocked}}" />
+          <button data-action="approve" bindtap="decide" disabled="{{busy||blocked}}">批准退款</button>
+          <button data-action="reject" bindtap="decide" disabled="{{busy||blocked}}">拒绝退款</button>
+        </block>
+        <button wx:if="{{refund.status==='PROCESSING'||refund.status==='UNKNOWN'||refund.status==='ABNORMAL'}}" data-action="verify" bindtap="decide" disabled="{{busy||blocked}}">核对退款结果</button>
+        <button wx:if="{{refund.status==='PROCESSING'||refund.status==='UNKNOWN'}}" data-action="retry" bindtap="decide" disabled="{{busy||blocked}}">原退款单号重试</button>
+      </block>
+    </view>
+  </block>
+  <view wx:if="{{confirmation}}" class="confirm-mask">
+    <view class="confirm-card">
+      <view class="section-title">{{confirmation.title}}</view>
+      <view>{{confirmation.content}}</view>
+      <button class="secondary" bindtap="cancelConfirmation" disabled="{{busy}}">返回检查</button>
+      <button class="primary" bindtap="confirmAction" disabled="{{busy}}">确认执行</button>
+    </view>
+  </view>
+</view>

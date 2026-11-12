@@ -1,0 +1,13 @@
+<view class="page">
+  <view class="title">我的身份</view>
+  <view wx:if="{{loading}}" class="state">正在加载…</view>
+  <view wx:if="{{error}}" class="state error">{{error}}<button bindtap="load">重试</button><button bindtap="login">登录</button></view>
+  <view wx:if="{{user}}" class="card">
+    <view>{{user.nickname || '山野同行者'}}</view>
+    <view class="identity">{{identity}}</view>
+    <view wx:if="{{user.customerType === 'MEMBER'}}">{{user.tierName || '未分配等级'}}{{user.tierEnabled ? '' : '（等级已停用，优惠不生效）'}}</view>
+    <view class="muted">完整用户编号（请提供给管理员核对）</view>
+    <text selectable="true" class="user-id">{{user.id}}</text>
+    <view class="muted">身份及会员等级由管理员设置。领队身份不授予管理权限；活动、商品优惠分别设置，实际价格以确认页为准。</view>
+  </view>
+</view>

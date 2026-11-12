@@ -131,7 +131,12 @@ onUnmounted(() => {
         >
         <div class="card-body">
           <div class="card-category">
-            {{ categories[item.category] }} <span>免费报名</span>
+            {{ categories[item.category] }}
+            <span>{{
+              item.priceCents > 0
+                ? `¥${(item.priceCents / 100).toFixed(2)} / 人`
+                : "免费报名"
+            }}</span>
           </div>
           <RouterLink :to="`/activities/${item.id}/edit`" class="card-title">{{
             item.title
@@ -144,7 +149,15 @@ onUnmounted(() => {
               {{ item.capacity }} 人</span
             >
             <div>
-              <RouterLink :to="`/activities/${item.id}/registrations`"
+              <RouterLink
+                :to="
+                  item.priceCents > 0
+                    ? {
+                        path: '/activity-orders',
+                        query: { activityId: item.id },
+                      }
+                    : `/activities/${item.id}/registrations`
+                "
                 >名单</RouterLink
               ><RouterLink :to="`/activities/${item.id}/edit`"
                 >编辑 ↗</RouterLink

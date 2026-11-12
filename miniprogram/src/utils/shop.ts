@@ -9,6 +9,7 @@ export function orderStatusLabel(status: OrderStatus): string {
   return (
     {
       PENDING_PAYMENT: "待支付",
+      CONFIRMED_FREE: "免支付已确认",
       PAID: "已支付",
       CANCELLED: "已取消",
       SHIPPED: "已发货",

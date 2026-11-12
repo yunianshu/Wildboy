@@ -10,6 +10,8 @@
       <view class="muted">{{order.recipientName}} · {{order.phone}}</view>
       <view class="muted">{{order.address}}</view>
     </view>
+    <view wx:if="{{order.originalTotalCents > order.totalCents}}" class="muted">下单原价 {{orderOriginalTotalText}}</view>
+    <view wx:if="{{order.status === 'CONFIRMED_FREE'}}" class="notice">订单已确认，无需微信支付，等待发货。</view>
     <view wx:if="{{order.status === 'PENDING_PAYMENT' && orderDeadlineText}}" class="notice">付款截止 {{orderDeadlineText}}，超时后核实关单并释放库存。</view>
     <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
@@ -20,7 +22,9 @@
   </block>
   <block wx:elif="{{product}}">
     <view class="title">确认订单</view>
-    <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="muted">数量 × {{quantity}}</view><view class="price">{{totalText}}</view></view></view>
+    <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="muted">数量 × {{quantity}}</view><view class="price">{{tierName ? tierName + '会员价 ' : ''}}{{totalText}}</view><view wx:if="{{quote && quote.originalTotalCents !== quote.totalCents}}" class="muted">原价 {{originalTotalText}}</view></view></view>
+    <view wx:if="{{quoteLoading}}" class="state">正在获取当前价格…</view>
+    <view wx:if="{{quoteError}}" class="error">{{quoteError}}<button bindtap="refreshQuote">重新获取价格</button><button bindtap="login">登录</button></view>
     <view class="section-head"><view class="section-title">收货地址</view></view>
     <view wx:if="{{addressLoading}}" class="state">正在加载地址…</view>
     <view wx:elif="{{addressError}}" class="error">{{addressError}}<button class="secondary" bindtap="retryAddress">重试</button></view>
@@ -31,7 +35,7 @@
     <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#193F34" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
     <view class="notice">价格与库存以下单确认为准。取消支付后，可在“我的订单”继续付款。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
-    <button class="primary submit" loading="{{busy}}" disabled="{{busy || !legal || addressLoading || !selectedAddressId || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : '提交订单并支付 ' + totalText}}</button>
+    <button class="primary submit" loading="{{busy}}" disabled="{{busy || !quote || quoteLoading || !legal || addressLoading || !selectedAddressId || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : (quote.totalCents === 0 ? '确认免支付订单' : '提交订单并支付 ' + totalText)}}</button>
   </block>
   <view wx:if="{{error && !product && !order}}" class="state error">{{error}}<button class="secondary" bindtap="retry">重试</button></view>
 </view>

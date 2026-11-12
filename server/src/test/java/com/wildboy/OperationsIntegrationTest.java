@@ -71,4 +71,15 @@ class OperationsIntegrationTest {
    var t=template();var page=operations.audit(0,20,t.id());assertThat(page.items()).hasSize(1);assertThat(page.items().getFirst()).containsKeys("actor","action","entity_id").doesNotContainKeys("phone","address","id_number","token");
    assertThat(operations.dashboard(7)).containsKeys("activities","orders","pendingShipping","lowStock","trend");assertThatThrownBy(()->operations.exceptions(0,501)).isInstanceOf(ApiException.class);
  }
+ @Test void copiedAndGeneratedPaidDraftsPreserveBasePriceAndRemainUnpublished(){
+   db.update("UPDATE activity SET price_cents=3200 WHERE id=?",source.id());
+   source=activities.get(source.id(),true);
+   var copied=templates.copy(source.id(),new TemplateService.Copy(OffsetDateTime.now().plusDays(21),"paid-copy-"+UUID.randomUUID(),source.version()),admin.id());
+   assertThat(copied.priceCents()).isEqualTo(3200);assertThat(copied.status()).isEqualTo("DRAFT");assertThat(copied.registeredCount()).isZero();
+   var template=template();assertThat(template.activity().priceCents()).isEqualTo(3200);
+   db.update("UPDATE activity SET price_cents=9900 WHERE id=?",source.id());
+   var generated=templates.generate(template.id(),new TemplateService.Generate(List.of(OffsetDateTime.now().plusDays(28)),template.version()),admin.id()).getFirst();
+   assertThat(generated.priceCents()).isEqualTo(3200);assertThat(generated.status()).isEqualTo("DRAFT");assertThat(generated.registeredCount()).isZero();
+ }
+
 }

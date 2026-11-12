@@ -120,6 +120,7 @@ test("unconfigured notifications stay explicit and do not call WeChat", async ()
 test("waitlist join preserves modal input flow and uses separate explicit action", () => {
   const p = page("register");
   p.data.activity = {
+    priceCents: 0,
     canCancel: true,
     enabled: false,
     capacity: 10,

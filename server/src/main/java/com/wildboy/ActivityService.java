@@ -296,6 +296,8 @@ public class ActivityService {
     if (a.status().equals("CANCELLED")) return a;
     if (!a.startAt().isAfter(OffsetDateTime.now()))
       throw ApiException.conflict("ACTIVITY_STARTED", "已开始活动不能取消");
+    if (db.queryForObject("SELECT COUNT(*) FROM activity_order WHERE activity_id=? AND status IN ('PENDING_PAYMENT','PAID','CONFIRMED_FREE','REFUND_PENDING')", Integer.class, id)>0)
+      throw ApiException.conflict("ACTIVITY_HAS_UNSETTLED_ORDERS", "请先关闭未付款订单并完成已付款订单退款，再取消活动");
     notifications.activityNotice(a, "ACTIVITY_CANCELLED", "活动已取消");
     waitlists.getObject().activityCancelled(a);
     db.update(
@@ -389,6 +391,7 @@ public class ActivityService {
     legal.requireCurrent(input.privacyVersion(), input.termsVersion());
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
+    if (a.priceCents()>0) throw ApiException.conflict("PAID_ACTIVITY_ORDER_REQUIRED", "收费活动请使用报名订单入口");
     var participants = validatedParticipants(input, a.identityRequired());
     Registration existing = own(id, user);
     if (existing != null) {

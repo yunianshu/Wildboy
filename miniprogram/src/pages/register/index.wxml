@@ -23,7 +23,13 @@
     </view>
     <block wx:elif="{{activity}}">
       <view class="booking-summary">
-        <text class="badge">免费报名 · 无需支付</text>
+        <text class="badge">{{activity.priceCents > 0 ? '收费报名 · 确认费用后支付' : '免费报名 · 无需支付'}}</text>
+        <view wx:if="{{activity.priceCents > 0}}">
+          <view wx:if="{{quoteLoading}}">正在确认费用…</view>
+          <view wx:if="{{quote}}">原价 {{quoteOriginal}} · 应付 {{quoteTotal}}<view wx:for="{{quoteLines}}" wx:key="key">{{item.label}}</view><view class="muted">{{quote.participantPricing === 'ACCOUNT_ALL' ? '同行全部按报名账号等级优惠' : (quote.participantPricing === 'ONE_BENEFIT' ? '每单最多 1 个优惠名额，不核验参加者个人会员身份' : '按标准价计算')}}</view></view>
+          <view wx:if="{{quoteError}}" class="error">{{quoteError}}<button bindtap="refreshQuote">刷新费用</button><button bindtap="login">登录</button></view>
+          <view class="notice">创建订单后名额暂保留，未确认支付不代表报名成功。付款未知请在活动订单核对。收费活动暂不开放候补。</view><button class="secondary" bindtap="paidOrders">查看已有活动订单</button>
+        </view>
         <view class="booking-title">{{activity.title}}</view>
         <view class="muted">{{activity.dateText}} · {{activity.location}}</view>
       </view>
@@ -120,7 +126,7 @@
       >
         {{submitting ? '正在确认…' : (waitlistMode ? '整组加入候补' : activity.label)}}
       </button>
-      <button wx:if="{{!waitlistMode && activity.canCancel}}" class="text-button" bindtap="joinWaitlist" disabled="{{submitting}}">名额不足？整组候补</button>
+      <button wx:if="{{!waitlistMode && activity.canCancel && activity.priceCents === 0}}" class="text-button" bindtap="joinWaitlist" disabled="{{submitting}}">名额不足？整组候补</button>
       <view wx:if="{{waitlistMode}}" class="notice">按整组顺序候补，有名额后须在 30 分钟内确认，临近报名截止以显示时间为准。</view>
       <view class="muted small center">
         报名结果请以“我的报名”为准。

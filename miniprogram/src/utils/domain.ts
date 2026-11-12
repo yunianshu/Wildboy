@@ -58,10 +58,10 @@ export function registrationState(
     Date.parse(a.startAt) <= now
   )
     return { enabled: false, label: "报名已截止" };
-  if (a.priceCents !== 0) return { enabled: false, label: "付费报名暂未开放" };
+  if (!Number.isSafeInteger(a.priceCents) || a.priceCents < 0) return { enabled: false, label: "价格待核对" };
   if (a.registeredCount >= a.capacity)
     return { enabled: false, label: "名额已满" };
-  return { enabled: true, label: "免费报名" };
+  return { enabled: true, label: a.priceCents > 0 ? "报名并确认费用" : "免费报名" };
 }
 export function validIdNumber(value: string): boolean {
   const id = value.trim().toUpperCase();

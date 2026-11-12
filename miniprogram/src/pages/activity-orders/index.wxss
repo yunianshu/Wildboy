@@ -1,0 +1,1 @@
+.card{padding:28rpx;border-radius:24rpx;background:white;margin:24rpx 0}.heading{font-size:34rpx;font-weight:600}.badge,.muted{margin:16rpx 0}.error{padding:20rpx}textarea{background:white;padding:20rpx;box-sizing:border-box;width:100%}

@@ -44,6 +44,8 @@ function checkout() {
   Object.assign(p.data, {
     id: "product-1",
     quantity: 1,
+    quote: { productId: "product-1", quantity: 1, originalTotalCents: 1200, totalCents: 1200, pricing: {originalPriceCents:1200,priceCents:1200,tierName:null} },
+    quoteSession: session,
     product: { id: "product-1", stock: 3 },
     legal: legalCurrent,
     selectedAddressId: "address-1",
@@ -275,6 +277,7 @@ test("orders new status filter wins over slower old page response", async () => 
 test("cancel confirmation after page hide cannot send mutation", async () => {
   const p = page("orders");
   p.data.loading = false;
+  p.data.items = [p.view(baseOrder)];
   let release;
   wx.showModal = () => new Promise((resolve) => (release = resolve));
   const pending = p.cancel(event("order-1"));
@@ -305,6 +308,7 @@ test("pay helper does not launch native payment when page became stale", async (
 test("cancel modal failure unlocks row without sending cancellation", async () => {
   const p = page("orders");
   p.data.loading = false;
+  p.data.items = [p.view(baseOrder)];
   wx.showModal = async () => {
     throw new Error("弹窗未打开");
   };
@@ -426,4 +430,80 @@ test("refund actions cannot invalidate an in-flight order page and leave loading
   await loading;
   assert.equal(p.data.loading, false);
   assert.equal(requests.length, 1);
+});
+
+test('checkout always sends the displayed price and free orders never call payment', async () => {
+  const p = checkout();
+  p.data.quote.totalCents = 0;
+  const normal = api.request;
+  api.request = async (path, method, data) => {
+    if (path === '/orders') { requests.push({path,method,data}); return {...baseOrder,status:'CONFIRMED_FREE',totalCents:0,paidAt:null,paymentTransactionId:null}; }
+    return normal(path,method,data);
+  };
+  await p.submit();
+  assert.equal(requests.find(x=>x.path==='/orders').data.expectedTotalCents,0);
+  assert.equal(p.data.orderStatusText,'免支付已确认');
+  assert.equal(requests.some(x=>x.path.endsWith('/pay')),false);
+  await p.payExisting();
+  assert.equal(requests.some(x=>x.path.endsWith('/pay')),false);
+});
+test('price conflict refreshes quote but requires another explicit submission', async () => {
+  const p = checkout();
+  const normal = api.request;
+  api.request = async (path,method,data) => {
+    if(path==='/orders'){requests.push({path,method,data});throw new api.ApiError('changed',409,'PRICE_CHANGED');}
+    if(path.includes('/quote?')) return {productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:900,pricing:{originalPriceCents:1200,priceCents:900,tierName:'银卡'}};
+    return normal(path,method,data);
+  };
+  await p.submit();
+  assert.equal(requests.filter(x=>x.path==='/orders').length,1);
+  assert.equal(p.data.quote.totalCents,900);
+  assert.equal(p.data.totalText,'¥9.00');
+  assert.equal(p.data.originalTotalText,'¥12.00');
+  assert.match(p.data.error,/再次提交/);
+  assert.equal(p.data.order,null);
+});
+test('quote failure and switched account quote fail closed before creating an order', async () => {
+  const p=checkout();
+  api.request=async()=>{throw new Error('quote unavailable');};
+  await p.refreshQuote();
+  await p.submit();
+  assert.equal(p.data.quote,null);
+  assert.equal(requests.length,0);
+  assert.match(p.data.quoteError,/unavailable/);
+  let release;
+  api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.refreshQuote();
+  session++;
+  release({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:600,pricing:{originalPriceCents:1200,priceCents:600,tierName:'金卡'}});
+  await pending;
+  assert.equal(p.data.quote,null);
+  assert.equal(p.data.totalText,'');
+});
+test('hidden quote cannot repopulate, returning refreshes without erasing legal consent', async () => {
+  const p=checkout();
+  let release;
+  api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.refreshQuote();
+  p.onHide();
+  release({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:600,pricing:{originalPriceCents:1200,priceCents:600,tierName:'金卡'}});
+  await pending;
+  assert.equal(p.data.quote,null);
+  assert.equal(p.data.consent,true);
+  assert.equal(p.data.privacyRead,true);
+});
+test('malformed quote total never becomes payable', async () => {
+  const p=checkout();
+  api.request=async()=>({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:1,pricing:{originalPriceCents:1200,priceCents:900}});
+  await p.refreshQuote();
+  assert.equal(p.data.quote,null);
+  assert.match(p.data.quoteError,/报价异常/);
+});
+test('free merchandise orders expose cancellation without implying payment or refund',async()=>{
+ const p=page('orders');p.data.loading=false;p.data.items=[{...baseOrder,status:'CONFIRMED_FREE',totalCents:0}];
+ let prompt;wx.showModal=async o=>{prompt=o;return {confirm:true};};
+ api.request=async(path,method)=>{requests.push({path,method});return {...baseOrder,status:'CANCELLED',totalCents:0};};
+ await p.cancel(event(baseOrder.id));assert.match(prompt.content,/免支付.*不涉及支付退款/);assert.equal(requests[0].path,'/orders/order-1/cancel');assert.equal(p.data.items[0].status,'CANCELLED');
+ p.data.items=[{...baseOrder,status:'PAID'}];await p.cancel(event(baseOrder.id));assert.equal(requests.length,1);
+ const markup=fs.readFileSync('src/pages/orders/index.wxml','utf8');assert.match(markup,/PENDING_PAYMENT' \|\| item.status === 'CONFIRMED_FREE'[\s\S]*?bindtap="cancel"/);
 });

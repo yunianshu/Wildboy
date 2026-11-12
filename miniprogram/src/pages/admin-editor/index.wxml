@@ -1,6 +1,6 @@
 <view class="page back-space">
   <view class="title">{{id ? '编辑活动' : '创建活动'}}</view>
-  <view class="muted">北京时间 · 免费报名</view>
+  <view class="muted">北京时间 · 收费价格须单独保存</view>
   <view wx:if="{{loading}}" class="state">正在读取活动…</view>
   <view wx:if="{{error}}" class="notice error">
     {{error}}
@@ -22,6 +22,12 @@
     </button>
   </view>
   <block wx:if="{{authorized&&!loading}}">
+    <view class="field">
+      <text class="label">活动价格（元 / 人，0 为免费）</text>
+      <input type="digit" value="{{price}}" bindinput="priceInput" disabled="{{busy||status!=='DRAFT'||registeredCount>0}}" />
+      <view class="muted">已保存价格：¥{{priceCents / 100}}。仅无报名、无候补的草稿可调价。请先保存草稿，再单独保存价格，最后发布。</view>
+      <button class="secondary" bindtap="savePrice" disabled="{{!id||busy||conflict||uncertain||status!=='DRAFT'||registeredCount>0}}">保存价格</button>
+    </view>
     <button class="secondary" bindtap="uploadCover" disabled="{{busy}}">上传封面</button><button wx:if="{{id}}" class="secondary" bindtap="editContent" disabled="{{busy}}">编辑图文详情</button>
     <image class="cover" src="{{cover}}" mode="aspectFill" />
     <view class="muted small">示意封面 · 可使用自有 HTTPS 图片</view>

@@ -21,6 +21,7 @@ public class WaitlistService {
   @Transactional public Entry join(String activityId,String user,RegistrationInput input) {
     legal.requireCurrent(input.privacyVersion(),input.termsVersion());
     Activity a=activities.lock(activityId); activities.enrollmentOpen(a);
+    if(a.priceCents()>0)throw ApiException.conflict("PAID_ACTIVITY_WAITLIST_UNAVAILABLE","收费活动暂不开放候补");
     var prior=db.queryForList("SELECT id FROM activity_waitlist WHERE activity_id=? AND user_id=? AND status IN ('WAITING','OFFERED')",String.class,activityId,user);
     if(!prior.isEmpty()) return entry(prior.getFirst(),user);
     if(activities.own(activityId,user)!=null) throw ApiException.conflict("ALREADY_REGISTERED","已报名，无需候补");

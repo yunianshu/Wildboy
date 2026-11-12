@@ -84,8 +84,10 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
 }
-export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CONFIRMED_FREE" | "CANCELLED" | "SHIPPED" | "REFUNDED";
 export interface OrderItem {
+  originalPriceCents?: number;
+  tierName?: string | null;
   id: string;
   productId: string;
   productName: string;
@@ -94,6 +96,7 @@ export interface OrderItem {
   quantity: number;
 }
 export interface Order {
+  originalTotalCents?: number;
   reconciliationRequired?: boolean;
   expiresAt?: string;
   id: string;

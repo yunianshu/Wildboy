@@ -9,5 +9,5 @@
  <button size="mini" class="secondary" data-id="{{item.id}}" bindtap="reveal" disabled="{{busyId}}">{{revealedId === item.id ? '隐藏收件信息' : '查看收件信息'}}</button>
  <view wx:if="{{revealedId === item.id}}" class="address"><view>{{item.phone}}</view><view>{{item.address}}</view></view>
  <view wx:if="{{pendingId === item.id}}" class="confirmation"><view>确认订单 {{item.orderNo}} 已实际发货？</view><button bindtap="confirmShip" disabled="{{busyId}}">确认发货</button><button class="secondary" bindtap="cancelShip" disabled="{{busyId}}">取消</button></view>
- <button wx:if="{{item.status === 'PAID' && pendingId !== item.id}}" data-id="{{item.id}}" bindtap="ship" loading="{{busyId === item.id}}" disabled="{{busyId}}">标记发货</button></view>
+ <button wx:if="{{(item.status === 'PAID' || item.status === 'CONFIRMED_FREE') && pendingId !== item.id}}" data-id="{{item.id}}" bindtap="ship" loading="{{busyId === item.id}}" disabled="{{busyId}}">标记发货</button></view>
  <button wx:if="{{hasMore}}" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore || busyId}}">加载更多订单</button><view wx:elif="{{items.length}}" class="muted">已显示全部订单</view></block></view>

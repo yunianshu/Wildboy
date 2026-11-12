@@ -5,7 +5,7 @@ import {
   sameVersions,
   LegalCurrent,
 } from "../../utils/legal";
-import { request, requireSession, ApiError, sessionVersion, isSessionCurrent } from "../../utils/api";
+import { request, requireSession, getCurrentUser, hasSession, ApiError, sessionVersion, isSessionCurrent } from "../../utils/api";
 import {
   Activity,
   ParticipantInput,
@@ -18,6 +18,9 @@ import {
   validateParticipants,
   RequestEpoch,
 } from "../../utils/domain";
+import { ActivityQuote, ActivityOrder, validActivityQuote, priceLines, activityIntent, pendingActivityIntent, finishActivityIntent } from "../../utils/activity-orders";
+import { money } from "../../utils/shop";
+const quoteEpoch = new RequestEpoch();
 const epoch = new RequestEpoch();
 const emptyParticipant = (): ParticipantInput => ({
   participantName: "", idNumber: "", phone: "",
@@ -26,6 +29,13 @@ Page({
   _reloadOnShow: false,
   data: {
     id: "",
+    quote: null as ActivityQuote | null,
+    quoteSession: -1,
+    quoteLoading: false,
+    quoteError: "",
+    quoteTotal: "",
+    quoteOriginal: "",
+    quoteLines: [] as ReturnType<typeof priceLines>,
     session: -1,
     waitlistMode: false,
     activity: null as ReturnType<typeof activityView> | null,
@@ -56,6 +66,7 @@ Page({
     if (this.data.session !== -1 && this.data.session !== sessionVersion())
       this.resetPrivateForm();
     this.setData({ session: sessionVersion() });
+    if(this.data.activity?.priceCents) void this.refreshQuote();
     if (this._reloadOnShow && this.data.id) {
       this._reloadOnShow = false;
       void this.load();
@@ -66,6 +77,7 @@ Page({
     this.setData({
       session: sessionVersion(),
       participants: [emptyParticipant()],
+      quote: null, quoteSession: -1, quoteTotal: "", quoteOriginal: "", quoteLines: [],
       consent: false,
       privacyRead: false,
       termsRead: false,
@@ -77,11 +89,15 @@ Page({
   onHide() {
     this._reloadOnShow = this.data.loading;
     epoch.invalidate();
+    quoteEpoch.invalidate();
+    this.setData({quote:null,quoteSession:-1,quoteTotal:"",quoteOriginal:"",quoteLines:[],quoteLoading:false});
     this.cancelParticipant();
     this.setData({ submitting: false });
   },
   onUnload() {
     epoch.invalidate();
+    quoteEpoch.invalidate();
+    this.setData({quote:null,quoteSession:-1,quoteTotal:"",quoteOriginal:"",quoteLines:[],quoteLoading:false});
     this.cancelParticipant();
   },
   async load() {
@@ -89,7 +105,20 @@ Page({
     this.setData({ loading: true, error: "" });
     try {
       const a = await request<Activity>(`/activities/${this.data.id}`);
-      if (epoch.valid(n)) this.setData({ activity: activityView(a) });
+      if (!epoch.valid(n)) return;
+      this.setData({ activity: activityView(a), ...(a.priceCents > 0 ? {waitlistMode:false} : {}) });
+      if(a.priceCents > 0 && hasSession()) {
+        const session = sessionVersion(), user = await getCurrentUser();
+        if(!epoch.valid(n) || !isSessionCurrent(session)) return;
+        const key = pendingActivityIntent(user.id,this.data.id);
+        if(key) {
+          try {
+            const existing = await request<ActivityOrder>(`/activity-orders/by-request/${key}`);
+            if(!epoch.valid(n) || !isSessionCurrent(session)) return;
+            this.openPaidOrder(existing,user.id,key); return;
+          } catch(e) { if(!(e instanceof ApiError && e.status===404)) throw e; }
+        }
+      }
       try {
         const legal = await currentLegal();
         if (epoch.valid(n))
@@ -100,6 +129,7 @@ Page({
             privacyRead: false,
             termsRead: false,
           });
+        if(epoch.valid(n) && a.priceCents>0) await this.refreshQuote();
       } catch (e) {
         if (epoch.valid(n))
           this.setData({ legal: null, legalError: message(e), consent: false });
@@ -109,6 +139,26 @@ Page({
     } finally {
       if (epoch.valid(n)) this.setData({ loading: false });
     }
+  },
+  async refreshQuote() {
+    const n=quoteEpoch.next(),session=sessionVersion(),count=this.data.participants.length;
+    this.setData({quote:null,quoteSession:-1,quoteLoading:false,quoteError:"",quoteTotal:"",quoteOriginal:"",quoteLines:[]});
+    if(!this.data.activity?.priceCents) return;
+    if(!hasSession()){this.setData({quoteError:"登录后确认会员优惠及报名费用"});return;}
+    this.setData({quoteLoading:true});
+    try {
+      const quote=await request<ActivityQuote>(`/activities/${this.data.id}/quote?participants=${count}`);
+      if(!validActivityQuote(quote,count)) throw new Error("费用报价异常，请重新获取");
+      if(quoteEpoch.valid(n)&&isSessionCurrent(session)&&count===this.data.participants.length) this.setData({quote,quoteSession:session,quoteTotal:money(quote.totalCents),quoteOriginal:money(quote.originalTotalCents),quoteLines:priceLines(quote.quote)});
+    } catch(e){if(quoteEpoch.valid(n)&&isSessionCurrent(session))this.setData({quoteError:message(e)});}
+    finally{if(quoteEpoch.valid(n))this.setData({quoteLoading:false});}
+  },
+  login(){wx.navigateTo({url:"/pages/login/index"});},
+  openPaidOrder(order:ActivityOrder,userId:string,key:string){
+    if(!order?.id || order.activityId!==this.data.id) throw new Error("订单结果未确认，请到活动订单核对");
+    finishActivityIntent(userId,this.data.id,key);
+    this.setData({participants:[emptyParticipant()],consent:false});
+    wx.redirectTo({url:`/pages/activity-orders/index?id=${encodeURIComponent(order.id)}`});
   },
   retry() {
     void this.load();
@@ -186,6 +236,7 @@ Page({
       fieldError: "",
     });
     this.cancelParticipant();
+    if(this.data.activity?.priceCents) void this.refreshQuote();
   },
   removeParticipant(e: WechatMiniprogram.TouchEvent) {
     if (this.data.submitting || this.data.success || this.data.participantModalOpen) return;
@@ -198,6 +249,7 @@ Page({
       ),
       fieldError: "",
     });
+    if(this.data.activity?.priceCents) void this.refreshQuote();
   },
   consentChange(e: WechatMiniprogram.CheckboxGroupChange) {
     const wants = e.detail.value.includes("yes");
@@ -267,6 +319,7 @@ Page({
       });
       return;
     }
+    if(this.data.activity?.priceCents && (!this.data.quote || this.data.quoteLoading || !isSessionCurrent(this.data.quoteSession) || this.data.quote.participants!==this.data.participants.length)){this.setData({fieldError:"请先获取当前账号的费用并确认"});return;}
     this.setData({ submitting: true, fieldError: "" });
     const n = epoch.next();
     const session = sessionVersion();
@@ -290,6 +343,20 @@ Page({
         idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
       }));
+      if(this.data.activity?.priceCents) {
+        const expectedTotalCents=this.data.quote!.totalCents, user=await getCurrentUser();
+        if(!epoch.valid(n)||!isSessionCurrent(session))return;
+        const key=activityIntent(user.id,this.data.id);
+        try {
+          const existing=await request<ActivityOrder>(`/activity-orders/by-request/${key}`);
+          if(epoch.valid(n)&&isSessionCurrent(session))this.openPaidOrder(existing,user.id,key);
+          return;
+        } catch(e){if(!(e instanceof ApiError&&e.status===404))throw e;}
+        if(!epoch.valid(n)||!isSessionCurrent(session))return;
+        const order=await request<ActivityOrder>(`/activities/${this.data.id}/orders`,"POST",{requestKey:key,registration:{participants,...versions},expectedTotalCents});
+        if(epoch.valid(n)&&isSessionCurrent(session))this.openPaidOrder(order,user.id,key);
+        return;
+      }
       if (this.data.waitlistMode) {
         const result = await request<{id:string;activityId:string;status:string}>(`/activities/${this.data.id}/waitlist`, "POST", {participants,...versions});
         if (!result?.id || result.activityId !== this.data.id || !["WAITING","OFFERED"].includes(result.status)) throw new Error("候补结果未确认，请到我的候补核对");
@@ -320,7 +387,12 @@ Page({
         });
       }
     } catch (e) {
-      if (epoch.valid(n)) {
+      if (epoch.valid(n) && isSessionCurrent(session)) {
+        if(e instanceof ApiError && ["PRICE_CHANGED","ACTIVITY_PRICE_CHANGED"].includes(e.code)) {
+          await this.refreshQuote();
+          if(epoch.valid(n)&&isSessionCurrent(session))this.setData({fieldError:"费用已变化，请核对最新费用后重新提交"});
+          return;
+        }
         if (
           e instanceof ApiError &&
           ["LEGAL_VERSION_CHANGED", "LEGAL_NOT_READY"].includes(e.code)
@@ -342,10 +414,11 @@ Page({
       }
     }
   },
-  joinWaitlist() { if(!this.data.submitting && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },
+  joinWaitlist() { if(!this.data.submitting && this.data.activity?.priceCents === 0 && this.data.activity?.canCancel) this.setData({waitlistMode:true,fieldError:""}); },
   done() {
     wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
   },
+  paidOrders() {wx.navigateTo({url:"/pages/activity-orders/index"});},
   myActivities() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },

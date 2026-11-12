@@ -29,15 +29,19 @@ async function load() {
   revealedDetails.value = {};
   try {
     const id = encodeURIComponent(String(route.params.id));
-    const [details, list] = await Promise.all([
-      request<Activity>(`/admin/activities/${id}`, {
-        signal: controller.signal,
-      }),
-      request<Page<Registration>>(
-        `/admin/activities/${id}/registrations?page=${page.value}&size=20`,
-        { signal: controller.signal },
-      ),
-    ]);
+    const details = await request<Activity>(`/admin/activities/${id}`, {
+      signal: controller.signal,
+    });
+    if (current !== generation) return;
+    activity.value = details;
+    if (details.priceCents > 0) {
+      data.value = { items: [], total: 0, page: 0, size: 20, hasMore: false };
+      return;
+    }
+    const list = await request<Page<Registration>>(
+      `/admin/activities/${id}/registrations?page=${page.value}&size=20`,
+      { signal: controller.signal },
+    );
     if (current === generation) {
       activity.value = details;
       data.value = list;
@@ -98,6 +102,7 @@ watch(currentUser, () => {
   revealed.value.clear();
   revealedDetails.value = {};
   data.value.items = [];
+  activity.value = null;
 });
 watch(page, load);
 onMounted(load);
@@ -136,6 +141,20 @@ onUnmounted(() => {
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
     <p v-if="busy" class="empty-state">正在读取报名名单…</p>
+    <div
+      v-else-if="activity && activity.priceCents > 0 && !error"
+      class="empty-state"
+    >
+      <h3>收费活动名单在活动订单</h3>
+      <p>
+        名额包含待付款订单，请在活动订单中区分未付款与已确认，并查看各单参加者。
+      </p>
+      <RouterLink
+        class="primary button"
+        :to="{ path: '/activity-orders', query: { activityId: activity.id } }"
+        >查看此活动收费名单</RouterLink
+      >
+    </div>
     <div v-else-if="!data.items.length && !error" class="empty-state">
       <h3>还没有人报名</h3>
     </div>
@@ -195,7 +214,11 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="名单分页">
+    <nav
+      v-if="activity && activity.priceCents === 0"
+      class="pagination"
+      aria-label="名单分页"
+    >
       <button class="secondary" :disabled="busy || page === 0" @click="page--">
         上一页</button
       ><span>第 {{ page + 1 }} 页 · 共 {{ data.total }} 笔报名</span

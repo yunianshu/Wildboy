@@ -13,6 +13,8 @@ import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
 import ArticlesView from "./views/ArticlesView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import MembershipsView from "./views/MembershipsView.vue";
+import ActivityOrdersView from "./views/ActivityOrdersView.vue";
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -20,6 +22,8 @@ export const router = createRouter({
     { path: "/", redirect: "/activities" },
     { path: "/activities", component: ActivitiesView },
     { path: "/shop", component: ShopView },
+    { path: "/memberships", component: MembershipsView },
+    { path: "/activity-orders", component: ActivityOrdersView },
     { path: "/templates", component: TemplatesView },
     { path: "/waitlist", component: WaitlistView },
     { path: "/operations", component: OperationsView },

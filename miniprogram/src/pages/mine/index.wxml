@@ -50,6 +50,10 @@
 
       </view>
     </view>
+    <view class="menu-row" bindtap="activityOrders"><view class="menu-title">我的活动订单</view><text>›</text></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="activityOrderManage"><view class="menu-title">活动订单与退款管理</view><text>›</text></view>
+    <view class="menu-row" bindtap="profile"><view class="menu-title">我的身份与会员等级</view><text>›</text></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="membershipManage"><view class="menu-title">会员管理</view><text>›</text></view>
     <view class="menu-row" bindtap="waitlist"><view class="menu-title">我的候补</view><text>›</text></view>
     <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><text>›</text></view>
     <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><text>›</text></view>

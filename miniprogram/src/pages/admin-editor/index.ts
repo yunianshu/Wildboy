@@ -10,6 +10,13 @@ import {
   presets,
   EditForm,
 } from "../admin-editor/shared";
+export function parseActivityPrice(value: string): number {
+  if (!/^\d+(\.\d{1,2})?$/.test(value.trim())) throw new Error("价格须为非负金额，最多两位小数");
+  const [whole, fraction = ""] = value.trim().split(".");
+  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  if (!Number.isSafeInteger(cents) || cents > 100000000) throw new Error("价格须在 0–1000000 元之间");
+  return cents;
+}
 Page({
   data: {
     id: "",
@@ -25,6 +32,8 @@ Page({
     status: "DRAFT",
     version: 0,
     registeredCount: 0,
+    price: "0.00",
+    priceCents: 0,
     form: emptyForm(),
     cover: presets[1],
     presets,
@@ -49,6 +58,8 @@ Page({
     if (!this._invalid) void this.load(false);
   },
   onHide() {
+    this._epoch++;
+    this._loaded = false;
     this.setData({
       authorized: false,
       busy: false,
@@ -71,7 +82,7 @@ Page({
       this._session = session;
       this.setData({ authorized: true });
       if (!same && this._loaded) {
-        this.setData({ form: emptyForm(), dirty: false, uncertain: false });
+        this.setData({ form: emptyForm(), price: "0.00", priceCents: 0, dirty: false, uncertain: false });
         this._loaded = false;
       }
       if (this._loaded && !force && same) return;
@@ -91,6 +102,8 @@ Page({
           status: a.status,
           version: a.version,
           registeredCount: a.registeredCount,
+          price: (a.priceCents / 100).toFixed(2),
+          priceCents: a.priceCents,
           cover: mediaUrl(a.coverUrl),
           categoryIndex: categories.findIndex((x) => x.code === a.category),
         });
@@ -116,6 +129,32 @@ Page({
     } finally {
       if (n === this._epoch) this.setData({ loading: false });
     }
+  },
+  priceInput(e: WechatMiniprogram.Input) {
+    if (!this.data.authorized || this.data.busy) return;
+    this.setData({ price: e.detail.value });
+  },
+  async savePrice() {
+    if (!this.data.id || !this.data.authorized || this.data.busy || this.data.conflict || this.data.uncertain || this.data.status !== "DRAFT" || this.data.registeredCount !== 0 || !isSessionCurrent(this._session)) return;
+    let priceCents: number;
+    try { priceCents = parseActivityPrice(this.data.price); }
+    catch (e) { this.setData({ error: message(e) }); return; }
+    const n = this._epoch, session = this._session;
+    this.setData({ busy: true, error: "" });
+    try {
+      const checked = await requireAdmin();
+      if (!this._alive || n !== this._epoch || checked !== session || !isSessionCurrent(session)) return;
+      const a = await request<Activity>(`/admin/activities/${this.data.id}/price`, "POST", {priceCents, version: this.data.version});
+      if (!this._alive || n !== this._epoch || !isSessionCurrent(session)) return;
+      this.setData({ price: (a.priceCents / 100).toFixed(2), priceCents: a.priceCents, version: a.version, status: a.status, registeredCount: a.registeredCount });
+      wx.showToast({title: "价格已保存", icon: "success"});
+    } catch (e) {
+      if (!this._alive || n !== this._epoch) return;
+      const denied = !isSessionCurrent(session) || (e instanceof ApiError && [401,403].includes(e.status));
+      const conflict = e instanceof ApiError && e.status === 409;
+      this.setData({ authorized: !denied, conflict, uncertain: !(e instanceof ApiError) && !denied,
+        error: denied ? "管理员身份已变化，请重新验证" : conflict ? "活动状态、报名候补或版本已变化，请重新读取后再设置价格" : "价格保存失败或结果未知，请重新读取活动核对后再操作" });
+    } finally { if (n === this._epoch && this._alive) this.setData({busy: false}); }
   },
   markDirty() {
     this.setData({ dirty: true, error: "" });
@@ -217,6 +256,13 @@ Page({
     )
       return;
     const publish = e.currentTarget.dataset.action === "publish";
+    if (publish) {
+      try {
+        if (parseActivityPrice(this.data.price) !== this.data.priceCents) {
+          this.setData({error: "价格尚未保存，请先保存草稿及价格后再发布"}); return;
+        }
+      } catch (error) { this.setData({error: message(error)}); return; }
+    }
     let input: ReturnType<typeof buildInput>;
     try {
       input = buildInput(this.data.form, this.data.registeredCount);

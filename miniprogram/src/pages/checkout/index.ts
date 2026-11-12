@@ -27,6 +27,8 @@ import {
   LegalCurrent,
 } from "../../utils/legal";
 
+import { ShopQuote, validShopQuote } from "../../utils/membership";
+const quoteEpoch = new RequestEpoch();
 const epoch = new RequestEpoch();
 const addressEpoch = new RequestEpoch();
 Page({
@@ -36,6 +38,12 @@ Page({
     quantity: 1,
     product: null as Product | null,
     totalText: "",
+    originalTotalText: "",
+    tierName: "",
+    quote: null as ShopQuote | null,
+    quoteSession: -1,
+    quoteLoading: false,
+    quoteError: "",
     selectedAddressId: "",
     addressLoading: false,
     addressError: "",
@@ -48,6 +56,7 @@ Page({
     consent: false,
     order: null as Order | null,
     orderTotalText: "",
+    orderOriginalTotalText: "",
     orderStatusText: "",
     orderDeadlineText: "",
     awaitingConfirmation: false,
@@ -71,6 +80,7 @@ Page({
       epoch.invalidate();
       this.setData({
         session: sessionVersion(),
+        quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "",
         selectedAddressId: "",
         addressLoading: false,
         addressError: "",
@@ -86,14 +96,16 @@ Page({
       });
     }
     if (this.data.loading) void this.load();
-    if (!this.data.order) void this.refreshAddress();
+    if (!this.data.order) { void this.refreshAddress(); void this.refreshQuote(); }
   },
   onHide() {
     epoch.invalidate();
     addressEpoch.invalidate();
-    this.setData({ busy: false });
+    quoteEpoch.invalidate();
+    this.setData({ busy: false, quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "", quoteLoading: false });
   },
   onUnload() {
+    quoteEpoch.invalidate();
     epoch.invalidate();
     addressEpoch.invalidate();
   },
@@ -135,7 +147,7 @@ Page({
         request<Product>(`/shop/products/${this.data.id}`),
         currentLegal(),
       ]);
-      if (!epoch.valid(current)) return;
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       if (this.data.quantity > product.stock) {
         this.setData({
           error: "购买数量超过当前库存；如之前已提交，请先核对我的订单",
@@ -143,18 +155,33 @@ Page({
       }
       this.setData({
         product: { ...product, imageUrl: mediaUrl(product.imageUrl) },
-        totalText: money(product.priceCents * this.data.quantity),
+
         legal,
         consent: false,
         privacyRead: false,
         termsRead: false,
       });
+      await this.refreshQuote();
     } catch (error) {
       if (epoch.valid(current)) this.setData({ error: message(error) });
     } finally {
       if (epoch.valid(current)) this.setData({ loading: false });
     }
   },
+  async refreshQuote() {
+    const n = quoteEpoch.next(), session = sessionVersion();
+    this.setData({ quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "", quoteLoading: false, quoteError: "" });
+    if (!this.data.id || this.data.order) return;
+    if (!hasSession()) { this.setData({quoteError:"请先登录以确认当前价格"}); return; }
+    this.setData({quoteLoading:true});
+    try {
+      const quote = await request<ShopQuote>(`/shop/products/${this.data.id}/quote?quantity=${this.data.quantity}`);
+      if(!validShopQuote(quote,this.data.id,this.data.quantity)) throw new Error("报价异常，请重新获取");
+      if(quoteEpoch.valid(n) && isSessionCurrent(session)) this.setData({quote,quoteSession:session,totalText:money(quote.totalCents),originalTotalText:money(quote.originalTotalCents),tierName:quote.pricing.tierName || ""});
+    } catch(error) { if(quoteEpoch.valid(n) && isSessionCurrent(session)) this.setData({quoteError:message(error)}); }
+    finally { if(quoteEpoch.valid(n)) this.setData({quoteLoading:false}); }
+  },
+  login() { wx.navigateTo({url:"/pages/login/index"}); },
   retry() {
     void this.load();
   },
@@ -293,6 +320,11 @@ Page({
       this.setData({ error: invalid || "订单信息尚未准备完成" });
       return;
     }
+    if (!this.data.quote || this.data.quoteLoading || !isSessionCurrent(this.data.quoteSession)) {
+      this.setData({ error: "请重新获取当前账号的价格并确认" });
+      return;
+    }
+    const expectedTotalCents = this.data.quote.totalCents;
     this.setData({ busy: true, error: "" });
     const current = epoch.next();
     const session = sessionVersion();
@@ -367,6 +399,7 @@ Page({
       }
       const order = await request<Order>("/orders", "POST", {
         requestId,
+        expectedTotalCents,
         items: [{ productId: this.data.id, quantity: this.data.quantity }],
         recipientName: this.data.recipientName.trim(),
         phone: this.data.phone.trim(),
@@ -388,7 +421,13 @@ Page({
       if (epoch.valid(current) && isSessionCurrent(session))
         this.showOrder(paidOrder);
     } catch (error) {
-      if (epoch.valid(current)) {
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        if (error instanceof ApiError && error.code === "PRICE_CHANGED") {
+          await this.refreshQuote();
+          if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+          this.setData({error:"价格已变化，请核对最新价格后再次提交",awaitingConfirmation:false});
+          return;
+        }
         if (
           error instanceof ApiError &&
           ["LEGAL_VERSION_CHANGED", "LEGAL_NOT_READY"].includes(error.code)
@@ -438,6 +477,7 @@ Page({
     this.setData({
       order,
       orderTotalText: money(order.totalCents),
+      orderOriginalTotalText: money(order.originalTotalCents ?? order.totalCents),
       orderStatusText: orderStatusLabel(order.status),
       orderDeadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     });

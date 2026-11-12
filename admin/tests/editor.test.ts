@@ -57,6 +57,66 @@ describe("editor workflow", () => {
     expect(fetch).not.toHaveBeenCalled();
     wrapper.unmount();
   });
+  it("saves a draft price separately, retains main DTO free-only and never publishes implicitly", async () => {
+    let activity = { ...base, registeredCount: 0 };
+    const fetch = vi.fn(async (_path: string, options: any = {}) => {
+      if (_path.endsWith("/price"))
+        activity = {
+          ...activity,
+          priceCents: JSON.parse(options.body).priceCents,
+          version: 3,
+        };
+      return { ok: true, status: 200, json: async () => activity };
+    });
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("12.34");
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "保存报名价格")!
+      .trigger("click");
+    await flushPromises();
+    expect(JSON.parse(fetch.mock.calls[1][1].body)).toEqual({
+      priceCents: 1234,
+      version: 2,
+    });
+    expect(fetch.mock.calls.some((c) => c[0].endsWith("/publish"))).toBe(false);
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(JSON.parse(fetch.mock.calls[2][1].body)).toMatchObject({
+      priceCents: 0,
+      version: 3,
+    });
+    expect(
+      (wrapper.get('[aria-label="活动报名原价"]').element as HTMLInputElement)
+        .value,
+    ).toBe("12.34");
+    wrapper.unmount();
+  });
+  it("keeps unsaved pricing on metadata save and validates monetary precision", async () => {
+    const fetch = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => base,
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("12.345");
+    await wrapper
+      .findAll("button")
+      .find((b) => b.text() === "保存报名价格")!
+      .trigger("click");
+    expect(wrapper.text()).toContain("最多两位小数");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("25");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(
+      (wrapper.get('[aria-label="活动报名原价"]').element as HTMLInputElement)
+        .value,
+    ).toBe("25");
+    wrapper.unmount();
+  });
   it("version conflict requires reload and disables overwrite retry", async () => {
     const fetch = vi
       .fn()

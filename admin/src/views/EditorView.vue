@@ -57,11 +57,20 @@ const coverPresets = [
   { name: "休闲户外", file: "category-leisure" },
   { name: "户外装备", file: "equipment" },
 ];
-const dirty = computed(() => baseline.value !== JSON.stringify(fields)),
+const priceYuan = ref("0.00");
+const metadataDirty = computed(() => baseline.value !== JSON.stringify(fields));
+const priceDirty = computed(
+  () =>
+    !!current.value &&
+    (!/^\d+(\.\d{1,2})?$/.test(priceYuan.value) ||
+      Math.round(Number(priceYuan.value) * 100) !== current.value.priceCents),
+);
+const dirty = computed(() => metadataDirty.value || priceDirty.value),
   readonly = computed(() => current.value?.status === "CANCELLED");
 let alive = true;
 function assign(data: Activity) {
   current.value = data;
+  priceYuan.value = (data.priceCents / 100).toFixed(2);
   Object.assign(fields, {
     title: data.title,
     category: data.category,
@@ -124,6 +133,7 @@ async function save() {
     error.value = "请检查标记的内容后再保存。";
     return;
   }
+  const pendingPrice = priceDirty.value ? priceYuan.value : null;
   saving.value = true;
   error.value = "";
   success.value = "";
@@ -142,8 +152,57 @@ async function save() {
     );
     if (!alive) return;
     assign(data);
+    if (pendingPrice !== null) priceYuan.value = pendingPrice;
     success.value = "已保存。未发布的草稿不会展示给用户。";
     if (!id.value) await router.replace(`/activities/${data.id}/edit`);
+  } catch (e) {
+    if (alive) {
+      error.value = errorMessage(e);
+      conflict.value = e instanceof ApiError && e.status === 409;
+    }
+  } finally {
+    if (alive) saving.value = false;
+  }
+}
+async function savePrice() {
+  if (
+    saving.value ||
+    conflict.value ||
+    !current.value ||
+    current.value.status !== "DRAFT"
+  )
+    return;
+  if (metadataDirty.value) {
+    error.value = "请先保存活动信息，再设置报名价格。";
+    return;
+  }
+  const amount = Number(priceYuan.value) * 100;
+  if (
+    !/^\d+(\.\d{1,2})?$/.test(priceYuan.value) ||
+    !Number.isFinite(amount) ||
+    amount < 0 ||
+    amount > 100000000
+  ) {
+    error.value = "价格需为 0–1000000 元，最多两位小数。";
+    return;
+  }
+  saving.value = true;
+  error.value = "";
+  success.value = "";
+  try {
+    const updated = await request<Activity>(
+      `/admin/activities/${encodeURIComponent(current.value.id)}/price`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          priceCents: Math.round(amount),
+          version: current.value.version,
+        }),
+      },
+    );
+    if (!alive) return;
+    assign(updated);
+    success.value = "报名价格已保存，活动尚未发布。";
   } catch (e) {
     if (alive) {
       error.value = errorMessage(e);
@@ -213,8 +272,8 @@ function beforeUnload(event: BeforeUnloadEvent) {
 onBeforeRouteLeave(
   (to) =>
     to.path === "/login" ||
-    !dirty.value ||
-    window.confirm("修改尚未保存，确定离开吗？"),
+    (!saving.value &&
+      (!dirty.value || window.confirm("修改尚未保存，确定离开吗？"))),
 );
 onBeforeRouteUpdate(
   () => !dirty.value || window.confirm("修改尚未保存，确定切换活动吗？"),
@@ -456,7 +515,32 @@ onUnmounted(() => {
             </div>
           </section>
           <div class="editor-tip">
-            <p>仅支持免费报名，人数上限不得低于已报名人数。</p>
+            <p>人数上限不得低于已报名人数。</p>
+            <label v-if="current"
+              >报名原价（元 / 人）<input
+                v-model="priceYuan"
+                aria-label="活动报名原价"
+                type="number"
+                min="0"
+                max="1000000"
+                step="0.01"
+                :disabled="saving || conflict || current.status !== 'DRAFT'"
+            /></label>
+            <p v-if="current">
+              0
+              元为免费活动。仅无报名、无候补的草稿可设置；会员优惠按等级多人范围计算。
+            </p>
+            <button
+              v-if="current?.status === 'DRAFT'"
+              type="button"
+              :disabled="saving || conflict || metadataDirty"
+              @click="savePrice"
+            >
+              保存报名价格
+            </button>
+            <p v-if="!current">
+              新建草稿仅支持免费报名；保存草稿后，可在此设置报名价格。
+            </p>
           </div>
         </aside>
       </div>
@@ -516,17 +600,17 @@ onUnmounted(() => {
     />
   </FormModal>
   <ConfirmDialog
-      v-if="dialog"
-      :busy="saving"
-      :danger="dialog === 'cancel'"
-      :title="dialog === 'publish' ? '发布这场活动？' : '确认取消这场活动？'"
-      :description="
-        dialog === 'publish'
-          ? '发布后活动将出现在小程序，微信用户可免费报名。请再次确认时间、地点和人数限制。'
-          : '取消后将停止报名。请另行联系已报名成员说明安排，本系统不会自动发送通知。'
-      "
-      :confirm-label="dialog === 'publish' ? '确认发布' : '确认取消活动'"
-      @confirm="confirmAction"
-      @cancel="!saving && (dialog = null)"
-    />
+    v-if="dialog"
+    :busy="saving"
+    :danger="dialog === 'cancel'"
+    :title="dialog === 'publish' ? '发布这场活动？' : '确认取消这场活动？'"
+    :description="
+      dialog === 'publish'
+        ? '发布后活动将出现在小程序，请再次确认报名价格、时间、地点和人数限制。'
+        : '取消后将停止报名。请另行联系已报名成员说明安排，本系统不会自动发送通知。'
+    "
+    :confirm-label="dialog === 'publish' ? '确认发布' : '确认取消活动'"
+    @confirm="confirmAction"
+    @cancel="!saving && (dialog = null)"
+  />
 </template>

@@ -41,6 +41,12 @@ function logout() {
       <RouterLink class="nav-link" to="/shop"
         ><span>▣</span>商城管理</RouterLink
       >
+      <RouterLink class="nav-link" to="/activity-orders"
+        ><span>▥</span>活动订单</RouterLink
+      >
+      <RouterLink class="nav-link" to="/memberships"
+        ><span>♧</span>会员管理</RouterLink
+      >
       <RouterLink class="nav-link" to="/articles"
         ><span>▤</span>文章管理</RouterLink
       >
@@ -56,31 +62,35 @@ function logout() {
         <span
           >户外活动管理 /
           <strong>{{
-            route.path === "/settings"
-              ? "基础配置"
-              : route.path === "/articles"
-                ? "文章管理"
-                : route.path === "/waitlist"
-                  ? "候补名单"
-                  : route.path === "/operations"
-                    ? "运营工作台"
-                    : route.path === "/templates"
-                      ? "活动模板"
-                      : route.path === "/refunds"
-                        ? "退款售后"
-                        : route.path === "/notifications"
-                          ? "消息管理"
-                          : route.path === "/shop"
-                            ? "商城管理"
-                            : route.path === "/legal"
-                              ? "协议管理"
-                              : route.path.endsWith("registrations")
-                                ? "报名名单"
-                                : route.path.endsWith("edit")
-                                  ? "编辑活动"
-                                  : route.path.endsWith("new")
-                                    ? "新建活动"
-                                    : "活动工作台"
+            route.path === "/activity-orders"
+              ? "活动订单"
+              : route.path === "/memberships"
+                ? "会员管理"
+                : route.path === "/settings"
+                  ? "基础配置"
+                  : route.path === "/articles"
+                    ? "文章管理"
+                    : route.path === "/waitlist"
+                      ? "候补名单"
+                      : route.path === "/operations"
+                        ? "运营工作台"
+                        : route.path === "/templates"
+                          ? "活动模板"
+                          : route.path === "/refunds"
+                            ? "退款售后"
+                            : route.path === "/notifications"
+                              ? "消息管理"
+                              : route.path === "/shop"
+                                ? "商城管理"
+                                : route.path === "/legal"
+                                  ? "协议管理"
+                                  : route.path.endsWith("registrations")
+                                    ? "报名名单"
+                                    : route.path.endsWith("edit")
+                                      ? "编辑活动"
+                                      : route.path.endsWith("new")
+                                        ? "新建活动"
+                                        : "活动工作台"
           }}</strong></span
         >
         <div class="user-tools">

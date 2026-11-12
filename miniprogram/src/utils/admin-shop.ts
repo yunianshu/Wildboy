@@ -55,6 +55,7 @@ export function productInput(f: ProductForm, version?: number) {
 export const adminOrderStatus = (s: string) =>
   ({
     PENDING_PAYMENT: "待付款",
+    CONFIRMED_FREE: "免支付已确认（待发货）",
     PAID: "待发货",
     SHIPPED: "已发货",
     CANCELLED: "已取消",

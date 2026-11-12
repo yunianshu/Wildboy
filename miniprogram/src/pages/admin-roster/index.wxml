@@ -8,7 +8,8 @@
     </button>
   </view>
   <view wx:if="{{loading}}" class="state">正在加载名单…</view>
-  <block wx:if="{{authorized&&activity}}">
+  <view wx:if="{{authorized && paidActivity}}" class="notice">收费活动名单按订单查看，待付款不代表报名已确认。<button bindtap="paidOrders">查看本活动收费名单</button></view>
+  <block wx:if="{{authorized&&activity&&!paidActivity}}">
     <view class="activity-title">{{activity.title}}</view>
     <view class="muted">{{dateText}} · {{activity.location}}</view>
     <view class="summary">

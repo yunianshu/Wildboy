@@ -23,6 +23,7 @@ Page({
       { value: "", label: "全部" },
       { value: "PENDING_PAYMENT", label: "待付款" },
       { value: "PAID", label: "待发货" },
+      { value: "CONFIRMED_FREE", label: "免支付待发货" },
       { value: "SHIPPED", label: "已发货" },
       { value: "CANCELLED", label: "已取消" },
     ],
@@ -164,7 +165,7 @@ Page({
       return;
     const id = safeId(e.currentTarget.dataset.id),
       row = this.data.items.find((x) => x.id === id);
-    if (!row || row.status !== "PAID") return;
+    if (!row || !["PAID", "CONFIRMED_FREE"].includes(row.status)) return;
     const n = this._epoch,
       s = this._session;
     this.setData({ busyId: id, error: "" });

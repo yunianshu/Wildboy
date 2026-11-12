@@ -5,12 +5,15 @@
     <image class="product-image" src="{{product.imageUrl}}" mode="aspectFill" />
     <view class="page product-content">
       <view class="product-title">{{product.name}}</view>
-      <view class="price-line"><text class="price">{{priceText}}</text><text class="stock">{{product.stock ? '库存 ' + product.stock + ' 件' : '暂时售罄'}}</text></view>
+      <view class="price-line"><text class="price">{{tierName ? tierName + '会员价 ' : ''}}{{priceText}}</text><text class="stock">{{product.stock ? '库存 ' + product.stock + ' 件' : '暂时售罄'}}</text></view>
+      <view wx:if="{{originalPriceText}}" class="muted">原价 {{originalPriceText}}</view>
+      <view wx:if="{{quoteLoading}}" class="muted">正在获取价格…</view>
+      <view wx:if="{{quoteError}}" class="muted" bindtap="refreshQuote">{{quoteError}}</view>
       <view class="divider" />
       <view class="section-title small-title">装备细节</view>
       <content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}"/><text wx:else class="body-copy">{{product.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view>
       <view class="notice">价格与库存以下单确认为准。</view>
-      <view class="quantity-row"><view><view class="section-title small-title">购买数量</view><view class="muted">单种商品最多 99 件</view></view><view class="stepper"><button data-delta="-1" bindtap="changeQuantity" disabled="{{quantity <= 1}}">−</button><text>{{quantity}}</text><button data-delta="1" bindtap="changeQuantity" disabled="{{quantity >= product.stock}}">＋</button></view></view>
+      <view class="quantity-row"><view><view class="section-title small-title">购买数量</view><view class="muted">单种商品最多 99 件</view></view><view class="stepper"><button data-delta="-1" bindtap="changeQuantity" disabled="{{quantity <= 1}}">−</button><text>{{quantity}}</text><button data-delta="1" bindtap="changeQuantity" disabled="{{quantity >= product.stock || quantity >= 99}}">＋</button></view></view>
     </view>
     <view class="sticky-action purchase-bar"><view class="purchase-total"><text>合计</text><strong>{{totalText}}</strong></view><button class="primary" disabled="{{!product.stock}}" bindtap="buy">{{product.stock ? '立即购买' : '暂时售罄'}}</button></view>
   </block>
