@@ -1,0 +1,110 @@
+<view class="md">
+  <block wx:for="{{nodes}}" wx:key="index">
+    <view
+      wx:if="{{item.type === 'heading'}}"
+      class="md-h md-h{{item.level}} {{item.quote ? 'md-quote-block' : ''}}"
+    >
+      <text
+        wx:for="{{item.spans}}"
+        wx:for-item="span"
+        wx:key="index"
+        class="md-span md-{{span.t}}"
+        >{{span.s}}</text
+      >
+    </view>
+    <view
+      wx:elif="{{item.type === 'paragraph'}}"
+      class="md-p {{item.quote ? 'md-quote-block' : ''}}"
+    >
+      <text user-select
+        ><text
+          wx:for="{{item.spans}}"
+          wx:for-item="span"
+          wx:key="index"
+          class="md-span md-{{span.t}}"
+          >{{span.s}}</text
+        ></text
+      >
+    </view>
+    <view wx:elif="{{item.type === 'image'}}" class="md-figure">
+      <image class="md-img" src="{{item.url}}" mode="widthFix" lazy-load />
+      <text wx:if="{{item.caption}}" class="md-caption">{{item.caption}}</text>
+    </view>
+    <view
+      wx:elif="{{item.type === 'list'}}"
+      class="md-list {{item.level ? 'md-list-nested' : ''}} {{item.quote ? 'md-quote-block' : ''}}"
+    >
+      <view
+        wx:for="{{item.items}}"
+        wx:for-item="li"
+        wx:for-index="liIndex"
+        wx:key="index"
+        class="md-li"
+      >
+        <text class="md-marker"
+          >{{item.ordered ? liIndex + 1 + '.' : '·'}}</text
+        >
+        <text class="md-li-text"
+          ><text
+            wx:for="{{li.spans}}"
+            wx:for-item="span"
+            wx:key="index"
+            class="md-span md-{{span.t}}"
+            >{{span.s}}</text
+          ></text
+        >
+      </view>
+    </view>
+    <view
+      wx:elif="{{item.type === 'code'}}"
+      class="md-code-block {{item.quote ? 'md-quote-block' : ''}}"
+    >
+      <text user-select>{{item.text}}</text>
+    </view>
+    <view
+      wx:elif="{{item.type === 'table'}}"
+      class="md-table-wrap {{item.quote ? 'md-quote-block' : ''}}"
+    >
+      <scroll-view scroll-x class="md-table-scroll">
+        <view class="md-table">
+          <view class="md-tr md-tr-head">
+            <text
+              wx:for="{{item.head}}"
+              wx:for-item="cell"
+              wx:key="index"
+              class="md-th"
+              ><text
+                wx:for="{{cell}}"
+                wx:for-item="span"
+                wx:key="index"
+                class="md-span md-{{span.t}}"
+                >{{span.s}}</text
+              ></text
+            >
+          </view>
+          <view
+            class="md-tr"
+            wx:for="{{item.rows}}"
+            wx:for-item="row"
+            wx:key="index"
+          >
+            <text
+              wx:for="{{row}}"
+              wx:for-item="cell"
+              wx:key="index"
+              class="md-td"
+              ><text
+                wx:for="{{cell}}"
+                wx:for-item="span"
+                wx:key="index"
+                class="md-span md-{{span.t}}"
+                >{{span.s}}</text
+              ></text
+            >
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+    <view wx:elif="{{item.type === 'hr'}}" class="md-hr"></view>
+  </block>
+</view>

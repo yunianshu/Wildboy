@@ -7,7 +7,7 @@ import { articleStatusTone } from "../statusTone";
 import AppIcon from "../components/AppIcon.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
-import RichContentEditor from "../components/RichContentEditor.vue";
+import MarkdownEditor from "../components/MarkdownEditor.vue";
 import UiState from "../components/UiState.vue";
 type Article = {
   id: string;
@@ -30,7 +30,7 @@ const opened = ref(false),
   selected = ref<Article | null>(null),
   editorPage = ref<"info" | "content">("info"),
   contentKey = ref(0),
-  rich = ref<InstanceType<typeof RichContentEditor> | null>(null);
+  rich = ref<InstanceType<typeof MarkdownEditor> | null>(null);
 type ArticleAction = "publish" | "unpublish" | "official";
 const confirmation = ref<{
   action: Exclude<ArticleAction, "unpublish">;
@@ -461,12 +461,13 @@ onMounted(() => void load());
           </button>
         </fieldset>
       </form>
-      <RichContentEditor
+      <MarkdownEditor
         v-if="selected"
         v-show="editorPage === 'content'"
         :key="contentKey"
         ref="rich"
         managed-navigation
+        :active="editorPage === 'content'"
         :path="`/admin/articles/${selected.id}/content`"
         :disabled="locked"
         @saved="contentSaved"

@@ -1,4 +1,4 @@
 {
   "navigationBarTitleText": "野小子 · 文章",
-  "usingComponents": { "content-view": "/components/content-view/index" }
+  "usingComponents": { "markdown-view": "/components/markdown-view/index" }
 }

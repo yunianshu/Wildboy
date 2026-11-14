@@ -1,4 +1,38 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Vditor 在 jsdom 中无法初始化，用可控替身验证组件协作。
+const { VditorMock, vditorInstances } = vi.hoisted(() => {
+  const vditorInstances: any[] = [];
+  class VditorMock {
+    options: any;
+    value = "";
+    readied = false;
+    constructor(_el: HTMLElement, options: any) {
+      this.options = options;
+      this.value = options.value ?? "";
+      vditorInstances.push(this);
+    }
+    setValue(v: string) {
+      this.value = v;
+    }
+    getValue() {
+      return this.value;
+    }
+    disabled() {}
+    enable() {}
+    destroy() {}
+    fireInput() {
+      this.options?.input?.(this.value);
+    }
+    ready() {
+      if (this.readied) return;
+      this.readied = true;
+      this.options?.after?.();
+    }
+  }
+  return { VditorMock, vditorInstances };
+});
+vi.mock("vditor", () => ({ default: VditorMock }));
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import ArticlesView from "../src/views/ArticlesView.vue";
@@ -14,7 +48,7 @@ const base = {
   version: 0,
 };
 let article: typeof base,
-  content: { type: string; text: string }[],
+  markdownText = "回顾正文",
   fetcher: ReturnType<typeof vi.fn>;
 function button(w: VueWrapper, text: string) {
   return w.findAll("button").find((b) => b.text() === text)!;
@@ -27,7 +61,8 @@ beforeEach(() => {
     user: { id: "admin", nickname: "管理员", role: "ADMIN" },
   });
   article = { ...base };
-  content = [{ type: "text", text: "回顾正文" }];
+  markdownText = "回顾正文";
+  vditorInstances.length = 0;
   vi.spyOn(window, "confirm").mockReturnValue(true);
   fetcher = vi.fn(async (url: string, options: any = {}) => {
     const body = options.body ? JSON.parse(options.body) : null;
@@ -35,10 +70,10 @@ beforeEach(() => {
     if (url.includes("/admin/activities")) data = { items: [], hasMore: false };
     else if (url.endsWith("/content")) {
       if (options.method === "PUT") {
-        content = body.blocks;
+        markdownText = body.markdown;
         article.version++;
       }
-      data = { blocks: content, version: article.version };
+      data = { markdown: markdownText, version: article.version };
     } else if (url.endsWith("/publish")) {
       article.status = "PUBLISHED";
       article.version++;
@@ -86,7 +121,16 @@ async function edit(w: VueWrapper) {
 }
 async function showContent(w: VueWrapper) {
   await button(w, "图文正文").trigger("click");
+  await flushPromises();
   expect(w.get(".rich-editor").isVisible()).toBe(true);
+  expect(vditorInstances.length).toBeGreaterThan(0);
+  vditorInstances.at(-1)!.ready();
+}
+
+async function typeContent(w: VueWrapper, text: string) {
+  const inst = vditorInstances.at(-1)!;
+  inst.value = text;
+  inst.fireInput();
 }
 async function confirmPublish(w: VueWrapper) {
   await button(w, "发布文章").trigger("click");
@@ -113,13 +157,11 @@ describe("article editor", () => {
     const w = await view();
     await edit(w);
     await showContent(w);
-    await w.get('[aria-label="图文文字"]').setValue("更新正文");
+    await typeContent(w, "更新正文");
     await button(w, "基本资料").trigger("click");
     expect(button(w, "发布文章").attributes("disabled")).toBeDefined();
     await showContent(w);
-    expect(
-      (w.get('[aria-label="图文文字"]').element as HTMLTextAreaElement).value,
-    ).toBe("更新正文");
+    expect(vditorInstances.at(-1)!.value).toBe("更新正文");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
     await button(w, "基本资料").trigger("click");
@@ -139,12 +181,13 @@ describe("article editor", () => {
     await w.get("form").trigger("submit");
     await flushPromises();
     await showContent(w);
-    await w.get('[aria-label="图文文字"]').setValue("再次编辑");
+    await typeContent(w, "再次编辑");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
     const put = fetcher.mock.calls.find(
       (c: any) => c[0].endsWith("/content") && c[1]?.method === "PUT",
     )!;
+    expect(JSON.parse(put[1].body).markdown).toBe("再次编辑");
     expect(JSON.parse(put[1].body).version).toBe(1);
     w.unmount();
   });
@@ -152,7 +195,7 @@ describe("article editor", () => {
     const w = await view();
     await edit(w);
     await showContent(w);
-    await w.get('[aria-label="图文文字"]').setValue("保存后关闭");
+    await typeContent(w, "保存后关闭");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
     await button(w, "关闭").trigger("click");
@@ -217,7 +260,7 @@ describe("article editor", () => {
     const w = await view();
     await edit(w);
     await showContent(w);
-    await w.get('[aria-label="图文文字"]').setValue("尚未保存的图文");
+    await typeContent(w, "尚未保存的图文");
     vi.mocked(window.confirm).mockClear();
     await (w.vm as any).$router.push("/other");
     expect(window.confirm).toHaveBeenCalledTimes(1);

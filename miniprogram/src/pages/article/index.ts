@@ -42,7 +42,7 @@ Page({
         !article ||
         !safeId(article.id) ||
         !article.title ||
-        !Array.isArray(article.blocks)
+        !Array.isArray(article.contentNodes)
       )
         throw new Error("文章加载失败，请重试");
       if (n !== this._epoch) return;
@@ -50,10 +50,10 @@ Page({
         article: {
           ...article,
           coverUrl: mediaUrl(article.coverUrl || ""),
-          blocks: article.blocks.map((block) =>
-            block.type === "image"
-              ? { ...block, url: mediaUrl(block.url || "") }
-              : block,
+          contentNodes: article.contentNodes.map((node) =>
+            node && node.type === "image"
+              ? { ...node, url: mediaUrl(node.url || "") }
+              : node,
           ),
         },
       });

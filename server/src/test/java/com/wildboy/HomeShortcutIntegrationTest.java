@@ -83,7 +83,7 @@ class HomeShortcutIntegrationTest {
     var a=articles.create(new ArticleModels.Input("Private draft","Secret summary","/assets/equipment.jpg",null,null),actor);
     var target=new Item(4,"文章","INTRO","ARTICLE","",a.id(),"","","");
     reject(replace(4,target));
-    articles.saveContent(a.id(),new ContentModels.Input(List.of(new ContentModels.Block("text","文章正文",null,null,null)),0L),actor);
+    articles.saveContent(a.id(),new ArticleModels.ArticleContentInput("文章正文",0L),actor);
     a=articles.action(a.id(),1L,"publish",actor);
     shortcuts.save(replace(4,target),actor);
     assertThat(shortcuts.get(false).items().get(3).articleId()).isEqualTo(a.id());

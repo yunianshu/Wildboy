@@ -26,9 +26,9 @@ const article = {
   title: "真实文章",
   summary: "简介",
   coverUrl: "/assets/category-weekly.jpg",
-  blocks: [
-    { type: "text", text: "<script>不会作为HTML运行</script>" },
-    { type: "image", url: "/assets/category-weekly.jpg" },
+  contentNodes: [
+    { type: "paragraph", spans: [{ t: "text", s: "第一段" }] },
+    { type: "image", url: "/assets/category-weekly.jpg", caption: "图注" },
   ],
 };
 beforeEach(() => {
@@ -44,17 +44,17 @@ test("official shortcut resolves published pointer", async () => {
   assert.deepEqual(calls, ["/articles/official"]);
   assert.equal(p.data.article.title, article.title);
 });
-test("article detail uses safe native blocks and id route", async () => {
+test("article detail uses safe native markdown nodes and id route", async () => {
   const p = page();
   await p.load();
   assert.deepEqual(calls, ["/articles/article-1"]);
-  assert.deepEqual(p.data.article.blocks, article.blocks);
+  assert.deepEqual(p.data.article.contentNodes, article.contentNodes);
   const markup = require("node:fs").readFileSync(
     "dist/pages/article/index.wxml",
     "utf8",
   );
-  assert.match(markup, /<content-view blocks=/);
-  assert.doesNotMatch(markup, /rich-text|web-view/);
+  assert.match(markup, /<markdown-view nodes=/);
+  assert.doesNotMatch(markup, /rich-text|web-view|content-view/);
 });
 test("invalid and ambiguous links make no request", async () => {
   for (const o of [

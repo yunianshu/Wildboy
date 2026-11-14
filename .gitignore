@@ -20,3 +20,4 @@ miniprogram/miniprogram_npm/
 *.jks
 **/__pycache__/
 *.py[cod]
+admin/public/vditor/

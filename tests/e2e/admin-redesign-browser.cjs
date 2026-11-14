@@ -1220,13 +1220,27 @@ async function articleWorkflow(page) {
   const contentTab = button(editor, /图文正文/);
   const metadataTab = button(editor, /基本资料/);
   if (await contentTab.isVisible()) await contentTab.click();
-  await button(editor, /文字/).click();
-  await editor.getByLabel(/图文文字/).fill("合成文章正文，仅隔离环境。");
-  if (await metadataTab.isVisible()) await metadataTab.click();
-  assert.equal(await button(editor, /发布文章/).isDisabled(), true);
+  const md = editor
+    .locator(
+      '[aria-label="图文正文（Markdown 编辑器）"] .vditor-wysiwyg pre[contenteditable="true"]',
+    )
+    .first();
+  await editor
+    .locator('[aria-label="图文正文（Markdown 编辑器）"][data-vditor-ready="1"]')
+    .waitFor({ state: "visible", ...headingTimeout });
+  await md.click();
+  await md.fill("合成文章正文，仅隔离环境。");
+  // Vditor 的 input 处理带防抖：轮询等待"未保存图文"禁用发布按钮生效
+  let publishLocked = false;
+  for (let i = 0; i < 20 && !publishLocked; i++) {
+    if (await metadataTab.isVisible()) await metadataTab.click();
+    publishLocked = await button(editor, /发布文章/).isDisabled();
+    if (!publishLocked) await page.waitForTimeout(250);
+  }
+  assert.equal(publishLocked, true);
   if (await contentTab.isVisible()) await contentTab.click();
   assert.equal(
-    await editor.getByLabel(/图文文字/).inputValue(),
+    await md.textContent(),
     "合成文章正文，仅隔离环境。",
   );
   await write(page, `${endpoint}/content`, "PUT", () =>

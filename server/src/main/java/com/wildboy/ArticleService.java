@@ -13,17 +13,27 @@ public class ArticleService {
   final JdbcTemplate db; final ObjectMapper json;
   static final String SELECT="SELECT a.*, (s.official_article_id=a.id) IS TRUE AS is_official FROM article a CROSS JOIN article_settings s ";
   public ArticleService(JdbcTemplate db,ObjectMapper json){this.db=db;this.json=json;}
-  Article map(java.sql.ResultSet r,int n) throws java.sql.SQLException {
-    try {return new Article(r.getString("id"),r.getString("title"),r.getString("summary"),r.getString("cover_url"),r.getString("activity_id"),r.getString("status"),r.getBoolean("is_official"),r.getLong("version"),r.getObject("published_at",OffsetDateTime.class),r.getObject("updated_at",OffsetDateTime.class),Arrays.asList(json.readValue(r.getString("blocks"),ContentModels.Block[].class)));}
-    catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalStateException("Invalid stored article",e);}
+  Article map(java.sql.ResultSet r,int n,boolean withNodes) throws java.sql.SQLException {
+    String markdown=r.getString("markdown");
+    List<Object> nodes=withNodes?ArticleMarkdown.toNodes(markdown==null
+      ?ArticleMarkdown.fromBlocksJson(json,r.getString("blocks")):markdown):null;
+    return new Article(r.getString("id"),r.getString("title"),r.getString("summary"),r.getString("cover_url"),r.getString("activity_id"),r.getString("status"),r.getBoolean("is_official"),r.getLong("version"),r.getObject("published_at",OffsetDateTime.class),r.getObject("updated_at",OffsetDateTime.class),nodes);
   }
-  public Article get(String id,boolean admin){return db.query(SELECT+"WHERE a.id=?"+(admin?"":" AND a.status='PUBLISHED'"),this::map,id).stream().findFirst().orElseThrow(ApiException::notFound);}
-  public Article official(){return db.query(SELECT+"WHERE a.id=s.official_article_id AND a.status='PUBLISHED'",this::map).stream().findFirst().orElseThrow(ApiException::notFound);}
+  /** 正文端点用：返回原始 markdown（旧文章由 blocks 懒转换，保存时固化）。 */
+  public ArticleContent content(String id){
+    return db.query("SELECT markdown,blocks,version FROM article WHERE id=?",(r,n)->{
+      String markdown=r.getString("markdown");
+      if(markdown==null) markdown=ArticleMarkdown.fromBlocksJson(json,r.getString("blocks"));
+      return new ArticleContent(markdown,r.getLong("version"));
+    },id).stream().findFirst().orElseThrow(ApiException::notFound);
+  }
+  public Article get(String id,boolean admin){return db.query(SELECT+"WHERE a.id=?"+(admin?"":" AND a.status='PUBLISHED'"),(r,n)->map(r,n,true),id).stream().findFirst().orElseThrow(ApiException::notFound);}
+  public Article official(){return db.query(SELECT+"WHERE a.id=s.official_article_id AND a.status='PUBLISHED'",(r,n)->map(r,n,true)).stream().findFirst().orElseThrow(ApiException::notFound);}
   public Models.Page<Article> list(int page,int size,boolean admin){
     page=Math.max(0,page);size=Math.max(1,Math.min(100,size));
     String where=admin?"":"WHERE a.status='PUBLISHED' AND a.id IS DISTINCT FROM s.official_article_id ";
     long total=db.queryForObject("SELECT count(*) FROM article a CROSS JOIN article_settings s "+where,Long.class);
-    var items=db.query(SELECT+where+" ORDER BY a.published_at DESC NULLS LAST,a.updated_at DESC,a.id LIMIT ? OFFSET ?",this::map,size,(long)page*size);
+    var items=db.query(SELECT+where+" ORDER BY a.published_at DESC NULLS LAST,a.updated_at DESC,a.id LIMIT ? OFFSET ?",(r,n)->map(r,n,false),size,(long)page*size);
     return new Models.Page<>(items,total,page,size,((long)page+1)*size<total);
   }
   void lock(){db.queryForList("SELECT id FROM article_settings WHERE id=1 FOR UPDATE");}
@@ -32,6 +42,13 @@ public class ArticleService {
     if(version==null || version!=old.version())throw ApiException.conflict("ARTICLE_CONFLICT","文章已更新，请刷新后重试");
     if(draft && !old.status().equals("DRAFT"))throw ApiException.conflict("ARTICLE_PUBLISHED","请先下架文章再编辑");
     return old;
+  }
+  /** 生效正文：markdown 列为空时从旧版 blocks 懒转换（读路径不落库，保存时固化）。 */
+  String effectiveMarkdown(String id){
+    return db.query("SELECT markdown,blocks FROM article WHERE id=?",(r,n)->{
+      String markdown=r.getString("markdown");
+      return markdown==null?ArticleMarkdown.fromBlocksJson(json,r.getString("blocks")):markdown;
+    },id).stream().findFirst().orElseThrow(ApiException::notFound);
   }
   String empty(String s){return s==null?"":s.strip();}
   void validate(Input in){
@@ -50,10 +67,9 @@ public class ArticleService {
     db.update("UPDATE article SET title=?,summary=?,cover_url=?,activity_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",in.title().strip(),empty(in.summary()),empty(in.coverUrl()),empty(in.activityId()).isEmpty()?null:in.activityId(),id);
     audit(actor,id,"ARTICLE_UPDATE");return get(id,true);
   }
-  public ContentModels.Document content(String id){var a=get(id,true);return new ContentModels.Document(a.blocks(),a.version());}
-  @Transactional public ContentModels.Document saveContent(String id,ContentModels.Input in,String actor){
-    lock();check(id,in.version(),true);ContentService.validate(in.blocks());
-    try {db.update("UPDATE article SET blocks=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",json.writeValueAsString(in.blocks()),id);}catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalArgumentException(e);}
+  @Transactional public ArticleContent saveContent(String id,ArticleContentInput in,String actor){
+    lock();check(id,in.version(),true);
+    db.update("UPDATE article SET markdown=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",in.markdown()==null?"":in.markdown(),id);
     audit(actor,id,"ARTICLE_CONTENT_UPDATE");return content(id);
   }
   @Transactional public Article action(String id,Long version,String action,String actor){
@@ -61,8 +77,7 @@ public class ArticleService {
     switch(action){
       case "publish" -> {
         if(!old.status().equals("DRAFT"))throw ApiException.conflict("ARTICLE_PUBLISHED","文章已发布");
-        if(!ContentService.safeImage(old.coverUrl()) || old.blocks().isEmpty())throw new ApiException(400,"ARTICLE_INCOMPLETE","请先保存封面和文章正文");
-        ContentService.validate(old.blocks());
+        if(!ContentService.safeImage(old.coverUrl()) || effectiveMarkdown(id).isBlank())throw new ApiException(400,"ARTICLE_INCOMPLETE","请先保存封面和文章正文");
         db.update("UPDATE article SET status='PUBLISHED',published_at=CURRENT_TIMESTAMP WHERE id=?",id);
       }
       case "unpublish" -> {

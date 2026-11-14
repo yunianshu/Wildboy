@@ -16,8 +16,8 @@ public class ArticleController {
   @GetMapping("/admin/articles/{id}") Article adminGet(@PathVariable String id){return service.get(id,true);}
   @PostMapping("/admin/articles") Article create(@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.create(in,user.id());}
   @PutMapping("/admin/articles/{id}") Article update(@PathVariable String id,@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.update(id,in,user.id());}
-  @GetMapping("/admin/articles/{id}/content") ContentModels.Document content(@PathVariable String id){return service.content(id);}
-  @PutMapping("/admin/articles/{id}/content") ContentModels.Document saveContent(@PathVariable String id,@Valid @RequestBody ContentModels.Input in,@AuthenticationPrincipal Models.User user){return service.saveContent(id,in,user.id());}
+  @GetMapping("/admin/articles/{id}/content") ArticleContent content(@PathVariable String id){return service.content(id);}
+  @PutMapping("/admin/articles/{id}/content") ArticleContent saveContent(@PathVariable String id,@Valid @RequestBody ArticleContentInput in,@AuthenticationPrincipal Models.User user){return service.saveContent(id,in,user.id());}
   @PostMapping("/admin/articles/{id}/publish") Article publish(@PathVariable String id,@Valid @RequestBody VersionInput in,@AuthenticationPrincipal Models.User user){return service.action(id,in.version(),"publish",user.id());}
   @PostMapping("/admin/articles/{id}/unpublish") Article unpublish(@PathVariable String id,@Valid @RequestBody VersionInput in,@AuthenticationPrincipal Models.User user){return service.action(id,in.version(),"unpublish",user.id());}
   @PostMapping("/admin/articles/{id}/official") Article setOfficial(@PathVariable String id,@Valid @RequestBody VersionInput in,@AuthenticationPrincipal Models.User user){return service.action(id,in.version(),"official",user.id());}

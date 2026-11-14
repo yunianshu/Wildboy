@@ -6,6 +6,6 @@
     <image wx:if="{{article.coverUrl}}" class="article-cover" src="{{article.coverUrl}}" mode="widthFix" />
     <view class="title">{{article.title}}</view>
     <view wx:if="{{article.summary}}" class="article-summary">{{article.summary}}</view>
-    <content-view blocks="{{article.blocks}}" />
+    <markdown-view nodes="{{article.contentNodes}}" />
   </block>
 </view>
