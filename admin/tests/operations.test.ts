@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
+import { createMemoryHistory, createRouter } from "vue-router";
 import TemplatesView from "../src/views/TemplatesView.vue";
 import OperationsView from "../src/views/OperationsView.vue";
 import { acceptAuth, clearSession } from "../src/api";
@@ -156,5 +157,71 @@ describe("operational workflows", () => {
     release({ ok: true, status: 200, json: async () => ({ private: true }) });
     await flushPromises();
     expect(w.exists()).toBe(false);
+  });
+  it("shows confirmed and occupied seats separately and sends paid exceptions to their order", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          path.includes("/dashboard")
+            ? {
+                activities: {
+                  total: 1,
+                  registrations: 1,
+                  occupied: 4,
+                  pending_payment: 3,
+                  capacity: 20,
+                  full: 0,
+                },
+                orders: { paid_orders: 0, gross_cents: 0, refunded_cents: 0 },
+                pendingShipping: 0,
+                lowStock: [],
+                trend: [],
+              }
+            : {
+                items: ["ACTIVITY_PAYMENT", "ACTIVITY_REFUND"].map((kind) => ({
+                  kind,
+                  id: kind,
+                  entity_id:
+                    kind === "ACTIVITY_PAYMENT" ? "payment-1" : "refund-1",
+                  activity_id: "activity-1",
+                  message: kind,
+                  status: "UNKNOWN",
+                  updated_at: "2026-11-11T00:00:00Z",
+                })),
+                hasMore: false,
+              },
+      })),
+    );
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/", component: OperationsView },
+        {
+          path: "/activity-orders",
+          component: { template: "<p>活动订单</p>" },
+        },
+      ],
+    });
+    await router.push("/");
+    const w = mount(OperationsView, { global: { plugins: [router] } });
+    await flushPromises();
+    expect(w.text()).toContain("未来活动已确认报名");
+    expect(w.text()).toContain("名额占用 4 / 20 · 待支付 3");
+    await w
+      .findAll("button")
+      .find((b) => b.text() === "异常待办")!
+      .trigger("click");
+    await flushPromises();
+    expect(w.findAll("a").map((a) => a.attributes("href"))).toEqual([
+      "/activity-orders?orderId=payment-1&activityId=activity-1",
+      "/activity-orders?orderId=refund-1&activityId=activity-1",
+    ]);
+    expect(w.findAll("button").some((b) => b.text() === "核对支付")).toBe(
+      false,
+    );
+    w.unmount();
   });
 });

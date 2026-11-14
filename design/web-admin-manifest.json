@@ -1,0 +1,276 @@
+{
+  "file": "设计图文件.pen",
+  "canvasIndex": "bi8Au",
+  "preview": {
+    "desktop": "jyR2K",
+    "mobile": "P7vIc"
+  },
+  "boards": [
+    {
+      "id": "PoJPW",
+      "name": "Web / 管理员登录",
+      "route": "/login",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "jooRk",
+      "name": "Web / 运营工作台",
+      "route": "/operations",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "dxs6Q",
+      "name": "Web / 活动管理",
+      "route": "/activities",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "CCqVo",
+      "name": "Web / 新建活动",
+      "route": "/activities/new",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "afpqo",
+      "name": "Web / 编辑活动",
+      "route": "/activities/:id/edit",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "A7gFGK",
+      "name": "Web / 报名名单",
+      "route": "/activities/:id/registrations",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "VZIjm",
+      "name": "Web / 活动模板",
+      "route": "/templates",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "jv8du",
+      "name": "Web / 商城管理",
+      "route": "/shop",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "Z4snv",
+      "name": "Web / 商品分类",
+      "route": "/shop/categories",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "kc418",
+      "name": "Web / 退款售后",
+      "route": "/refunds",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "vMuxZ",
+      "name": "Web / 消息管理",
+      "route": "/notifications",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "udj84",
+      "name": "Web / 用户管理",
+      "route": "/users",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "Pr4cO",
+      "name": "Web / 协议管理",
+      "route": "/legal",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "UHolL",
+      "name": "Web / 管理员账号",
+      "route": "/settings/admin-account",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "UFr8b",
+      "name": "Web / 活动管理 · 窄屏",
+      "route": "/activities",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "id": "YcrPD",
+      "name": "Web / 编辑活动 · 窄屏",
+      "route": "/activities/:id/edit",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "id": "mS4Tg",
+      "name": "Web / 运营工作台 · 列表状态",
+      "route": "/operations",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "jlF19",
+      "name": "Web / 活动管理 · 发布确认",
+      "route": "/activities",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "xHqTA",
+      "name": "Web / 活动订单 · 全部订单",
+      "route": "/activity-orders",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "XErK6",
+      "name": "Web / 活动订单 · 待支付详情",
+      "route": "/activity-orders",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "othlP",
+      "name": "Web / 活动订单 · 退款审核",
+      "route": "/activity-orders",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "x9gG8s",
+      "name": "Web / 会员管理 · 等级列表",
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "V6uBE",
+      "name": "Web / 会员管理 · 用户业务身份",
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "vruDl",
+      "name": "Web / 会员管理 · 等级编辑",
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "Asyql",
+      "name": "Web / 会员管理 · 分配业务身份",
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "hSL6j",
+      "name": "Web / 文章管理 · 文章列表",
+      "route": "/articles",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "HpfmJ",
+      "name": "Web / 文章管理 · 草稿编辑",
+      "route": "/articles",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "pF4I3",
+      "name": "Web / 文章管理 · 设置官方介绍确认",
+      "route": "/articles",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "DbJts",
+      "name": "Web / 基础配置 · 四入口与目标页",
+      "route": "/settings",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "xNcp5",
+      "name": "Web / 基础配置 · 弹窗内容配置",
+      "route": "/settings",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "k0nVX",
+      "name": "Web / 基础配置 · 版本冲突恢复",
+      "route": "/settings",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "yJl1Q",
+      "name": "Web / 基础配置 · 窄屏",
+      "route": "/settings",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "D02kiL",
+      "name": "Web / 活动订单 · 窄屏",
+      "route": "/activity-orders",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "jLyLI",
+      "name": "Web / 商城管理 · 装备订单",
+      "route": "/shop",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "pKPcb",
+      "name": "Web / 退款售后 · 申请审核",
+      "route": "/refunds",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "tSb5v",
+      "name": "Web / 报名名单 · 查看资料确认",
+      "route": "/activities/:id/registrations",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "Sfyhp",
+      "name": "Web / 消息管理 · 恢复通知",
+      "route": "/notifications",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "jwaEj",
+      "name": "Web / 管理员账号 · 修改",
+      "route": "/settings/admin-account",
+      "width": 1280,
+      "height": 800
+    }
+  ]
+}

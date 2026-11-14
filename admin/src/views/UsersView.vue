@@ -8,13 +8,21 @@ import {
   request,
   updateAdminUserRole,
 } from "../api";
-import type {
-  AdminUser,
-  AdminUserDetail,
-  Page,
-  RegistrationStatus,
-  User,
+import {
+  activityOrderLabels,
+  type AdminUser,
+  type AdminUserDetail,
+  type Page,
+  type Registration,
+  type RegistrationStatus,
+  type User,
 } from "../types";
+import {
+  activityOrderTone,
+  profileTone,
+  registrationTone,
+  roleTone,
+} from "../statusTone";
 import UiState from "../components/UiState.vue";
 import FormModal from "../components/FormModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
@@ -26,6 +34,17 @@ const sourceLabels: Record<AdminUser["accountSource"], string> = {
   OTHER: "其他来源",
 };
 const roleLabels = { USER: "普通用户", ADMIN: "管理员" };
+function registrationLabel(registration: Registration) {
+  if (registration.source === "ACTIVITY_ORDER" && registration.orderStatus)
+    return activityOrderLabels[registration.orderStatus];
+  if (registration.status === "PENDING_PAYMENT") return "待支付（名额保留）";
+  return registration.status === "CONFIRMED" ? "有效报名" : "已取消";
+}
+function registrationBadgeTone(registration: Registration) {
+  if (registration.source === "ACTIVITY_ORDER" && registration.orderStatus)
+    return `tone-${activityOrderTone(registration.orderStatus)}`;
+  return `tone-${registrationTone(registration.status)}`;
+}
 const items = ref<AdminUser[]>([]),
   loading = ref(false),
   error = ref(""),
@@ -378,350 +397,396 @@ function dateTime(value: string | null) {
 </script>
 
 <template>
-  <header class="page-heading">
-    <div>
-      <h1>用户管理</h1>
-      <p class="muted">查看用户资料、报名历史与真实微信账号的管理权限。</p>
-    </div>
-    <button :disabled="loading || interactionLocked" @click="load(page)">
-      刷新用户
-    </button>
-  </header>
-  <div class="range-label users-range">
-    <span class="muted">{{ filterSummary }}</span
-    ><button :disabled="loading || interactionLocked" @click="openFilters">
-      筛选用户
-    </button>
-  </div>
-  <p class="privacy-note">
-    姓名、手机号与报名资料默认脱敏。不能代替用户修改资料；完整联系方式请在对应活动名单中按用途核验。
-  </p>
-  <p v-if="notice && !detailId" class="success-box" role="status">
-    {{ notice }}
-  </p>
-  <p v-if="error" class="error-box" role="alert">
-    {{ error
-    }}<button
-      class="text-button"
-      :disabled="loading || interactionLocked"
-      @click="load(page)"
-    >
-      重试
-    </button>
-  </p>
-  <UiState v-if="loading && !items.length" kind="loading" compact
-    >正在读取用户…</UiState
-  >
-  <UiState v-else-if="!items.length && !error" kind="empty" compact
-    >没有匹配的用户。可调整筛选条件后重新查询。<button @click="openFilters">
-      调整筛选
-    </button></UiState
-  >
-  <div v-if="items.length" class="table-scroll" :aria-busy="loading">
-    <table class="users-table">
-      <thead>
-        <tr>
-          <th>用户</th>
-          <th>联系资料 · 已脱敏</th>
-          <th>账号来源 / 角色</th>
-          <th>报名记录</th>
-          <th>注册时间 · 北京时间</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="user in items" :key="user.id">
-          <td>
-            <strong>{{ user.nickname || "未设置昵称" }}</strong
-            ><br /><span class="record-id" :title="user.id">{{ user.id }}</span>
-          </td>
-          <td>
-            {{ user.realName || "姓名未填写" }} ·
-            {{ user.phone || "手机号未填写" }}<br /><span
-              class="status-badge"
-              >{{ user.profileCompleted ? "资料已完善" : "资料未完善" }}</span
-            >
-          </td>
-          <td>
-            {{ sourceLabels[user.accountSource] || "其他来源" }}<br /><span
-              class="status-badge"
-              >{{ roleLabels[user.role] || "未知角色" }}</span
-            >
-          </td>
-          <td>
-            有效 {{ user.confirmedRegistrationCount }} / 全部
-            {{ user.registrationCount }}
-          </td>
-          <td>{{ dateTime(user.createdAt) }}</td>
-          <td>
-            <button
-              class="text-button"
-              :disabled="interactionLocked"
-              @click="openUser(user)"
-            >
-              查看用户
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <nav class="pagination" aria-label="用户分页">
-    <span>第 {{ page + 1 }} 页 · 共 {{ total }} 位</span>
-    <div class="action-row">
-      <button
-        :disabled="loading || interactionLocked || page === 0"
-        @click="load(page - 1)"
-      >
-        上一页</button
-      ><button
-        :disabled="loading || interactionLocked || !hasMore"
-        @click="load(page + 1)"
-      >
-        下一页
+  <main class="workspace">
+    <header class="page-heading">
+      <div>
+        <h1>用户管理</h1>
+        <p class="muted">查看用户资料、报名历史与真实微信账号的管理权限。</p>
+      </div>
+      <button :disabled="loading || interactionLocked" @click="load(page)">
+        刷新用户
+      </button>
+    </header>
+    <div class="range-label users-range">
+      <span class="muted">{{ filterSummary }}</span
+      ><button :disabled="loading || interactionLocked" @click="openFilters">
+        筛选用户
       </button>
     </div>
-  </nav>
-
-  <FormModal v-if="filterOpen" @close="filterOpen = false">
-    <form class="form-section" @submit.prevent="applyFilters">
-      <h2>筛选用户</h2>
-      <label
-        >昵称、姓名、用户编号或完整手机号<input
-          v-model="queryDraft"
-          name="userQuery"
-          maxlength="80"
-          placeholder="输入查找内容"
-      /></label>
-      <div class="field-row">
-        <label
-          >资料状态<select v-model="profileDraft" name="profile">
-            <option value="">全部状态</option>
-            <option value="COMPLETE">资料已完善</option>
-            <option value="INCOMPLETE">资料未完善</option>
-          </select></label
-        ><label
-          >角色<select v-model="roleDraft" name="role">
-            <option value="">全部角色</option>
-            <option value="USER">普通用户</option>
-            <option value="ADMIN">管理员</option>
-          </select></label
-        >
-      </div>
-      <label
-        >账号来源<select v-model="sourceDraft" name="accountSource">
-          <option value="">全部来源</option>
-          <option v-for="(label, key) in sourceLabels" :key="key" :value="key">
-            {{ label }}
-          </option>
-        </select></label
-      >
-      <div class="dialog-actions">
-        <button type="button" @click="resetFilters">清空条件</button
-        ><button class="primary" :disabled="loading">查询用户</button>
-      </div>
-    </form>
-  </FormModal>
-
-  <FormModal v-if="detailId" size="lg" @close="closeUser">
-    <div aria-label="用户详情">
-      <h2>用户详情</h2>
-      <p class="record-id">
-        {{ detail?.user.nickname || "正在读取用户" }} · 用户编号：{{ detailId }}
-      </p>
-      <nav class="user-detail-tabs" aria-label="用户详情视图">
-      <button
-        :class="{ primary: detailTab === 'profile' }"
-        :aria-pressed="detailTab === 'profile'"
-        :disabled="interactionLocked"
-        @click="detailTab = 'profile'"
-      >
-        资料与权限</button
-      ><button
-        :class="{ primary: detailTab === 'history' }"
-        :aria-pressed="detailTab === 'history'"
-        :disabled="interactionLocked"
-        @click="detailTab = 'history'"
-      >
-        报名历史<template v-if="detail">
-          · {{ detail.user.registrationCount }}</template
-        >
-      </button>
-    </nav>
-    <UiState v-if="detailLoading && !detail" kind="loading" compact
-      >正在读取用户详情…</UiState
-    >
-    <p v-if="detailError" class="error-box" role="alert">
-      {{ detailError
+    <p class="privacy-note">
+      姓名、手机号与报名资料默认脱敏。不能代替用户修改资料；完整联系方式请在对应活动名单中按用途核验。
+    </p>
+    <p v-if="notice && !detailId" class="success-box" role="status">
+      {{ notice }}
+    </p>
+    <p v-if="error" class="error-box" role="alert">
+      {{ error
       }}<button
         class="text-button"
-        :disabled="detailLoading || interactionLocked"
-        @click="loadDetail(detail?.registrations.page || 0)"
+        :disabled="loading || interactionLocked"
+        @click="load(page)"
       >
-        重新读取
+        重试
       </button>
     </p>
-    <template v-if="detail">
-      <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-      <section v-if="detailTab === 'profile'" aria-label="用户资料与权限">
-        <dl class="user-detail-grid">
-          <div>
-            <dt>本人姓名 · 已脱敏</dt>
-            <dd>{{ detail.user.realName || "未填写" }}</dd>
-          </div>
-          <div>
-            <dt>联系手机号 · 已脱敏</dt>
-            <dd>{{ detail.user.phone || "未填写" }}</dd>
-          </div>
-          <div>
-            <dt>资料状态</dt>
-            <dd>{{ detail.user.profileCompleted ? "已完善" : "未完善" }}</dd>
-          </div>
-          <div>
-            <dt>账号来源</dt>
-            <dd>{{ sourceLabels[detail.user.accountSource] || "其他来源" }}</dd>
-          </div>
-          <div>
-            <dt>当前角色</dt>
-            <dd>{{ roleLabels[detail.user.role] || "未知角色" }}</dd>
-          </div>
-          <div>
-            <dt>注册时间 · 北京时间</dt>
-            <dd>{{ dateTime(detail.user.createdAt) }}</dd>
-          </div>
-          <div>
-            <dt>资料更新时间</dt>
-            <dd>{{ dateTime(detail.user.profileUpdatedAt) }}</dd>
-          </div>
-          <div>
-            <dt>最近报名</dt>
-            <dd>{{ dateTime(detail.user.lastRegistrationAt) }}</dd>
-          </div>
-        </dl>
-        <div class="user-role-section">
-          <h3>权限管理</h3>
-          <p class="muted">
-            管理员可管理活动、报名名单、商品、订单和用户权限；角色变更后，该用户需重新微信登录。
-          </p>
-          <p v-if="roleError" class="error-box" role="alert">
-            {{ roleError
-            }}<button
-              class="text-button"
-              :disabled="detailLoading || interactionLocked"
-              @click="loadDetail(detail.registrations.page)"
-            >
-              重新读取并核对
-            </button>
-          </p>
-          <button
-            v-if="canChangeRole(detail.user)"
-            :class="detail.user.role === 'ADMIN' ? 'danger' : 'primary'"
-            :disabled="detailLoading || interactionLocked || roleBlocked"
-            @click="prepareRole"
-          >
-            {{ detail.user.role === "ADMIN" ? "撤销管理员" : "设为管理员" }}
-          </button>
-          <p v-else class="privacy-note">{{ roleBlockReason(detail.user) }}</p>
-        </div>
-      </section>
-      <section v-else aria-label="用户报名历史">
-        <div class="section-heading">
-          <h3>报名历史 · 资料已脱敏</h3>
-          <label class="user-history-filter"
-            >状态<select
-              v-model="detailStatus"
-              name="registrationStatus"
-              :disabled="detailLoading || interactionLocked"
-              @change="loadDetail()"
-            >
-              <option value="">全部</option>
-              <option value="CONFIRMED">有效报名</option>
-              <option value="CANCELLED">已取消</option>
+    <UiState v-if="loading && !items.length" kind="loading" compact
+      >正在读取用户…</UiState
+    >
+    <UiState v-else-if="!items.length && !error" kind="empty" compact
+      >没有匹配的用户。可调整筛选条件后重新查询。<button @click="openFilters">
+        调整筛选
+      </button></UiState
+    >
+    <div v-if="items.length" class="table-scroll" :aria-busy="loading">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>用户</th>
+            <th>联系资料 · 已脱敏</th>
+            <th>账号来源 / 角色</th>
+            <th>报名记录</th>
+            <th>注册时间 · 北京时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in items" :key="user.id">
+            <td>
+              <strong>{{ user.nickname || "未设置昵称" }}</strong
+              ><br /><span class="record-id" :title="user.id">{{
+                user.id
+              }}</span>
+            </td>
+            <td>
+              {{ user.realName || "姓名未填写" }} ·
+              {{ user.phone || "手机号未填写" }}<br /><span
+                class="status-badge"
+                :class="`tone-${profileTone(user.profileCompleted)}`"
+                >{{ user.profileCompleted ? "资料已完善" : "资料未完善" }}</span
+              >
+            </td>
+            <td>
+              {{ sourceLabels[user.accountSource] || "其他来源" }}<br /><span
+                class="status-badge"
+                :class="`tone-${roleTone(user.role)}`"
+                >{{ roleLabels[user.role] || "未知角色" }}</span
+              >
+            </td>
+            <td>
+              有效 {{ user.confirmedRegistrationCount }} / 全部
+              {{ user.registrationCount }}
+              <template v-if="user.pendingRegistrationCount != null">
+                · 待支付 {{ user.pendingRegistrationCount }}
+              </template>
+            </td>
+            <td>{{ dateTime(user.createdAt) }}</td>
+            <td>
+              <button
+                class="text-button"
+                :disabled="interactionLocked"
+                @click="openUser(user)"
+              >
+                查看用户
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pagination" aria-label="用户分页">
+      <span>第 {{ page + 1 }} 页 · 共 {{ total }} 位</span>
+      <div class="action-row">
+        <button
+          :disabled="loading || interactionLocked || page === 0"
+          @click="load(page - 1)"
+        >
+          上一页</button
+        ><button
+          :disabled="loading || interactionLocked || !hasMore"
+          @click="load(page + 1)"
+        >
+          下一页
+        </button>
+      </div>
+    </nav>
+
+    <FormModal v-if="filterOpen" @close="filterOpen = false">
+      <form class="form-section" @submit.prevent="applyFilters">
+        <h2>筛选用户</h2>
+        <label
+          >昵称、姓名、用户编号或完整手机号<input
+            v-model="queryDraft"
+            name="userQuery"
+            maxlength="80"
+            placeholder="输入查找内容"
+        /></label>
+        <div class="field-row">
+          <label
+            >资料状态<select v-model="profileDraft" name="profile">
+              <option value="">全部状态</option>
+              <option value="COMPLETE">资料已完善</option>
+              <option value="INCOMPLETE">资料未完善</option>
+            </select></label
+          ><label
+            >角色<select v-model="roleDraft" name="role">
+              <option value="">全部角色</option>
+              <option value="USER">普通用户</option>
+              <option value="ADMIN">管理员</option>
             </select></label
           >
         </div>
-        <UiState
-          v-if="!detail.registrations.items.length && !detailLoading"
-          kind="empty"
-          compact
-          >暂无匹配的报名记录，可切换状态查看。</UiState
+        <label
+          >账号来源<select v-model="sourceDraft" name="accountSource">
+            <option value="">全部来源</option>
+            <option
+              v-for="(label, key) in sourceLabels"
+              :key="key"
+              :value="key"
+            >
+              {{ label }}
+            </option>
+          </select></label
         >
-        <div v-else class="user-history" :aria-busy="detailLoading">
-          <article
-            v-for="registration in detail.registrations.items"
-            :key="registration.id"
-          >
-            <div class="section-heading">
-              <strong>{{ registration.activityTitle }}</strong
-              ><span class="status-badge">{{
-                registration.status === "CONFIRMED" ? "有效报名" : "已取消"
-              }}</span>
-            </div>
-            <p class="muted">
-              {{ dateTime(registration.createdAt) }} ·
-              {{ registration.participants.length }} 位参与人
-            </p>
-            <p
-              v-for="participant in registration.participants"
-              :key="participant.id"
-            >
-              {{ participant.participantName }} · {{ participant.phone
-              }}<template v-if="participant.idNumber"> · 证件已脱敏</template>
-            </p>
-            <RouterLink
-              class="text-button button"
-              :to="`/activities/${encodeURIComponent(registration.activityId)}/registrations`"
-              >查看活动名单</RouterLink
-            >
-          </article>
+        <div class="dialog-actions">
+          <button type="button" @click="resetFilters">清空条件</button
+          ><button class="primary" :disabled="loading">查询用户</button>
         </div>
-        <nav
-          v-if="detail.registrations.total > detail.registrations.size"
-          class="pagination"
-          aria-label="报名历史分页"
-        >
-          <span
-            >第 {{ detail.registrations.page + 1 }} 页 · 共
-            {{ detail.registrations.total }} 条</span
+      </form>
+    </FormModal>
+
+    <FormModal v-if="detailId" size="lg" @close="closeUser">
+      <div aria-label="用户详情">
+        <h2>用户详情</h2>
+        <p class="record-id">
+          {{ detail?.user.nickname || "正在读取用户" }} · 用户编号：{{
+            detailId
+          }}
+        </p>
+        <nav class="user-detail-tabs" aria-label="用户详情视图">
+          <button
+            :class="{ primary: detailTab === 'profile' }"
+            :aria-pressed="detailTab === 'profile'"
+            :disabled="interactionLocked"
+            @click="detailTab = 'profile'"
           >
-          <div class="action-row">
-            <button
-              :disabled="detailLoading || detail.registrations.page === 0"
-              @click="loadDetail(detail.registrations.page - 1)"
+            资料与权限</button
+          ><button
+            :class="{ primary: detailTab === 'history' }"
+            :aria-pressed="detailTab === 'history'"
+            :disabled="interactionLocked"
+            @click="detailTab = 'history'"
+          >
+            报名历史<template v-if="detail">
+              · {{ detail.user.registrationCount }}</template
             >
-              上一页</button
-            ><button
-              :disabled="detailLoading || !detail.registrations.hasMore"
-              @click="loadDetail(detail.registrations.page + 1)"
-            >
-              下一页
-            </button>
-          </div>
+          </button>
         </nav>
-      </section>
-    </template>
-    </div>
-    <div class="dialog-actions">
-      <button
-        :disabled="detailLoading || interactionLocked"
-        @click="loadDetail(detail?.registrations.page || 0)"
-      >
-        刷新资料</button
-      ><button class="primary" :disabled="interactionLocked" @click="closeUser">
-        关闭
-      </button>
-    </div>
-  </FormModal>
-  <ConfirmDialog
-    v-if="pendingRole"
-    :title="pendingRole.role === 'ADMIN' ? '设为管理员？' : '撤销管理员权限？'"
-    :description="roleDescription"
-    :confirm-label="
-      pendingRole.role === 'ADMIN' ? '确认设为管理员' : '确认撤销管理员'
-    "
-    :danger="pendingRole.role === 'USER'"
-    :busy="roleBusy"
-    @cancel="cancelRole"
-    @confirm="confirmRole"
-  />
+        <UiState v-if="detailLoading && !detail" kind="loading" compact
+          >正在读取用户详情…</UiState
+        >
+        <p v-if="detailError" class="error-box" role="alert">
+          {{ detailError
+          }}<button
+            class="text-button"
+            :disabled="detailLoading || interactionLocked"
+            @click="loadDetail(detail?.registrations.page || 0)"
+          >
+            重新读取
+          </button>
+        </p>
+        <template v-if="detail">
+          <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
+          <section v-if="detailTab === 'profile'" aria-label="用户资料与权限">
+            <dl class="user-detail-grid">
+              <div>
+                <dt>本人姓名 · 已脱敏</dt>
+                <dd>{{ detail.user.realName || "未填写" }}</dd>
+              </div>
+              <div>
+                <dt>联系手机号 · 已脱敏</dt>
+                <dd>{{ detail.user.phone || "未填写" }}</dd>
+              </div>
+              <div>
+                <dt>资料状态</dt>
+                <dd>
+                  {{ detail.user.profileCompleted ? "已完善" : "未完善" }}
+                </dd>
+              </div>
+              <div>
+                <dt>账号来源</dt>
+                <dd>
+                  {{ sourceLabels[detail.user.accountSource] || "其他来源" }}
+                </dd>
+              </div>
+              <div>
+                <dt>当前角色</dt>
+                <dd>{{ roleLabels[detail.user.role] || "未知角色" }}</dd>
+              </div>
+              <div>
+                <dt>注册时间 · 北京时间</dt>
+                <dd>{{ dateTime(detail.user.createdAt) }}</dd>
+              </div>
+              <div>
+                <dt>资料更新时间</dt>
+                <dd>{{ dateTime(detail.user.profileUpdatedAt) }}</dd>
+              </div>
+              <div>
+                <dt>最近报名</dt>
+                <dd>{{ dateTime(detail.user.lastRegistrationAt) }}</dd>
+              </div>
+            </dl>
+            <div class="user-role-section">
+              <h3>权限管理</h3>
+              <p class="muted">
+                管理员可管理活动、报名名单、商品、订单和用户权限；角色变更后，该用户需重新微信登录。
+              </p>
+              <p v-if="roleError" class="error-box" role="alert">
+                {{ roleError
+                }}<button
+                  class="text-button"
+                  :disabled="detailLoading || interactionLocked"
+                  @click="loadDetail(detail.registrations.page)"
+                >
+                  重新读取并核对
+                </button>
+              </p>
+              <button
+                v-if="canChangeRole(detail.user)"
+                :class="detail.user.role === 'ADMIN' ? 'danger' : 'primary'"
+                :disabled="detailLoading || interactionLocked || roleBlocked"
+                @click="prepareRole"
+              >
+                {{ detail.user.role === "ADMIN" ? "撤销管理员" : "设为管理员" }}
+              </button>
+              <p v-else class="privacy-note">
+                {{ roleBlockReason(detail.user) }}
+              </p>
+            </div>
+          </section>
+          <section v-else aria-label="用户报名历史">
+            <div class="section-heading">
+              <h3>报名历史 · 资料已脱敏</h3>
+              <label class="user-history-filter"
+                >状态<select
+                  v-model="detailStatus"
+                  name="registrationStatus"
+                  :disabled="detailLoading || interactionLocked"
+                  @change="loadDetail()"
+                >
+                  <option value="">全部</option>
+                  <option value="CONFIRMED">有效报名</option>
+                  <option value="PENDING_PAYMENT">待支付</option>
+                  <option value="CANCELLED">已取消</option>
+                </select></label
+              >
+            </div>
+            <UiState
+              v-if="!detail.registrations.items.length && !detailLoading"
+              kind="empty"
+              compact
+              >暂无匹配的报名记录，可切换状态查看。</UiState
+            >
+            <div v-else class="user-history" :aria-busy="detailLoading">
+              <article
+                v-for="registration in detail.registrations.items"
+                :key="registration.id"
+              >
+                <div class="section-heading">
+                  <strong>{{ registration.activityTitle }}</strong
+                  ><span
+                    class="status-badge"
+                    :class="registrationBadgeTone(registration)"
+                    >{{ registrationLabel(registration) }}</span
+                  >
+                </div>
+                <p class="muted">
+                  {{ dateTime(registration.createdAt) }} ·
+                  {{ registration.participants.length }} 位参与人
+                </p>
+                <p
+                  v-for="participant in registration.participants"
+                  :key="participant.id"
+                >
+                  {{ participant.participantName }} · {{ participant.phone
+                  }}<template v-if="participant.idNumber">
+                    · 证件已脱敏</template
+                  >
+                </p>
+                <RouterLink
+                  class="text-button button"
+                  :to="
+                    registration.source === 'ACTIVITY_ORDER'
+                      ? {
+                          path: '/activity-orders',
+                          query: {
+                            activityId: registration.activityId,
+                            orderId: registration.id,
+                          },
+                        }
+                      : `/activities/${encodeURIComponent(registration.activityId)}/registrations`
+                  "
+                  >{{
+                    registration.source === "ACTIVITY_ORDER"
+                      ? "查看此活动订单"
+                      : "查看活动名单"
+                  }}</RouterLink
+                >
+              </article>
+            </div>
+            <nav
+              v-if="detail.registrations.total > detail.registrations.size"
+              class="pagination"
+              aria-label="报名历史分页"
+            >
+              <span
+                >第 {{ detail.registrations.page + 1 }} 页 · 共
+                {{ detail.registrations.total }} 条</span
+              >
+              <div class="action-row">
+                <button
+                  :disabled="detailLoading || detail.registrations.page === 0"
+                  @click="loadDetail(detail.registrations.page - 1)"
+                >
+                  上一页</button
+                ><button
+                  :disabled="detailLoading || !detail.registrations.hasMore"
+                  @click="loadDetail(detail.registrations.page + 1)"
+                >
+                  下一页
+                </button>
+              </div>
+            </nav>
+          </section>
+        </template>
+      </div>
+      <div class="dialog-actions">
+        <button
+          :disabled="detailLoading || interactionLocked"
+          @click="loadDetail(detail?.registrations.page || 0)"
+        >
+          刷新资料</button
+        ><button
+          class="primary"
+          :disabled="interactionLocked"
+          @click="closeUser"
+        >
+          关闭
+        </button>
+      </div>
+    </FormModal>
+    <ConfirmDialog
+      v-if="pendingRole"
+      :title="
+        pendingRole.role === 'ADMIN' ? '设为管理员？' : '撤销管理员权限？'
+      "
+      :description="roleDescription"
+      :confirm-label="
+        pendingRole.role === 'ADMIN' ? '确认设为管理员' : '确认撤销管理员'
+      "
+      :danger="pendingRole.role === 'USER'"
+      :busy="roleBusy"
+      @cancel="cancelRole"
+      @confirm="confirmRole"
+    />
+  </main>
 </template>

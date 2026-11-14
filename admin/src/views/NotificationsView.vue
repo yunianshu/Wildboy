@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { request, errorMessage, currentUser } from "../api";
+import { notificationTone } from "../statusTone";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import UiState from "../components/UiState.vue";
 import type { NotificationConfig, NotificationNotice } from "../types";
@@ -57,16 +58,28 @@ async function load(next = 0) {
       page: number;
       hasMore: boolean;
     }>(`/admin/notifications?page=${next}&size=20`, { cache: "no-store" });
-    if (n !== loadEpoch || started !== generation || currentUser.value !== actor)
+    if (
+      n !== loadEpoch ||
+      started !== generation ||
+      currentUser.value !== actor
+    )
       return;
     items.value = r.items || [];
     page.value = r.page;
     hasMore.value = r.hasMore;
   } catch (e) {
-    if (n === loadEpoch && started === generation && currentUser.value === actor)
+    if (
+      n === loadEpoch &&
+      started === generation &&
+      currentUser.value === actor
+    )
       error.value = errorMessage(e);
   } finally {
-    if (n === loadEpoch && started === generation && currentUser.value === actor)
+    if (
+      n === loadEpoch &&
+      started === generation &&
+      currentUser.value === actor
+    )
       busy.value = false;
   }
 }
@@ -133,114 +146,132 @@ async function confirmRetry() {
 }
 </script>
 <template>
-  <section class="page-heading">
-    <div>
-      <h1>活动通知</h1>
-      <p class="muted">重试仅重新排队原通知，结果以列表状态为准。</p>
+  <main class="workspace">
+    <section class="page-heading">
+      <div>
+        <h1>活动通知</h1>
+        <p class="muted">重试仅重新排队原通知，结果以列表状态为准。</p>
+      </div>
+      <button class="secondary" :disabled="busy" @click="load(page)">
+        刷新
+      </button>
+    </section>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
+    <p v-if="error" class="error-box" role="alert">{{ error }}</p>
+    <p v-if="configError && items.length" class="privacy-note">
+      暂无法核对微信消息配置，订阅与配置类通知暂时不可重试。
+      <button class="text-button" :disabled="busy" @click="checkConfig">
+        重新核对配置
+      </button>
+    </p>
+    <UiState v-if="busy && !items.length" kind="loading" compact
+      >正在读取通知…</UiState
+    >
+    <UiState v-else-if="!items.length && !error && !busy" kind="empty" compact
+      >暂无通知</UiState
+    >
+    <div v-if="items.length" class="table-scroll" :aria-busy="busy">
+      <table>
+        <thead>
+          <tr>
+            <th>活动</th>
+            <th>内容</th>
+            <th>状态</th>
+            <th>发送次数</th>
+            <th>异常</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in items" :key="item.id">
+            <td>
+              <strong>{{ item.title }}</strong>
+            </td>
+            <td>{{ item.detail || "—" }}</td>
+            <td>
+              <span
+                class="status-badge"
+                :class="`tone-${notificationTone(item.status)}`"
+                >{{ labels[item.status] || item.status }}</span
+              >
+            </td>
+            <td>{{ item.attempts }}</td>
+            <td>{{ item.lastError || "—" }}</td>
+            <td>
+              <template v-if="item.status === 'FAILED'">
+                <button
+                  class="text-button"
+                  :disabled="busy"
+                  @click="openRetry(item, false)"
+                >
+                  重新发送
+                </button>
+              </template>
+              <template v-else-if="item.status === 'NO_PERMISSION'">
+                <button
+                  v-if="configReady"
+                  class="text-button"
+                  :disabled="busy"
+                  @click="openRetry(item, true)"
+                >
+                  确认授权</button
+                ><template v-else>
+                  <button disabled>暂不可重试</button>
+                  <span class="muted retry-block-reason">{{
+                    blockReason(item)
+                  }}</span></template
+                >
+              </template>
+              <template v-else-if="item.status === 'UNCONFIGURED'">
+                <button
+                  v-if="configReady"
+                  class="text-button"
+                  :disabled="busy"
+                  @click="openRetry(item, false)"
+                >
+                  重新排队</button
+                ><template v-else>
+                  <button disabled>暂不可重试</button>
+                  <span class="muted retry-block-reason">{{
+                    blockReason(item)
+                  }}</span></template
+                >
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-    <button :disabled="busy" @click="load(page)">刷新</button>
-  </section>
-  <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-  <p v-if="error" class="error-box" role="alert">{{ error }}</p>
-  <p v-if="configError && items.length" class="privacy-note">
-    暂无法核对微信消息配置，订阅与配置类通知暂时不可重试。
-    <button class="text-button" :disabled="busy" @click="checkConfig">
-      重新核对配置
-    </button>
-  </p>
-  <UiState v-if="busy && !items.length" kind="loading" compact
-    >正在读取通知…</UiState
-  >
-  <UiState v-else-if="!items.length && !error && !busy" kind="empty" compact
-    >暂无通知</UiState
-  >
-  <div v-if="items.length" class="table-scroll" :aria-busy="busy">
-    <table>
-      <thead>
-        <tr>
-          <th>活动</th>
-          <th>内容</th>
-          <th>状态</th>
-          <th>发送次数</th>
-          <th>异常</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="item in items" :key="item.id">
-          <td><strong>{{ item.title }}</strong></td>
-          <td>{{ item.detail || "—" }}</td>
-          <td>
-            <span class="status-badge">{{
-              labels[item.status] || item.status
-            }}</span>
-          </td>
-          <td>{{ item.attempts }}</td>
-          <td>{{ item.lastError || "—" }}</td>
-          <td>
-            <template v-if="item.status === 'FAILED'">
-              <button
-                class="text-button"
-                :disabled="busy"
-                @click="openRetry(item, false)"
-              >
-                重新发送
-              </button>
-            </template>
-            <template v-else-if="item.status === 'NO_PERMISSION'">
-              <button
-                v-if="configReady"
-                class="text-button"
-                :disabled="busy"
-                @click="openRetry(item, true)"
-              >
-                确认授权</button
-              ><template v-else>
-                <button disabled>暂不可重试</button>
-                <span class="muted retry-block-reason">{{
-                  blockReason(item)
-                }}</span></template
-              >
-            </template>
-            <template v-else-if="item.status === 'UNCONFIGURED'">
-              <button
-                v-if="configReady"
-                class="text-button"
-                :disabled="busy"
-                @click="openRetry(item, false)"
-              >
-                重新排队</button
-              ><template v-else>
-                <button disabled>暂不可重试</button>
-                <span class="muted retry-block-reason">{{
-                  blockReason(item)
-                }}</span></template
-              >
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <nav class="pagination" aria-label="通知分页">
-    <button :disabled="busy || page === 0" @click="load(page - 1)">
-      上一页</button
-    ><span>第 {{ page + 1 }} 页</span
-    ><button :disabled="busy || !hasMore" @click="load(page + 1)">
-      下一页
-    </button>
-  </nav>
-  <ConfirmDialog
-    v-if="pendingRetry"
-    :title="pendingRetry.authorize ? '确认用户已重新授权？' : '确认重试原通知？'"
-    :description="
-      pendingRetry.authorize
-        ? `请先与用户核对：用户已在小程序重新同意订阅「${pendingRetry.item.title}」对应的消息，再重试原通知；重试不会立即送达。`
-        : `将按原内容重新提交「${pendingRetry.item.title}」的微信通知发送，结果以列表状态为准。`
-    "
-    :confirm-label="pendingRetry.authorize ? '已确认，重试原通知' : '确认重试'"
-    :busy="busy"
-    @cancel="cancelRetry"
-    @confirm="confirmRetry"
-  />
+    <nav class="pagination" aria-label="通知分页">
+      <button :disabled="busy || page === 0" @click="load(page - 1)">
+        上一页</button
+      ><span>第 {{ page + 1 }} 页</span
+      ><button :disabled="busy || !hasMore" @click="load(page + 1)">
+        下一页
+      </button>
+    </nav>
+    <ConfirmDialog
+      v-if="pendingRetry"
+      :title="
+        pendingRetry.authorize ? '确认用户已重新授权？' : '确认重试原通知？'
+      "
+      :description="
+        pendingRetry.authorize
+          ? `请先与用户核对：用户已在小程序重新同意订阅「${pendingRetry.item.title}」对应的消息，再重试原通知；重试不会立即送达。`
+          : `将按原内容重新提交「${pendingRetry.item.title}」的微信通知发送，结果以列表状态为准。`
+      "
+      :confirm-label="
+        pendingRetry.authorize ? '已确认，重试原通知' : '确认重试'
+      "
+      :busy="busy"
+      @cancel="cancelRetry"
+      @confirm="confirmRetry"
+    />
+  </main>
 </template>
+<style scoped>
+th,
+.status-badge {
+  white-space: nowrap;
+}
+</style>

@@ -55,7 +55,7 @@ export async function request<T>(
     if (response.status === 401) clearSession();
     const fallback =
       response.status === 409
-        ? "活动已被其他人修改或状态发生变化，请重新加载后再操作。"
+        ? "记录已被其他人修改或状态发生变化，请重新加载后再操作。"
         : response.status === 403
           ? "当前账号没有执行此操作的权限。"
           : "请求失败，请稍后重试。";
@@ -111,6 +111,6 @@ export function updateAdminAccountSettings(body: {
 }
 export function errorMessage(error: unknown) {
   if (error instanceof ApiError && error.status === 409)
-    return "内容冲突：活动可能已在别处更新。请重新加载最新版本，再检查并保存；不会自动覆盖。";
+    return "内容冲突：记录可能已在别处更新。请重新加载最新版本，再检查并保存；不会自动覆盖。";
   return error instanceof Error ? error.message : "发生未知错误，请重试。";
 }

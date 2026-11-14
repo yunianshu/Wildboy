@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { request, currentUser, ApiError } from "../api";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import UiState from "../components/UiState.vue";
 type Kind = "PRIVACY" | "TERMS";
 type Document = {
   kind: Kind;
@@ -218,27 +219,42 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <main class="legal-workspace">
-    <h1>协议管理</h1>
-    <p class="muted">保存草稿不影响线上协议，发布后生效。</p>
-    <div class="legal-tabs">
+  <main class="workspace legal-workspace">
+    <section class="page-heading">
+      <div>
+        <h1>协议管理</h1>
+        <p>保存草稿不影响线上协议，发布后生效。</p>
+      </div>
+      <button
+        v-if="state"
+        class="primary"
+        type="button"
+        :disabled="busy || loading || dirty || conflict || !valid"
+        @click="openPublish"
+      >
+        发布新版本
+      </button>
+    </section>
+    <nav class="task-tabs" aria-label="协议类型">
       <button
         :class="kind === 'PRIVACY' ? 'primary' : 'secondary'"
+        :aria-pressed="kind === 'PRIVACY'"
         :disabled="busy || loading"
         @click="changeKind('PRIVACY')"
       >
         隐私政策</button
       ><button
         :class="kind === 'TERMS' ? 'primary' : 'secondary'"
+        :aria-pressed="kind === 'TERMS'"
         :disabled="busy || loading"
         @click="changeKind('TERMS')"
       >
         用户协议
       </button>
-    </div>
+    </nav>
     <p v-if="error" role="alert" class="legal-alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <p v-if="loading">正在读取协议…</p>
+    <UiState v-if="loading" kind="loading" compact>正在读取协议…</UiState>
     <section v-if="state" class="legal-editor">
       <div class="legal-toolbar">
         <h2>{{ label }}</h2>
@@ -264,7 +280,7 @@ onUnmounted(() => {
           >协议正文（纯文本）<textarea
             v-model="content"
             maxlength="50000"
-            rows="18"
+            rows="10"
             :disabled="busy || loading"
             placeholder="经审核的协议正文"
           />
@@ -275,7 +291,7 @@ onUnmounted(() => {
         </p>
         <div class="legal-actions">
           <button
-            class="primary"
+            class="secondary"
             type="submit"
             :disabled="busy || loading || conflict"
           >
@@ -288,14 +304,7 @@ onUnmounted(() => {
             :disabled="busy || loading"
             @click="reload"
           >
-            重新加载</button
-          ><button
-            class="primary"
-            type="button"
-            :disabled="busy || loading || dirty || conflict || !valid"
-            @click="openPublish"
-          >
-            发布新版本
+            重新加载
           </button>
         </div>
       </form>
@@ -309,7 +318,9 @@ onUnmounted(() => {
     </button>
     <section class="legal-history">
       <h2>已发布历史</h2>
-      <p v-if="!history.length" class="muted">暂无发布记录</p>
+      <UiState v-if="!history.length && !loading && !error" compact
+        >暂无发布记录</UiState
+      >
       <div class="legal-versions">
         <button
           v-for="version in history"
@@ -338,26 +349,25 @@ onUnmounted(() => {
   </main>
 </template>
 <style scoped>
-.legal-workspace {
-  max-width: 1100px;
-  padding: 32px;
-  margin: auto;
-}
-.legal-tabs,
 .legal-actions,
 .legal-versions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
-  margin: 24px 0;
+  margin: 12px 0 0;
 }
 .legal-editor,
 .legal-history {
-  background: #fffefa;
-  border: 1px solid #e3e6da;
-  border-radius: 16px;
-  padding: 24px;
-  margin: 24px 0;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  padding: 16px;
+  margin: 12px 0;
+}
+.legal-editor h2,
+.legal-history h2 {
+  font-size: 16px;
+  margin: 0;
 }
 .legal-toolbar {
   display: flex;
@@ -366,25 +376,25 @@ onUnmounted(() => {
   gap: 16px;
   flex-wrap: wrap;
 }
+.legal-versions button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
 .legal-help {
-  padding: 16px;
-  background: #edf0e5;
-  line-height: 1.8;
+  color: var(--admin-muted);
+  font-size: 12px;
 }
 .legal-editor label {
   display: block;
-  margin: 20px 0;
+  margin: 12px 0;
   font-weight: 600;
 }
 .legal-editor input,
 .legal-editor textarea {
   display: block;
   width: 100%;
-  margin-top: 10px;
-  border: 1px solid #cbd2c3;
-  border-radius: 8px;
-  padding: 14px;
-  font: inherit;
 }
 .legal-editor textarea {
   line-height: 1.8;
@@ -405,17 +415,11 @@ onUnmounted(() => {
   padding: 16px;
   border-radius: 8px;
 }
-.legal-workspace h1 {
-  font-size: 32px;
-}
 .legal-toolbar span {
-  color: #677266;
-  font-size: 14px;
+  color: var(--admin-muted);
+  font-size: 12px;
 }
 @media (max-width: 600px) {
-  .legal-workspace {
-    padding: 18px;
-  }
   .legal-editor,
   .legal-history {
     padding: 16px;

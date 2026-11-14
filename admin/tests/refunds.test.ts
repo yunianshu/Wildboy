@@ -52,11 +52,58 @@ it("cancel never sends a refund and rejection needs a reason", async () => {
   await button(w, "拒绝").trigger("click");
   await button(w, "确认").trigger("click");
   expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(w.text()).toContain("请填写拒绝原因");
+  expect(w.get('[role="dialog"] [role="alert"]').text()).toContain(
+    "请填写拒绝原因",
+  );
   await w.get("textarea").setValue("已沟通");
   await button(w, "确认").trigger("click");
   await flushPromises();
   expect(fetcher.mock.calls[1][0]).toContain("/reject");
+  w.unmount();
+});
+it("keeps the refund dialog and its error visible through a pending or failed request", async () => {
+  let finish!: (value: unknown) => void;
+  fetcher.mockImplementationOnce(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ items: [row], hasMore: false }),
+  }));
+  fetcher.mockImplementationOnce(
+    () => new Promise((resolve) => (finish = resolve)),
+  );
+  const w = mount(RefundsView, { attachTo: document.body });
+  await flushPromises();
+  await button(w, "批准退款").trigger("click");
+  await button(w, "确认").trigger("click");
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+  await flushPromises();
+  expect(w.find('[role="dialog"]').exists()).toBe(true);
+  finish({
+    ok: false,
+    status: 409,
+    json: async () => ({ message: "退款状态已更新，请刷新后重试" }),
+  });
+  await flushPromises();
+  expect(w.get('[role="dialog"] [role="alert"]').text()).toContain(
+    "退款状态已更新",
+  );
+  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+  await flushPromises();
+  expect(w.find('[role="dialog"]').exists()).toBe(false);
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  w.unmount();
+});
+
+it("a failed first load does not also claim that no refunds exist", async () => {
+  fetcher.mockResolvedValue({
+    ok: false,
+    status: 503,
+    json: async () => ({ message: "退款服务暂不可用" }),
+  });
+  const w = mount(RefundsView);
+  await flushPromises();
+  expect(w.get('[role="alert"]').text()).toContain("退款服务暂不可用");
+  expect(w.text()).not.toContain("暂无退款申请");
   w.unmount();
 });
 it("identity changes discard pending rows and dialog", async () => {

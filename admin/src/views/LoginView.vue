@@ -30,10 +30,7 @@ async function submit(demo = false) {
   <main class="login-layout">
     <section class="login-story">
       <a class="brand" href="#/login">WILDBOY<span>OUTDOOR CLUB</span></a>
-      <div>
-        <h1>把下一场<br />山野之约，<br /><em>认真安排好。</em></h1>
-      </div>
-      <small>WILDBOY / 活动管理工作台</small>
+      <h1>野小子运营后台</h1>
     </section>
     <section class="login-panel">
       <div class="login-form">
@@ -59,7 +56,7 @@ async function submit(demo = false) {
           /></label>
           <p v-if="error" role="alert" class="error-box">{{ error }}</p>
           <button class="primary full" :disabled="busy">
-            {{ busy ? "正在验证…" : "进入工作台 →" }}
+            {{ busy ? "正在验证…" : "登录" }}
           </button>
         </form>
         <button

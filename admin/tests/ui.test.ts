@@ -97,7 +97,7 @@ describe("real component flows", () => {
     );
     const { wrapper } = await mounted(ActivitiesView, "/activities");
     await flushPromises();
-    expect(wrapper.text()).toContain("当前页暂无匹配活动");
+    expect(wrapper.text()).toContain("暂无匹配活动");
     expect(wrapper.find(".workspace-note").exists()).toBe(false);
     expect(wrapper.find('a[href="/activities/new"]').exists()).toBe(true);
     expect(

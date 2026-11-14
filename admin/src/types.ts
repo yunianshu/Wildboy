@@ -19,6 +19,8 @@ export interface ActivityInput {
 export interface Activity extends ActivityInput {
   id: string;
   registeredCount: number;
+  confirmedCount?: number;
+  pendingPaymentCount?: number;
   status: Status;
   currency: string;
   version: number;
@@ -31,7 +33,22 @@ export interface Participant {
   idNumber: string;
   phone: string;
 }
-export type RegistrationStatus = "CONFIRMED" | "CANCELLED";
+export type RegistrationStatus = "CONFIRMED" | "CANCELLED" | "PENDING_PAYMENT";
+export type ActivityOrderStatus =
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "CONFIRMED_FREE"
+  | "CLOSED"
+  | "REFUND_PENDING"
+  | "REFUNDED";
+export const activityOrderLabels: Record<ActivityOrderStatus, string> = {
+  PENDING_PAYMENT: "待支付（名额保留）",
+  PAID: "已支付",
+  CONFIRMED_FREE: "免支付已确认",
+  CLOSED: "已关闭",
+  REFUND_PENDING: "退款处理中（名额保留）",
+  REFUNDED: "已退款",
+};
 export interface Registration {
   id: string;
   activityId: string;
@@ -39,6 +56,8 @@ export interface Registration {
   status: RegistrationStatus;
   createdAt: string;
   participants: Participant[];
+  source?: "FREE_REGISTRATION" | "ACTIVITY_ORDER";
+  orderStatus?: ActivityOrderStatus | null;
 }
 export type ProductStatus = "ON_SALE" | "OFF_SHELF";
 export interface ProductInput {
@@ -77,6 +96,7 @@ export interface AdminUser {
   profileUpdatedAt: string | null;
   registrationCount: number;
   confirmedRegistrationCount: number;
+  pendingRegistrationCount?: number;
   lastRegistrationAt: string | null;
   role: AdminUserRole;
   accountSource: AdminAccountSource;
@@ -119,8 +139,15 @@ export interface NotificationConfig {
   templateId: string;
 }
 export type OrderStatus =
-  "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
+  | "PENDING_PAYMENT"
+  | "PAID"
+  | "CONFIRMED_FREE"
+  | "CANCELLED"
+  | "SHIPPED"
+  | "REFUNDED";
 export interface OrderItem {
+  originalPriceCents?: number;
+  tierName?: string | null;
   id: string;
   productId: string;
   productName: string;
@@ -129,6 +156,7 @@ export interface OrderItem {
   quantity: number;
 }
 export interface Order {
+  originalTotalCents?: number;
   reconciliationRequired?: boolean;
   id: string;
   orderNo: string;

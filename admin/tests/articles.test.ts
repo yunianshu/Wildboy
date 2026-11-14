@@ -78,7 +78,20 @@ async function view() {
   return w;
 }
 async function edit(w: VueWrapper) {
-  await button(w, "查看 / 编辑").trigger("click");
+  await button(
+    w,
+    article.status === "PUBLISHED" ? "查看文章" : "编辑文章",
+  ).trigger("click");
+  await flushPromises();
+}
+async function showContent(w: VueWrapper) {
+  await button(w, "图文正文").trigger("click");
+  expect(w.get(".rich-editor").isVisible()).toBe(true);
+}
+async function confirmPublish(w: VueWrapper) {
+  await button(w, "发布文章").trigger("click");
+  expect(w.text()).toContain("发布文章？");
+  await button(w, "确认发布").trigger("click");
   await flushPromises();
 }
 const writes = () => fetcher.mock.calls.filter((c: any) => c[1]?.method);
@@ -99,12 +112,18 @@ describe("article editor", () => {
   it("blocks publication with unsaved content, synchronizes shared version on save", async () => {
     const w = await view();
     await edit(w);
+    await showContent(w);
     await w.get('[aria-label="图文文字"]').setValue("更新正文");
+    await button(w, "基本资料").trigger("click");
     expect(button(w, "发布文章").attributes("disabled")).toBeDefined();
+    await showContent(w);
+    expect(
+      (w.get('[aria-label="图文文字"]').element as HTMLTextAreaElement).value,
+    ).toBe("更新正文");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
-    await button(w, "发布文章").trigger("click");
-    await flushPromises();
+    await button(w, "基本资料").trigger("click");
+    await confirmPublish(w);
     const publish = fetcher.mock.calls.find((c: any) =>
       c[0].endsWith("/publish"),
     )!;
@@ -119,6 +138,7 @@ describe("article editor", () => {
     expect(button(w, "发布文章").attributes("disabled")).toBeDefined();
     await w.get("form").trigger("submit");
     await flushPromises();
+    await showContent(w);
     await w.get('[aria-label="图文文字"]').setValue("再次编辑");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
@@ -131,13 +151,13 @@ describe("article editor", () => {
   it("saves content, closes, reopens current detail and publishes the latest version", async () => {
     const w = await view();
     await edit(w);
+    await showContent(w);
     await w.get('[aria-label="图文文字"]').setValue("保存后关闭");
     await button(w, "保存图文").trigger("click");
     await flushPromises();
     await button(w, "关闭").trigger("click");
     await edit(w);
-    await button(w, "发布文章").trigger("click");
-    await flushPromises();
+    await confirmPublish(w);
     const publish = fetcher.mock.calls.find((c: any) =>
       c[0].endsWith("/publish"),
     )!;
@@ -153,15 +173,14 @@ describe("article editor", () => {
     article.status = "PUBLISHED";
     const w = await view();
     await edit(w);
-    vi.mocked(window.confirm).mockReturnValue(false);
     await button(w, "设为官方介绍").trigger("click");
+    expect(w.text()).toContain("替换原官方介绍");
+    expect(w.text()).toContain(article.title);
+    await button(w, "取消").trigger("click");
     expect(writes()).toHaveLength(0);
-    vi.mocked(window.confirm).mockReturnValue(true);
     await button(w, "设为官方介绍").trigger("click");
+    await button(w, "确认设为官方介绍").trigger("click");
     await flushPromises();
-    expect(window.confirm).toHaveBeenCalledWith(
-      expect.stringContaining("替换"),
-    );
     expect(button(w, "当前官方介绍").attributes("disabled")).toBeDefined();
     expect(writes()).toHaveLength(1);
     w.unmount();
@@ -197,6 +216,7 @@ describe("article editor", () => {
   it("asks once before leaving with unsaved rich content", async () => {
     const w = await view();
     await edit(w);
+    await showContent(w);
     await w.get('[aria-label="图文文字"]').setValue("尚未保存的图文");
     vi.mocked(window.confirm).mockClear();
     await (w.vm as any).$router.push("/other");
@@ -246,8 +266,7 @@ describe("article editor", () => {
       status: 409,
       json: async () => ({ message: "文章版本冲突" }),
     });
-    await button(w, "发布文章").trigger("click");
-    await flushPromises();
+    await confirmPublish(w);
     expect(w.text()).toContain("文章版本或状态已变化");
     expect(writes()).toHaveLength(1);
     expect(button(w, "发布文章").exists()).toBe(true);

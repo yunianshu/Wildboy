@@ -1,11 +1,21 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
-import { currentUser, errorMessage, request } from "../api";
+import {
+  computed,
+  inject,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from "vue";
+import { routeLocationKey, routerKey } from "vue-router";
+import { ApiError, currentUser, errorMessage, request } from "../api";
 import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
+import UiState from "../components/UiState.vue";
 import type {
   Order,
   Page,
@@ -18,6 +28,8 @@ import type {
 const contentOpen = ref(false);
 const formOpen = ref(false);
 const filterOpen = ref(false);
+const formError = ref("");
+const formErrorElement = ref<HTMLElement>();
 const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const products = ref<Product[]>([]),
   categories = ref<ProductCategory[]>([]),
@@ -35,6 +47,7 @@ const products = ref<Product[]>([]),
   editingId = ref(""),
   editingVersion = ref(0),
   revealed = ref(new Set<string>()),
+  revealTarget = ref<Order | null>(null),
   detailed = ref(new Set<string>()),
   appliedCategory = ref(""),
   categoryFilterDraft = ref(""),
@@ -54,6 +67,22 @@ const products = ref<Product[]>([]),
   pendingPayload = ref<(ProductInput & { version?: number }) | null>(null),
   pendingSummary = ref("");
 let generation = 0;
+const shippingError = ref("");
+const shippingConflictId = ref("");
+const route = inject(routeLocationKey, null);
+const router = inject(routerKey, null);
+watch(
+  () => route?.query.tab,
+  (selected) => {
+    const requested =
+      selected ??
+      new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab");
+    tab.value = requested === "orders" ? "orders" : "products";
+    revealed.value = new Set();
+    revealTarget.value = null;
+  },
+  { immediate: true },
+);
 
 const filteredProducts = computed(() =>
   appliedCategory.value
@@ -67,9 +96,12 @@ function clear() {
   categoriesError.value = "";
   orders.value = { items: [], total: 0, page: 0, size: 20, hasMore: false };
   revealed.value = new Set();
+  revealTarget.value = null;
   detailed.value = new Set();
   appliedCategory.value = "";
   shipping.value = null;
+  shippingError.value = "";
+  shippingConflictId.value = "";
   contentOpen.value = false;
   formOpen.value = false;
   filterOpen.value = false;
@@ -79,6 +111,7 @@ function clear() {
   pendingSummary.value = "";
   busy.value = false;
   error.value = "";
+  formError.value = "";
 }
 watch(currentUser, clear, { flush: "sync" });
 
@@ -88,20 +121,31 @@ function money(cents: number) {
 const orderStatuses = {
   PENDING_PAYMENT: "待支付",
   PAID: "已支付",
+  CONFIRMED_FREE: "免支付已确认",
   CANCELLED: "已取消",
   SHIPPED: "已发货",
   REFUNDED: "已退款",
 };
+function canShip(order: Order) {
+  return (
+    !order.reconciliationRequired &&
+    (order.status === "PAID" || order.status === "CONFIRMED_FREE")
+  );
+}
 function maskPhone(phone: string) {
   return phone.length > 7
     ? `${phone.slice(0, 3)}••••${phone.slice(-4)}`
     : "••••";
 }
-function toggle(id: string) {
-  const next = new Set(revealed.value);
-  if (next.has(id)) next.delete(id);
-  else next.add(id);
-  revealed.value = next;
+function toggle(order: Order) {
+  if (revealed.value.has(order.id)) revealed.value.delete(order.id);
+  else revealTarget.value = order;
+}
+function confirmReveal() {
+  const order = revealTarget.value;
+  revealTarget.value = null;
+  if (order && tab.value === "orders" && orders.value.items.includes(order))
+    revealed.value.add(order.id);
 }
 function toggleDetail(id: string) {
   const next = new Set(detailed.value);
@@ -111,17 +155,17 @@ function toggleDetail(id: string) {
 }
 function focusTab(which: "products" | "orders") {
   tab.value = which;
-  const target = document.getElementById(
-    which === "products" ? "shop-products" : "shop-orders",
-  );
-  if (target && typeof target.scrollIntoView === "function")
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  revealed.value = new Set();
+  revealTarget.value = null;
+  if (router && route)
+    void router.replace({ query: { ...route.query, tab: which } });
 }
 async function load() {
   const n = ++generation;
   busy.value = true;
   error.value = "";
   revealed.value = new Set();
+  revealTarget.value = null;
   try {
     const [productData, orderData] = await Promise.all([
       request<Product[]>("/admin/shop/products"),
@@ -130,6 +174,7 @@ async function load() {
     if (n !== generation) return;
     products.value = Array.isArray(productData) ? productData : [];
     orders.value = orderData;
+    shippingConflictId.value = "";
   } catch (e) {
     if (n === generation) error.value = errorMessage(e);
   } finally {
@@ -168,6 +213,7 @@ function clearFilter() {
 }
 function openNew() {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  formError.value = "";
   contentOpen.value = false;
   editingId.value = "";
   editingVersion.value = 0;
@@ -186,6 +232,7 @@ function openNew() {
 }
 function edit(product: Product) {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  formError.value = "";
   contentOpen.value = false;
   editingId.value = product.id;
   editingVersion.value = product.version;
@@ -194,7 +241,9 @@ function edit(product: Product) {
     description: product.description,
     imageUrl: product.imageUrl,
     categoryId: product.categoryId ?? "",
-    originalPriceYuan: ((product.originalPriceCents ?? product.priceCents) / 100).toFixed(2),
+    originalPriceYuan: (
+      (product.originalPriceCents ?? product.priceCents) / 100
+    ).toFixed(2),
     currentPriceYuan: (product.priceCents / 100).toFixed(2),
     stock: String(product.stock),
     status: product.status,
@@ -208,6 +257,7 @@ function edit(product: Product) {
 }
 function reset() {
   if (contentEditor.value && !contentEditor.value.canLeave()) return;
+  formError.value = "";
   contentOpen.value = false;
   editingId.value = "";
   editingVersion.value = 0;
@@ -235,46 +285,50 @@ function parseYuan(value: string) {
   const cents = Math.round(Number(text) * 100);
   return cents >= 1 && cents <= 100000000 ? cents : null;
 }
+function showFormError(message: string) {
+  formError.value = message;
+  void nextTick(() => formErrorElement.value?.focus());
+}
 async function save() {
   if (busy.value || pendingPayload.value) return;
-  error.value = "";
+  formError.value = "";
   const name = form.value.name.trim(),
     imageUrl = form.value.imageUrl.trim(),
     stock = Number(form.value.stock);
   if (!name || name.length > 120 || !form.value.description.trim()) {
-    error.value = "请填写商品名称和说明";
+    showFormError("请填写商品名称和说明");
     return;
   }
   if (
     !/^https:\/\/[^\s]+$/.test(imageUrl) &&
     !/^\/assets\/[A-Za-z0-9_./-]+$/.test(imageUrl)
   ) {
-    error.value = "商品图片须为 HTTPS 或 /assets/ 路径";
+    showFormError("商品图片须为 HTTPS 或 /assets/ 路径");
     return;
   }
   const originalPriceCents = parseYuan(form.value.originalPriceYuan);
   if (originalPriceCents === null) {
-    error.value = "请输入有效商品原价";
+    showFormError("请输入有效商品原价");
     return;
   }
   const priceCents = parseYuan(form.value.currentPriceYuan);
   if (priceCents === null) {
-    error.value = "请输入有效商品现价";
+    showFormError("请输入有效商品现价");
     return;
   }
   if (originalPriceCents < priceCents) {
-    error.value = "原价不能低于现价";
+    showFormError("原价不能低于现价");
     return;
   }
   if (
     categories.value.length &&
     !categories.value.some((c) => c.id === form.value.categoryId)
   ) {
-    error.value = "选择有效的商品分类";
+    showFormError("选择有效的商品分类");
     return;
   }
   if (!Number.isInteger(stock) || stock < 0 || stock > 1000000) {
-    error.value = "请输入有效库存整数";
+    showFormError("请输入有效库存整数");
     return;
   }
   const id = editingId.value;
@@ -335,17 +389,36 @@ async function submitProduct(payload: ProductInput & { version?: number }) {
     reset();
     await load();
   } catch (e) {
-    if (n === generation) error.value = errorMessage(e);
+    if (n === generation) showFormError(errorMessage(e));
   } finally {
     if (n === generation) busy.value = false;
   }
 }
+function openShipping(order: Order) {
+  if (busy.value || !canShip(order) || shippingConflictId.value === order.id)
+    return;
+  shippingError.value = "";
+  shipping.value = order;
+}
+function closeShipping() {
+  if (busy.value) return;
+  const refresh = shipping.value?.id === shippingConflictId.value;
+  shipping.value = null;
+  shippingError.value = "";
+  if (refresh) void load();
+}
 async function ship() {
-  if (!shipping.value || busy.value) return;
+  if (
+    !shipping.value ||
+    busy.value ||
+    !canShip(shipping.value) ||
+    shippingConflictId.value === shipping.value.id
+  )
+    return;
   const order = shipping.value;
   const n = generation;
   busy.value = true;
-  error.value = "";
+  shippingError.value = "";
   try {
     await request<Order>(`/admin/orders/${order.id}/ship`, {
       method: "POST",
@@ -355,17 +428,19 @@ async function ship() {
     shipping.value = null;
     await load();
   } catch (e) {
-    if (n === generation) error.value = errorMessage(e);
+    if (n !== generation) return;
+    if (e instanceof ApiError && e.status === 409) {
+      shippingConflictId.value = order.id;
+      shippingError.value = `${e.message} 请返回检查，刷新后核对订单状态。`;
+    } else if (!(e instanceof ApiError) || e.status === 0 || e.status >= 500) {
+      shippingConflictId.value = order.id;
+      shippingError.value = "发货结果待核对。请返回检查，刷新订单后确认状态。";
+    } else shippingError.value = errorMessage(e);
   } finally {
     if (n === generation) busy.value = false;
   }
 }
 onMounted(() => {
-  tab.value =
-    new URLSearchParams(window.location.hash.split("?")[1] || "").get("tab") ===
-    "orders"
-      ? "orders"
-      : "products";
   void load();
   void loadCategories();
 });
@@ -378,7 +453,7 @@ onUnmounted(clear);
       <div>
         <h1>商城运营</h1>
       </div>
-      <div class="action-row">
+      <div v-show="tab === 'products'" class="action-row">
         <button class="secondary button" @click="openFilter">筛选商品</button>
         <button class="secondary button" @click="openNew">＋ 新商品</button>
       </div>
@@ -386,11 +461,13 @@ onUnmounted(clear);
     <nav class="task-tabs" aria-label="商城任务">
       <button
         :class="tab === 'products' ? 'primary' : 'secondary'"
+        :aria-pressed="tab === 'products'"
         @click="focusTab('products')"
       >
         商品与库存</button
       ><button
         :class="tab === 'orders' ? 'primary' : 'secondary'"
+        :aria-pressed="tab === 'orders'"
         @click="focusTab('orders')"
       >
         订单与发货
@@ -399,7 +476,11 @@ onUnmounted(clear);
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
-    <section id="shop-products" class="editor-section">
+    <section
+      v-show="tab === 'products'"
+      id="shop-products"
+      class="editor-section"
+    >
       <div class="section-heading">
         <h2>商品目录</h2>
         <span class="muted">{{ filteredProducts.length }} 件商品</span>
@@ -444,17 +525,21 @@ onUnmounted(clear);
         </table>
       </div>
     </section>
-    <section id="shop-orders" class="editor-section">
+    <section v-show="tab === 'orders'" id="shop-orders" class="editor-section">
       <div class="section-heading">
         <h2>装备订单</h2>
       </div>
       <div class="privacy-note">
         收货资料仅用于订单履约，请勿公开或用于无关营销。
       </div>
-      <div v-if="!orders.items.length" class="empty-state">还没有订单</div>
+      <UiState v-if="busy && !orders.items.length" kind="loading" compact
+        >正在加载订单…</UiState
+      >
+      <UiState v-else-if="!orders.items.length && !error" compact
+        >还没有订单</UiState
+      >
       <article
         v-for="order in orders.items"
-        v-else
         :key="order.id"
         class="order-admin-card"
         :aria-label="`订单 ${order.orderNo}`"
@@ -465,53 +550,75 @@ onUnmounted(clear);
               >{{ orderStatuses[order.status] }} ·
               {{ money(order.totalCents) }}</strong
             >
-            <p class="muted">订单号 {{ order.orderNo }}</p>
+            <p class="muted record-id">订单号 {{ order.orderNo }}</p>
+            <p
+              v-if="
+                order.originalTotalCents != null &&
+                order.originalTotalCents !== order.totalCents
+              "
+            >
+              会员优惠前 {{ money(order.originalTotalCents) }} · 优惠
+              {{ money(order.originalTotalCents - order.totalCents) }}
+            </p>
             <p v-if="order.reconciliationRequired" class="error">
               需核对微信订单状态，库存暂保留，请勿手动回库。
             </p>
           </div>
           <button
-            v-if="order.status === 'PAID'"
+            v-if="canShip(order) && shippingConflictId !== order.id"
             class="secondary button"
-            @click="shipping = order"
+            @click="openShipping(order)"
           >
             确认发货
           </button>
         </div>
-        <p v-for="item in order.items" :key="item.id">
-          {{ item.productName }} × {{ item.quantity }}
-        </p>
-        <p>收货人：{{ order.recipientName }}</p>
-        <p>
-          手机号：{{
-            revealed.has(order.id) ? order.phone : maskPhone(order.phone)
-          }}
-        </p>
-        <p>
-          地址：{{
-            revealed.has(order.id) ? order.address : "••••••••••••••••"
-          }}
+        <p class="order-summary">
+          {{ order.items[0]?.productName
+          }}<template v-if="order.items.length > 1">
+            等 {{ order.items.length }} 种商品</template
+          >
         </p>
         <div class="action-row">
           <button class="text-button" @click="toggleDetail(order.id)">
             {{ detailed.has(order.id) ? "隐藏明细" : "查看" }}</button
-          ><button class="text-button" @click="toggle(order.id)">
+          ><button class="text-button" @click="toggle(order)">
             {{ revealed.has(order.id) ? "隐藏收货信息" : "查看收货信息" }}
           </button>
         </div>
-        <div v-if="detailed.has(order.id)" class="order-detail">
-          <p
-            v-for="item in order.items"
-            :key="item.id"
-            class="muted"
+        <div class="order-contact">
+          <span>收货人：{{ order.recipientName }}</span>
+          <span
+            >手机号：{{
+              revealed.has(order.id) ? order.phone : maskPhone(order.phone)
+            }}</span
           >
+          <span
+            >地址：{{
+              revealed.has(order.id) ? order.address : "••••••••••••••••"
+            }}</span
+          >
+        </div>
+        <div v-if="detailed.has(order.id)" class="order-detail">
+          <p v-for="item in order.items" :key="item.id" class="muted">
             {{ item.productName }} × {{ item.quantity }} ·
             {{ money(item.priceCents * item.quantity) }}
+            <span v-if="item.tierName">
+              · {{ item.tierName }}优惠价 {{ money(item.priceCents) }} /
+              件</span
+            >
           </p>
           <p class="muted">实付合计 {{ money(order.totalCents) }}</p>
         </div>
         <p class="muted">
-          微信交易号：{{ order.paymentTransactionId || "尚未确认支付" }} ·
+          <template v-if="order.totalCents === 0 && !order.paymentTransactionId"
+            >免支付订单，无微信交易号</template
+          >
+          <template v-else
+            >微信交易号：{{
+              order.paymentTransactionId || "尚未确认支付"
+            }}</template
+          >
+          ·
           {{ displayDate(order.createdAt) }}
         </p>
       </article>
@@ -533,12 +640,22 @@ onUnmounted(clear);
       </nav>
     </section>
     <ConfirmDialog
+      v-if="revealTarget"
+      title="查看收货信息？"
+      :description="`将显示订单 ${revealTarget.orderNo} 的完整手机号和地址，仅用于订单履约。`"
+      confirm-label="确认查看"
+      @cancel="revealTarget = null"
+      @confirm="confirmReveal"
+    />
+    <ConfirmDialog
       v-if="shipping"
       title="确认订单已发货？"
       description="只有实际交给物流后才应标记发货，操作会写入订单状态。"
       confirm-label="确认发货"
       :busy="busy"
-      @cancel="!busy && (shipping = null)"
+      :error="shippingError"
+      :confirm-disabled="shippingConflictId === shipping.id"
+      @cancel="closeShipping"
       @confirm="ship"
     />
     <ConfirmDialog
@@ -575,6 +692,15 @@ onUnmounted(clear);
       <div class="section-heading">
         <h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2>
       </div>
+      <p
+        v-if="formError"
+        ref="formErrorElement"
+        class="error-box"
+        role="alert"
+        tabindex="-1"
+      >
+        {{ formError }}
+      </p>
       <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
       <p v-if="categoriesError" class="error-box" role="alert">
         {{ categoriesError }}
@@ -673,21 +799,24 @@ onUnmounted(clear);
 
 <style scoped>
 .editor-section {
-  margin-top: 32px;
-  padding: 26px;
-  border: 1px solid var(--line, #e1e6da);
-  border-radius: 18px;
-  background: var(--paper, #fff);
+  min-width: 0;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  background: var(--admin-surface);
 }
 .section-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  margin-bottom: 10px;
 }
 .section-heading h2 {
   margin: 0;
+  font-size: 16px;
 }
 .form-grid {
   display: grid;
@@ -712,11 +841,26 @@ onUnmounted(clear);
   margin-top: 18px;
 }
 .order-admin-card {
-  padding: 22px 0;
-  border-top: 1px solid var(--line, #e1e6da);
+  padding: 12px 0;
+  border-top: 1px solid var(--admin-line);
+  overflow-wrap: anywhere;
 }
 .order-admin-card .section-heading {
   align-items: flex-start;
+}
+.order-admin-card p {
+  margin: 4px 0;
+}
+.order-admin-card .record-id {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.order-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: var(--admin-muted);
+  font-size: 12px;
 }
 .order-detail {
   margin: 10px 0;
@@ -729,6 +873,9 @@ onUnmounted(clear);
   margin: 4px 0;
 }
 @media (max-width: 760px) {
+  .editor-section {
+    padding: 12px;
+  }
   .form-grid {
     grid-template-columns: 1fr;
   }

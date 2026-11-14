@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, useId } from "vue";
 defineProps<{
   title: string;
   description: string;
   busy?: boolean;
   confirmLabel: string;
   danger?: boolean;
+  error?: string;
+  confirmDisabled?: boolean;
 }>();
 const emit = defineEmits<{ confirm: []; cancel: [] }>(),
   cancelButton = ref<HTMLButtonElement>(),
   dialog = ref<HTMLElement>();
 const previousFocus = document.activeElement as HTMLElement | null;
+const headingId = useId();
 function keydown(event: KeyboardEvent) {
   if (event.key === "Escape") emit("cancel");
   if (event.key === "Tab") {
@@ -46,11 +49,11 @@ onUnmounted(() => {
         class="dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="confirmation-heading"
+        :aria-labelledby="headingId"
       >
-        <p class="eyebrow">PLEASE CONFIRM</p>
-        <h2 id="confirmation-heading">{{ title }}</h2>
+        <h2 :id="headingId">{{ title }}</h2>
         <p>{{ description }}</p>
+        <p v-if="error" role="alert" class="error-box">{{ error }}</p>
         <div class="dialog-actions">
           <button
             ref="cancelButton"
@@ -61,7 +64,7 @@ onUnmounted(() => {
             返回检查</button
           ><button
             :class="danger ? 'danger' : 'primary'"
-            :disabled="busy"
+            :disabled="busy || confirmDisabled"
             @click="emit('confirm')"
           >
             {{ busy ? "正在处理…" : confirmLabel }}

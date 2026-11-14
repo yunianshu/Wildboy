@@ -259,145 +259,147 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <header class="page-heading">
-    <h1>商品分类</h1>
-    <div>
-      <button :disabled="loading || busy" @click="load">刷新分类</button
-      ><button class="primary" :disabled="loading || busy" @click="open()">
-        <AppIcon name="plus" />新分类
-      </button>
-    </div>
-  </header>
-  <nav class="task-tabs" aria-label="商城任务">
-    <RouterLink class="button secondary" to="/shop?tab=products"
-      >商品与库存</RouterLink
-    ><RouterLink class="button secondary" to="/shop?tab=orders"
-      >订单与发货</RouterLink
-    ><RouterLink
-      class="button primary"
-      to="/shop/categories"
-      aria-current="page"
-      >商品分类</RouterLink
-    >
-  </nav>
-  <p class="privacy-note">
-    单层分类用于商城筛选。数值越小越靠前；已有商品默认归入未分类，可修改分类名称和排序，历史订单商品及成交金额保留。
-  </p>
-  <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-  <p v-if="error && !editing" class="error-box" role="alert">
-    {{ error
-    }}<button class="text-button" :disabled="loading || busy" @click="load">
-      重新加载
-    </button>
-  </p>
-  <UiState v-if="loading && !items.length" kind="loading" compact
-    >正在加载商品分类…</UiState
-  >
-  <UiState v-else-if="!items.length && !error" kind="empty" compact
-    >还没有商品分类。<button :disabled="busy" @click="open()">
-      创建分类
-    </button></UiState
-  >
-  <div v-if="items.length" class="table-scroll">
-    <table class="product-categories-table">
-      <thead>
-        <tr>
-          <th>分类名称</th>
-          <th>排序</th>
-          <th>关联商品</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="category in visible" :key="category.id">
-          <td>
-            <strong class="cell-summary" :title="category.name">{{
-              category.name
-            }}</strong
-            ><span v-if="category.id === 'uncategorized'" class="muted"
-              >默认分类</span
-            >
-          </td>
-          <td class="table-number">{{ category.sortOrder }}</td>
-          <td class="table-number">{{ category.productCount }} 件</td>
-          <td>
-            <button
-              class="text-button"
-              :disabled="loading || busy"
-              @click="open(category)"
-            >
-              编辑分类
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <nav class="pagination" aria-label="商品分类分页">
-    <span>第 {{ page + 1 }} 页 · 共 {{ items.length }} 个分类</span>
-    <div class="action-row">
-      <button :disabled="loading || busy || page === 0" @click="page--">
-        上一页</button
-      ><button
-        :disabled="loading || busy || (page + 1) * 8 >= items.length"
-        @click="page++"
-      >
-        下一页
-      </button>
-    </div>
-  </nav>
-  <FormModal v-if="editing" @close="close">
-    <form class="form-section" @submit.prevent="save">
-      <h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2>
-      <p v-if="error" class="error-box" role="alert">{{ error }}</p>
-      <p v-if="editingId === 'uncategorized'" class="privacy-note">
-        这是默认分类。修改名称后仍承接未指定分类的历史商品，不删除商品。
-      </p>
-      <label
-        >分类名称 *<input
-          v-model="form.name"
-          name="categoryName"
-          required
-          maxlength="40"
-          :disabled="busy"
-      /></label>
-      <label
-        >排序 *<input
-          v-model="form.sortOrder"
-          name="categorySortOrder"
-          type="number"
-          min="0"
-          max="9999"
-          required
-          :disabled="busy"
-      /></label>
-      <p class="field-hint">0–9999 的整数，数值越小越靠前。</p>
-      <div class="dialog-actions">
-        <button type="button" :disabled="busy" @click="close">
-          {{ uncertain ? "返回分类列表核对" : "取消" }}</button
-        ><button
-          v-if="editingId"
-          type="button"
-          :disabled="busy || loading"
-          @click="requestReload"
-        >
-          重新读取</button
-        ><button
-          class="primary"
-          :disabled="busy || loading || conflict || uncertain"
-        >
-          {{ busy ? "正在保存…" : "保存分类" }}
+  <main class="workspace">
+    <header class="page-heading">
+      <h1>商品分类</h1>
+      <div class="action-row">
+        <button :disabled="loading || busy" @click="load">刷新分类</button
+        ><button class="primary" :disabled="loading || busy" @click="open()">
+          <AppIcon name="plus" />新分类
         </button>
       </div>
-    </form>
-  </FormModal>
-  <ConfirmDialog
-    v-if="reloadConfirmation"
-    title="重新读取分类？"
-    description="重新读取成功后将采用最新名称、排序和版本，放弃当前未保存修改；读取失败仍保留输入。"
-    confirm-label="确认重新读取"
-    :busy="busy"
-    @cancel="!busy && (reloadConfirmation = false)"
-    @confirm="reloadCurrent"
-  />
+    </header>
+    <nav class="task-tabs" aria-label="商城任务">
+      <RouterLink class="button secondary" to="/shop?tab=products"
+        >商品与库存</RouterLink
+      ><RouterLink class="button secondary" to="/shop?tab=orders"
+        >订单与发货</RouterLink
+      ><RouterLink
+        class="button primary"
+        to="/shop/categories"
+        aria-current="page"
+        >商品分类</RouterLink
+      >
+    </nav>
+    <p class="privacy-note">
+      单层分类用于商城筛选。数值越小越靠前；已有商品默认归入未分类，可修改分类名称和排序，历史订单商品及成交金额保留。
+    </p>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
+    <p v-if="error && !editing" class="error-box" role="alert">
+      {{ error
+      }}<button class="text-button" :disabled="loading || busy" @click="load">
+        重新加载
+      </button>
+    </p>
+    <UiState v-if="loading && !items.length" kind="loading" compact
+      >正在加载商品分类…</UiState
+    >
+    <UiState v-else-if="!items.length && !error" kind="empty" compact
+      >还没有商品分类。<button :disabled="busy" @click="open()">
+        创建分类
+      </button></UiState
+    >
+    <div v-if="items.length" class="table-scroll">
+      <table class="product-categories-table">
+        <thead>
+          <tr>
+            <th>分类名称</th>
+            <th>排序</th>
+            <th>关联商品</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="category in visible" :key="category.id">
+            <td>
+              <strong class="cell-summary" :title="category.name">{{
+                category.name
+              }}</strong
+              ><span v-if="category.id === 'uncategorized'" class="muted"
+                >默认分类</span
+              >
+            </td>
+            <td class="table-number">{{ category.sortOrder }}</td>
+            <td class="table-number">{{ category.productCount }} 件</td>
+            <td>
+              <button
+                class="text-button"
+                :disabled="loading || busy"
+                @click="open(category)"
+              >
+                编辑分类
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <nav class="pagination" aria-label="商品分类分页">
+      <span>第 {{ page + 1 }} 页 · 共 {{ items.length }} 个分类</span>
+      <div class="action-row">
+        <button :disabled="loading || busy || page === 0" @click="page--">
+          上一页</button
+        ><button
+          :disabled="loading || busy || (page + 1) * 8 >= items.length"
+          @click="page++"
+        >
+          下一页
+        </button>
+      </div>
+    </nav>
+    <FormModal v-if="editing" @close="close">
+      <form class="form-section" @submit.prevent="save">
+        <h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2>
+        <p v-if="error" class="error-box" role="alert">{{ error }}</p>
+        <p v-if="editingId === 'uncategorized'" class="privacy-note">
+          这是默认分类。修改名称后仍承接未指定分类的历史商品，不删除商品。
+        </p>
+        <label
+          >分类名称 *<input
+            v-model="form.name"
+            name="categoryName"
+            required
+            maxlength="40"
+            :disabled="busy"
+        /></label>
+        <label
+          >排序 *<input
+            v-model="form.sortOrder"
+            name="categorySortOrder"
+            type="number"
+            min="0"
+            max="9999"
+            required
+            :disabled="busy"
+        /></label>
+        <p class="field-hint">0–9999 的整数，数值越小越靠前。</p>
+        <div class="dialog-actions">
+          <button type="button" :disabled="busy" @click="close">
+            {{ uncertain ? "返回分类列表核对" : "取消" }}</button
+          ><button
+            v-if="editingId"
+            type="button"
+            :disabled="busy || loading"
+            @click="requestReload"
+          >
+            重新读取</button
+          ><button
+            class="primary"
+            :disabled="busy || loading || conflict || uncertain"
+          >
+            {{ busy ? "正在保存…" : "保存分类" }}
+          </button>
+        </div>
+      </form>
+    </FormModal>
+    <ConfirmDialog
+      v-if="reloadConfirmation"
+      title="重新读取分类？"
+      description="重新读取成功后将采用最新名称、排序和版本，放弃当前未保存修改；读取失败仍保留输入。"
+      confirm-label="确认重新读取"
+      :busy="busy"
+      @cancel="!busy && (reloadConfirmation = false)"
+      @confirm="reloadCurrent"
+    />
+  </main>
 </template>

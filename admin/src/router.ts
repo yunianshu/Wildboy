@@ -9,13 +9,14 @@ import ShopView from "./views/ShopView.vue";
 import ProductCategoriesView from "./views/ProductCategoriesView.vue";
 import UsersView from "./views/UsersView.vue";
 import AdminAccountView from "./views/AdminAccountView.vue";
-import WaitlistView from "./views/WaitlistView.vue";
 import TemplatesView from "./views/TemplatesView.vue";
 import OperationsView from "./views/OperationsView.vue";
 import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
 import ArticlesView from "./views/ArticlesView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import MembershipsView from "./views/MembershipsView.vue";
+import ActivityOrdersView from "./views/ActivityOrdersView.vue";
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -25,8 +26,10 @@ export const router = createRouter({
     { path: "/shop", component: ShopView },
     { path: "/shop/categories", component: ProductCategoriesView },
     { path: "/users", component: UsersView },
+    { path: "/memberships", component: MembershipsView },
+    { path: "/activity-orders", component: ActivityOrdersView },
     { path: "/templates", component: TemplatesView },
-    { path: "/waitlist", component: WaitlistView },
+    { path: "/waitlist", redirect: "/operations" },
     { path: "/operations", component: OperationsView },
     { path: "/refunds", component: RefundsView },
     { path: "/notifications", component: NotificationsView },

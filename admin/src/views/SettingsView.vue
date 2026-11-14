@@ -2,7 +2,9 @@
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
+import AppIcon from "../components/AppIcon.vue";
 import ImageUpload from "../components/ImageUpload.vue";
+import UiState from "../components/UiState.vue";
 // Match ContentService.safeImage: do not preview an image the API will reject.
 function imageUrlValid(value: string) {
   return (
@@ -35,7 +37,9 @@ const config = ref<Settings | null>(null),
   success = ref(""),
   sourceError = ref(""),
   snapshot = ref(""),
-  generation = ref(0);
+  generation = ref(0),
+  activeSlot = ref(1),
+  conflict = ref(false);
 const pages = [
   ["WEEKLY", "本周活动"],
   ["DOMESTIC", "国内游行"],
@@ -49,6 +53,12 @@ const icons = [
   ["QRCODE", "二维码"],
   ["INTRO", "野小子"],
 ];
+const entryIcons: Record<string, string> = {
+  WEEKLY: "mountain",
+  DOMESTIC: "location",
+  QRCODE: "dashboard",
+  INTRO: "document",
+};
 const busy = computed(
   () =>
     loading.value || saving.value || Object.values(uploads.value).some(Boolean),
@@ -56,6 +66,13 @@ const busy = computed(
 const dirty = computed(
   () => !!config.value && JSON.stringify(config.value) !== snapshot.value,
 );
+function destination(entry: Entry) {
+  if (entry.type === "PAGE")
+    return `已有页面 · ${pages.find(([key]) => key === entry.page)?.[1] ?? "未选择"}`;
+  if (entry.type === "ARTICLE")
+    return `文章 · ${entry.articleId === "OFFICIAL" ? "当前官方介绍" : (articles.value.find((item) => item.id === entry.articleId)?.title ?? "待核对")}`;
+  return entry.popupImageUrl ? "弹窗 · 含图片" : "弹窗 · 尚未配置二维码/图片";
+}
 let epoch = 0;
 function reset() {
   epoch++;
@@ -69,6 +86,8 @@ function reset() {
   success.value = "";
   sourceError.value = "";
   snapshot.value = "";
+  activeSlot.value = 1;
+  conflict.value = false;
 }
 watch(currentUser, (u, old) => {
   if (u !== old) {
@@ -83,9 +102,13 @@ function canLeave() {
 onBeforeRouteLeave((to) => to.path === "/login" || (!busy.value && canLeave()));
 function fill(value: Settings) {
   config.value = value;
+  if (!value.items.some((entry) => entry.slot === activeSlot.value)) {
+    activeSlot.value = value.items[0]?.slot ?? 1;
+  }
   snapshot.value = JSON.stringify(value);
   generation.value++;
   uploads.value = {};
+  conflict.value = false;
 }
 async function load() {
   if (busy.value || !currentUser.value || !canLeave()) return;
@@ -137,24 +160,27 @@ function uploaded(entry: Entry, url: string) {
     entry.popupImageUrl = url;
 }
 async function save() {
-  if (busy.value || !currentUser.value || !config.value) return;
+  if (busy.value || conflict.value || !currentUser.value || !config.value)
+    return;
   error.value = "";
   success.value = "";
-  if (
-    config.value.items.some((e) => !e.name.trim() || e.name.trim().length > 12)
-  ) {
-    error.value = "入口名称请填写 1–12 个字";
+  const invalidName = config.value.items.find(
+    (entry) => !entry.name.trim() || entry.name.trim().length > 12,
+  );
+  if (invalidName) {
+    activeSlot.value = invalidName.slot;
+    error.value = `入口 ${invalidName.slot} 的名称请填写 1–12 个字。`;
     return;
   }
-  if (
-    config.value.items.some(
-      (e) =>
-        e.type === "POPUP" &&
-        e.popupImageUrl &&
-        !imageUrlValid(e.popupImageUrl),
-    )
-  ) {
-    error.value = "图片须为 HTTPS 或 /assets/ 地址";
+  const invalidImage = config.value.items.find(
+    (entry) =>
+      entry.type === "POPUP" &&
+      entry.popupImageUrl &&
+      !imageUrlValid(entry.popupImageUrl),
+  );
+  if (invalidImage) {
+    activeSlot.value = invalidImage.slot;
+    error.value = `入口 ${invalidImage.slot} 的图片须为 HTTPS 或 /assets/ 地址。`;
     return;
   }
   const n = epoch,
@@ -180,11 +206,12 @@ async function save() {
     fill(value);
     success.value = "配置已保存，小程序下次刷新首页时生效。";
   } catch (e) {
-    if (n === epoch)
-      error.value =
-        e instanceof ApiError && e.status === 409
-          ? "配置版本或文章状态已变化，请重新加载后核对；不会自动覆盖。"
-          : errorMessage(e);
+    if (n === epoch) {
+      conflict.value = e instanceof ApiError && e.status === 409;
+      error.value = conflict.value
+        ? "配置版本或文章状态已变化，请重新加载后核对；不会自动覆盖。"
+        : errorMessage(e);
+    }
   } finally {
     if (n === epoch) saving.value = false;
   }
@@ -192,34 +219,76 @@ async function save() {
 onMounted(() => void load());
 </script>
 <template>
-  <main class="workspace">
+  <main class="workspace settings-workspace">
     <div class="page-heading">
-      <div>
-        <h1>基础配置</h1>
-        <p>首页固定四个横向入口；保存后公开生效，不修改活动分类。</p>
+      <h1>基础配置</h1>
+      <div class="settings-actions">
+        <button class="secondary" :disabled="busy" @click="load">
+          <AppIcon name="refresh" :size="16" />重新加载配置
+        </button>
+        <button
+          v-if="config"
+          class="primary"
+          form="home-shortcut-settings"
+          type="submit"
+          :disabled="busy || conflict"
+        >
+          {{ saving ? "保存中…" : "保存首页配置" }}
+        </button>
       </div>
-      <button class="secondary button" :disabled="busy" @click="load">
-        重新加载配置
-      </button>
     </div>
-    <p v-if="loading">正在加载配置…</p>
-    <p v-if="error" class="error-box" role="alert">{{ error }}</p>
-    <p v-if="success" role="status">{{ success }}</p>
-    <p v-if="sourceError" class="error-box" role="alert">
-      {{ sourceError }}
-      <button :disabled="busy" @click="loadArticles(epoch, currentUser)">
-        重试文章选项
-      </button>
-    </p>
-    <form v-if="config" @submit.prevent="save">
-      <fieldset :disabled="busy">
+    <UiState v-if="loading && !config" kind="loading" compact
+      >正在读取首页配置…</UiState
+    >
+    <UiState v-if="error" kind="error" compact>{{ error }}</UiState>
+    <p v-if="success" class="settings-notice" role="status">{{ success }}</p>
+    <form
+      v-if="config"
+      id="home-shortcut-settings"
+      class="settings-form"
+      novalidate
+      @submit.prevent="save"
+    >
+      <section
+        class="shortcut-card shortcut-index"
+        aria-labelledby="shortcut-list-heading"
+      >
+        <h2 id="shortcut-list-heading">首页入口</h2>
+        <div class="shortcut-options" aria-label="选择首页入口">
+          <button
+            v-for="entry in config.items"
+            :key="entry.slot"
+            type="button"
+            class="shortcut-option"
+            :data-slot="entry.slot"
+            :aria-pressed="entry.slot === activeSlot"
+            :aria-controls="`shortcut-editor-${entry.slot}`"
+            @click="activeSlot = entry.slot"
+          >
+            <AppIcon :name="entryIcons[entry.icon] ?? 'document'" :size="17" />
+            <span class="shortcut-option-copy">
+              <strong
+                >{{ entry.slot }}　{{
+                  entry.name.trim() || "未填写名称"
+                }}</strong
+              >
+              <small>{{ destination(entry) }}</small>
+            </span>
+            <AppIcon name="arrow" :size="15" />
+          </button>
+        </div>
+      </section>
+      <fieldset :disabled="busy" class="shortcut-editor">
         <section
           v-for="entry in config.items"
+          v-show="entry.slot === activeSlot"
+          :id="`shortcut-editor-${entry.slot}`"
           :key="entry.slot"
-          :data-slot="entry.slot"
           class="shortcut-card"
         >
-          <h2>入口 {{ entry.slot }}</h2>
+          <h2>
+            入口 {{ entry.slot }} · {{ entry.name.trim() || "未填写名称" }}
+          </h2>
           <div class="shortcut-fields">
             <label
               >名称<input
@@ -286,8 +355,8 @@ onMounted(() => void load());
               </select></label
             >
           </div>
-          <template v-if="entry.type === 'POPUP'"
-            ><label
+          <div v-if="entry.type === 'POPUP'" class="shortcut-popup">
+            <label
               >弹窗标题<input
                 v-model="entry.popupTitle"
                 :aria-label="`入口${entry.slot}弹窗标题`"
@@ -325,56 +394,171 @@ onMounted(() => void load());
               alt="弹窗图片预览"
               referrerpolicy="no-referrer"
             />
-            <p v-else>
-              尚未配置二维码/图片；小程序会显示明确的未配置提示，不生成示例二维码。
+            <p v-else class="shortcut-note">
+              尚未配置二维码/图片。小程序会显示未配置提示。
             </p>
-          </template>
+          </div>
+          <UiState
+            v-if="entry.type === 'ARTICLE' && sourceError"
+            kind="error"
+            compact
+          >
+            <p>{{ sourceError }}</p>
+            <button
+              type="button"
+              class="secondary"
+              :disabled="busy"
+              @click="loadArticles(epoch, currentUser)"
+            >
+              重试文章选项
+            </button>
+          </UiState>
         </section>
       </fieldset>
-      <button class="primary button" type="submit" :disabled="busy">
-        {{ saving ? "保存中…" : "保存首页配置" }}
-      </button>
-      <p v-if="Object.values(uploads).some(Boolean)">
-        图片上传中，请等待完成后保存。
+      <p class="settings-notice" role="status">
+        {{
+          Object.values(uploads).some(Boolean)
+            ? "图片上传中，请等待完成后保存。"
+            : dirty
+              ? "有未保存修改。保存后在小程序下次刷新首页时生效。"
+              : "四个入口统一保存，在小程序下次刷新首页时生效。"
+        }}
       </p>
-      <p v-if="dirty">有未保存修改。</p>
     </form>
   </main>
 </template>
 <style scoped>
-fieldset {
-  border: 0;
-  padding: 0;
-  min-width: 0;
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-form {
+  display: grid;
+  grid-template-columns: minmax(0, 288px) minmax(0, 1fr);
+  align-items: start;
+  gap: 14px 16px;
 }
 .shortcut-card {
-  background: white;
-  border: 1px solid #ddd;
-  padding: 24px;
-  margin: 16px 0;
-  border-radius: 12px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-line);
+  padding: 14px;
+  border-radius: var(--admin-radius);
+  min-width: 0;
+}
+h2 {
+  margin: 0 0 10px;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.shortcut-options {
+  display: grid;
+  gap: 4px;
+}
+.shortcut-option {
+  display: grid;
+  grid-template-columns: 17px minmax(0, 1fr) 15px;
+  justify-content: stretch;
+  gap: 10px;
+  min-height: 54px;
+  padding: 6px 9px;
+  text-align: left;
+  background: var(--admin-surface);
+  color: var(--admin-primary);
+}
+.shortcut-option:hover,
+.shortcut-option[aria-pressed="true"] {
+  background: var(--admin-tint);
+}
+.shortcut-option-copy {
+  display: grid;
+  min-width: 0;
+}
+.shortcut-option-copy > * {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.shortcut-option small,
+.shortcut-note {
+  color: var(--admin-muted);
+  font-size: 12px;
 }
 .shortcut-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
+}
+.shortcut-popup {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 12px;
 }
 label {
   display: grid;
-  gap: 8px;
-  margin-bottom: 16px;
+  width: 100%;
+  gap: 4px;
+  margin: 0;
+}
+label input,
+label select,
+label textarea {
+  margin: 0;
 }
 .popup-preview {
   display: block;
-  max-width: 240px;
-  max-height: 280px;
+  max-width: min(100%, 200px);
+  max-height: 160px;
   object-fit: contain;
+}
+.shortcut-note,
+.shortcut-card :deep(.ui-state p) {
+  margin: 0;
+}
+.shortcut-card :deep(.ui-state) {
   margin-top: 12px;
 }
 textarea {
-  min-height: 100px;
+  min-height: 68px;
 }
-@media (max-width: 650px) {
+.settings-notice {
+  grid-column: 1 / -1;
+  margin: 0;
+  border-radius: var(--admin-radius);
+  background: var(--admin-tint);
+  color: var(--admin-ink);
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.settings-workspace > .settings-notice,
+.settings-workspace > :deep(.ui-state) {
+  margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .settings-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .settings-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .settings-actions button {
+    min-height: 44px;
+  }
+  .shortcut-option {
+    min-height: 46px;
+  }
+  .shortcut-fields input,
+  .shortcut-fields select {
+    min-height: 44px;
+  }
+  .shortcut-fields {
+    gap: 8px;
+  }
+}
+@media (max-width: 340px) {
   .shortcut-fields {
     grid-template-columns: 1fr;
   }

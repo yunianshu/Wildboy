@@ -2,6 +2,8 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Activity, ActivityInput, Page } from "../types";
+import FormModal from "../components/FormModal.vue";
+import UiState from "../components/UiState.vue";
 type Template = {
   id: string;
   name: string;
@@ -212,63 +214,74 @@ async function generate() {
 onMounted(() => void load());
 </script>
 <template>
-  <section class="page-heading">
-    <h1>活动模板</h1>
-    <div>
-      <button class="secondary-button" @click="openSchedule(null)">
-        复制活动
-      </button>
-      <button class="primary-button" @click="openEditor()">新建模板</button>
-    </div>
-  </section>
-  <p v-if="error" class="error-box" role="alert">{{ error }}</p>
-  <p v-if="success" role="status">{{ success }}</p>
-  <div v-if="loading" class="empty-state">正在加载…</div>
-  <div v-else-if="!items.length" class="empty-state">暂无模板</div>
-  <section v-for="t in items" :key="t.id" class="template-row">
-    <div>
-      <h3>{{ t.name }}</h3>
-      <p>{{ t.activity.title }} · {{ t.activity.capacity }} 人</p>
-    </div>
-    <div>
-      <button class="text-button" @click="openEditor(t)">更新模板</button
-      ><button class="primary-button" @click="openSchedule(t)">生成草稿</button>
-    </div>
-  </section>
-  <button
-    v-if="hasMore"
-    class="secondary-button"
-    :disabled="loading"
-    @click="load(true)"
-  >
-    加载更多
-  </button>
-  <div v-if="generated.length" class="generated">
-    <RouterLink
-      v-for="a in generated"
-      :key="a.id"
-      :to="`/activities/${a.id}/edit`"
-      >{{ a.title }} ·
-      {{
-        new Date(a.startAt).toLocaleString("zh-CN", {
-          timeZone: "Asia/Shanghai",
-        })
-      }}
-      → 编辑</RouterLink
+  <main class="workspace">
+    <section class="page-heading">
+      <h1>活动模板</h1>
+      <div class="template-actions">
+        <button class="secondary" @click="openSchedule(null)">复制活动</button>
+        <button class="primary" @click="openEditor()">新建模板</button>
+      </div>
+    </section>
+    <p
+      v-if="error && !(editor || schedule || copying)"
+      class="error-box"
+      role="alert"
     >
-  </div>
-  <div
-    v-if="editor || schedule || copying"
-    class="modal-backdrop"
-    @click.self="close"
-  >
-    <section
-      class="template-modal"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="editor ? '保存模板' : '生成活动草稿'"
+      {{ error }}
+    </p>
+    <p v-if="success" class="success-box" role="status">{{ success }}</p>
+    <UiState v-if="loading && !items.length" kind="loading" compact
+      >正在加载模板…</UiState
     >
-      <h2>{{ editor ? "保存模板" : copying ? "复制活动" : "生成草稿" }}</h2>
+    <UiState
+      v-else-if="!items.length && !error && !loading"
+      kind="empty"
+      compact
+      >暂无模板</UiState
+    >
+    <section v-for="t in items" :key="t.id" class="template-row">
+      <div class="template-summary">
+        <h3>{{ t.name }}</h3>
+        <p>
+          {{ t.activity.title }} · {{ t.activity.capacity }} 人 ·
+          {{
+            t.activity.priceCents > 0
+              ? `¥${(t.activity.priceCents / 100).toFixed(2)} / 人`
+              : "免费报名"
+          }}
+        </p>
+      </div>
+      <div class="template-actions">
+        <button class="text-button" @click="openEditor(t)">更新模板</button
+        ><button class="primary" @click="openSchedule(t)">生成草稿</button>
+      </div>
+    </section>
+    <button
+      v-if="hasMore"
+      class="secondary"
+      :disabled="loading"
+      @click="load(true)"
+    >
+      加载更多
+    </button>
+    <div v-if="generated.length" class="generated">
+      <RouterLink
+        v-for="a in generated"
+        :key="a.id"
+        :to="`/activities/${a.id}/edit`"
+        >{{ a.title }} ·
+        {{
+          new Date(a.startAt).toLocaleString("zh-CN", {
+            timeZone: "Asia/Shanghai",
+          })
+        }}
+        · 编辑</RouterLink
+      >
+    </div>
+    <FormModal v-if="editor || schedule || copying" @close="close">
+      <h2 class="modal-heading">
+        {{ editor ? "保存模板" : copying ? "复制活动" : "生成草稿" }}
+      </h2>
       <form @submit.prevent="editor ? save() : generate()">
         <label v-if="editor"
           >模板名称<input v-model="name" maxlength="120" :disabled="busy"
@@ -320,77 +333,65 @@ onMounted(() => void load());
         <div class="modal-actions">
           <button
             type="button"
-            class="secondary-button"
+            class="secondary"
             :disabled="busy"
             @click="close"
           >
             取消</button
-          ><button class="primary-button" :disabled="busy">
+          ><button class="primary" :disabled="busy">
             {{ busy ? "处理中…" : editor ? "保存" : "生成草稿" }}
           </button>
         </div>
       </form>
-    </section>
-  </div>
+    </FormModal>
+  </main>
 </template>
 <style scoped>
 .template-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  padding: 24px;
-  margin-bottom: 16px;
-  border-radius: 16px;
-  gap: 20px;
+  background: var(--admin-surface);
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+  gap: 12px;
+  overflow-wrap: anywhere;
+}
+.template-summary {
+  min-width: 0;
+  flex: 1;
+}
+.template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 .template-row h3 {
   margin: 0;
 }
 .template-row p {
-  margin-bottom: 0;
-  color: #697363;
+  margin: 3px 0 0;
+  color: var(--admin-muted);
 }
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: #10221880;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-.template-modal {
-  background: #fafaf6;
-  border-radius: 20px;
-  padding: 28px;
-  width: min(100%, 540px);
-  max-height: 90vh;
-  overflow: auto;
-}
-.template-modal label {
-  display: grid;
-  gap: 8px;
-  margin: 16px 0;
-}
-.template-modal input,
-.template-modal select {
-  padding: 12px;
-  width: 100%;
-  border: 1px solid #d5dacd;
-  border-radius: 8px;
+.modal-heading {
+  padding-right: 36px;
 }
 .modal-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
   justify-content: flex-end;
-  margin-top: 24px;
+  margin-top: 14px;
 }
 .generated {
   display: grid;
   gap: 12px;
   margin-top: 24px;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 640px) {
   .template-row {

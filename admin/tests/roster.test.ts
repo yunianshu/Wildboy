@@ -54,6 +54,50 @@ beforeEach(() => {
 });
 
 describe("group roster", () => {
+  async function confirmReveal(wrapper: ReturnType<typeof mount>) {
+    const confirmation = wrapper.get('[role="dialog"]');
+    expect(confirmation.text()).toContain("仅用于报名核验及联系");
+    await confirmation
+      .findAll("button")
+      .find((button) => button.text() === "确认查看")!
+      .trigger("click");
+  }
+  it("routes a paid activity to its filtered order roster without querying legacy registrations", async () => {
+    acceptAuth({
+      token: "test",
+      user: { id: "admin", nickname: "管理员", role: "ADMIN" },
+    });
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...activity, priceCents: 10000 }),
+    }));
+    vi.stubGlobal("fetch", fetcher);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/activities/:id/roster", component: RosterView },
+        { path: "/activity-orders", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/activities/activity-1/roster");
+    const wrapper = mount(RosterView, {
+      global: { plugins: [router], stubs: { teleport: true } },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("收费活动名单在活动订单");
+    expect(wrapper.text()).toContain("区分未付款与已确认");
+    expect(wrapper.text()).not.toContain("还没有人报名");
+    expect(wrapper.find('[aria-label="名单分页"]').exists()).toBe(false);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(
+      wrapper
+        .findAll("a")
+        .find((a) => a.text() === "查看此活动收费名单")!
+        .attributes("href"),
+    ).toBe("/activity-orders?activityId=activity-1");
+    wrapper.unmount();
+  });
   it("renders every participant with masked identity and reveals on demand", async () => {
     acceptAuth({
       token: "test",
@@ -84,7 +128,9 @@ describe("group roster", () => {
     });
     await router.push("/activities/activity-1/roster");
     await router.isReady();
-    const wrapper = mount(RosterView, { global: { plugins: [router] } });
+    const wrapper = mount(RosterView, {
+      global: { plugins: [router], stubs: { teleport: true } },
+    });
     await flushPromises();
     expect(wrapper.text()).toContain("第一位");
     expect(wrapper.text()).toContain("第二位");
@@ -99,6 +145,8 @@ describe("group roster", () => {
     expect(wrapper.text()).not.toContain("11010519491231002X");
     expect(wrapper.text()).not.toContain("13800000000");
     await wrapper.find(".phone-toggle").trigger("click");
+    expect(wrapper.text()).not.toContain("13800000000");
+    await confirmReveal(wrapper);
     await flushPromises();
     expect(wrapper.text()).toContain("11010519491231002X");
     expect(wrapper.text()).toContain("13800000000");
@@ -139,9 +187,12 @@ describe("group roster", () => {
     });
     await router.push("/activities/activity-1/roster");
     await router.isReady();
-    const wrapper = mount(RosterView, { global: { plugins: [router] } });
+    const wrapper = mount(RosterView, {
+      global: { plugins: [router], stubs: { teleport: true } },
+    });
     await flushPromises();
     await wrapper.find(".phone-toggle").trigger("click");
+    await confirmReveal(wrapper);
     clearSession();
     finish({
       ok: true,

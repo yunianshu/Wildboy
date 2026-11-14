@@ -3,9 +3,12 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Activity, Page } from "../types";
+import { articleStatusTone } from "../statusTone";
+import AppIcon from "../components/AppIcon.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
+import UiState from "../components/UiState.vue";
 type Article = {
   id: string;
   title: string;
@@ -25,8 +28,15 @@ const items = ref<Article[]>([]),
   success = ref("");
 const opened = ref(false),
   selected = ref<Article | null>(null),
+  editorPage = ref<"info" | "content">("info"),
   contentKey = ref(0),
   rich = ref<InstanceType<typeof RichContentEditor> | null>(null);
+type ArticleAction = "publish" | "unpublish" | "official";
+const confirmation = ref<{
+  action: Exclude<ArticleAction, "unpublish">;
+  id: string;
+  version: number;
+} | null>(null);
 const form = reactive({ title: "", summary: "", coverUrl: "", activityId: "" });
 const snapshot = ref(""),
   sources = ref<Activity[]>([]),
@@ -52,6 +62,7 @@ function reset() {
   epoch++;
   opened.value = false;
   selected.value = null;
+  confirmation.value = null;
   items.value = [];
   sources.value = [];
   busy.value = false;
@@ -121,6 +132,7 @@ function fill(article: Article | null) {
 }
 async function open(article: Article | null) {
   if (busy.value || !currentUser.value) return;
+  editorPage.value = "info";
   error.value = "";
   success.value = "";
   if (!article) {
@@ -217,7 +229,27 @@ async function save() {
     if (n === epoch) busy.value = false;
   }
 }
-async function action(kind: "publish" | "unpublish" | "official") {
+function requestConfirmation(action: Exclude<ArticleAction, "unpublish">) {
+  if (!selected.value || busy.value || dirty.value || contentPending.value)
+    return;
+  confirmation.value = {
+    action,
+    id: selected.value.id,
+    version: selected.value.version,
+  };
+}
+function confirmAction() {
+  const target = confirmation.value;
+  confirmation.value = null;
+  if (
+    target &&
+    selected.value?.id === target.id &&
+    selected.value.version === target.version
+  )
+    void action(target.action);
+  else if (target) error.value = "文章版本已变化，请重新加载后再确认。";
+}
+async function action(kind: ArticleAction) {
   if (
     !selected.value ||
     busy.value ||
@@ -226,12 +258,11 @@ async function action(kind: "publish" | "unpublish" | "official") {
     !currentUser.value
   )
     return;
-  const messages = {
-    publish: "确认发布这篇文章？发布后将在小程序公开展示。",
-    unpublish: "确认下架文章？小程序将不再展示此文。",
-    official: "设为野小子官方介绍？将替换当前官方介绍入口。",
-  };
-  if (!window.confirm(messages[kind])) return;
+  if (
+    kind === "unpublish" &&
+    !window.confirm("确认下架文章？小程序将不再展示此文。")
+  )
+    return;
   const n = epoch,
     actor = currentUser.value;
   busy.value = true;
@@ -257,77 +288,132 @@ async function action(kind: "publish" | "unpublish" | "official") {
 onMounted(() => void load());
 </script>
 <template>
-  <main class="workspace">
+  <main class="workspace articles-workspace">
     <div class="page-heading">
-      <div>
-        <h1>文章管理</h1>
-        <p>统一编辑活动回顾与介绍文章；已发布文章可设为野小子官方介绍。</p>
+      <h1>文章管理</h1>
+      <div class="article-actions">
+        <button class="secondary" :disabled="loading || busy" @click="load()">
+          <AppIcon name="refresh" :size="16" />
+          {{ loading ? "加载中…" : "刷新文章" }}
+        </button>
+        <button class="primary" :disabled="busy" @click="open(null)">
+          <AppIcon name="plus" :size="16" />
+          新建文章
+        </button>
       </div>
-      <button class="primary button" :disabled="busy" @click="open(null)">
-        新建文章
-      </button>
     </div>
     <p v-if="error && !opened" class="error-box" role="alert">{{ error }}</p>
     <p v-if="success && !opened" role="status">{{ success }}</p>
-    <button
-      class="secondary button"
-      :disabled="loading || busy"
-      @click="load()"
+    <UiState v-if="loading && !items.length" kind="loading" compact
+      >正在读取文章…</UiState
     >
-      {{ loading ? "加载中…" : "刷新文章" }}
-    </button>
-    <p v-if="!loading && !items.length">暂无文章，创建草稿并发布后即可展示。</p>
-    <div class="table-scroll">
-      <table v-if="items.length">
+    <UiState v-else-if="!items.length && !error" kind="empty" compact
+      >暂无文章，创建草稿并发布后即可展示。</UiState
+    >
+    <div v-if="items.length" class="table-scroll article-table">
+      <table aria-label="文章">
         <thead>
           <tr>
-            <th>标题</th>
-            <th>状态</th>
-            <th>入口</th>
-            <th>操作</th>
+            <th scope="col">标题</th>
+            <th scope="col">状态</th>
+            <th scope="col">公开入口</th>
+            <th scope="col">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="article in items" :key="article.id">
-            <td>{{ article.title }}</td>
-            <td>{{ article.status === "PUBLISHED" ? "已发布" : "草稿" }}</td>
-            <td>{{ article.isOfficial ? "野小子官方介绍" : "探索页文章" }}</td>
+            <td class="article-title">{{ article.title }}</td>
+            <td>
+              <span
+                class="status-pill inline"
+                :class="`tone-${articleStatusTone(article.status)}`"
+              >
+                {{ article.status === "PUBLISHED" ? "已发布" : "草稿" }}
+              </span>
+            </td>
+            <td>
+              {{
+                article.status === "DRAFT"
+                  ? "—"
+                  : article.isOfficial
+                    ? "野小子官方介绍"
+                    : "探索页文章"
+              }}
+            </td>
             <td>
               <button
                 class="text-button"
                 :disabled="busy"
                 @click="open(article)"
               >
-                查看 / 编辑
+                {{ article.status === "PUBLISHED" ? "查看文章" : "编辑文章" }}
               </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-    <button v-if="more" :disabled="loading" @click="load(true)">
+    <button
+      v-if="more"
+      class="secondary article-more"
+      :disabled="loading || busy"
+      @click="load(true)"
+    >
       加载更多文章
     </button>
-    <FormModal v-if="opened" size="xl" @close="close">
+    <p class="article-hint">只有已发布文章可以设为官方介绍。</p>
+    <FormModal v-if="opened" class="article-editor" size="lg" @close="close">
       <h2>{{ selected ? "编辑文章" : "新建文章" }}</h2>
+      <div class="article-tabs" role="group" aria-label="文章编辑区域">
+        <button
+          class="text-button"
+          :aria-pressed="editorPage === 'info'"
+          @click="editorPage = 'info'"
+        >
+          基本资料
+        </button>
+        <button
+          class="text-button"
+          :aria-pressed="editorPage === 'content'"
+          :disabled="!selected"
+          @click="editorPage = 'content'"
+        >
+          图文正文
+        </button>
+      </div>
       <p v-if="error" class="error-box" role="alert">{{ error }}</p>
       <p v-if="success" role="status">{{ success }}</p>
-      <button v-if="selected" :disabled="busy || !!rich?.busy" @click="reload">
+      <button
+        v-if="selected"
+        class="text-button article-reload"
+        :disabled="busy || !!rich?.busy"
+        @click="reload"
+      >
         重新加载文章
       </button>
-      <p v-if="selected?.status === 'PUBLISHED'">
+      <p v-if="selected?.status === 'PUBLISHED'" class="article-hint">
         已发布文章为只读，需先下架再编辑。下架官方介绍后需重新发布并设为官方介绍。
       </p>
-      <form @submit.prevent="save">
+      <form
+        v-show="editorPage === 'info'"
+        id="article-info-form"
+        @submit.prevent="save"
+      >
         <fieldset :disabled="locked || !!rich?.busy">
-          <label
+          <label class="article-title-field"
             >标题<input
               v-model="form.title"
               required
               maxlength="120"
               aria-label="文章标题"
           /></label>
-          <label
+          <span
+            v-if="selected"
+            class="status-pill inline article-editor-status"
+            :class="`tone-${articleStatusTone(selected.status)}`"
+            >{{ selected.status === "PUBLISHED" ? "已发布" : "草稿" }}</span
+          >
+          <label class="article-summary"
             >摘要<textarea
               v-model="form.summary"
               maxlength="500"
@@ -335,15 +421,11 @@ onMounted(() => void load());
             />
           </label>
           <label
-            >封面图片<input
+            >封面图片地址<input
               v-model="form.coverUrl"
               aria-label="文章封面"
               placeholder="HTTPS 或 /assets/ 图片地址"
           /></label>
-          <ImageUpload
-            :disabled="locked || !!rich?.busy"
-            @uploaded="form.coverUrl = $event"
-          />
           <label
             >关联活动（选填）<select
               v-model="form.activityId"
@@ -364,6 +446,11 @@ onMounted(() => void load());
               </option>
             </select></label
           >
+          <ImageUpload
+            class="article-upload"
+            :disabled="locked || !!rich?.busy"
+            @uploaded="form.coverUrl = $event"
+          />
           <button
             v-if="sourceMore"
             type="button"
@@ -372,17 +459,11 @@ onMounted(() => void load());
           >
             加载更多活动
           </button>
-          <button
-            type="submit"
-            class="primary button"
-            :disabled="contentPending"
-          >
-            保存文章信息
-          </button>
         </fieldset>
       </form>
       <RichContentEditor
         v-if="selected"
+        v-show="editorPage === 'content'"
         :key="contentKey"
         ref="rich"
         managed-navigation
@@ -390,56 +471,215 @@ onMounted(() => void load());
         :disabled="locked"
         @saved="contentSaved"
       />
-      <p v-if="dirty || rich?.dirty">
+      <p v-if="dirty || rich?.dirty" class="article-hint">
         有未保存修改，请先保存文章信息和图文再发布或设置入口。
       </p>
-      <div v-if="selected" class="article-actions">
+      <div class="article-actions article-footer">
         <button
-          v-if="selected.status === 'DRAFT'"
-          class="primary button"
+          class="secondary"
+          :disabled="busy || !!rich?.busy"
+          @click="close"
+        >
+          关闭
+        </button>
+        <button
+          v-if="editorPage === 'info' && selected?.status === 'DRAFT'"
+          class="secondary"
           :disabled="busy || dirty || contentPending"
-          @click="action('publish')"
+          @click="requestConfirmation('publish')"
         >
           发布文章
         </button>
-        <template v-else
+        <template
+          v-if="selected?.status === 'PUBLISHED' && editorPage === 'info'"
           ><button
+            class="danger-outline"
             :disabled="busy || contentPending"
             @click="action('unpublish')"
           >
             下架并编辑</button
           ><button
+            class="primary"
             :disabled="busy || contentPending || selected.isOfficial"
-            @click="action('official')"
+            @click="requestConfirmation('official')"
           >
             {{ selected.isOfficial ? "当前官方介绍" : "设为官方介绍" }}
           </button></template
         >
+        <button
+          v-if="editorPage === 'info' && selected?.status !== 'PUBLISHED'"
+          class="primary"
+          type="submit"
+          form="article-info-form"
+          :disabled="locked || !!rich?.busy || contentPending"
+        >
+          保存文章信息
+        </button>
       </div>
-      <button
-        class="secondary button"
-        :disabled="busy || !!rich?.busy"
-        @click="close"
-      >
-        关闭
-      </button>
+    </FormModal>
+    <FormModal
+      v-if="confirmation && selected"
+      class="article-confirm"
+      @close="confirmation = null"
+    >
+      <h2>
+        {{
+          confirmation.action === "publish" ? "发布文章？" : "设为官方介绍？"
+        }}
+      </h2>
+      <dl class="article-confirm-title">
+        <dt>所选文章</dt>
+        <dd>{{ selected.title }}</dd>
+      </dl>
+      <p v-if="confirmation.action === 'publish'">
+        发布后，这篇文章将在小程序探索页公开展示。
+      </p>
+      <p v-else>
+        探索页「野小子」入口将打开这篇文章，替换原官方介绍。原官方介绍仍是已发布文章，会回到探索页文章轮播。
+      </p>
+      <div class="article-actions article-footer">
+        <button class="secondary" @click="confirmation = null">取消</button>
+        <button class="primary" @click="confirmAction">
+          {{
+            confirmation.action === "publish" ? "确认发布" : "确认设为官方介绍"
+          }}
+        </button>
+      </div>
     </FormModal>
   </main>
 </template>
 <style scoped>
-fieldset {
-  border: 0;
-  padding: 0;
-  display: grid;
-  gap: 16px;
-}
-label {
-  display: grid;
-  gap: 8px;
-}
 .article-actions {
   display: flex;
-  gap: 12px;
-  margin: 20px 0;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.article-table table {
+  min-width: 495px;
+  table-layout: fixed;
+}
+.article-table th:nth-child(2) {
+  width: 14%;
+}
+.article-table th:nth-child(3) {
+  width: 24%;
+}
+.article-table th:last-child {
+  width: 116px;
+}
+.article-title {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.article-table .draft,
+.article-editor-status.draft {
+  color: var(--admin-muted);
+  background: var(--admin-paper);
+}
+.article-hint {
+  margin: 10px 0 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.article-more {
+  margin-top: 12px;
+}
+.article-editor :deep(.form-modal) {
+  max-width: 820px;
+  background: var(--admin-surface);
+}
+.article-confirm :deep(.form-modal) {
+  max-width: 560px;
+  background: var(--admin-surface);
+}
+.article-editor h2,
+.article-confirm h2 {
+  margin: 0 42px 12px 0;
+  font-size: 20px;
+}
+.article-tabs {
+  display: flex;
+  gap: 8px;
+  width: fit-content;
+  margin: 0 0 14px;
+}
+.article-tabs button {
+  border: 1px solid var(--admin-line);
+  padding-inline: 12px;
+}
+.article-tabs button[aria-pressed="true"] {
+  color: var(--admin-primary);
+  background: var(--admin-tint);
+  font-weight: 650;
+}
+.article-reload {
+  margin-bottom: 8px;
+}
+.article-editor fieldset {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+.article-editor fieldset > label {
+  margin: 0;
+}
+.article-summary,
+.article-upload {
+  grid-column: 1 / -1;
+}
+.article-summary textarea {
+  min-height: 68px;
+}
+.article-title-field {
+  grid-column: 1 / -1;
+}
+.article-editor-status {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+}
+.article-title-field + .article-editor-status {
+  margin-top: -5px;
+}
+.article-footer {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.article-confirm-title {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: var(--admin-paper);
+  border-radius: var(--admin-radius);
+}
+.article-confirm-title dt {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.article-confirm-title dd {
+  margin: 2px 0 0;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.article-editor :deep(.rich-editor > h2) {
+  font-size: 15px;
+  margin: 0;
+}
+.article-editor :deep(.rich-block) {
+  margin: 10px 0;
+  padding: 12px;
+  border-color: var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+@media (max-width: 720px) {
+  .article-editor fieldset {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .article-editor-status {
+    grid-column: 1;
+  }
+  .article-tabs button {
+    min-height: 44px;
+  }
 }
 </style>

@@ -98,6 +98,10 @@ async function render(fetcher: ReturnType<typeof vi.fn>) {
     routes: [
       { path: "/users", component: UsersView },
       {
+        path: "/activity-orders",
+        component: { template: "<p>活动订单</p>" },
+      },
+      {
         path: "/activities/:id/registrations",
         component: { template: "<p>活动名单</p>" },
       },
@@ -246,6 +250,51 @@ describe("user management and WeChat admin roles", () => {
     });
     expect(roleWrites(fetcher)).toHaveLength(0);
   });
+  it("shows a pending paid booking in user history and links to the exact order", async () => {
+    const customer = {
+      ...user,
+      registrationCount: 1,
+      confirmedRegistrationCount: 0,
+      pendingRegistrationCount: 1,
+    };
+    const paidHistory: AdminUserDetail = {
+      ...detail(customer),
+      registrations: {
+        ...detail(customer).registrations,
+        items: [
+          {
+            ...registration,
+            id: "paid-order-1",
+            source: "ACTIVITY_ORDER",
+            status: "PENDING_PAYMENT",
+            orderStatus: "PENDING_PAYMENT",
+          },
+        ],
+      },
+    };
+    const fetcher = vi.fn(async (path: string) =>
+      response(
+        path.includes(`/users/${user.id}?`) ? paidHistory : list([customer]),
+      ),
+    );
+    const wrapper = await render(fetcher);
+    expect(wrapper.get("tbody").text()).toMatch(
+      /有效 0 \/ 全部 1\s+· 待支付 1/,
+    );
+    await openDetail(wrapper);
+    await button(wrapper, "报名历史 · 1").trigger("click");
+    const history = wrapper.get('[aria-label="用户报名历史"]');
+    expect(history.text()).toContain("待支付（名额保留）");
+    expect(history.text()).not.toContain("暂无匹配的报名记录");
+    expect(history.get("a").attributes("href")).toBe(
+      "/activity-orders?activityId=activity-1&orderId=paid-order-1",
+    );
+    await wrapper
+      .get('select[name="registrationStatus"]')
+      .setValue("PENDING_PAYMENT");
+    await flushPromises();
+    expect(fetcher.mock.calls.at(-1)?.[0]).toContain("status=PENDING_PAYMENT");
+  });
   it.each([
     { accountSource: "PASSWORD", wechatVerified: true, canChangeRole: true },
     { accountSource: "DEMO", wechatVerified: true, canChangeRole: true },
@@ -315,7 +364,7 @@ describe("user management and WeChat admin roles", () => {
     const wrapper = await render(fetcher);
     await openDetail(wrapper);
     await button(wrapper, "设为管理员").trigger("click");
-    const confirm = wrapper.get('[aria-labelledby="confirmation-heading"]');
+    const confirm = wrapper.get('.dialog[role="dialog"]');
     expect(confirm.text()).toContain(user.nickname);
     expect(confirm.text()).toContain(user.id);
     expect(confirm.text()).toContain("活动、报名名单、商品、订单和用户权限");
@@ -334,9 +383,7 @@ describe("user management and WeChat admin roles", () => {
     expect(roleWrites(fetcher)).toHaveLength(1);
     expect(wrapper.text()).toContain("需重新微信登录");
     expect(button(wrapper, "撤销管理员").exists()).toBe(true);
-    expect(
-      wrapper.find('[aria-labelledby="confirmation-heading"]').exists(),
-    ).toBe(false);
+    expect(wrapper.find('.dialog[role="dialog"]').exists()).toBe(false);
   });
   it("revoke confirmation preserves history and demotes with the current server version", async () => {
     const target = { ...user, role: "ADMIN" as const, version: 9 };
@@ -352,9 +399,9 @@ describe("user management and WeChat admin roles", () => {
     const wrapper = await render(fetcher);
     await openDetail(wrapper);
     await button(wrapper, "撤销管理员").trigger("click");
-    expect(
-      wrapper.get('[aria-labelledby="confirmation-heading"]').text(),
-    ).toContain("资料与历史报名保留");
+    expect(wrapper.get('.dialog[role="dialog"]').text()).toContain(
+      "资料与历史报名保留",
+    );
     await button(wrapper, "确认撤销管理员").trigger("click");
     await flushPromises();
     expect(JSON.parse(String(roleWrites(fetcher)[0]![1].body))).toEqual({
@@ -382,15 +429,11 @@ describe("user management and WeChat admin roles", () => {
     await button(wrapper, "正在处理…").trigger("click");
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     await flushPromises();
-    expect(
-      wrapper.find('[aria-labelledby="confirmation-heading"]').exists(),
-    ).toBe(true);
+    expect(wrapper.find('.dialog[role="dialog"]').exists()).toBe(true);
     expect(roleWrites(fetcher)).toHaveLength(1);
     release(response({ ...user, role: "ADMIN", version: 4 }));
     await flushPromises();
-    expect(
-      wrapper.find('[aria-labelledby="confirmation-heading"]').exists(),
-    ).toBe(false);
+    expect(wrapper.find('.dialog[role="dialog"]').exists()).toBe(false);
   });
   it("a stale version blocks overwrite, failed reload retains that lock, successful reload requires fresh confirmation", async () => {
     let getCount = 0;

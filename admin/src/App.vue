@@ -2,15 +2,17 @@
 import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { currentUser, clearSession } from "./api";
+import AppIcon from "./components/AppIcon.vue";
 const route = useRoute(),
   router = useRouter();
 const pageTitles: Record<string, string> = {
   "/settings/admin-account": "管理员账号",
   "/users": "用户管理",
+  "/memberships": "会员管理",
+  "/activity-orders": "活动订单",
   "/shop/categories": "商品分类",
   "/settings": "基础配置",
   "/articles": "文章管理",
-  "/waitlist": "候补名单",
   "/operations": "运营工作台",
   "/templates": "活动模板",
   "/refunds": "退款售后",
@@ -18,6 +20,85 @@ const pageTitles: Record<string, string> = {
   "/shop": "商城管理",
   "/legal": "协议管理",
 };
+const navigation = [
+  {
+    label: "运营",
+    key: "ops",
+    items: [
+      { path: "/operations", title: "运营工作台", icon: "dashboard" },
+      { path: "/notifications", title: "消息管理", icon: "bell" },
+    ],
+  },
+  {
+    label: "活动",
+    key: "activity",
+    items: [
+      { path: "/activities", title: "活动管理", icon: "mountain" },
+      { path: "/templates", title: "活动模板", icon: "template" },
+      { path: "/activity-orders", title: "活动订单", icon: "order" },
+    ],
+  },
+  {
+    label: "商城",
+    key: "shop",
+    items: [
+      { path: "/shop", title: "商城管理", icon: "bag" },
+      { path: "/shop/categories", title: "商品分类", icon: "template" },
+      { path: "/refunds", title: "退款售后", icon: "refund" },
+    ],
+  },
+  {
+    label: "用户",
+    key: "user",
+    items: [
+      { path: "/users", title: "用户管理", icon: "user" },
+      { path: "/memberships", title: "会员管理", icon: "user" },
+    ],
+  },
+  {
+    label: "内容与设置",
+    key: "content",
+    items: [
+      { path: "/articles", title: "文章管理", icon: "document" },
+      { path: "/legal", title: "协议管理", icon: "document" },
+      { path: "/settings", title: "基础配置", icon: "dashboard" },
+      { path: "/settings/admin-account", title: "管理员账号", icon: "shield" },
+    ],
+  },
+];
+const navigationByPath = navigation
+  .flatMap((group) => group.items)
+  .sort((a, b) => b.path.length - a.path.length);
+// 模块色归属：与侧栏五个分组一致，驱动表头底色与页题标记。
+const moduleBySection: Record<string, string> = {
+  "/operations": "ops",
+  "/notifications": "ops",
+  "/shop": "shop",
+  "/shop/categories": "shop",
+  "/refunds": "shop",
+  "/users": "user",
+  "/memberships": "user",
+  "/articles": "content",
+  "/legal": "content",
+  "/settings": "content",
+  "/settings/admin-account": "content",
+};
+const currentSection = computed(
+  () =>
+    navigationByPath.find(
+      (item) =>
+        route.path === item.path || route.path.startsWith(`${item.path}/`),
+    )?.path || "/activities",
+);
+const pageModule = computed(
+  () => moduleBySection[currentSection.value] ?? "activity",
+);
+async function switchSection(event: Event) {
+  const select = event.target as HTMLSelectElement;
+  await router.push(select.value);
+  // A page's unsaved-change guard can cancel navigation.
+  select.value = currentSection.value;
+}
 const pageTitle = computed(() => {
   const path = route.path;
   if (pageTitles[path]) return pageTitles[path];
@@ -36,55 +117,54 @@ function logout() {
 </script>
 <template>
   <RouterView v-if="route.path === '/login'" />
-  <div v-else class="app-shell">
+  <div v-else class="app-shell" :data-module="pageModule">
     <aside class="sidebar">
       <RouterLink class="brand" to="/activities"
         >WILDBOY<span>OUTDOOR CLUB</span></RouterLink
       >
-      <p class="nav-label">工作空间</p>
-      <RouterLink class="nav-link" to="/operations"
-        ><span>◫</span>运营工作台</RouterLink
-      >
-      <RouterLink class="nav-link" to="/templates"
-        ><span>◇</span>活动模板</RouterLink
-      >
-      <RouterLink class="nav-link" to="/refunds"
-        ><span>↶</span>退款售后</RouterLink
-      >
-      <RouterLink class="nav-link" to="/waitlist"
-        ><span>◷</span>候补名单</RouterLink
-      >
-      <RouterLink class="nav-link" to="/notifications"
-        ><span>◉</span>消息管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/activities"
-        ><span>↗</span>活动管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/shop"
-        ><span>▣</span>商城管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/shop/categories"
-        ><span>▦</span>商品分类</RouterLink
-      >
-      <RouterLink class="nav-link" to="/users"
-        ><span>◒</span>用户管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/articles"
-        ><span>▤</span>文章管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/legal"
-        ><span>≡</span>协议管理</RouterLink
-      >
-      <RouterLink class="nav-link" to="/settings"
-        ><span>⚙</span>基础配置</RouterLink
-      >
-      <RouterLink class="nav-link" to="/settings/admin-account"
-        ><span>✦</span>管理员账号</RouterLink
-      >
+      <nav class="sidebar-nav" aria-label="管理页面">
+        <div
+          v-for="group in navigation"
+          :key="group.label"
+          class="nav-group"
+          :data-group="group.key"
+        >
+          <p class="nav-label">{{ group.label }}</p>
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.path"
+            class="nav-link"
+            :class="{ 'is-active': currentSection === item.path }"
+            :aria-current="currentSection === item.path ? 'page' : undefined"
+            :to="item.path"
+            ><AppIcon :name="item.icon" />{{ item.title }}</RouterLink
+          >
+        </div>
+      </nav>
+      <label class="mobile-nav">
+        <span class="sr-only">切换管理页面</span>
+        <select :value="currentSection" @change="switchSection">
+          <optgroup
+            v-for="group in navigation"
+            :key="group.label"
+            :label="group.label"
+          >
+            <option
+              v-for="item in group.items"
+              :key="item.path"
+              :value="item.path"
+            >
+              {{ item.title }}
+            </option>
+          </optgroup>
+        </select>
+      </label>
     </aside>
     <div class="main-shell">
       <header class="topbar">
-        <span>户外活动管理 / <strong>{{ pageTitle }}</strong></span>
+        <span class="topbar-title"
+          >工作后台 <span>/</span> <strong>{{ pageTitle }}</strong></span
+        >
         <div class="user-tools">
           <span>{{ currentUser?.nickname || "管理员" }}</span
           ><button class="text-button" @click="logout">退出登录</button>
