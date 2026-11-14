@@ -1,9 +1,11 @@
 # Wildboy 服务器部署
 
+**常规发布使用固定流程 [RELEASE.md](RELEASE.md)**：开发机一条命令 `sh deploy/release.sh`（质量门禁 → 推 GitHub → SSH 直推服务器 → 部署步骤 → 双端烟雾检查）。
+
 独立的 `api.wildboy.com.cn:443` 入口及生产支付配置见 [公网 HTTPS API](https-api.md)。
 
 一台 Linux 服务器（当前：阿里云轻量应用服务器）上的完整部署单元。所有步骤固化为
-`deploy/deploy.sh`，在服务器的仓库检出里执行：
+`deploy/deploy.sh`，在服务器的仓库检出里执行（要求服务器能访问 GitHub；链路不稳定时用 release.sh 的 SSH 直推流程）：
 
 ```sh
 ssh root<at><server>
@@ -50,5 +52,6 @@ sh deploy/deploy.sh
 
 ## 回滚
 
+优先使用 [RELEASE.md](RELEASE.md) 的回退方法（revert 后走 release.sh）。服务器端手动方式：
 `cd /root/Wildboy && git checkout <旧版本> && sh deploy/deploy.sh`。数据库迁移
 （Flyway）只前进不回退；重大回滚前先备份 `wildboy-data` 卷。
