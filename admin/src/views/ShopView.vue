@@ -865,9 +865,9 @@ onUnmounted(clear);
 .order-detail {
   margin: 10px 0;
   padding: 12px 16px;
-  border: 1px dashed var(--line, #e1e6da);
+  border: 1px dashed var(--admin-line, #e5e8ec);
   border-radius: 8px;
-  background: #fbfcf8;
+  background: #fafafa;
 }
 .order-detail p {
   margin: 4px 0;
