@@ -51,6 +51,21 @@ services:
       WECHAT_NOTIFICATION_STATE: ${WECHAT_NOTIFICATION_STATE:-formal}
     volumes:
       - wildboy-media:/app/data/uploads
+      # 微信支付商户密钥：宿主机 /etc/wildboy/wechat-pay/（可由 WILDBOY_WECHAT_PAY_KEY_DIR 覆盖）
+      # 只读挂载为 /run/secrets/*，路径与 .env 的 WECHAT_PAY_*_PATH 对应；
+      # create_host_path=false 确保密钥缺失时 compose 启动失败而不是挂出空目录。
+      - type: bind
+        source: ${WILDBOY_WECHAT_PAY_KEY_DIR:-/etc/wildboy/wechat-pay}/apiclient_key.pem
+        target: /run/secrets/apiclient_key.pem
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WILDBOY_WECHAT_PAY_KEY_DIR:-/etc/wildboy/wechat-pay}/wechatpay_public_key.pem
+        target: /run/secrets/wechatpay_public_key.pem
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - '127.0.0.1:8080:8080'
     depends_on:
