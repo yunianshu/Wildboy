@@ -66,7 +66,11 @@ if [ "$SKIP_TESTS" = "1" ]; then
   echo "    已跳过（--skip-tests）"
 else
   (cd admin && npm run typecheck >/dev/null)
-  (cd admin && npm test 2>&1 | grep -E "Tests +[0-9]+ passed")
+  if ! (cd admin && npm test >/tmp/wildboy-vitest.log 2>&1); then
+    tail -40 /tmp/wildboy-vitest.log >&2
+    exit 1
+  fi
+  grep -E "Test Files|Tests " /tmp/wildboy-vitest.log | tail -2
   (cd admin && npm run build >/dev/null)
 fi
 
