@@ -52,7 +52,7 @@
   margin-bottom: 30rpx;
 }
 button {
-  margin-top: 18rpx;
+  margin-top: 12rpx;
 }
 
 .status-icon { width: 64rpx; height: 64rpx; }

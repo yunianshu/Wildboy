@@ -35,6 +35,7 @@ Page({
   _epoch: 0,
   _reloadOnShow: false,
   _capabilityEpoch: 0,
+  _capabilityLoaded: false,
   _capabilityFlight: undefined as Promise<void> | undefined,
   onLoad(o) {
     this.setData({ mode: o.mode === "consent" ? "consent" : "login" });
@@ -43,6 +44,7 @@ Page({
   },
   onShow() {
     enterPage(this);
+    if (!this._capabilityLoaded) void this.loadAdminCapability();
     if (this._reloadOnShow) {
       this._reloadOnShow = false;
       void this.load();
@@ -72,6 +74,7 @@ Page({
           "/auth/capabilities",
         );
         if (n !== this._capabilityEpoch) return;
+        if (typeof result?.adminLoginEnabled === "boolean") this._capabilityLoaded = true;
         if (result?.adminLoginEnabled === true)
           this.setData({ adminLoginEnabled: true, adminCapabilityError: "" });
         else if (result?.adminLoginEnabled === false)
@@ -81,7 +84,7 @@ Page({
         if (n === this._capabilityEpoch)
           this.setData({ adminCapabilityError: message(e) });
       } finally {
-        this.setData({ adminCapabilityLoading: false });
+        if (n === this._capabilityEpoch) this.setData({ adminCapabilityLoading: false });
       }
     })();
     this._capabilityFlight = pending;
@@ -145,20 +148,15 @@ Page({
     });
   },
   agreement(e: WechatMiniprogram.CheckboxGroupChange) {
+    if (this.data.busy || this.data.loading || !this.data.current) return;
     const wants = e.detail.value.includes("yes");
-    if (wants && (!this.data.privacyRead || !this.data.termsRead)) {
-      this.setData({ agreed: false, error: "请先分别打开并阅读两份协议" });
-      return;
-    }
     this.setData({ agreed: wants, error: "" });
   },
   async submit() {
     if (this.data.busy || this.data.loading || this.data.success) return;
     if (
       !this.data.current ||
-      !this.data.agreed ||
-      !this.data.privacyRead ||
-      !this.data.termsRead
+      !this.data.agreed
     ) {
       this.setData({ error: "请阅读并主动同意当前隐私政策和用户协议" });
       return;

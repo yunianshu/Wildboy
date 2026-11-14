@@ -1,0 +1,16 @@
+# Layer on top of compose.https.yml when the www certificate is available.
+services:
+  api-https:
+    volumes:
+      - type: bind
+        source: ./nginx-admin-https.conf
+        target: /etc/nginx/conf.d/admin-https.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WILDBOY_ADMIN_TLS_DIR:-/etc/wildboy/tls/www.wildboy.com.cn}
+        target: /etc/nginx/tls/www.wildboy.com.cn
+        read_only: true
+        bind:
+          create_host_path: false

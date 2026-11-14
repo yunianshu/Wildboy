@@ -3,21 +3,31 @@ import { request, isSessionCurrent, ApiError } from "../../utils/api";
 import { AdminUser, AdminUserDetail, PageResult, RegistrationStatus } from "../../utils/models";
 import { dateLabel, mergeUnique, message, safeId } from "../../utils/domain";
 import { requireAdmin } from "../admin-editor/shared";
+import { activityOrderStatus } from "../../utils/activity-orders";
 
 type UserRow = AdminUser & { roleText: string; sourceText: string; blockText: string; createdText: string; profileUpdatedText: string };
-type Detail = Omit<AdminUserDetail, "user" | "registrations"> & { user: UserRow; registrations: Omit<AdminUserDetail["registrations"], "items"> & { items: (AdminUserDetail["registrations"]["items"][number] & { createdText: string })[] } };
+type Detail = Omit<AdminUserDetail, "user" | "registrations"> & { user: UserRow; registrations: Omit<AdminUserDetail["registrations"], "items"> & { items: (AdminUserDetail["registrations"]["items"][number] & { createdText: string; sourceText:string; statusText:string })[] } };
+const historyStatuses = ["", "CONFIRMED", "CANCELLED", "PENDING_PAYMENT"] as const;
 const reasons: Record<string,string> = { SELF_ROLE_CHANGE_FORBIDDEN: "不能修改自己的管理员权限", ROLE_TARGET_NOT_ELIGIBLE: "仅已验证的微信账号可调整权限", LAST_ADMIN_REQUIRED: "至少保留一位管理员", ROLE_MANAGEMENT_FORBIDDEN: "当前管理员仅可查看，请使用正式管理员账号调整权限" };
 function row(user: AdminUser): UserRow {
   return { ...user, canChangeRole: user.canChangeRole === true && user.accountSource === "WECHAT" && user.wechatVerified === true && ["USER","ADMIN"].includes(user.role) && Number.isInteger(user.version) && user.version >= 0,
     roleText: user.role === "ADMIN" ? "管理员" : "普通用户", sourceText: ({WECHAT:"微信账号",PASSWORD:"密码管理账号",DEMO:"演示账号",OTHER:"其他账号"})[user.accountSource] || "来源待核对",
     blockText: user.canChangeRole ? "" : reasons[user.roleChangeBlockReason || ""] || "当前账号不可调整此用户权限", createdText: dateLabel(user.createdAt), profileUpdatedText: user.profileUpdatedAt ? dateLabel(user.profileUpdatedAt) : "尚未完善" };
 }
-function detailView(value: AdminUserDetail): Detail { return { ...value, user: row(value.user), registrations: { ...value.registrations, items: value.registrations.items.map(r=>({...r,createdText:dateLabel(r.createdAt)})) } }; }
+function detailView(value: AdminUserDetail): Detail {
+  return { ...value, user: row(value.user), registrations: { ...value.registrations, items: value.registrations.items.map(r=>({
+    ...r,
+    createdText:dateLabel(r.createdAt),
+    sourceText:r.source === "ACTIVITY_ORDER" ? "收费活动订单" : "免费报名",
+    statusText:r.orderStatus ? activityOrderStatus(r.orderStatus) :
+      r.status === "CONFIRMED" ? "有效报名" : r.status === "PENDING_PAYMENT" ? "待付款" : "已取消",
+  })) } };
+}
 Page({
   epoch:0, detailEpoch:0, roleEpoch:0, session:-1,
   data:{pageMotionClass:"",authorized:false,loading:false,loadingMore:false,error:"",items:[] as UserRow[],page:0,total:0,hasMore:false,
     query:"",profile:"",role:"",accountSource:"",filterOpen:false,queryDraft:"",profileDraft:"",roleDraft:"",sourceDraft:"",
-    detailId:"",detail:null as Detail|null,detailLoading:false,detailError:"",detailStatus:"" as RegistrationStatus|"",
+    detailId:"",detail:null as Detail|null,detailLoading:false,detailError:"",detailStatus:"" as RegistrationStatus|"PENDING_PAYMENT"|"",
     roleBusyId:"",roleError:"",roleNotice:"",roleRecoveryNeeded:false,roleReadOnly:false },
   onShow(){enterPage(this);void this.load(true);}, onHide(){this.clear();},onUnload(){this.clear();},onReachBottom(){void this.load(false);},
   clear(){this.epoch++;this.detailEpoch++;this.roleEpoch++;this.session=-1;this.setData({authorized:false,items:[],loading:false,loadingMore:false,total:0,hasMore:false,detail:null,detailId:"",detailLoading:false,detailError:"",detailStatus:"",filterOpen:false,query:"",profile:"",role:"",accountSource:"",queryDraft:"",profileDraft:"",roleDraft:"",sourceDraft:"",roleBusyId:"",roleError:"",roleNotice:"",roleRecoveryNeeded:false,roleReadOnly:false});},
@@ -39,7 +49,7 @@ Page({
   resetFilters(){if(this.data.filterOpen)this.setData({queryDraft:"",profileDraft:"",roleDraft:"",sourceDraft:""});},
   async openUser(e:WechatMiniprogram.TouchEvent){const id=safeId(e.currentTarget.dataset.id);if(!id||!this.data.authorized||this.data.detailLoading||this.data.roleBusyId)return;this.setData({detailId:id,detail:null,detailStatus:"",detailError:""});await this.loadDetail();},
   closeUser(){if(this.data.roleBusyId)return;this.detailEpoch++;this.setData({detailId:"",detail:null,detailLoading:false,detailError:""});},stopModalEvent(){},
-  detailStatusChange(e:WechatMiniprogram.PickerChange){const status=(["","CONFIRMED","CANCELLED"] as const)[Number(e.detail.value)];if(status===undefined||this.data.detailLoading||this.data.roleBusyId)return;this.setData({detailStatus:status});void this.loadDetail();},
+  detailStatusChange(e:WechatMiniprogram.PickerChange){const status=historyStatuses[Number(e.detail.value)];if(status===undefined||this.data.detailLoading||this.data.roleBusyId)return;this.setData({detailStatus:status});void this.loadDetail();},
   async loadDetail(next=0){const id=this.data.detailId;if(!id||this.data.detailLoading||this.data.roleBusyId||!Number.isInteger(next)||next<0||!isSessionCurrent(this.session))return;const n=++this.detailEpoch;this.setData({detailLoading:true,detailError:""});
     try{const session=await requireAdmin();if(n!==this.detailEpoch)return;this.session=session;const d=await request<AdminUserDetail>(`/admin/users/${id}?page=${next}&size=20&status=${this.data.detailStatus}`);if(n!==this.detailEpoch||!isSessionCurrent(session)||this.data.detailId!==id)return;if(d.user.id!==id)throw Error("用户详情未确认，请重新读取");this.setData({detail:detailView(d)});
     }catch(e){if(n===this.detailEpoch){this.setData({detailError:message(e)});this.fail(e);}}finally{if(n===this.detailEpoch)this.setData({detailLoading:false});}},

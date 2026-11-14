@@ -15,6 +15,17 @@ const UNCERTAIN_MESSAGE =
   "保存结果尚不确定，请返回管理列表核对，避免重复创建。";
 import { enterPage } from "../../utils/page-motion";
 
+export function parseActivityPrice(value: string): number {
+  const amount = value.trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(amount))
+    throw new Error("价格须为非负金额，最多两位小数");
+  const [whole, fraction = ""] = amount.split(".");
+  const cents = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  if (!Number.isSafeInteger(cents) || cents > 100000000)
+    throw new Error("价格须在 0–1000000 元之间");
+  return cents;
+}
+
 Page({
   data: {
     pageMotionClass: "",
@@ -31,6 +42,9 @@ Page({
     status: "DRAFT",
     version: 0,
     registeredCount: 0,
+    price: "0.00",
+    priceCents: 0,
+    priceDirty: false,
     form: emptyForm(),
     cover: presets[1],
     presets,
@@ -40,6 +54,7 @@ Page({
     sections: ["基本信息", "时间与地点", "简介与详情"],
   },
   _uploading: false,
+  _savingPrice: false,
   _alive: true,
   _epoch: 0,
   _visible: true as boolean,
@@ -61,6 +76,12 @@ Page({
   },
   onHide() {
     this._visible = false;
+    const savingPrice = this._savingPrice;
+    if (savingPrice) {
+      this._epoch++;
+      this._savingPrice = false;
+      this._loaded = false;
+    }
     // A creation still in flight turns uncertain here: the server may commit
     // while the page is hidden, so only the admin list can verify the outcome.
     this.setData({
@@ -84,7 +105,7 @@ Page({
       typeof wx.disableAlertBeforeUnload !== "function"
     )
       return;
-    if (this.data.dirty && !this.data.conflict && !this.data.uncertain)
+    if ((this.data.dirty || this.data.priceDirty) && !this.data.conflict && !this.data.uncertain)
       wx.enableAlertBeforeUnload({ message: "修改尚未保存，离开将丢失修改" });
     else wx.disableAlertBeforeUnload();
   },
@@ -118,7 +139,7 @@ Page({
       this._session = session;
       this.setData({ authorized: true });
       if (!same && this._loaded) {
-        this.setData({ form: emptyForm(), dirty: false, uncertain: false });
+        this.setData({ form: emptyForm(), dirty: false, uncertain: false, price: "0.00", priceCents: 0, priceDirty: false });
         this._loaded = false;
       }
       if (this._loaded && !force && same) {
@@ -143,6 +164,9 @@ Page({
           status: a.status,
           version: a.version,
           registeredCount: a.registeredCount,
+          price: (a.priceCents / 100).toFixed(2),
+          priceCents: a.priceCents,
+          priceDirty: false,
           cover: mediaUrl(a.coverUrl),
           categoryIndex: categories.findIndex((x) => x.code === a.category),
         });
@@ -172,6 +196,50 @@ Page({
   markDirty() {
     this.setData({ dirty: true, error: "" });
     this.rearmLeave();
+  },
+  priceInput(e: WechatMiniprogram.Input) {
+    if (!this.data.authorized || this.data.busy || this.data.confirming || this.data.status !== "DRAFT" || this.data.registeredCount > 0) return;
+    this.setData({ price: e.detail.value, priceDirty: true, error: "" });
+    this.rearmLeave();
+  },
+  async savePrice() {
+    const { id, version, authorized, busy, loading, conflict, uncertain, status, registeredCount, price } = this.data;
+    if (!id || !authorized || busy || loading || conflict || uncertain || status !== "DRAFT" || registeredCount !== 0 || !isSessionCurrent(this._session)) return;
+    let priceCents: number;
+    try {
+      priceCents = parseActivityPrice(price);
+    } catch (error) {
+      this.setData({ error: message(error), section: 0 });
+      return;
+    }
+    const n = this._epoch, session = this._session;
+    const current = () => this._alive && this._visible !== false && n === this._epoch && isSessionCurrent(session);
+    this._savingPrice = true;
+    this.setData({ busy: true, error: "" });
+    try {
+      const checked = await requireAdmin();
+      if (!current() || checked !== session) return;
+      const a = await request<Activity>(`/admin/activities/${id}/price`, "POST", { priceCents, version });
+      if (!current()) return;
+      if (!a || a.id !== id || a.priceCents !== priceCents || !Number.isSafeInteger(a.version) || a.version < version)
+        throw new Error("价格保存结果未确认");
+      this.setData({ price: (a.priceCents / 100).toFixed(2), priceCents: a.priceCents, priceDirty: false, version: a.version, status: a.status, registeredCount: a.registeredCount });
+      this.rearmLeave();
+      wx.showToast({ title: "价格已保存", icon: "success" });
+    } catch (error) {
+      if (!this._alive || n !== this._epoch) return;
+      const denied = !isSessionCurrent(session) || (error instanceof ApiError && [401, 403].includes(error.status));
+      const conflict = !denied && (!(error instanceof ApiError) || error.status === 409 || error.status === 0 || error.status >= 500);
+      this.setData({ authorized: !denied, conflict,
+        error: conflict ? "价格或保存结果待核对，请重新读取活动后再操作" : message(error),
+        ...(denied ? { form: emptyForm(), dirty: false, price: "0.00", priceCents: 0, priceDirty: false } : {}) });
+      this.rearmLeave();
+    } finally {
+      if (n === this._epoch && this._alive) {
+        this._savingPrice = false;
+        this.setData({ busy: false });
+      }
+    }
   },
   identityChange(e: WechatMiniprogram.SwitchChange) {
     // A queued identity switch must never touch a form that is saving or
@@ -323,10 +391,7 @@ Page({
         status: result.status,
         dirty: false,
       });
-      if (this._visible !== false) {
-        if (typeof wx.disableAlertBeforeUnload === "function")
-          wx.disableAlertBeforeUnload();
-      }
+      this.rearmLeave();
       return result;
     } catch (error) {
       if (n !== this._epoch) return null;
@@ -376,6 +441,15 @@ Page({
     if (this.blockedByUncertain()) return;
     if (!this.data.authorized || !isSessionCurrent(this._session)) return;
     const publish = e?.currentTarget?.dataset?.action === "publish";
+    if (publish) {
+      try {
+        if (parseActivityPrice(this.data.price) !== this.data.priceCents)
+          throw new Error("价格尚未保存，请先保存草稿及价格后再发布");
+      } catch (error) {
+        this.revealProblem({ section: 0, error: message(error) });
+        return;
+      }
+    }
     if (
       this.revealProblem(
         validateForm(this.data.form, this.data.registeredCount),

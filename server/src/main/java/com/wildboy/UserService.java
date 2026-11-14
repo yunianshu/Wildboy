@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 import org.springframework.jdbc.core.*;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -16,23 +17,39 @@ public class UserService {
   private final AuthService auth;
   private final ActivityService activities;
   private final AdminAccountService adminAccounts;
+  private final IdentityProtection identity;
 
   public UserService(
       JdbcTemplate db, LegalService legal, AuthService auth, ActivityService activities,
-      AdminAccountService adminAccounts) {
+      AdminAccountService adminAccounts, IdentityProtection identity) {
     this.db = db;
     this.legal = legal;
     this.auth = auth;
     this.activities = activities;
     this.adminAccounts = adminAccounts;
+    this.identity = identity;
   }
 
-  private static final String ADMIN_SELECT =
-      "SELECT u.*,"
-          + " (SELECT COUNT(*) FROM registration r WHERE r.user_id=u.id) AS registration_count,"
-          + " (SELECT COUNT(*) FROM registration r WHERE r.user_id=u.id AND r.status='CONFIRMED') AS confirmed_registration_count,"
-          + " (SELECT MAX(r.created_at) FROM registration r WHERE r.user_id=u.id) AS last_registration_at"
-          + " FROM app_user u";
+  private static final String REGISTRATION_HISTORY = """
+      SELECT r.id,r.user_id,r.activity_id,a.title AS activity_title,r.status,r.created_at,
+        'FREE_REGISTRATION' AS source,NULL::varchar AS order_status
+      FROM registration r JOIN activity a ON a.id=r.activity_id
+      UNION ALL
+      SELECT o.id,o.user_id,o.activity_id,o.activity_title,
+        CASE WHEN o.status='PENDING_PAYMENT' THEN 'PENDING_PAYMENT'
+             WHEN o.status IN ('PAID','CONFIRMED_FREE','REFUND_PENDING') THEN 'CONFIRMED'
+             ELSE 'CANCELLED' END,
+        o.created_at,'ACTIVITY_ORDER',o.status
+      FROM activity_order o
+      """;
+  private static final String ADMIN_SELECT = """
+      SELECT u.*,stats.* FROM app_user u CROSS JOIN LATERAL (
+        SELECT COUNT(*) AS registration_count,
+          COUNT(*) FILTER (WHERE h.status='CONFIRMED') AS confirmed_registration_count,
+          COUNT(*) FILTER (WHERE h.status='PENDING_PAYMENT') AS pending_registration_count,
+          MAX(h.created_at) AS last_registration_at
+        FROM (
+      """ + REGISTRATION_HISTORY + ") h WHERE h.user_id=u.id) stats";
 
   private RowMapper<AdminUser> adminMapper(User actor, boolean passwordLoginAvailable) {
     return (r, n) -> {
@@ -50,6 +67,7 @@ public class UserService {
               r.getObject("profile_updated_at", OffsetDateTime.class),
               r.getLong("registration_count"),
               r.getLong("confirmed_registration_count"),
+              r.getLong("pending_registration_count"),
               r.getObject("last_registration_at", OffsetDateTime.class),
               role, source, verified, block == null, block, r.getLong("role_version"));
     };
@@ -81,7 +99,12 @@ public class UserService {
 
   static String maskPhone(String phone) {
     if (phone == null || phone.isEmpty()) return "";
-    return phone.length() < 7 ? "••••" : phone.substring(0, 3) + "****" + phone.substring(phone.length() - 4);
+    String digits=phone.replaceAll("[^0-9]","");
+    return digits.length() <= 7 ? "••••" : digits.substring(0, 3) + "****" + digits.substring(digits.length() - 4);
+  }
+
+  static Participant maskedParticipant(Participant p) {
+    return new Participant(p.id(),maskName(p.participantName()),p.idNumber(),maskPhone(p.phone()));
   }
 
   @Transactional
@@ -154,37 +177,54 @@ public class UserService {
     return new Page<>(items, total, page, size, (long) (page + 1) * size < total);
   }
 
+  @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
   public AdminUserDetail detail(
-      User actor, String id, RegistrationStatus status, int page, int size) {
+      User actor, String id, AdminRegistrationStatus status, int page, int size) {
     ActivityService.pageCheck(page, size);
     var users =
         db.query(ADMIN_SELECT + " WHERE u.id=?", adminMapper(actor, adminAccounts.passwordLoginAvailable()), id);
     if (users.isEmpty()) throw ApiException.notFound();
-    var registrations = activities.registrations(id, null, status, page, size);
-    var masked =
-        registrations.items().stream()
-            .map(
-                registration ->
-                    activities.withParticipants(
-                        registration,
-                        registration.participants().stream()
-                            .map(
-                                participant ->
-                                    new Participant(
-                                        participant.id(),
-                                        maskName(participant.participantName()),
-                                        participant.idNumber(),
-                                        maskPhone(participant.phone())))
-                            .toList()))
-            .toList();
-    return new AdminUserDetail(
-        users.getFirst(),
-        new Page<>(
-            masked,
-            registrations.total(),
-            registrations.page(),
-            registrations.size(),
-            registrations.hasMore()));
+    String history=" FROM ("+REGISTRATION_HISTORY+") h WHERE h.user_id=?";
+    var args=new ArrayList<Object>();
+    args.add(id);
+    if(status!=null){history+=" AND h.status=?";args.add(status.name());}
+    long total=db.queryForObject("SELECT COUNT(*)"+history,Long.class,args.toArray());
+    args.add(size);
+    args.add(page*size);
+    var items=db.query("SELECT h.*"+history+" ORDER BY h.created_at DESC,h.id,h.source LIMIT ? OFFSET ?",
+        (r,n)->new AdminRegistration(r.getString("id"),r.getString("activity_id"),r.getString("activity_title"),
+            r.getString("status"),r.getObject("created_at",OffsetDateTime.class),List.of(),
+            RegistrationSource.valueOf(r.getString("source")),r.getString("order_status")),args.toArray());
+    var participants=historyParticipants(items);
+    var masked=items.stream().map(r->new AdminRegistration(r.id(),r.activityId(),r.activityTitle(),r.status(),r.createdAt(),
+        participants.getOrDefault(new RegistrationKey(r.source(),r.id()),List.of()),r.source(),r.orderStatus())).toList();
+    return new AdminUserDetail(users.getFirst(),new Page<>(masked,total,page,size,(long)(page+1)*size<total));
+  }
+
+  private record RegistrationKey(RegistrationSource source,String id) {}
+
+  private Map<RegistrationKey,List<Participant>> historyParticipants(List<AdminRegistration> items) {
+    if(items.isEmpty())return Map.of();
+    var ids=items.stream().map(AdminRegistration::id).toList();
+    String placeholders=String.join(",",Collections.nCopies(ids.size(),"?"));
+    var args=new ArrayList<>(ids);
+    args.addAll(ids);
+    String sql="""
+        SELECT 'FREE_REGISTRATION' AS source,registration_id AS reference_id,id,participant_name,id_number,phone,position
+          FROM registration_participant WHERE registration_id IN (%s)
+        UNION ALL
+        SELECT 'ACTIVITY_ORDER',order_id,id,participant_name,id_number,phone,position
+          FROM activity_order_participant WHERE order_id IN (%s)
+        ORDER BY source,reference_id,position
+        """.formatted(placeholders,placeholders);
+    var result=new HashMap<RegistrationKey,List<Participant>>();
+    db.query(sql,r->{
+      var key=new RegistrationKey(RegistrationSource.valueOf(r.getString("source")),r.getString("reference_id"));
+      var p=new Participant(r.getString("id"),r.getString("participant_name"),
+          identity.masked(r.getString("id_number")),r.getString("phone"));
+      result.computeIfAbsent(key,ignored->new ArrayList<>()).add(maskedParticipant(p));
+    },args.toArray());
+    return result;
   }
 
   @Transactional

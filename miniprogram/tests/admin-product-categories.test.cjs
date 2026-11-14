@@ -51,7 +51,8 @@ test('product DTO carries exact two-price cents and category while legacy displa
   assert.equal(legacy.categoryId, 'uncategorized'); assert.equal(legacy.originalPrice, '12.99');
   const form = { ...emptyProduct(), name: '装备', description: '说明', price: '0.29', originalPrice: '1.99', stock: '4', categoryId: 'gear' };
   assert.deepEqual(productInput(form, 3), { name: '装备', description: '说明', imageUrl: '/assets/equipment.jpg', categoryId: 'gear', priceCents: 29, originalPriceCents: 199, stock: 4, status: 'OFF_SHELF', version: 3 });
-  for (const change of [{ originalPrice: '0.28' }, { originalPrice: '1.001' }, { originalPrice: '' }, { originalPrice: '1000001' }, { categoryId: '' }, { categoryId: '../bad' }]) assert.throws(() => productInput({ ...form, ...change }));
+  for (const change of [{ originalPrice: '0.28' }, { originalPrice: '1.001' }, { originalPrice: '1000001' }, { categoryId: '' }, { categoryId: '../bad' }]) assert.throws(() => productInput({ ...form, ...change }));
+  assert.equal(productInput({ ...form, originalPrice: '' }).originalPriceCents, 29);
   assert.deepEqual(categoryInput({ name: ' 装备 ', sortOrder: '0' }, 2), { name: '装备', sortOrder: 0, version: 2 });
   for (const form of [{ name: ' ', sortOrder: '0' }, { name: 'A\u0085', sortOrder: '0' }, { name: '装备', sortOrder: '-1' }, { name: '装备', sortOrder: '10000' }]) assert.throws(() => categoryInput(form));
 });
@@ -87,10 +88,44 @@ test('default category editing sends its own version without marking the unchang
   assert.equal(p.data.categoryName, '其他装备'); assert.equal(p.data.form.categoryId, 'uncategorized'); assert.equal(p.data.dirty, false);
 });
 test('editing a different managed category does not silently reassign the product', async () => {
-  const p = await loaded(); await p.toggleCategoryManager(); p.chooseManagedCategory({ detail: { value: '0' } });
+  const p = await loaded(); await p.toggleCategoryManager(); await p.chooseManagedCategory({ detail: { value: '0' } });
   await p.editCategory(); p.categoryInput(event('name', '新徒步分类名')); await p.saveCategory(); await tick();
   assert.equal(writes()[0].url, '/admin/shop/categories/gear'); assert.equal(writes()[0].body.version, 2);
   assert.equal(p.data.form.categoryId, 'uncategorized'); assert.equal(p.data.dirty, false);
+});
+
+test('visible edit entry opens the current category and picker immediately loads the new snapshot', async () => {
+  const markup = require('node:fs').readFileSync(path.resolve(__dirname, '../src/pages/admin-product/index.wxml'), 'utf8');
+  assert.match(markup, /bindtap="editCategory"[^>]*>编辑当前分类/);
+  const p = await loaded(); await p.editCategory();
+  assert.equal(p.data.categoryManagerOpen, true);
+  assert.equal(p.data.categoryForm.name, fallback.name);
+  await p.chooseManagedCategory({ detail: { value: '0' } });
+  assert.deepEqual(p.data.categoryForm, { name: gear.name, sortOrder: String(gear.sortOrder) });
+  assert.equal(p.data.categoryVersion, gear.version);
+  p.categoryInput(event('name', '新徒步分类名')); await p.saveCategory();
+  assert.deepEqual(writes()[0], { url: '/admin/shop/categories/gear', method: 'PUT', body: { name: '新徒步分类名', sortOrder: 10, version: 2 } });
+});
+
+test('category switch cancellation preserves target and draft, while pending save locks all category changes', async () => {
+  const p = await loaded(); await p.editCategory(); p.categoryInput(event('name', '分类草稿'));
+  modal = async () => ({ confirm: false });
+  await p.chooseManagedCategory({ detail: { value: '0' } });
+  assert.equal(p._categoryId, fallback.id); assert.equal(p.data.categoryForm.name, '分类草稿');
+  let resolve; transport = async () => new Promise(done => { resolve = done; });
+  const saving = p.saveCategory(); await tick();
+  await p.newCategory(); await p.chooseManagedCategory({ detail: { value: '0' } });
+  p.categoryInput(event('name', '不应覆盖')); await p.save();
+  assert.equal(p._categoryId, fallback.id); assert.equal(p.data.categoryForm.name, '分类草稿');
+  assert.equal(p.data.pendingSave, false); assert.equal(p.data.categorySaving, true);
+  resolve({ ...fallback, name: '分类草稿', version: 1 }); await saving;
+  assert.equal(p.data.categorySaving, false); assert.equal(writes().length, 1);
+});
+
+test('clearing the optional original price saves the current price as original', async () => {
+  const p = await loaded(); p.input(event('originalPrice', ''));
+  await p.save(); await p.confirmSave();
+  assert.equal(writes()[0].body.originalPriceCents, product.priceCents);
 });
 test('duplicate category name remains correctable with no stale-version lock', async () => {
   const real = transport; transport = (url, method, body) => method === 'POST' ? Promise.reject(new api.ApiError('同名', 409, 'CATEGORY_NAME_EXISTS')) : real(url, method, body);

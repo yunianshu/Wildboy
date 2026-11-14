@@ -16,6 +16,27 @@ beforeEach(()=>{session=1;signed=true;allowed=true;calls=[];nav=[];answer={confi
  global.wx={navigateTo:o=>nav.push(o.url),navigateBack(){},switchTab:o=>nav.push(o.url),showModal:async()=>answer,showToast(){}};
 });
 async function editing(){const p=page('profile');await p.load();p.openEditor();p.setData({draft:{realName:'张三',phone:'13800000000'}});return p}
+test("admin user history filters and distinguishes pending paid bookings", async () => {
+  const p = page("admin-users");
+  const normal = handler;
+  handler = async (path, method, body) => {
+    if (path.startsWith("/admin/users/target?")) return {
+      user: { ...target, pendingRegistrationCount: 1 },
+      registrations: result([{ id: "order-1", activityId: "activity-1", activityTitle: "收费活动",
+        source: "ACTIVITY_ORDER", status: "PENDING_PAYMENT", orderStatus: "PENDING_PAYMENT",
+        createdAt: target.createdAt, participants: [] }]),
+    };
+    return normal(path, method, body);
+  };
+  await p.load();
+  await p.openUser(event("target"));
+  p.detailStatusChange({ detail: { value: "3" } });
+  await flush();
+  assert.match(calls.at(-1).url, /status=PENDING_PAYMENT$/);
+  assert.equal(p.data.detail.user.pendingRegistrationCount, 1);
+  assert.equal(p.data.detail.registrations.items[0].sourceText, "收费活动订单");
+  assert.match(p.data.detail.registrations.items[0].statusText, /待支付/);
+});
 function registration(){const p=page('register');p.setData({id:'activity',loading:false,activity:{enabled:true,available:3,identityRequired:false},participants:[{participantName:'张三',phone:'13800000000',idNumber:''}],consent:true,legal:policy(1)});return p}
 
 test('activity identity is independent from administrator permission and never requires avatar or nickname',()=>{

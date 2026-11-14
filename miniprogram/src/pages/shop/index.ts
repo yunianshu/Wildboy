@@ -86,7 +86,7 @@ Page({
     this._visible = true;
     syncTabBar(this);
     this._flight = this.load();
-    this._categoryFlight = this.loadCategories();
+    void this.loadCategories();
   },
   onHide() {
     this._visible = false;
@@ -147,6 +147,7 @@ Page({
         }
       } catch (error) {
         if (this._unloaded || this._visible === false) return;
+        if ((this.data.selectedCategory || ALL_CATEGORY) !== id) return;
         this.setData({ loading: false, refreshing: false, error: message(error) });
       } finally {
         if (flights[id] === flight) delete flights[id];
@@ -157,7 +158,9 @@ Page({
     return flight;
   },
   selectCategory(event: WechatMiniprogram.TouchEvent) {
-    const id = safeId(event.currentTarget.dataset.id);
+    this.selectCategoryId(safeId(event.currentTarget.dataset.id));
+  },
+  selectCategoryId(id: string) {
     if (!id || (id !== ALL_CATEGORY && !this.data.categories.some((c) => c.id === id))) return;
     const changed = this.data.selectedCategory !== id;
     const active = this._catalogFlights && this._catalogFlights[id];
@@ -204,6 +207,9 @@ Page({
           .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
         this._categoryCache = { items: categories, at: Date.now() };
         this.setData({ categories, categoriesLoaded: true, categoriesError: "" });
+        const selected = this.data.selectedCategory;
+        if (selected && selected !== ALL_CATEGORY && !categories.some((category) => category.id === selected))
+          this.selectCategoryId(ALL_CATEGORY);
       } catch (error) {
         if (this._unloaded || this._visible === false) return;
         this.setData({ categoriesError: message(error) });

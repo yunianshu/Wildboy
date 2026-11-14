@@ -1,6 +1,7 @@
 <view class="page page-motion {{pageMotionClass}}"><view class="title">活动消息</view>
 <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后查看消息<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
-<block wx:else><button class="secondary" bindtap="subscribe" disabled="{{busy}}">订阅下次微信提醒</button>
+<block wx:else><button class="secondary" bindtap="subscribe" disabled="{{busy || loading}}" loading="{{busy}}">订阅下次微信提醒</button>
+<ui-state wx:if="{{loading}}" kind="loading" compact="{{!!items.length}}">正在读取活动消息…</ui-state>
 <view wx:if="{{error}}" class="error">{{error}}<button bindtap="retry">刷新</button></view>
 <view wx:for="{{items}}" wx:key="id" class="notice-card" data-id="{{item.activityId}}" bindtap="open"><view>{{item.title}}</view><view>{{item.detail}}</view><text class="muted">{{item.statusText}}</text></view>
 <ui-state wx:if="{{!items.length && !loading && !error}}" kind="empty">暂无消息</ui-state><button wx:if="{{hasMore}}" bindtap="more" disabled="{{loading}}">加载更多</button></block></view>

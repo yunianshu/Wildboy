@@ -29,7 +29,9 @@ public class NotificationService {
     db.update("INSERT INTO notification_outbox(id,user_id,activity_id,kind,dedupe_key,title,detail,event_at,status) VALUES(?,?,?,?,?,?,?,?,'PENDING') ON CONFLICT(dedupe_key) DO NOTHING",UUID.randomUUID().toString(),user,a.id(),kind,key,a.title(),detail,at);
   }
   public void activityNotice(Activity a,String kind,String detail){
-    for(String user:db.queryForList("SELECT user_id FROM registration WHERE activity_id=? AND status='CONFIRMED'",String.class,a.id())) enqueue(user,a,kind,kind+":"+a.id()+":"+(kind.equals("PRETRIP")?a.startAt().toString():a.version())+":"+user,detail,a.startAt());
+    String orderRecipients="status IN ('PAID','CONFIRMED_FREE','REFUND_PENDING')";
+    if("ACTIVITY_CANCELLED".equals(kind))orderRecipients+=" OR (organizer_cancelled=TRUE AND status IN ('CLOSED','REFUNDED'))";
+    for(String user:db.queryForList("SELECT user_id FROM registration WHERE activity_id=? AND status='CONFIRMED' UNION SELECT user_id FROM activity_order WHERE activity_id=? AND ("+orderRecipients+")",String.class,a.id(),a.id())) enqueue(user,a,kind,kind+":"+a.id()+":"+(kind.equals("PRETRIP")?a.startAt().toString():a.version())+":"+user,detail,a.startAt());
   }
   public Page<Notice> list(String user,int page,int size){
     ActivityService.pageCheck(page,size);
@@ -47,7 +49,7 @@ public class NotificationService {
   }
   boolean relevant(Map<String,Object> r){
     String kind=(String)r.get("kind"),activity=(String)r.get("activity_id"),user=(String)r.get("user_id");
-    if(kind.equals("PRETRIP")||kind.equals("ACTIVITY_CHANGED"))return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM activity a JOIN registration r ON r.activity_id=a.id WHERE a.id=? AND r.user_id=? AND r.status='CONFIRMED' AND a.status='PUBLISHED' AND a.start_at>CURRENT_TIMESTAMP AND a.start_at=? )",Boolean.class,activity,user,r.get("event_at"))) && (!kind.equals("ACTIVITY_CHANGED")||!Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM notification_outbox WHERE activity_id=? AND user_id=? AND kind='ACTIVITY_CHANGED' AND created_at>?)",Boolean.class,activity,user,r.get("created_at"))));
+    if(kind.equals("PRETRIP")||kind.equals("ACTIVITY_CHANGED"))return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM activity a WHERE a.id=? AND a.status='PUBLISHED' AND a.start_at>CURRENT_TIMESTAMP AND a.start_at=? AND (EXISTS(SELECT 1 FROM registration r WHERE r.activity_id=a.id AND r.user_id=? AND r.status='CONFIRMED') OR EXISTS(SELECT 1 FROM activity_order o WHERE o.activity_id=a.id AND o.user_id=? AND o.status IN ('PAID','CONFIRMED_FREE','REFUND_PENDING'))))",Boolean.class,activity,r.get("event_at"),user,user)) && (!kind.equals("ACTIVITY_CHANGED")||!Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM notification_outbox WHERE activity_id=? AND user_id=? AND kind='ACTIVITY_CHANGED' AND created_at>?)",Boolean.class,activity,user,r.get("created_at"))));
     if(kind.equals("ACTIVITY_CANCELLED"))return Boolean.TRUE.equals(db.queryForObject("SELECT EXISTS(SELECT 1 FROM activity WHERE id=? AND status='CANCELLED')",Boolean.class,activity));
     return false;
   }

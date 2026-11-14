@@ -1,12 +1,17 @@
 <view class="page page-motion {{pageMotionClass}}">
   <view wx:if="{{success}}" class="success">
     <view class="success-symbol"><image class="status-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-    <text class="eyebrow">SEE YOU OUTSIDE</text>
-    <view class="title">山野见！</view>
+    <view class="title">{{recoveredRegistration ? '已找到有效报名' : '山野见！'}}</view>
     <view class="muted">
       你已成功报名「{{activity.title}}」
       <view />
       出发时间 {{activity.dateText}}
+    </view>
+    <view wx:if="{{recoveredRegistration}}" class="booking-summary">
+      <view class="notice">以下为系统保存的报名记录。本次填写的信息未覆盖原报名，请核对参与人。</view>
+      <view class="participant-card" wx:for="{{recoveredRegistration.participants}}" wx:key="id">
+        <view>{{index + 1}}. {{item.participantName}}</view><view class="muted">{{item.phone}}</view>
+      </view>
     </view>
     <view class="notice">
       活动安排可能变化，出发前请再次核对。
@@ -19,13 +24,26 @@
     <ui-state wx:if="{{loading}}" kind="loading">正在确认活动…</ui-state>
     <ui-state wx:elif="{{error}}" kind="error">
       {{error}}
-      <button class="secondary ui-button ui-button-block" bindtap="retry">重试</button>
+      <button class="secondary ui-button ui-button-block" bindtap="retry" disabled="{{submitting}}">重试</button>
     </ui-state>
     <block wx:elif="{{activity}}">
       <view class="booking-summary">
-        <text class="badge">免费报名 · 无需支付</text>
+        <text class="badge">{{activity.priceCents > 0 ? '收费报名' : '免费报名 · 无需支付'}}</text>
         <view class="booking-title">{{activity.title}}</view>
         <view class="muted">{{activity.dateText}} · {{activity.location}}</view>
+      </view>
+      <view wx:if="{{activity.priceCents > 0}}" class="booking-summary">
+        <view class="section-title">报名费用</view>
+        <ui-state wx:if="{{quoteLoading}}" kind="loading" compact="{{true}}">正在确认费用…</ui-state>
+        <view wx:elif="{{quote}}">
+          <view>应付 {{quoteTotal}}<text wx:if="{{quote.originalTotalCents > quote.totalCents}}" class="muted"> · 优惠前 {{quoteOriginal}}</text></view>
+          <view wx:for="{{quoteLines}}" wx:key="key">{{item.label}}</view>
+          <view wx:if="{{quote.participantPricing}}" class="muted">{{quote.participantPricing === 'ACCOUNT_ALL' ? '同行按报名账号等级优惠' : '每单最多 1 个优惠名额'}}</view>
+        </view>
+        <view wx:elif="{{quoteLoginRequired}}">登录后确认报价<button class="secondary" bindtap="login">微信登录</button></view>
+        <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="refreshQuote" disabled="{{submitting}}">重新获取费用</button></view>
+        <view class="muted">请以活动订单中的报名与支付状态为准。</view>
+        <button class="text-button" bindtap="paidOrders" disabled="{{submitting}}">查看本活动订单</button>
       </view>
       <view class="section-head">
         <view class="section-title">参与人信息</view>
@@ -44,7 +62,7 @@
             class="text-button"
             data-index="{{index}}"
             bindtap="removeParticipant"
-            disabled="{{submitting}}"
+            disabled="{{submitting || recoveryNeeded}}"
           >删除</button>
         </view>
         <view class="field">
@@ -56,7 +74,7 @@
             data-index="{{index}}"
             data-field="participantName"
             bindinput="inputParticipant"
-            disabled="{{submitting}}"
+            disabled="{{submitting || recoveryNeeded}}"
           />
         </view>
         <view wx:if="{{activity.identityRequired}}" class="field">
@@ -68,7 +86,7 @@
             data-index="{{index}}"
             data-field="idNumber"
             bindinput="inputParticipant"
-            disabled="{{submitting}}"
+            disabled="{{submitting || recoveryNeeded}}"
           />
         </view>
         <view class="field">
@@ -81,14 +99,14 @@
             data-index="{{index}}"
             data-field="phone"
             bindinput="inputParticipant"
-            disabled="{{submitting}}"
+            disabled="{{submitting || recoveryNeeded}}"
           />
         </view>
       </view>
       <button
         class="secondary add-participant"
         bindtap="addParticipant"
-        disabled="{{submitting || participants.length >= activity.available}}"
+        disabled="{{submitting || recoveryNeeded || participants.length >= activity.available}}"
       >新增报名人</button>
       <checkbox-group bindchange="consentChange">
         <view class="consent">
@@ -97,14 +115,14 @@
             checked="{{consent}}"
             color="#193F34"
             aria-label="同意当前协议及参与人信息使用"
-            disabled="{{submitting}}"
+            disabled="{{submitting || recoveryNeeded}}"
           />
           <view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号用于本次活动身份核验、组织与联系。</view>
         </view>
       </checkbox-group>
       <view wx:if="{{legalError}}" class="error">
         {{legalError}}
-        <button class="secondary" bindtap="retry">重新读取协议</button>
+        <button class="secondary" bindtap="retry" disabled="{{submitting}}">重新读取协议</button>
       </view>
       <view class="notice">
         每个账号每场活动限一笔有效报名，可添加多位参与人。
@@ -115,26 +133,25 @@
       <button
         class="primary submit"
         loading="{{submitting}}"
-        disabled="{{submitting || !activity.enabled || !legal}}"
+        disabled="{{submitting || (!recoveryNeeded && (!activity.enabled || !legal || (activity.priceCents > 0 && (!quote || quoteLoading))))}}"
         bindtap="submit"
       >
-        {{submitting ? '正在确认…' : activity.label}}
+        {{submitting ? '正在确认…' : (recoveryNeeded ? '核对报名结果' : (activity.priceCents > 0 && quote ? (quote.totalCents === 0 ? '确认免支付报名' : '确认费用并创建订单') : activity.label))}}
       </button>
       <view class="muted small center">
-        报名结果请以“我的报名”为准。
+        {{activity.priceCents > 0 ? '报名结果请以“活动订单”为准。' : '报名结果请以“我的报名”为准。'}}
       </view>
     </block>
   </block>
 </view>
 
 <view wx:if="{{participantModalOpen}}" class="participant-overlay" catchtap="cancelParticipant" catchtouchmove="stopModalEvent">
-  <view class="participant-dialog" catchtap="stopModalEvent" aria-role="dialog" aria-modal="true" aria-label="新增报名人">
-    <view class="participant-dialog motion-dialog-enter">
+  <view class="participant-dialog motion-dialog-enter" catchtap="stopModalEvent" aria-role="dialog" aria-modal="true" aria-label="新增报名人">
     <view class="dialog-head">
       <view class="section-title">新增报名人</view>
       <button class="dialog-close" bindtap="cancelParticipant" aria-label="关闭新增报名人"><image class="dialog-close-icon" src="/assets/icons/close.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
-    <scroll-view scroll-y class="dialog-body">
+    <scroll-view scroll-y class="dialog-body {{activity.identityRequired ? 'dialog-body-identity' : ''}}">
       <view class="field">
         <text class="label">姓名</text>
         <input value="{{participantDraft.participantName}}" maxlength="40" placeholder="请填写真实姓名" data-field="participantName" bindinput="inputParticipantDraft" />
@@ -152,7 +169,6 @@
     <view class="dialog-actions">
       <button class="secondary" bindtap="cancelParticipant">取消</button>
       <button class="primary" bindtap="confirmParticipant">确认添加</button>
-    </view>
     </view>
   </view>
 </view>

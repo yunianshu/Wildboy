@@ -10,6 +10,9 @@ export function sessionVersion(): number {
 export function isSessionCurrent(version: number): boolean {
   return version === sessionEpoch;
 }
+export function isAccessDenied(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.status === 403);
+}
 export async function getCurrentUser(): Promise<User> {
   const user = await request<User>("/me");
   if (!user || !user.id || !["USER", "ADMIN"].includes(user.role))
@@ -209,7 +212,10 @@ export function login(
       });
     }
     if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
-    if (result?.user?.role !== "USER") throw new Error("微信登录响应异常");
+    const user = result?.user;
+    if (user?.role !== "USER" && !(user?.role === "ADMIN"
+        && user.accountSource === "WECHAT" && user.wechatVerified === true))
+      throw new Error("微信登录响应异常");
     const authenticated = saveAuthentication(result, attempt);
     return authenticated;
   })().finally(() => {

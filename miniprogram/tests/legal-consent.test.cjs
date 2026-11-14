@@ -93,7 +93,7 @@ test("login loads both current documents with consent unchecked", async () => {
   await p.submit();
   assert.equal(logins.length, 0);
 });
-test("merely opening or failing to load a document cannot mark it read", async () => {
+test("optional reading cannot record consent, while an explicit checkbox does not require both readers", async () => {
   const p = page("login");
   await p.load();
   p.readPrivacy();
@@ -102,12 +102,14 @@ test("merely opening or failing to load a document cannot mark it read", async (
   assert.equal(p.data.privacyRead, false);
   events.legalDocumentLoaded({ kind: "PRIVACY", version: 1 });
   assert.equal(p.data.privacyRead, true);
-  p.agreement({ detail: { value: ["yes"] } });
   assert.equal(p.data.agreed, false);
+  p.agreement({ detail: { value: ["yes"] } });
+  assert.equal(p.data.agreed, true);
 });
-test("fresh verified versions are sent to explicit login once", async () => {
+test("fresh versions are sent to explicit login once without forced reader navigation", async () => {
   const p = page("login");
   agree(p);
+  p.setData({ privacyRead: false, termsRead: false });
   await p.submit();
   assert.deepEqual(logins, [{ privacyVersion: 1, termsVersion: 2 }]);
   assert.equal(back, 1);
@@ -223,7 +225,8 @@ test("inline policy links open exact versions without changing consent, includin
     const terms = loginPage ? "readTerms" : "terms";
     const change = loginPage ? "agreement" : "consentChange";
     p[change]({ detail: { value: ["yes"] } });
-    assert.equal(p.data[consentKey], false, name + " blocks unread consent");
+    assert.equal(p.data[consentKey], true, name + " accepts explicit consent without reader round-trips");
+    p[change]({ detail: { value: [] } });
     p[privacy]();
     assert.equal(navigations.at(-1), "/pages/privacy/index?kind=PRIVACY&version=1");
     p.onHide();

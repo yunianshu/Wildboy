@@ -15,6 +15,8 @@ export interface Activity {
   identityRequired?: boolean;
   capacity: number;
   registeredCount: number;
+  confirmedCount?: number;
+  pendingPaymentCount?: number;
   status: "DRAFT" | "PUBLISHED" | "CANCELLED";
   priceCents: number;
   currency: string;
@@ -90,6 +92,7 @@ export interface AdminUser {
   profileUpdatedAt: string | null;
   registrationCount: number;
   confirmedRegistrationCount: number;
+  pendingRegistrationCount?: number;
   lastRegistrationAt: string | null;
   role: string;
   accountSource: AccountSource;
@@ -103,7 +106,11 @@ export type RegistrationStatus = "CONFIRMED" | "CANCELLED";
 
 export interface AdminUserDetail {
   user: AdminUser;
-  registrations: PageResult<Registration>;
+  registrations: PageResult<Omit<Registration, "status"> & {
+    status: RegistrationStatus | "PENDING_PAYMENT";
+    source?: "FREE_REGISTRATION" | "ACTIVITY_ORDER";
+    orderStatus?: "PENDING_PAYMENT" | "PAID" | "CONFIRMED_FREE" | "REFUND_PENDING" | "CLOSED" | "REFUNDED" | null;
+  }>;
 }
 export interface AuthResult {
   token: string;
@@ -124,8 +131,10 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
 }
-export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CANCELLED" | "SHIPPED" | "REFUNDED";
+export type OrderStatus = "PENDING_PAYMENT" | "PAID" | "CONFIRMED_FREE" | "CANCELLED" | "SHIPPED" | "REFUNDED";
 export interface OrderItem {
+  originalPriceCents?: number;
+  tierName?: string | null;
   id: string;
   productId: string;
   productName: string;
@@ -134,6 +143,7 @@ export interface OrderItem {
   quantity: number;
 }
 export interface Order {
+  originalTotalCents?: number;
   reconciliationRequired?: boolean;
   expiresAt?: string;
   id: string;

@@ -92,9 +92,10 @@ public class ApiController {
   Page<Activity> adminList(
       @RequestParam(required = false) Category category,
       @RequestParam(required = false) ActivityStatus status,
+      @RequestParam(required = false) String title,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return activities.list(category, status, page, size, true);
+    return activities.list(category, status, title, page, size, true);
   }
 
   @GetMapping("/admin/activities/{id}")
@@ -135,10 +136,11 @@ public class ApiController {
   @GetMapping("/admin/activities/{id}/registrations")
   Page<Registration> attendees(
       @PathVariable String id,
+      @RequestParam(required = false) RegistrationStatus status,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
     activities.get(id, true);
-    return activities.registrations(null, id, page, size);
+    return activities.registrations(null, id, status, page, size);
   }
 
   @PostMapping("/admin/privacy/encrypt-legacy-identities")

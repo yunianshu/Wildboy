@@ -23,7 +23,7 @@
         <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
         <view class="card-title">{{item.title}}</view>
         <view class="card-detail">{{item.location}}</view>
-        <view class="card-footer"><text class="free">免费参与</text><text class="muted">{{item.available}} 个余位</text></view>
+        <view class="card-footer"><text class="free">{{item.priceLabel}}</text><text class="muted">{{item.available}} 个余位</text></view>
       </view>
     </view>
     <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>

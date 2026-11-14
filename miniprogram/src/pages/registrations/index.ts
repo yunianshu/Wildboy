@@ -117,6 +117,7 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/detail/index?id=${id}` });
   },
   messages() { wx.navigateTo({url:"/pages/notifications/index"}); },
+  activityOrders() { wx.navigateTo({ url: "/pages/activity-orders/index" }); },
   explore() {
     wx.switchTab({ url: "/pages/activities/index" });
   },

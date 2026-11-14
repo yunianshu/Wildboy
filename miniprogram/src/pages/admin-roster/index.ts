@@ -29,8 +29,10 @@ Page({
     authorized: false,
     loading: false,
     loadingMore: false,
+    exporting: false,
     error: "",
     activity: null as Activity | null,
+    paidActivity: false,
     dateText: "",
     remaining: 0,
     items: [] as Row[],
@@ -62,9 +64,11 @@ Page({
     this.setData({
       authorized: false,
       activity: null,
+      paidActivity: false,
       items: [],
       loading: false,
       loadingMore: false,
+      exporting: false,
     });
   },
   onUnload() {
@@ -76,6 +80,7 @@ Page({
     void this.load(false);
   },
   async load(reset = true) {
+    if (this.data.exporting) return;
     if (!this.data.id) {
       this.setData({ error: "活动编号无效" });
       return;
@@ -101,12 +106,16 @@ Page({
       if (n !== this._epoch) return;
       this._session = session;
       this.setData({ authorized: true });
-      const [activity, result] = await Promise.all([
-        request<Activity>(`/admin/activities/${this.data.id}`),
-        request<PageResult<Registration>>(
-          `/admin/activities/${this.data.id}/registrations?page=${reset ? 0 : this.data.page + 1}&size=20${this.data.status ? `&status=${this.data.status}` : ""}`,
-        ),
-      ]);
+      const activity = await request<Activity>(`/admin/activities/${this.data.id}`);
+      if (n !== this._epoch || !isSessionCurrent(session)) return;
+      if (activity.priceCents > 0) {
+        this.setData({ activity, paidActivity: true, items: [], hasMore: false, total: 0 });
+        return;
+      }
+      this.setData({ paidActivity: false });
+      const result = await request<PageResult<Registration>>(
+        `/admin/activities/${this.data.id}/registrations?page=${reset ? 0 : this.data.page + 1}&size=20${this.data.status ? `&status=${this.data.status}` : ""}`,
+      );
       if (n !== this._epoch || !isSessionCurrent(session)) return;
       const rows = result.items.map((x) => ({
         id: x.id,
@@ -155,10 +164,15 @@ Page({
     }
   },
   filter(e: WechatMiniprogram.TouchEvent) {
+    if (this.data.exporting) return;
     const status = String(e.currentTarget.dataset.status || "");
     if (!this.data.statuses.some((x) => x.value === status)) return;
     this.setData({ status });
     void this.load(true);
+  },
+  paidOrders() {
+    if (this.data.authorized && this.data.paidActivity && isSessionCurrent(this._session))
+      wx.navigateTo({ url: `/pages/admin-activity-orders/index?activityId=${this.data.id}` });
   },
   retry() {
     void this.load(!this.data.items.length);
@@ -166,7 +180,7 @@ Page({
   login() {
     wx.navigateTo({ url: "/pages/admin-login/index" });
   },
-  // Exports the full registration list as a CSV and hands the file to WeChat, so
+  // Exports every page matching the current filter and hands the CSV to WeChat, so
   // organizers can check people in outside the mini program. The sheet carries masked
   // identity numbers only; revealing a full identity stays an audited per-participant act.
   async export() {
@@ -176,31 +190,34 @@ Page({
       !this.data.total ||
       this.data.loading ||
       this.data.loadingMore ||
+      this.data.exporting ||
       !isSessionCurrent(this._session)
     )
       return;
     const n = this._epoch,
-      session = this._session;
+      session = this._session,
+      activity = this.data.activity,
+      status = this.data.status;
+    this.setData({ exporting: true, error: "" });
     try {
       const answer = await wx.showModal({
         title: "导出报名名单到微信",
         content:
-          "名单包含姓名与联系方式，仅用于本次活动核验与联系，请勿外传。证件号保持脱敏。",
+          "导出当前筛选条件下的全部名单，包含姓名与联系方式，仅用于本次活动核验与联系，请勿外传。证件号保持脱敏。",
         confirmText: "导出",
       });
       if (!answer.confirm || n !== this._epoch || !isSessionCurrent(session))
         return;
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(session)) return;
-      this.setData({ loading: true, error: "" });
       const rows: string[][] = [
         ["序号", "姓名", "手机号", "证件号", "状态", "报名时间", "同行序号"],
       ];
       let page = 0,
         hasMore = true;
-      while (hasMore && page <= 100) {
+      while (hasMore) {
         const result = await request<PageResult<Registration>>(
-          `/admin/activities/${this.data.id}/registrations?page=${page}&size=100`,
+          `/admin/activities/${activity.id}/registrations?page=${page}&size=50${status ? `&status=${status}` : ""}`,
         );
         if (n !== this._epoch || !isSessionCurrent(session)) return;
         for (const registration of result.items) {
@@ -227,13 +244,17 @@ Page({
         rows
           .map((row) =>
             row
-              .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+              .map((cell) => {
+                const value = String(cell);
+                const safe = /^[\s]*[=+@-]/.test(value) ? "'" + value : value;
+                return `"${safe.replace(/"/g, '""')}"`;
+              })
               .join(","),
           )
           .join("\r\n");
       const path = `${wx.env.USER_DATA_PATH}/roster-${this.data.id}.csv`;
       wx.getFileSystemManager().writeFileSync(path, csv, "utf8");
-      const title = this.data.activity.title.slice(0, 30);
+      const title = activity.title.slice(0, 30);
       await new Promise<void>((resolve, reject) => {
         wx.shareFileMessage({
           filePath: path,
@@ -243,7 +264,6 @@ Page({
         });
       });
       if (n !== this._epoch || !isSessionCurrent(session)) return;
-      this.setData({ loading: false });
     } catch (error) {
       if (n === this._epoch) {
         const denied =
@@ -257,9 +277,10 @@ Page({
         this.setData({
           error: message(error),
           ...(denied ? { authorized: false, activity: null, items: [] } : {}),
-          ...(denied ? {} : { loading: false }),
         });
       }
+    } finally {
+      if (n === this._epoch) this.setData({ exporting: false });
     }
   },
   async reveal(e: WechatMiniprogram.TouchEvent) {

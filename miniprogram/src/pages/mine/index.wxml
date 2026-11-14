@@ -12,20 +12,15 @@
   </view>
   <view class="page my-content">
     <ui-state wx:if="{{loading}}" kind="loading">正在加载账号…</ui-state>
-    <view wx:elif="{{user}}" class="profile">
-      <view class="avatar"><image class="avatar-icon" src="/assets/icons/user.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view wx:else class="profile {{user ? '' : 'guest'}}">
+      <button class="avatar" bindtap="profile" hover-class="avatar-pressed" aria-label="打开联系资料">
+        <image class="avatar-icon" src="/assets/icons/user.svg" mode="aspectFit" aria-hidden="{{true}}" />
+      </button>
       <view class="profile-main">
-        <view class="profile-name">{{user.nickname || '山野同行者'}}</view>
-        <view class="role">{{user.role === 'ADMIN' ? '管理员' : '微信用户'}}</view>
+        <view class="profile-name">{{user ? (user.nickname || '山野同行者') : '一起走进山野'}}</view>
+        <view wx:if="{{user}}" class="role">{{user.role === 'ADMIN' ? '管理员' : '微信用户'}}</view>
       </view>
-      <image class="profile-mark" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" />
-    </view>
-    <view wx:else class="profile guest">
-      <view class="avatar"><image class="avatar-icon" src="/assets/icons/user.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      <view class="profile-main">
-        <view class="profile-name">一起走进山野</view>
-      </view>
-      <button class="login-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="signIn">微信登录</button>
+      <button wx:if="{{!user}}" class="login-button" loading="{{loggingIn}}" disabled="{{loggingIn}}" bindtap="signIn">微信登录</button>
     </view>
     <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
     <view wx:if="{{requiresConsent}}" class="notice">
@@ -50,16 +45,10 @@
 
       </view>
     </view>
-    <view class="menu-row" bindtap="profile"><view class="menu-title">联系资料</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-    <view class="section-head compact">
-      <view class="section-title">继续探索</view>
-    </view>
-    <view class="menu-row" bindtap="explore">
-      <view><view class="menu-title">发现下一次出发</view></view>
-      <image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" />
-    </view>
+    <view class="menu-row" bindtap="activityOrders"><view class="menu-title">我的活动订单</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view class="menu-row" bindtap="profile"><view class="menu-title">联系资料与会员身份</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="userManage">
       <view><view class="menu-title">用户管理</view></view>
       <image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" />
@@ -74,11 +63,14 @@
     </view>
     <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="shopManage"><view><view class="menu-title">商品管理</view></view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="orderManage"><view><view class="menu-title">订单管理</view></view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="membershipManage"><view class="menu-title">会员管理</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="activityOrderManage"><view class="menu-title">活动订单与退款管理</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view class="links">
       <view bindtap="privacy">隐私政策<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view bindtap="terms">用户协议<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view wx:if="{{user}}" bindtap="signOut">退出当前账号<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     </view>
     <view wx:if="{{adminLoginEnabled}}" class="admin-auth" bindtap="adminSignIn">管理员登录<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view wx:if="{{adminCapabilityError}}" class="error">{{adminCapabilityError}}<button class="secondary" bindtap="loadAdminCapability" disabled="{{adminCapabilityLoading}}">重试管理员入口</button></view>
   </view>
 </view>

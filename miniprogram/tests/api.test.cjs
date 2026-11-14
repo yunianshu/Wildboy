@@ -56,6 +56,33 @@ test("real login exchanges only one use wx code and persists server token", asyn
   assert.equal(loginCount, 1);
   assert.equal(api.hasSession(), true);
 });
+
+test("verified WeChat administrators can log in again after a role grant", async () => {
+  reply = o => o.success({ statusCode: 200, data: {
+    token: "wechat-admin-session",
+    user: { id: "same-wechat-user", role: "ADMIN", accountSource: "WECHAT", wechatVerified: true },
+  } });
+  const result = await api.login(versions);
+  assert.equal(result.user.id, "same-wechat-user");
+  assert.equal(result.user.role, "ADMIN");
+  assert.equal(store["wildboy-session"], "wechat-admin-session");
+});
+
+test("WeChat login still rejects password, demo and unverified administrator identities", async () => {
+  for (const extra of [
+    { accountSource: "PASSWORD", wechatVerified: true },
+    { accountSource: "DEMO", wechatVerified: true },
+    { accountSource: "WECHAT", wechatVerified: false },
+    { accountSource: "WECHAT" },
+  ]) {
+    store["wildboy-session"] = "existing-user";
+    reply = o => o.success({ statusCode: 200, data: {
+      token: "invalid-session", user: { id: "admin", role: "ADMIN", ...extra },
+    } });
+    await assert.rejects(api.login(versions), /响应异常/);
+    assert.equal(store["wildboy-session"], "existing-user");
+  }
+});
 test("simultaneous login uses one exchange", async () => {
   await Promise.all([api.login(versions), api.login(versions)]);
   assert.equal(loginCount, 1);

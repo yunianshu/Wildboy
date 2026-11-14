@@ -13,11 +13,24 @@
 }
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
   margin: 24rpx 0;
 }
-.actions button {
-  flex: 1;
+.form .actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 calc((100% - 16rpx) / 2);
+  width: calc((100% - 16rpx) / 2);
+  min-width: 0;
+  height: 80rpx;
+  min-height: 80rpx;
+  margin: 0;
+  padding: 0 16rpx;
+  font-size: 28rpx;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 .card {
   display: flex;

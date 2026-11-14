@@ -42,7 +42,7 @@
         <view class="eyebrow">FIND YOUR NEXT ADVENTURE</view>
         <view class="section-title">正在发生的山野</view>
       </view>
-      <text class="section-link" bindtap="allActivities">全部活动</text>
+      <text class="section-link" bindtap="allActivities">全部</text>
     </view>
     <ui-state wx:if="{{error}}" kind="error">
       <view>{{error}}</view>
@@ -73,71 +73,65 @@
           <view class="card-title">{{item.title}}</view>
           <view class="card-detail">{{item.location}}</view>
           <view class="card-footer">
-            <text class="free">免费参与</text>
+            <text class="free">{{item.priceLabel}}</text>
             <text class="muted">{{item.available}} 个余位</text>
           </view>
         </view>
       </view>
     </block>
-    <view class="section-head">
-      <view>
-        <view class="eyebrow">PACK LIGHT. GO FAR.</view>
-        <view class="section-title">装备小店</view>
-      </view>
-      <text class="section-link" bindtap="equipmentInfo">装备一览</text>
-    </view>
-    <view class="shop" bindtap="equipmentInfo">
-      <image src="/assets/equipment.jpg" mode="aspectFill" />
+    <view class="shop" bindtap="equipmentInfo" aria-role="button" aria-label="逛野小子装备小店">
+      <image class="shop-banner-image" src="/assets/equipment-banner.jpg" mode="aspectFill" />
       <view class="shop-copy">
-        <view class="shop-tag">精选户外装备</view>
-        <view class="shop-title">
-          轻装出发
-          <view />
-          自在入野
-        </view>
+        <view class="shop-tag">山野好物 · 轻装出发</view>
+        <view class="shop-title">把山野，装进行囊</view>
+        <view class="shop-cta">去逛逛 <image class="ui-icon" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       </view>
     </view>
-    <scroll-view
-      wx:if="{{home.equipment.length}}"
-      scroll-x
-      class="equipment-strip"
-    >
+    <ui-state wx:if="{{equipmentError}}" class="equipment-state" kind="error" compact="{{true}}">
+      <view>{{equipmentError}}</view>
+      <button class="secondary" bindtap="retryEquipment">重新加载装备</button>
+    </ui-state>
+    <ui-state wx:elif="{{equipmentLoading}}" class="equipment-state" kind="loading" compact="{{true}}">正在加载装备…</ui-state>
+    <ui-state wx:elif="{{!equipment.length}}" class="equipment-state" kind="empty" compact="{{true}}">装备正在准备中</ui-state>
+    <view wx:else class="equipment-grid">
       <view
         class="equipment-item"
-        wx:for="{{home.equipment}}"
+        wx:for="{{equipment}}"
         wx:key="id"
         data-id="{{item.id}}"
         bindtap="openProduct"
+        aria-role="button"
+        aria-label="{{item.name}}，{{item.priceLabel}}"
       >
-        <image src="{{item.imageUrl}}" mode="aspectFill" />
-        <view>{{item.name}}</view>
-        <text>{{item.priceLabel || '装备展示'}}</text>
+        <image class="equipment-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+        <view class="equipment-name">{{item.name}}</view>
+        <view class="equipment-price-stack">
+          <view wx:if="{{item.originalPriceText}}" class="equipment-original-price">原价 {{item.originalPriceText}}</view>
+          <view class="equipment-price">{{item.priceLabel}}</view>
+        </view>
       </view>
-    </scroll-view>
+    </view>
     <view class="section-head gallery-head">
       <view>
         <view class="eyebrow">MOMENTS OUTSIDE</view>
         <view class="section-title">山野之间</view>
       </view>
     </view>
-    <ui-state wx:if="{{articleLoading}}" kind="loading">正在加载活动回顾…</ui-state>
-    <ui-state wx:elif="{{articleError}}" kind="error">{{articleError}}<button class="secondary ui-button ui-button-block" bindtap="retryArticles">重试</button></ui-state>
-    <ui-state wx:elif="{{!articles.length}}" kind="empty">活动回顾即将发布</ui-state>
-    <swiper wx:else class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
-      <swiper-item wx:for="{{articles}}" wx:key="id">
-        <view class="scenery-slide" data-id="{{item.id}}" bindtap="openArticle">
-          <image class="scenery-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
+    <ui-state wx:if="{{articleError}}" kind="error" compact="{{true}}">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></ui-state>
+    <swiper class="scenery-swiper" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
+      <swiper-item wx:for="{{articles.length ? articles : banners}}" wx:key="id">
+        <view class="scenery-slide" data-id="{{articles.length ? item.id : item.activityId}}" data-article="{{articles.length > 0}}" bindtap="openGalleryItem">
+          <image class="scenery-image" src="{{articles.length ? item.coverUrl : item.imageUrl}}" mode="aspectFill" lazy-load />
           <view class="scenery-shade" />
           <view class="scenery-copy">
             <view class="scenery-title">{{item.title}}</view>
-            <view class="scenery-sub">{{item.summary}}</view>
+            <view class="scenery-sub">{{articles.length ? item.summary : item.subtitle}}</view>
           </view>
         </view>
       </swiper-item>
     </swiper>
-    <view class="footer-brand">
-      wildboy.
-      <text>LEAVE NO TRACE. TAKE GOOD MEMORIES.</text>
+    <view class="platform-brand">
+      <image class="platform-brand-image" src="/assets/platform-brand-original-transparent.png" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
     </view>
   </view>
 </view>

@@ -17,7 +17,8 @@ public final class ShopModels {
     PAID,
     CANCELLED,
     SHIPPED,
-    REFUNDED
+    REFUNDED,
+    CONFIRMED_FREE
   }
 
   public record Product(
@@ -62,7 +63,12 @@ public final class ShopModels {
       @NotBlank @Size(min = 5, max = 300) String address,
       @NotNull @Min(1) Long privacyVersion,
       @NotNull @Min(1) Long termsVersion,
-      @Size(max = 80) String requestId) {
+      @Size(max = 80) String requestId,
+      @JsonDeserialize(using = StrictIntegerDeserializer.class) @Min(0) @Max(100000000) Integer expectedTotalCents) {
+    public OrderInput(List<OrderItemInput> items, String recipientName, String phone, String address,
+        Long privacyVersion, Long termsVersion, String requestId) {
+      this(items, recipientName, phone, address, privacyVersion, termsVersion, requestId, null);
+    }
     public OrderInput(List<OrderItemInput> items, String recipientName, String phone, String address,
         Long privacyVersion, Long termsVersion) {
       this(items, recipientName, phone, address, privacyVersion, termsVersion, null);
@@ -75,7 +81,9 @@ public final class ShopModels {
       String productName,
       String imageUrl,
       int priceCents,
-      int quantity) {}
+      int quantity,
+      int originalPriceCents,
+      String tierName) {}
 
   public record Order(
       String id,
@@ -94,7 +102,10 @@ public final class ShopModels {
       OffsetDateTime updatedAt,
       OffsetDateTime expiresAt,
       boolean reconciliationRequired,
-      List<OrderItem> items) {}
+      List<OrderItem> items,
+      int originalTotalCents) {}
+
+  public record Quote(String productId, int quantity, int originalTotalCents, int totalCents, MembershipModels.Pricing pricing) {}
 
   public record PaymentRequest(
       String timeStamp,

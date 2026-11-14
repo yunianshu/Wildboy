@@ -1,3 +1,49 @@
-<view class="page page-motion {{pageMotionClass}}"><view class="title">图文详情</view><view wx:if="{{error}}" class="error">{{error}}</view><button wx:if="{{!authorized}}" class="secondary" bindtap="load">重新加载</button><block wx:if="{{authorized}}">
-<block wx:if="{{editing>=0}}"><view class="field"><text class="label">{{draftType==='table'?'表格：每行一条，列用 | 分隔':draftType==='text'?'文字':'图片'}}</text><textarea wx:if="{{draftType!=='image'}}" value="{{draftText}}" data-field="draftText" bindinput="input" maxlength="10000"/><block wx:else><button class="secondary" bindtap="upload" disabled="{{busy}}">上传图片</button><image wx:if="{{draftUrl}}" src="{{draftPreview}}" mode="widthFix"/><input value="{{draftCaption}}" data-field="draftCaption" bindinput="input" maxlength="300" placeholder="图片说明（选填）"/></block></view><button class="primary" bindtap="confirmEdit" disabled="{{busy}}">确认内容</button><button class="secondary" bindtap="cancelEdit" disabled="{{busy}}">取消</button></block>
-<block wx:else><view wx:for="{{blocks}}" wx:key="index" class="block-card"><view>{{index+1}} · {{item.type==='text'?'文字':item.type==='image'?'图片':'表格'}}</view><text wx:if="{{item.type==='text'}}">{{item.text}}</text><image wx:elif="{{item.type==='image'}}" src="{{previews[index]}}" mode="widthFix"/><view class="tools"><button data-index="{{index}}" bindtap="edit">编辑</button><button data-index="{{index}}" data-delta="-1" bindtap="move" disabled="{{busy || index <= 0}}">上移</button><button data-index="{{index}}" data-delta="1" bindtap="move" disabled="{{busy || blocks.length - 1 <= index}}">下移</button><button data-index="{{index}}" bindtap="remove" disabled="{{busy}}">删除</button></view></view><view class="tools"><button data-type="text" bindtap="add" disabled="{{busy}}">＋ 文字</button><button data-type="image" bindtap="add" disabled="{{busy}}">＋ 图片</button><button data-type="table" bindtap="add" disabled="{{busy}}">＋ 表格</button></view><button wx:if="{{conflict}}" class="secondary" bindtap="reload">以服务器最新版本为准，重新加载</button><button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy || conflict}}">保存图文</button></block></block></view>
+<view class="page page-motion {{pageMotionClass}}">
+  <view class="title">图文详情</view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <button wx:if="{{!authorized}}" class="secondary" bindtap="load">重新加载</button>
+  <block wx:if="{{authorized}}">
+    <block wx:if="{{editing>=0}}">
+      <view class="field">
+        <text class="label">{{draftType==='table'?'表格：每行一条，列用 | 分隔':draftType==='text'?'文字':'图片'}}</text>
+        <textarea wx:if="{{draftType!=='image'}}" value="{{draftText}}" data-field="draftText" bindinput="input" maxlength="10000"/>
+        <block wx:else>
+          <button class="secondary" bindtap="upload" disabled="{{busy}}">上传图片</button>
+          <image wx:if="{{draftUrl}}" src="{{draftPreview}}" mode="widthFix"/>
+          <input value="{{draftCaption}}" data-field="draftCaption" bindinput="input" maxlength="300" placeholder="图片说明（选填）"/>
+        </block>
+      </view>
+      <view class="edit-actions">
+        <button class="secondary" bindtap="cancelEdit" disabled="{{busy}}">取消</button>
+        <button class="primary" bindtap="confirmEdit" disabled="{{busy}}">确认内容</button>
+      </view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{blocks}}" wx:key="index" class="block-card">
+        <view class="block-heading">{{index+1}} · {{item.type==='text'?'文字':item.type==='image'?'图片':'表格'}}</view>
+        <text wx:if="{{item.type==='text'}}" class="text-preview">{{item.text}}</text>
+        <image wx:elif="{{item.type==='image'}}" src="{{previews[index]}}" mode="widthFix"/>
+        <scroll-view wx:elif="{{item.type==='table'}}" class="table-scroll" scroll-x>
+          <view class="table-preview">
+            <view wx:for="{{item.rows}}" wx:for-item="row" wx:for-index="rowIndex" wx:key="rowIndex" class="table-row">
+              <view wx:for="{{row}}" wx:for-item="cell" wx:for-index="cellIndex" wx:key="cellIndex" class="table-cell">{{cell}}</view>
+            </view>
+          </view>
+        </scroll-view>
+        <view class="tools">
+          <button class="secondary" data-index="{{index}}" bindtap="edit">编辑</button>
+          <button class="secondary" data-index="{{index}}" data-delta="-1" bindtap="move" disabled="{{busy || index <= 0}}">上移</button>
+          <button class="secondary" data-index="{{index}}" data-delta="1" bindtap="move" disabled="{{busy || blocks.length - 1 <= index}}">下移</button>
+          <button class="secondary" data-index="{{index}}" bindtap="remove" disabled="{{busy}}">删除</button>
+        </view>
+      </view>
+      <view class="tools add-tools">
+        <button class="secondary" data-type="text" bindtap="add" disabled="{{busy}}">＋ 文字</button>
+        <button class="secondary" data-type="image" bindtap="add" disabled="{{busy}}">＋ 图片</button>
+        <button class="secondary" data-type="table" bindtap="add" disabled="{{busy}}">＋ 表格</button>
+      </view>
+      <button wx:if="{{conflict}}" class="secondary reload" bindtap="reload">以服务器最新版本为准，重新加载</button>
+      <button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy || conflict}}">保存图文</button>
+    </block>
+  </block>
+</view>

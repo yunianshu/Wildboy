@@ -54,10 +54,17 @@
   margin: 24rpx 0;
 }
 .primary {
-  margin: 28rpx 0;
+  margin: 20rpx 0 8rpx;
 }
 .text-button {
-  margin-top: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  padding: 10rpx 20rpx;
+  line-height: 1.4;
+  text-align: center;
+  margin-top: 8rpx;
   background: transparent;
   color: #173f35;
 }
@@ -65,7 +72,7 @@
   text-align: center;
   font-size: 23rpx;
   color: #6c766c;
-  margin-top: 28rpx;
+  margin-top: 12rpx;
 }
 .error {
   margin: 20rpx 0;

@@ -17,6 +17,7 @@ import {
 import { message, RequestEpoch } from "../../utils/domain";
 import { User } from "../../utils/models";
 import { isActivityUser, profileInputError } from "../../utils/user-profile";
+import { MembershipUser, identityLabel } from "../../utils/membership";
 
 const epoch = new RequestEpoch();
 const emptyDraft = () => ({ realName: "", phone: "" });
@@ -28,12 +29,17 @@ Page({
   loadedSession: -1,
   legalEpoch: 0,
   legalFlight: undefined as Promise<void> | undefined,
+  membershipEpoch: 0,
   readerDraft: null as { session: number; userId: string; draft: ReturnType<typeof emptyDraft> } | null,
   data: {
     pageMotionClass: "",
     fromRegister: false,
     loggedIn: false,
     user: null as User | null,
+    membership: null as MembershipUser | null,
+    membershipLabel: "",
+    membershipLoading: false,
+    membershipError: "",
     activityUser: false,
     legal: null as LegalCurrent | null,
     legalLoading: false,
@@ -57,6 +63,7 @@ Page({
     if (!this.loaded || this.reloadOnShow) {
       this.reloadOnShow = false;
       void this.load();
+      void this.loadMembership();
     }
   },
   onHide() {
@@ -65,10 +72,15 @@ Page({
     this.loadedSession = -1;
     this.reloadOnShow = this.data.loading;
     epoch.invalidate();
+    this.membershipEpoch++;
     this.legalEpoch++;
     this.legalFlight = undefined;
     this.setData({
       user: null,
+      membership: null,
+      membershipLabel: "",
+      membershipLoading: false,
+      membershipError: "",
       activityUser: false,
       legal: null,
       legalLoading: false,
@@ -124,6 +136,22 @@ Page({
   },
   signIn() {
     wx.navigateTo({ url: "/pages/login/index" });
+  },
+  async loadMembership() {
+    const n = ++this.membershipEpoch, session = sessionVersion();
+    const ownsRequest = () => this.visible && n === this.membershipEpoch;
+    this.setData({ membership: null, membershipLabel: "", membershipLoading: hasSession(), membershipError: "" });
+    if (!hasSession()) return;
+    try {
+      const membership = await request<MembershipUser>("/me/membership");
+      if (ownsRequest() && isSessionCurrent(session))
+        this.setData({ membership, membershipLabel: identityLabel(membership) });
+    } catch (error) {
+      if (ownsRequest() && isSessionCurrent(session))
+        this.setData({ membershipError: message(error) });
+    } finally {
+      if (ownsRequest()) this.setData({ membershipLoading: false });
+    }
   },
   retry() {
     void this.load();
@@ -265,6 +293,8 @@ Page({
         notice: this.data.fromRegister ? "资料已保存，请返回报名继续。" : "资料已保存。",
       });
       this.getOpenerEventChannel?.().emit?.("profileSaved", { id: user.id });
+      if (this.data.fromRegister)
+        wx.navigateBack({ fail: () => this.setData({ notice: "资料已保存，请返回报名继续。" }) });
     } catch (error) {
       if (epoch.valid(n)) {
         if (!hasSession() || !isSessionCurrent(session)) {

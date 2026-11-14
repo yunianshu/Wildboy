@@ -57,10 +57,16 @@
   margin-top: 20rpx;
 }
 .actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 0;
+  min-width: 0;
   margin: 0;
   min-height: 72rpx;
-  line-height: 72rpx;
-  padding: 0 24rpx;
+  line-height: 1.4;
+  padding: 12rpx 8rpx;
   font-size: 24rpx;
 }
 .danger {
@@ -94,5 +100,7 @@
 }
 .confirm-actions button {
   flex: 1;
+  width: 0;
+  min-width: 0;
   margin: 0;
 }

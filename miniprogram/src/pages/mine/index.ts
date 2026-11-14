@@ -1,7 +1,6 @@
 import {
   request,
   getCurrentUser,
-  login,
   logout,
   hasSession,
   sessionVersion,
@@ -74,7 +73,6 @@ Page({
     this.setData({
       user: null,
       activityUser: false,
-      adminLoginEnabled: false,
       error: "",
       loading: hasSession(),
       requiresConsent: false,
@@ -91,7 +89,6 @@ Page({
       this.setData({
         user,
         activityUser: isActivityUser(user),
-        adminLoginEnabled: user.role !== "ADMIN",
       });
       // The account is shown as soon as it loads; the independent legal check
       // only needs to settle before this load resolves, never before that.
@@ -139,7 +136,7 @@ Page({
     // the shared in-flight request; callers needing the result keep the first promise.
     if (this.capabilityFlight) return;
     const n = ++this.capabilityEpoch;
-    this.setData({ adminCapabilityLoading: true, adminCapabilityError: "" });
+    this.setData({ adminLoginEnabled: false, adminCapabilityLoading: true, adminCapabilityError: "" });
     const pending = (async () => {
       try {
         const result = await request<{ adminLoginEnabled?: unknown }>(
@@ -155,7 +152,7 @@ Page({
         if (n === this.capabilityEpoch)
           this.setData({ adminCapabilityError: message(e) });
       } finally {
-        this.setData({ adminCapabilityLoading: false });
+        if (n === this.capabilityEpoch) this.setData({ adminCapabilityLoading: false });
       }
     })();
     this.capabilityFlight = pending;
@@ -172,6 +169,9 @@ Page({
   confirmLegal() {
     wx.navigateTo({ url: "/pages/login/index?mode=consent" });
   },
+  activityOrders() {wx.navigateTo({url:"/pages/activity-orders/index"});},
+  activityOrderManage() {if(this.data.user?.role === "ADMIN")wx.navigateTo({url:"/pages/admin-activity-orders/index"});},
+  membershipManage() { if (this.data.user?.role === "ADMIN") wx.navigateTo({ url: "/pages/admin-memberships/index" }); },
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },
@@ -212,9 +212,6 @@ Page({
     if (!this.data.adminLoginEnabled) return;
     wx.navigateTo({ url: "/pages/admin-login/index" });
   },
-  explore() {
-    wx.switchTab({ url: "/pages/activities/index" });
-  },
   privacy() {
     wx.navigateTo({ url: "/pages/privacy/index" });
   },
@@ -222,14 +219,19 @@ Page({
     void this.load();
   },
   async signOut() {
-    const answer = await wx.showModal({
-      title: "退出当前账号？",
-      content:
-        "不会取消已报名活动。管理账号与微信账号的报名记录分别归属各自账号。",
-    });
-    if (!answer.confirm) return;
-    epoch.invalidate();
-    logout();
-    this.setData({ user: null, error: "", loading: false });
+    const session = sessionVersion();
+    try {
+      const answer = await wx.showModal({
+        title: "退出当前账号？",
+        content:
+          "不会取消已报名活动。管理账号与微信账号的报名记录分别归属各自账号。",
+      });
+      if (!answer.confirm || !isSessionCurrent(session)) return;
+      epoch.invalidate();
+      logout();
+      await this.load();
+    } catch (error) {
+      if (isSessionCurrent(session)) this.setData({ error: message(error) });
+    }
   },
 });

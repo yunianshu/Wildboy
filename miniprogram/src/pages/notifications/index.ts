@@ -4,7 +4,7 @@ import {
   sessionVersion,
   isSessionCurrent,
 } from "../../utils/api";
-import { message, RequestEpoch, safeId } from "../../utils/domain";
+import { message, RequestEpoch, safeId, mergeUnique } from "../../utils/domain";
 import { PageResult } from "../../utils/models";
 import {
   subscribeNotifications,
@@ -36,11 +36,11 @@ Page({
     enterPage(this);
     this.setData({ loggedIn: hasSession() });
     if (hasSession()) void this.load(true);
-    else this.setData({ items: [] });
+    else this.setData({ items: [], page: 0, hasMore: false, error: "" });
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ items: [], busy: false, loading: false });
+    this.setData({ items: [], page: 0, hasMore: false, busy: false, loading: false });
   },
   onUnload() {
     epoch.invalidate();
@@ -49,23 +49,21 @@ Page({
     wx.navigateTo({ url: "/pages/login/index" });
   },
   async load(reset = true) {
-    if (this.data.loading || this.data.busy || !hasSession()) return;
+    if (this.data.loading || this.data.busy || !hasSession() || (!reset && !this.data.hasMore)) return;
     const n = epoch.next(),
       session = sessionVersion();
-    this.setData({ loading: true, error: "" });
+    this.setData({ loading: true, error: "", ...(reset ? { items: [], page: 0, hasMore: false } : {}) });
     try {
       const p = await request<PageResult<Notice>>(
         `/me/notifications?page=${reset ? 0 : this.data.page + 1}&size=20`,
       );
       if (epoch.valid(n) && isSessionCurrent(session))
         this.setData({
-          items: [
-            ...(reset ? [] : this.data.items),
-            ...p.items.map((i) => ({
+          items: mergeUnique(reset ? [] : this.data.items,
+            p.items.map((i) => ({
               ...i,
               statusText: notificationStatus[i.status] || i.status,
-            })),
-          ],
+            }))),
           page: p.page,
           hasMore: p.hasMore,
         });

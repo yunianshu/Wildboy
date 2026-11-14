@@ -88,7 +88,30 @@ async function loadedLogin() { const p=page('login'); transport=o=>respond(o,cur
 function readBoth(p) { p.readPrivacy(); navigationOptions.at(-1).events.legalDocumentLoaded({kind:'PRIVACY',version:1}); p.readTerms(); navigationOptions.at(-1).events.legalDocumentLoaded({kind:'TERMS',version:1}); p.agreement({detail:{value:['yes']}}); }
 async function loadedAdmin() { store['wildboy-session']='admin-token'; const p=page('admin-legal'); transport=o=>respond(o,o.url.endsWith('/me')?{id:'admin',role:'ADMIN'}:o.url.endsWith('/versions')?[document('PRIVACY')]:legalState()); await p.load(); return p; }
 test('login without explicit legal versions never invokes wx login or sends auth',async()=>{await assert.rejects(api.login(),e=>e.code==='CONSENT_REQUIRED');assert.equal(wxLoginCalls,0);assert.equal(requests.length,0);});
-test('login starts unchecked and cannot proceed without reading both documents',async()=>{const p=await loadedLogin();assert.equal(p.data.agreed,false);p.agreement({detail:{value:['yes']}});await p.submit();assert.equal(p.data.agreed,false);assert.equal(wxLoginCalls,0);assert.equal(requests.filter(x=>x.method==='POST').length,0);});
+test('login starts unchecked and requires explicit consent but no reader round-trips',async()=>{
+  const p=await loadedLogin();
+  assert.equal(p.data.agreed,false);
+  await p.submit();
+  assert.equal(wxLoginCalls,0);
+  assert.equal(requests.filter(x=>x.method==='POST').length,0);
+  transport=o=>{
+    if(o.url.endsWith('/legal/current'))return respond(o,current());
+    assert.equal(o.url,'https://wildboy.test/api/v1/auth/wechat');
+    assert.equal(o.method,'POST');
+    return respond(o,auth);
+  };
+  p.agreement({detail:{value:['yes']}});
+  await p.submit();
+  assert.equal(p.data.privacyRead,false);
+  assert.equal(p.data.termsRead,false);
+  assert.equal(navigationOptions.length,0);
+  assert.equal(wxLoginCalls,1);
+  const writes=requests.filter(x=>x.method==='POST');
+  assert.equal(writes.length,1);
+  assert.deepEqual(writes[0].data,{code:'synthetic-once',...versions});
+  assert.equal(p.data.success,true);
+  assert.equal(store['wildboy-session'],auth.token);
+});
 test('failed or mismatched document navigation does not mark versions read',async()=>{const p=await loadedLogin();p.readPrivacy();assert.equal(p.data.privacyRead,false);navigationOptions.at(-1).events.legalDocumentLoaded({kind:'TERMS',version:1});navigationOptions.at(-1).events.legalDocumentLoaded({kind:'PRIVACY',version:2});assert.equal(p.data.privacyRead,false);await p.submit();assert.equal(wxLoginCalls,0);});
 test('current document acknowledgments lead to exact versions in login request',async()=>{const p=await loadedLogin();readBoth(p);transport=o=>respond(o,o.url.endsWith('/legal/current')?current():auth);await p.submit();const posted=requests.find(o=>o.url.endsWith('/auth/wechat'));assert.deepEqual(posted.data,{code:'synthetic-once',...versions});assert.equal(p.data.success,true);assert.equal(store['wildboy-session'],auth.token);});
 test('newly published version clears checkbox and prevents stale wx login',async()=>{const p=await loadedLogin();readBoth(p);transport=o=>respond(o,current(2));await p.submit();assert.equal(p.data.agreed,false);assert.equal(p.data.privacyRead,false);assert.equal(p.data.termsRead,false);assert.equal(wxLoginCalls,0);assert.equal(p.data.current.privacy.version,2);});

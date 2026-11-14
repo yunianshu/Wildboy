@@ -19,12 +19,15 @@ test("dates display Asia/Shanghai independent of host zone", () => {
   assert.equal(d.dateLabel("2026-10-25T18:00:00Z"), "10.26 02:00");
   assert.equal(d.dateLabel("bad"), "时间待确认");
 });
-test("registration is free and published only", () => {
+test("registration preserves free flow and opens valid published paid activities", () => {
   assert.equal(d.registrationState(a, now).enabled, true);
+  assert.equal(d.registrationState(a, now).label, "免费报名");
+  assert.deepEqual(d.registrationState({...a,priceCents:100},now), {enabled:true,label:"报名并确认费用"});
   for (const overrides of [
     { status: "DRAFT" },
     { status: "CANCELLED" },
-    { priceCents: 100 },
+    { priceCents: -1 },
+    { priceCents: 1.1 },
   ])
     assert.equal(
       d.registrationState({ ...a, ...overrides }, now).enabled,

@@ -60,7 +60,7 @@ public class SecurityConfig {
                         "/api/v1/media/*",
                         "/api/v1/shop/products/*/content")
                     .permitAll()
-                    .requestMatchers("/api/v1/payments/wechat/notify", "/api/v1/payments/wechat/refund-notify")
+                    .requestMatchers("/api/v1/payments/wechat/notify", "/api/v1/payments/wechat/refund-notify", "/api/v1/payments/wechat/activity-notify", "/api/v1/payments/wechat/activity-refund-notify")
                     .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")

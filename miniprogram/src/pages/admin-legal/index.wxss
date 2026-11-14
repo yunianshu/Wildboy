@@ -24,10 +24,18 @@
 .tabs button,
 .actions button {
   flex: 1;
+  width: 0;
+  min-width: 0;
   margin: 0;
   font-size: 27rpx;
 }
 .tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 76rpx;
+  padding: 12rpx 16rpx;
+  line-height: 1.4;
   background: #e8edde;
   color: #173f35;
 }
@@ -110,7 +118,13 @@
   white-space: pre-wrap;
   line-height: 1.9;
 }
-.history {
+.legal-page button.history {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 76rpx;
+  word-break: break-all;
   text-align: left;
   background: #e8edde;
   color: #173f35;

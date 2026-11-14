@@ -57,7 +57,8 @@ public final class Models {
       String currency,
       long version,
       OffsetDateTime createdAt,
-      OffsetDateTime updatedAt, boolean identityRequired) {}
+      OffsetDateTime updatedAt, boolean identityRequired,
+      int confirmedCount, int pendingPaymentCount) {}
 
   public record ActivityInput(
       @NotBlank @Size(max = 120) String title,

@@ -28,7 +28,10 @@
     }
   },
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      { "type": "file", "value": "assets/platform-brand.jpg" },
+      { "type": "file", "value": "assets/platform-brand-transparent.png" }
+    ],
     "include": []
   },
   "simulatorPluginLibVersion": {},

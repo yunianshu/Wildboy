@@ -14,6 +14,7 @@ const refundLabels:Record<string,string>={REQUESTED:"待审核",REJECTED:"已拒
 type OrderView = Order & {
   statusText: string;
   totalText: string;
+  originalTotalText: string;
   dateText: string;
   deadlineText: string;
 };
@@ -33,6 +34,7 @@ Page({
       { code: "", name: "全部" },
       { code: "PENDING_PAYMENT", name: "待支付" },
       { code: "PAID", name: "待发货" },
+      { code: "CONFIRMED_FREE", name: "免支付待发货" },
       { code: "SHIPPED", name: "已发货" },
       { code: "CANCELLED", name: "已取消" },
       { code: "REFUNDED", name: "已退款" },
@@ -79,6 +81,7 @@ Page({
       items: order.items.map((item) => ({ ...item })),
       statusText: orderStatusLabel(order.status),
       totalText: money(order.totalCents),
+      originalTotalText: money(order.originalTotalCents ?? order.totalCents),
       dateText: dateLabel(order.createdAt),
       deadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     };
@@ -153,6 +156,7 @@ Page({
     const id = safeId(event.currentTarget.dataset.id);
     if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
       return;
+    if (this.data.items.find(x => x.id === id)?.status !== "PENDING_PAYMENT") return;
     const current = epoch.next();
     const session = sessionVersion();
     this.setData({ busyId: id, error: "" });
@@ -225,6 +229,8 @@ Page({
     const id = safeId(event.currentTarget.dataset.id);
     if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
       return;
+    const row=this.data.items.find(x=>x.id===id);
+    if(!row || !["PENDING_PAYMENT","CONFIRMED_FREE"].includes(row.status)) return;
     const session = sessionVersion();
     const prompt = epoch.next();
     this.setData({ busyId: id });
@@ -232,7 +238,7 @@ Page({
     try {
       answer = await wx.showModal({
         title: "取消这笔订单？",
-        content: "服务端关单成功后会释放库存；已支付订单不能直接取消。",
+        content: row.status === "CONFIRMED_FREE" ? "取消这笔免支付订单后释放库存，不涉及支付退款。" : "服务端关单成功后会释放库存；已支付订单不能直接取消。",
         confirmText: "确认取消",
       });
     } catch (error) {

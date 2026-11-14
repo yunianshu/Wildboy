@@ -1,0 +1,19 @@
+name: wildboy-https
+services:
+  api-https:
+    image: nginx:stable-alpine
+    network_mode: host
+    volumes:
+      - type: bind
+        source: ./nginx-api-https.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${WILDBOY_API_TLS_DIR:-/etc/wildboy/tls/api.wildboy.com.cn}
+        target: /etc/nginx/tls/api.wildboy.com.cn
+        read_only: true
+        bind:
+          create_host_path: false
+    restart: unless-stopped

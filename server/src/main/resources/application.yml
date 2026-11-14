@@ -13,6 +13,8 @@ spring:
   jackson:
     deserialization:
       fail-on-unknown-properties: true
+      accept-float-as-int: false
+      fail-on-numbers-for-enums: true
   mvc:
     problemdetails:
       enabled: false

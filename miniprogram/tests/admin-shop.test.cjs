@@ -295,3 +295,14 @@ for (const outcome of ["success", "failure"]) {
     assert.equal(p.data.uncertainCreate,true); assert.equal(writes,1);
   });
 }
+test('free confirmed merchandise orders can be shipped without claiming paid', async () => {
+  api.request = async (p,m,d) => {
+    calls.push({p,m,d});
+    return {items:[{...order,status:'CONFIRMED_FREE',totalCents:0}],page:0,hasMore:false};
+  };
+  const p=page('admin-orders'); await p.load();
+  assert.match(p.data.items[0].statusLabel,/免支付/);
+  await p.ship({currentTarget:{dataset:{id:order.id}}});
+  await p.confirmShip();
+  assert.equal(calls.filter(x=>x.p.endsWith('/ship')).length,1);
+});

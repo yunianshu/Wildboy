@@ -26,7 +26,10 @@
     "pages/profile/index",
     "pages/admin-users/index",
     "pages/admin-content/index",
-    "pages/article/index"
+    "pages/article/index",
+    "pages/admin-memberships/index",
+    "pages/activity-orders/index",
+    "pages/admin-activity-orders/index"
   ],
   "window": {
     "navigationBarTitleText": "Wildboy",
@@ -34,6 +37,12 @@
     "navigationBarTextStyle": "black",
     "backgroundColor": "#F6F4ED"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在地图上选择位置并填写收货地址"
+    }
+  },
+  "requiredPrivateInfos": ["chooseLocation"],
   "tabBar": {
     "custom": true,
     "color": "#85877F",

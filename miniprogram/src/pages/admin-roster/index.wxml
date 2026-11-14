@@ -8,7 +8,12 @@
     </button>
   </view>
   <view wx:if="{{loading}}" class="state">正在加载名单…</view>
-  <view class="tabs" wx:if="{{authorized&&activity}}">
+  <view wx:if="{{authorized && paidActivity}}" class="notice">
+    收费报名按订单确认，待付款订单尚未完成报名。
+    <view wx:if="{{activity.confirmedCount !== undefined}}">已确认 {{activity.confirmedCount}} 人 · 待付款 {{activity.pendingPaymentCount || 0}} 人</view>
+    <button class="secondary" bindtap="paidOrders">查看本活动收费名单</button>
+  </view>
+  <view class="tabs" wx:if="{{authorized && activity && !paidActivity}}">
     <view
       wx:for="{{statuses}}"
       wx:key="value"
@@ -19,7 +24,7 @@
       {{item.label}}
     </view>
   </view>
-  <block wx:if="{{authorized&&activity}}">
+  <block wx:if="{{authorized && activity && !paidActivity}}">
     <view class="activity-title">{{activity.title}}</view>
     <view class="muted">{{dateText}} · {{activity.location}}</view>
     <view class="summary">
@@ -34,7 +39,7 @@
     </view>
     <view class="section-head">
       <view class="section-title">报名成员</view>
-      <button wx:if="{{total}}" class="export" disabled="{{loading || loadingMore}}" bindtap="export">导出到微信</button>
+      <button wx:if="{{total}}" class="export" loading="{{exporting}}" disabled="{{loading || loadingMore || exporting}}" bindtap="export">导出到微信</button>
     </view>
     <view wx:for="{{items}}" wx:key="id" class="member">
       <view class="participant-head">
@@ -69,12 +74,12 @@
       class="secondary more"
       bindtap="retry"
       loading="{{loadingMore}}"
-      disabled="{{loadingMore}}"
+      disabled="{{loadingMore || exporting}}"
     >
       加载更多成员
     </button>
     <view wx:else class="loading-line">
-      已显示全部 {{total}} 条记录（含取消记录）
+      已显示全部 {{total}} 条记录{{status ? '' : '（含取消记录）'}}
     </view>
   </block>
 </view>

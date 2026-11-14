@@ -37,7 +37,7 @@ public class UserController {
   AdminUserDetail detail(
       @AuthenticationPrincipal User actor,
       @PathVariable String id,
-      @RequestParam(required = false) RegistrationStatus status,
+      @RequestParam(required = false) AdminRegistrationStatus status,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
     return users.detail(actor, id, status, page, size);

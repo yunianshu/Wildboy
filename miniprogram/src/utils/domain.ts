@@ -1,4 +1,5 @@
 import { Activity, Category, ParticipantInput } from "./models";
+import { priceText } from "./product-prices";
 export const categories: {
   code: Category;
   name: string;
@@ -58,10 +59,10 @@ export function registrationState(
     Date.parse(a.startAt) <= now
   )
     return { enabled: false, label: "报名已截止" };
-  if (a.priceCents !== 0) return { enabled: false, label: "付费报名暂未开放" };
+  if (!Number.isSafeInteger(a.priceCents) || a.priceCents < 0) return { enabled: false, label: "价格待核对" };
   if (a.registeredCount >= a.capacity)
     return { enabled: false, label: "名额已满" };
-  return { enabled: true, label: "免费报名" };
+  return { enabled: true, label: a.priceCents > 0 ? "报名并确认费用" : "免费报名" };
 }
 export function validIdNumber(value: string): boolean {
   const id = value.trim().toUpperCase();
@@ -129,6 +130,7 @@ export function message(error: unknown): string {
   return error instanceof Error ? error.message : "暂时无法连接，请稍后重试";
 }
 export function activityView(a: Activity) {
+  const price = priceText(a.priceCents);
   return {
     ...a,
     canCancel:
@@ -137,6 +139,7 @@ export function activityView(a: Activity) {
       Date.parse(a.startAt) > Date.now(),
     categoryName: categoryName(a.category),
     dateText: dateLabel(a.startAt),
+    priceLabel: a.priceCents === 0 ? "免费参与" : price ? `${price} / 人` : "价格待确认",
     available: Math.max(0, a.capacity - a.registeredCount),
     ...registrationState(a),
   };

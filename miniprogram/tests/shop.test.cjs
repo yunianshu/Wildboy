@@ -25,7 +25,7 @@ test("money and order status are user readable", () => {
   assert.equal(shop.orderStatusLabel("PENDING_PAYMENT"), "待支付");
   assert.equal(shop.orderStatusLabel("SHIPPED"), "已发货");
 });
-test("payment uses signed backend parameters then verifies server order", async () => {
+test("payment verifies first, uses signed parameters and then verifies settlement", async () => {
   const paths = [];
   api.request = async (path, method) => {
     paths.push(path);
@@ -37,11 +37,11 @@ test("payment uses signed backend parameters then verifies server order", async 
         signType: "RSA",
         paySign: "signature",
       };
-    return { ...order, status: "PAID" };
+    return { ...order, status: paths.length === 1 ? "PENDING_PAYMENT" : "PAID" };
   };
   const result = await shop.payOrder("order-1");
   assert.equal(result.status, "PAID");
-  assert.deepEqual(paths, ["/orders/order-1/pay", "/orders/order-1/verify"]);
+  assert.deepEqual(paths, ["/orders/order-1/verify", "/orders/order-1/pay", "/orders/order-1/verify"]);
   assert.equal(paymentOptions.package, "prepay_id=server");
   assert.equal(paymentOptions.paySign, "signature");
 });
@@ -49,6 +49,7 @@ test("cancelled payment keeps order pending and never invents success", async ()
   const paths = [];
   api.request = async (path) => {
     paths.push(path);
+    if (path.endsWith("/verify")) return order;
     return {
       timeStamp: "1",
       nonceStr: "nonce",
@@ -59,15 +60,69 @@ test("cancelled payment keeps order pending and never invents success", async ()
   };
   wx.requestPayment = (options) => options.fail({ errMsg: "cancel" });
   await assert.rejects(shop.payOrder("order-1"), /订单已保留/);
-  assert.deepEqual(paths, ["/orders/order-1/pay"]);
+  assert.deepEqual(paths, ["/orders/order-1/verify", "/orders/order-1/pay"]);
   assert.equal(order.status, "PENDING_PAYMENT");
 });
 test("invalid prepay payload never launches payment sheet", async () => {
   for (const payload of [null, {}, {timeStamp: "1", nonceStr: "n", package: "wrong", signType: "RSA", paySign: "x"}]) {
-    api.request = async () => payload;
+    api.request = async (path) => path.endsWith("/verify") ? order : payload;
     await assert.rejects(shop.payOrder("order-1"), /参数异常/);
     assert.equal(paymentOptions, undefined);
   }
+});
+test("native payment rejection identifies permission errors without revealing the raw response", async () => {
+  api.request = async (path) => path.endsWith("/verify") ? order : {
+    timeStamp: "1",
+    nonceStr: "nonce",
+    package: "prepay_id=server",
+    signType: "RSA",
+    paySign: "signature",
+  };
+  for (const [nativeError, code] of [
+    [{ errMsg: "requestPayment:fail jsapi has no permission", errno: 102, errCode: -1 }, 102],
+    [{ errMsg: "requestPayment:fail access denied; appId=internal-marker", errCode: -1 }, -1],
+  ]) {
+    wx.requestPayment = (options) => options.fail(nativeError);
+    await assert.rejects(shop.payOrder(order.id), (error) => {
+      assert.match(error.message, /未允许此小程序调起支付/);
+      assert.ok(error.message.includes(`微信错误码 ${code}`));
+      assert.doesNotMatch(error.message, /internal-marker/);
+      return true;
+    });
+  }
+});
+test("continue payment returns an already-paid order without requesting prepay", async () => {
+  const paths = [];
+  api.request = async (path) => {
+    paths.push(path);
+    return { ...order, status: "PAID" };
+  };
+  assert.equal((await shop.payOrder(order.id)).status, "PAID");
+  assert.deepEqual(paths, ["/orders/order-1/verify"]);
+  assert.equal(paymentOptions, undefined);
+});
+test("continue payment blocks prepay when verification is unavailable or reconciliation is pending", async () => {
+  const paths = [];
+  api.request = async (path) => {
+    paths.push(path);
+    if (paths.length === 1) throw new Error("查单失败");
+    return { ...order, reconciliationRequired: true };
+  };
+  await assert.rejects(shop.payOrder(order.id), /查单失败/);
+  await assert.rejects(shop.payOrder(order.id), /仍待核对/);
+  assert.deepEqual(paths, ["/orders/order-1/verify", "/orders/order-1/verify"]);
+  assert.equal(paymentOptions, undefined);
+});
+test("payment completed between verification and prepay is reconciled without reopening payment", async () => {
+  const paths = [];
+  api.request = async (path) => {
+    paths.push(path);
+    if (path.endsWith("/pay")) throw new api.ApiError("不可支付", 409, "ORDER_NOT_PAYABLE");
+    return { ...order, status: paths.length === 1 ? "PENDING_PAYMENT" : "PAID" };
+  };
+  assert.equal((await shop.payOrder(order.id)).status, "PAID");
+  assert.deepEqual(paths, ["/orders/order-1/verify", "/orders/order-1/pay", "/orders/order-1/verify"]);
+  assert.equal(paymentOptions, undefined);
 });
 test("verification retries pending settlement and accepts only server-paid order", async () => {
   let calls = 0;

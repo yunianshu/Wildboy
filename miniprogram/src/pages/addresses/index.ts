@@ -28,7 +28,9 @@ Page({
     items: [] as ShippingAddress[],
     loading: false,
     busy: false,
+    locating: false,
     error: "",
+    locationError: "",
     currentDefault: false,
     editing: false,
     editingId: "",
@@ -38,6 +40,7 @@ Page({
     this.setData({
       selecting: options.select === "1",
       selectedId: options.selected || "",
+      session: sessionVersion(),
     });
   },
   onShow() {
@@ -49,6 +52,8 @@ Page({
         session: sessionVersion(),
         selectedId: "",
         busy: false,
+        locating: false,
+        locationError: "",
         editing: false,
         editingId: "",
         draft: empty(),
@@ -59,16 +64,23 @@ Page({
   onHide() {
     this.visible = false;
     epoch.invalidate();
+    // The native map can hide this page until the user returns to the form.
+    if (this.data.locating && isSessionCurrent(this.data.session)) {
+      this.setData({ items: [] });
+      return;
+    }
     this.setData({
       items: [],
       editing: false,
       editingId: "",
       draft: empty(),
       error: "",
+      locationError: "",
     });
   },
   onUnload() {
     this.visible = false;
+    this.mutation++;
     epoch.invalidate();
     this.setData({ items: [], draft: empty() });
   },
@@ -106,17 +118,18 @@ Page({
     wx.navigateTo({ url: "/pages/login/index" });
   },
   add() {
-    if (this.data.busy || !hasSession()) return;
+    if (this.data.busy || this.data.locating || !hasSession()) return;
     this.setData({
       editing: true,
       editingId: "",
       currentDefault: false,
       draft: empty(),
       error: "",
+      locationError: "",
     });
   },
   edit(event: WechatMiniprogram.TouchEvent) {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.locating) return;
     const item = this.data.items.find(
       (item) => item.id === event.currentTarget.dataset.id,
     );
@@ -132,11 +145,12 @@ Page({
         isDefault: item.isDefault,
       },
       error: "",
+      locationError: "",
     });
   },
   cancel() {
-    if (this.data.busy) return;
-    this.setData({ editing: false, editingId: "", draft: empty(), error: "" });
+    if (this.data.busy || this.data.locating) return;
+    this.setData({ editing: false, editingId: "", draft: empty(), error: "", locationError: "" });
   },
   input(event: WechatMiniprogram.Input) {
     if (this.data.busy || !this.data.editing) return;
@@ -145,6 +159,7 @@ Page({
       this.setData({
         draft: { ...this.data.draft, [field]: event.detail.value },
         error: "",
+        ...(field === "address" ? { locationError: "" } : {}),
       });
   },
   defaultChange(event: WechatMiniprogram.SwitchChange) {
@@ -153,8 +168,40 @@ Page({
         draft: { ...this.data.draft, isDefault: event.detail.value },
       });
   },
+  async fillFromLocation() {
+    if (
+      !this.visible || !this.data.editing || this.data.busy ||
+      this.data.locating || !isSessionCurrent(this.data.session) || !hasSession()
+    ) return;
+    const session = this.data.session;
+    const operation = ++this.mutation;
+    const previousAddress = this.data.draft.address;
+    this.setData({ locating: true, error: "", locationError: "" });
+    try {
+      const place = await wx.chooseLocation({});
+      if (operation !== this.mutation || !isSessionCurrent(session)) return;
+      if (this.data.draft.address !== previousAddress) return;
+      const address = typeof place?.address === "string" ? place.address.trim() : "";
+      if (address.length < 5 || address.length > 300) {
+        this.setData({ locationError: "地图未返回完整地址，请手动填写。" });
+        return;
+      }
+      this.setData({ draft: { ...this.data.draft, address } });
+    } catch (error) {
+      if (operation !== this.mutation || !isSessionCurrent(session)) return;
+      const detail = (error as { errMsg?: string } | null)?.errMsg ?? "";
+      if (/cancel/i.test(detail)) return;
+      this.setData({
+        locationError: /auth deny/i.test(detail)
+          ? "可在微信小程序设置中允许位置信息，也可以手动填写。"
+          : "暂时无法从地图获取地址，请手动填写。",
+      });
+    } finally {
+      if (operation === this.mutation) this.setData({ locating: false });
+    }
+  },
   async save() {
-    if (this.data.busy || !this.data.editing || !hasSession()) return;
+    if (this.data.busy || this.data.locating || !this.data.editing || !hasSession()) return;
     const draft = {
       ...this.data.draft,
       recipientName: this.data.draft.recipientName.trim(),
@@ -173,6 +220,7 @@ Page({
         id ? "PUT" : "POST",
         draft,
       ),
+      this.data.selecting,
     );
   },
   async remove(event: WechatMiniprogram.TouchEvent) {
@@ -199,17 +247,22 @@ Page({
     )
       return;
     await this.mutate(async () =>
-      request(`/me/addresses/${encodeURIComponent(id)}`, "DELETE"),
+      request<void>(`/me/addresses/${encodeURIComponent(id)}`, "DELETE"),
     );
   },
-  async mutate(action: () => Promise<unknown>) {
+  async mutate(action: () => Promise<ShippingAddress | void>, selectSaved = false) {
     const session = sessionVersion();
     const operation = ++this.mutation;
     this.setData({ busy: true, error: "" });
     try {
-      await action();
+      const saved = await action();
       if (isSessionCurrent(session) && operation === this.mutation) {
         this.setData({ editing: false, editingId: "", draft: empty() });
+        if (this.visible && selectSaved && saved?.id) {
+          this.getOpenerEventChannel?.().emit?.("addressSelected", { id: saved.id });
+          wx.navigateBack();
+          return;
+        }
         if (this.visible) await this.load();
       }
     } catch (error) {

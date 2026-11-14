@@ -77,6 +77,8 @@ function page(name) {
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 beforeEach(fresh);
 const legalFixture = { ready: true, privacy: { kind: "PRIVACY", version: 1, title: "Test privacy", content: "Synthetic policy content" }, terms: { kind: "TERMS", version: 1, title: "Test terms", content: "Synthetic agreement content" } };
+const contactFixture = { id: "user-1", role: "USER", accountSource: "WECHAT", wechatVerified: true,
+  profileCompleted: true, realName: "Synthetic participant", phone: "13800000000" };
 test("admin authentication validates role and never persists the submitted password", async () => {
   transport = (o) =>
     respond(o, {
@@ -356,9 +358,17 @@ test("registration does not claim success for malformed successful HTTP response
     privacyRead: true,
     termsRead: true,
   });
-  transport = (o) => respond(o, o.url.endsWith("/legal/current") ? legalFixture : { notARegistration: true });
+  transport = (o) => {
+    if (o.url.endsWith("/api/v1/me")) return respond(o, contactFixture);
+    if (o.url.endsWith("/legal/current")) return respond(o, legalFixture);
+    assert.equal(o.url, "https://wildboy.test/api/v1/activities/activity-1/registrations");
+    assert.equal(o.method, "POST");
+    return respond(o, { notARegistration: true });
+  };
   await p.submit();
+  assert.equal(requests.filter(o => o.method === "POST").length, 1);
   assert.equal(p.data.success, false);
+  assert.equal(p.data.recoveryNeeded, true);
   assert.equal(navigations.length, 0);
   assert.match(p.data.fieldError, /未确认/);
 });
@@ -381,11 +391,21 @@ test("registration submits once and links returned receipt without participant P
     termsRead: true,
   });
   let pending;
-  transport = (o) => o.url.endsWith("/legal/current") ? respond(o, legalFixture) : (pending = o);
+  transport = (o) => {
+    if (o.url.endsWith("/api/v1/me")) return respond(o, contactFixture);
+    if (o.url.endsWith("/legal/current")) return respond(o, legalFixture);
+    assert.equal(o.url, "https://wildboy.test/api/v1/activities/activity-1/registrations");
+    assert.equal(o.method, "POST");
+    pending = o;
+  };
   const first = p.submit();
   await tick();
   await p.submit();
   assert.equal(requests.filter((o) => o.method === "POST").length, 1);
+  assert.deepEqual(pending.data, {
+    participants: [{ participantName: "Synthetic participant", idNumber: "", phone: "13800000000" }],
+    privacyVersion: 1, termsVersion: 1,
+  });
   respond(pending, registration, 201);
   await first;
   assert.equal(p.data.success, true);
@@ -430,9 +450,19 @@ function validForm() {
 test("abandoning administrator-login page clears password and refuses late authentication", async () => {
   const p = page("admin-login");
   p.setData({ username: "operator", password: "only-this-test-password" });
+  await p.submit();
+  assert.equal(requests.length, 0, "authentication stays closed before capability verification");
+  transport = o => {
+    assert.equal(o.url, "https://wildboy.test/api/v1/auth/capabilities");
+    return respond(o, { adminLoginEnabled: true });
+  };
+  await p.loadCapability();
+  assert.equal(p.data.adminLoginEnabled, true);
   let pending;
   transport = (o) => (pending = o);
   const login = p.submit();
+  assert.equal(pending.url, "https://wildboy.test/api/v1/auth/admin");
+  assert.equal(requests.filter(o => o.method === "POST").length, 1);
   p.onHide();
   assert.equal(p.data.password, "");
   respond(pending, { token: "late-admin", user: { id: "a", role: "ADMIN" } });

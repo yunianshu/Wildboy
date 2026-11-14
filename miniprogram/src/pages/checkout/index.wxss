@@ -16,6 +16,9 @@
 .result-total { margin-top: 20rpx; color: #7c8178; font-size: 23rpx; }
 .result-card + .notice { margin-bottom: 26rpx; }
 .checkout-page > button { margin-top: 18rpx; }
+.payment-actions { display: flex; gap: 16rpx; margin-top: 20rpx; }
+.payment-actions button { flex: 1; min-width: 0; margin: 0; min-height: 80rpx; padding: 12rpx 16rpx; }
+.checkout-page .orders-link { width: auto; min-height: 72rpx; margin: 8rpx auto 0; padding: 12rpx 24rpx; background: transparent; font-weight: 400; }
 
 .shipping-card { padding: 28rpx; border-radius: 20rpx; background: white; margin-bottom: 28rpx; }
 .shipping-name { font-weight: 600; font-size: 30rpx; }

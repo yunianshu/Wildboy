@@ -92,6 +92,7 @@ public class ActivityService {
 
   Activity map(ResultSet r, int n) throws SQLException {
     try {
+      int occupied=r.getInt("registered_count"),pending=r.getInt("pending_payment_count");
       return new Activity(
           r.getString("id"),
           r.getString("title"),
@@ -106,17 +107,23 @@ public class ActivityService {
           r.getObject("end_at", OffsetDateTime.class),
           r.getObject("registration_deadline", OffsetDateTime.class),
           r.getInt("capacity"),
-          r.getInt("registered_count"),
+          occupied,
           r.getString("status"),
           r.getInt("price_cents"),
           r.getString("currency"),
           r.getLong("version"),
           r.getObject("created_at", OffsetDateTime.class),
-          r.getObject("updated_at", OffsetDateTime.class), r.getBoolean("identity_required"));
+          r.getObject("updated_at", OffsetDateTime.class), r.getBoolean("identity_required"),
+          occupied-pending,pending);
     } catch (java.io.IOException e) {
       throw new IllegalStateException("Invalid persisted gallery", e);
     }
   }
+
+  private static final String ACTIVITY_SELECT = """
+      SELECT a.*,COALESCE((SELECT SUM(o.party_size) FROM activity_order o
+        WHERE o.activity_id=a.id AND o.status='PENDING_PAYMENT'),0) AS pending_payment_count FROM activity a
+      """;
 
   static void pageCheck(int page, int size) {
     if (page < 0 || page > 100000 || size < 1 || size > 50)
@@ -129,6 +136,11 @@ public class ActivityService {
 
   public Page<Activity> list(
       Category category, ActivityStatus status, int page, int size, boolean admin) {
+    return list(category, status, null, page, size, admin);
+  }
+
+  public Page<Activity> list(
+      Category category, ActivityStatus status, String title, int page, int size, boolean admin) {
     pageCheck(page, size);
     var args = new ArrayList<Object>();
     String where = admin ? " WHERE 1=1" : " WHERE status='PUBLISHED'";
@@ -140,13 +152,20 @@ public class ActivityService {
       where += " AND category=?";
       args.add(category.name());
     }
+    if (admin && title != null && !title.isBlank()) {
+      String term = title.strip();
+      if (term.length() > 100)
+        throw new ApiException(400, "INVALID_ACTIVITY_TITLE_FILTER", "标题筛选最多 100 个字符");
+      where += " AND strpos(lower(title), lower(?)) > 0";
+      args.add(term);
+    }
     long total =
         db.queryForObject("SELECT COUNT(*) FROM activity" + where, Long.class, args.toArray());
     args.add(size);
     args.add(page * size);
     var items =
         db.query(
-            "SELECT * FROM activity" + where + " ORDER BY start_at,id LIMIT ? OFFSET ?",
+            ACTIVITY_SELECT + where + " ORDER BY start_at,id LIMIT ? OFFSET ?",
             this::map,
             args.toArray());
     return new Page<>(items, total, page, size, (long) (page + 1) * size < total);
@@ -155,7 +174,7 @@ public class ActivityService {
   public Activity get(String id, boolean admin) {
     var items =
         db.query(
-            "SELECT * FROM activity WHERE id=?"
+            ACTIVITY_SELECT + " WHERE id=?"
                 + (admin ? "" : " AND status IN ('PUBLISHED','CANCELLED')"),
             this::map,
             id);
@@ -164,7 +183,7 @@ public class ActivityService {
   }
 
   Activity lock(String id) {
-    var a = db.query("SELECT * FROM activity WHERE id=? FOR UPDATE", this::map, id);
+    var a = db.query(ACTIVITY_SELECT+" WHERE id=? FOR UPDATE OF a", this::map, id);
     if (a.isEmpty()) throw ApiException.notFound();
     return a.getFirst();
   }
@@ -230,9 +249,11 @@ public class ActivityService {
     checkVersion(a, i.version());
     if (a.status().equals("CANCELLED"))
       throw ApiException.conflict("ACTIVITY_CANCELLED", "已取消活动不能编辑");
-    // Registrations are confirmed immediately, so capacity only tracks enrolled parties.
+    // Capacity includes confirmed participants and unpaid reservations.
     if (a.registeredCount() > i.capacity())
       throw ApiException.conflict("CAPACITY_BELOW_ENROLLED", "人数上限不能小于已报名人数");
+    if(a.registeredCount()>0&&i.identityRequired()!=null&&i.identityRequired()!=a.identityRequired())
+      throw ApiException.conflict("ACTIVITY_IDENTITY_LOCKED","活动已有报名或待付款占位，暂不能更改实名要求");
     if (a.status().equals("PUBLISHED")
         && (!a.startAt().isAfter(OffsetDateTime.now())
             || !i.startAt().isAfter(OffsetDateTime.now())))
@@ -288,6 +309,8 @@ public class ActivityService {
     if (a.status().equals("CANCELLED")) return a;
     if (!a.startAt().isAfter(OffsetDateTime.now()))
       throw ApiException.conflict("ACTIVITY_STARTED", "已开始活动不能取消");
+    if (db.queryForObject("SELECT COUNT(*) FROM activity_order WHERE activity_id=? AND status IN ('PENDING_PAYMENT','PAID','CONFIRMED_FREE','REFUND_PENDING')", Integer.class, id)>0)
+      throw ApiException.conflict("ACTIVITY_HAS_UNSETTLED_ORDERS", "请先关闭未付款订单并完成已付款订单退款，再取消活动");
     notifications.activityNotice(a, "ACTIVITY_CANCELLED", "活动已取消");
     db.update(
         "UPDATE registration SET status='CANCELLED',updated_at=CURRENT_TIMESTAMP WHERE"
@@ -322,6 +345,15 @@ public class ActivityService {
         || !a.registrationDeadline().isAfter(OffsetDateTime.now())
         || !a.startAt().isAfter(OffsetDateTime.now()))
       throw ApiException.conflict("REGISTRATION_CLOSED", "活动报名已关闭");
+  }
+
+  void requireRegistrationContact(String user) {
+    // Real WeChat accounts confirm their contact before booking; local test identities
+    // retain their existing fixture path.
+    var account = db.query("SELECT * FROM app_user WHERE id=?", AuthService::mapUser, user)
+        .stream().findFirst().orElseThrow(ApiException::notFound);
+    if (account.accountSource() == UserModels.AccountSource.WECHAT && !account.profileCompleted())
+      throw new ApiException(403, "USER_PROFILE_REQUIRED", "请先完善联系资料后再报名");
   }
 
   List<ParticipantInput> validatedParticipants(RegistrationInput input, boolean required) {
@@ -372,6 +404,7 @@ public class ActivityService {
     legal.requireCurrent(input.privacyVersion(), input.termsVersion());
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
+    if (a.priceCents()>0) throw ApiException.conflict("PAID_ACTIVITY_ORDER_REQUIRED", "收费活动请使用报名订单入口");
     var participants = validatedParticipants(input, a.identityRequired());
     Registration existing = own(id, user);
     if (existing != null) {
@@ -379,16 +412,7 @@ public class ActivityService {
       return new RegisterResult(existing, false);
     }
     enrollmentOpen(a);
-    // Real WeChat accounts must confirm their activity contact before writing a
-    // registration; QA/demo identities keep the legacy path so fixtures stay usable.
-    var account =
-        db.query("SELECT * FROM app_user WHERE id=?", AuthService::mapUser, user)
-            .stream()
-            .findFirst()
-            .orElseThrow(ApiException::notFound);
-    if (account.accountSource() == UserModels.AccountSource.WECHAT
-        && !account.profileCompleted())
-      throw new ApiException(403, "USER_PROFILE_REQUIRED", "请先完善联系资料后再报名");
+    requireRegistrationContact(user);
     if (a.identityRequired()) identity.requireReady();
     if (participants.size() > a.capacity() - a.registeredCount())
       throw ApiException.conflict("ACTIVITY_FULL", "名额已满或剩余名额不足，请减少参与人数后重试");

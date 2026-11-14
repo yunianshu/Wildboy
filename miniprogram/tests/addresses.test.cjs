@@ -42,11 +42,13 @@ beforeEach(() => {
   events = [];
   list = [{ ...address }];
   global.wx = {
+    getStorageSync: () => undefined,
     navigateTo: (o) => nav.push(o),
     navigateBack: () => nav.push("back"),
     showModal: async () => ({ confirm: true }),
   };
   api.hasSession = () => true;
+  api.getCurrentUser = async () => ({ id: "user", role: "USER" });
   api.sessionVersion = () => session;
   api.isSessionCurrent = (v) => v === session;
   api.request = async (path, method = "GET", data) => {
@@ -145,6 +147,58 @@ test("hide clears draft and private entries, late fetch cannot repopulate", asyn
   assert.deepEqual(p.data.items, []);
   assert.equal(p.data.draft.recipientName, "");
 });
+test("map selection survives hiding the form and only fills the address draft", async () => {
+  const p = page("addresses");
+  p.onShow();
+  await flush();
+  p.add();
+  p.input(input("recipientName", "测试收货人"));
+  p.input(input("phone", "13800000000"));
+  let choose;
+  wx.chooseLocation = () => new Promise((resolve) => (choose = resolve));
+  const pending = p.fillFromLocation();
+  p.onHide();
+  choose({ address: " 厦门市测试街道12号 ", latitude: 24, longitude: 118 });
+  await pending;
+  p.onShow();
+  await flush();
+  assert.equal(p.data.editing, true);
+  assert.equal(p.data.locating, false);
+  assert.deepEqual(p.data.draft, {
+    recipientName: "测试收货人",
+    phone: "13800000000",
+    address: "厦门市测试街道12号",
+    isDefault: false,
+  });
+  assert.ok(calls.every((call) => call.method === "GET"));
+});
+test("location denial survives returning to the form and a late map response cannot cross accounts", async () => {
+  const p = page("addresses");
+  p.onShow();
+  await flush();
+  p.add();
+  p.input(input("address", "厦门市原手填地址"));
+  let rejectLocation;
+  wx.chooseLocation = () => new Promise((_, reject) => (rejectLocation = reject));
+  const denied = p.fillFromLocation();
+  p.onHide();
+  rejectLocation({ errMsg: "chooseLocation:fail auth deny" });
+  await denied;
+  p.onShow();
+  await flush();
+  assert.equal(p.data.draft.address, "厦门市原手填地址");
+  assert.match(p.data.locationError, /手动填写/);
+  let choose;
+  wx.chooseLocation = () => new Promise((resolve) => (choose = resolve));
+  const pending = p.fillFromLocation();
+  p.onHide();
+  session++;
+  p.onShow();
+  choose({ address: "厦门市迟到的地址" });
+  await pending;
+  assert.equal(p.data.editing, false);
+  assert.equal(p.data.draft.address, "");
+});
 test("account switch ignores previous user address response", async () => {
   const p = page("addresses");
   let release;
@@ -159,6 +213,8 @@ test("checkout refresh selects default and preserves legal read and consent flag
   const p = page("checkout");
   Object.assign(p.data, {
     session,
+    id: "p1",
+    product: { id: "p1", stock: 2 },
     loading: false,
     consent: true,
     privacyRead: true,
@@ -304,4 +360,42 @@ test("checkout 401 clears stale address and address action opens login", async (
   assert.equal(p.data.address, "");
   p.chooseAddress();
   assert.equal(nav[0].url, "/pages/login/index");
+});
+
+test("address selector preserves the checkout selection on its first show", async () => {
+  const p=page('addresses');p.onLoad({select:'1',selected:'a1'});p.onShow();await flush();
+  assert.equal(p.data.selectedId,'a1');
+  session++;p.onShow();await flush();assert.equal(p.data.selectedId,'');
+});
+
+test("saving a new address from checkout selects it and returns without another selection tap", async () => {
+  const p=page('addresses');p.onLoad({select:'1'});p.onShow();await flush();p.add();
+  p.setData({draft:{recipientName:address.recipientName,phone:address.phone,address:address.address,isDefault:false}});
+  api.request=async(path,method,data)=>{calls.push({path,method,data});return {...data,id:'new-address'};};
+  await p.save();
+  assert.deepEqual(events,[{name:'addressSelected',value:{id:'new-address'}}]);
+  assert.equal(nav.at(-1),'back');assert.equal(p.data.busy,false);
+  assert.equal(calls.filter(call=>call.method==='POST').length,1);
+  assert.match(fs.readFileSync('src/pages/addresses/index.wxml','utf8'),/保存并使用/);
+});
+
+test("saving an edited address in selection mode returns the updated selection", async () => {
+  const p=page('addresses');p.onLoad({select:'1'});p.onShow();await flush();p.edit(event('a1'));
+  api.request=async()=>({...address,address:'厦门市更新后的地址'});
+  await p.save();assert.deepEqual(events,[{name:'addressSelected',value:{id:'a1'}}]);
+  assert.equal(nav.at(-1),'back');
+});
+
+test("a late save after leaving the address selector cannot navigate or select", async () => {
+  const p=page('addresses');p.onLoad({select:'1'});p.onShow();await flush();p.edit(event('a1'));
+  let release;api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.save();p.onHide();release(address);await pending;
+  assert.deepEqual(events,[]);assert.deepEqual(nav,[]);
+});
+
+test("a save finishing after account change cannot choose the previous account address", async () => {
+  const p=page('addresses');p.onLoad({select:'1'});p.onShow();await flush();p.edit(event('a1'));
+  let release;api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.save();session++;release(address);await pending;
+  assert.deepEqual(events,[]);assert.deepEqual(nav,[]);
 });

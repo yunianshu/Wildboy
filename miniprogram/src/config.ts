@@ -1,5 +1,5 @@
-// Set your owned HTTPS API origin before production. Never put AppSecret here.
+// Public API origin for developer uploads, trial builds and production.
 export const config = {
-  apiOrigin: "https://api.example.invalid",
+  apiOrigin: "https://api.wildboy.com.cn",
   devLogin: false,
 };

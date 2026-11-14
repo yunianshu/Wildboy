@@ -38,7 +38,7 @@
         </view>
       </view>
       <view class="muted">
-        {{item.registeredCount}} / {{item.capacity}} 人 · 免费参与
+        {{item.priceCents > 0 ? '收费活动' : '免费参与'}} · {{item.registeredCount}} / {{item.capacity}} 人占用<text wx:if="{{item.pendingPaymentCount}}"> · {{item.pendingPaymentCount}} 人待付款</text>
       </view>
       <view class="actions">
         <button

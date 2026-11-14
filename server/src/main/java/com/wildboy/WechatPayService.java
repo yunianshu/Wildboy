@@ -2,6 +2,7 @@ package com.wildboy;
 
 import com.wechat.pay.java.core.Config;
 import com.wechat.pay.java.core.RSAPublicKeyConfig;
+import com.wechat.pay.java.core.exception.ServiceException;
 import com.wechat.pay.java.core.exception.ValidationException;
 import com.wechat.pay.java.core.notification.NotificationConfig;
 import com.wechat.pay.java.core.notification.NotificationParser;
@@ -100,18 +101,27 @@ public class WechatPayService {
   }
 
   public ShopModels.PaymentRequest prepay(ShopModels.Order order, String openid) {
+    return prepay(order.orderNo(), order.totalCents(), order.expiresAt(), openid, "Wildboy 户外装备 " + order.orderNo(), "notify");
+  }
+
+  /** Shared SDK adapter; callers retain their independent order and inventory state machines. */
+  public ShopModels.PaymentRequest prepay(String orderNo, int totalCents, java.time.OffsetDateTime expiresAt,
+      String openid, String description, String callbackName) {
+    if (totalCents <= 0) throw new ApiException(400, "INVALID_PAYMENT_AMOUNT", "零元订单无需微信支付");
+    if (!java.util.Set.of("notify", "activity-notify").contains(callbackName))
+      throw new IllegalArgumentException("Unsupported payment callback");
     if (openid == null || openid.isBlank())
       throw new ApiException(409, "WECHAT_IDENTITY_REQUIRED", "请使用真实微信账号登录后支付");
     try {
       var request = new PrepayRequest();
       request.setAppid(appId);
       request.setMchid(merchantId);
-      request.setDescription("Wildboy 户外装备 " + order.orderNo());
-      request.setOutTradeNo(order.orderNo());
-      request.setNotifyUrl(notifyUrl);
-      request.setTimeExpire(order.expiresAt().format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+      request.setDescription(description);
+      request.setOutTradeNo(orderNo);
+      request.setNotifyUrl("notify".equals(callbackName) ? notifyUrl : java.net.URI.create(notifyUrl).resolve(callbackName).toString());
+      request.setTimeExpire(expiresAt.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
       var amount = new Amount();
-      amount.setTotal(order.totalCents());
+      amount.setTotal(totalCents);
       amount.setCurrency("CNY");
       request.setAmount(amount);
       var payer = new Payer();
@@ -151,9 +161,18 @@ public class WechatPayService {
       request.setOutTradeNo(orderNo);
       return service().queryOrderByOutTradeNo(request);
     } catch (ApiException e) { throw e; }
+    catch (ServiceException e) {
+      if (e.getHttpStatusCode() == 404 && "ORDER_NOT_EXIST".equals(e.getErrorCode()))
+        throw new OrderNotFound();
+      throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，请稍后重试");
+    }
     catch (Exception e) {
       throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，库存保留，请稍后重试");
     }
+  }
+
+  static final class OrderNotFound extends ApiException {
+    OrderNotFound() { super(502,"WECHAT_ORDER_NOT_FOUND","微信暂未查到该订单"); }
   }
 
   public Transaction parseNotification(Map<String, String> headers, String body) {
@@ -208,13 +227,22 @@ public class WechatPayService {
         r.getAmount().getTotal(),r.getAmount().getRefund(),r.getAmount().getCurrency(),r.getStatus().name());
   }
   public RefundModels.GatewayResult createRefund(ShopModels.Order order,RefundModels.Refund refund) {
+    return createRefund(order.orderNo(), order.paymentTransactionId(), order.totalCents(), refund.outRefundNo(),
+        refund.amountCents(), refund.reason(), "refund-notify");
+  }
+  public RefundModels.GatewayResult createRefund(String orderNo, String transactionId, int totalCents,
+      String outRefundNo, int refundCents, String reason, String callbackName) {
+    if (refundCents <= 0 || refundCents > totalCents)
+      throw new ApiException(400, "INVALID_REFUND_AMOUNT", "退款金额无效");
+    if (!java.util.Set.of("refund-notify", "activity-refund-notify").contains(callbackName))
+      throw new IllegalArgumentException("Unsupported refund callback");
     try {
       var request=new com.wechat.pay.java.service.refund.model.CreateRequest();
-      request.setTransactionId(order.paymentTransactionId());
-      request.setOutTradeNo(order.orderNo());request.setOutRefundNo(refund.outRefundNo());request.setReason(refund.reason());
-      request.setNotifyUrl(java.net.URI.create(notifyUrl).resolve("refund-notify").toString());
+      request.setTransactionId(transactionId);
+      request.setOutTradeNo(orderNo);request.setOutRefundNo(outRefundNo);request.setReason(reason);
+      request.setNotifyUrl(java.net.URI.create(notifyUrl).resolve(callbackName).toString());
       var amount=new com.wechat.pay.java.service.refund.model.AmountReq();
-      amount.setTotal((long)order.totalCents());amount.setRefund((long)refund.amountCents());amount.setCurrency("CNY");
+      amount.setTotal((long)totalCents);amount.setRefund((long)refundCents);amount.setCurrency("CNY");
       request.setAmount(amount);return refundResult(refunds().create(request));
     } catch(ApiException e){throw e;} catch(Exception e){throw new ApiException(502,"REFUND_UNCERTAIN","退款结果待核对");}
   }

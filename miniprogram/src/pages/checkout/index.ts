@@ -27,11 +27,14 @@ import {
   LegalCurrent,
 } from "../../utils/legal";
 
+import { ShopQuote, validShopQuote } from "../../utils/membership";
+const quoteEpoch = new RequestEpoch();
 const epoch = new RequestEpoch();
 const addressEpoch = new RequestEpoch();
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  _loading: false,
   data: {
     pageMotionClass: "",
     id: "",
@@ -39,6 +42,13 @@ Page({
     quantity: 1,
     product: null as Product | null,
     totalText: "",
+    originalTotalText: "",
+    tierName: "",
+    quote: null as ShopQuote | null,
+    quoteSession: -1,
+    quoteLoading: false,
+    quoteError: "",
+    quoteLoginRequired: false,
     selectedAddressId: "",
     addressLoading: false,
     addressError: "",
@@ -51,10 +61,13 @@ Page({
     consent: false,
     order: null as Order | null,
     orderTotalText: "",
+    orderOriginalTotalText: "",
     orderStatusText: "",
     orderDeadlineText: "",
     awaitingConfirmation: false,
     recoveredOrder: false,
+    recoveringOrder: false,
+    recoveryError: "",
     busy: false,
     loading: true,
     error: "",
@@ -71,10 +84,15 @@ Page({
   },
   onShow() {
     enterPage(this);
-    if (this.data.session !== -1 && this.data.session !== sessionVersion()) {
+    const changed = this.data.session !== -1 && this.data.session !== sessionVersion();
+    if (changed) {
       epoch.invalidate();
+      addressEpoch.invalidate();
+      quoteEpoch.invalidate();
+      this._loading = false;
       this.setData({
         session: sessionVersion(),
+        quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "",
         selectedAddressId: "",
         addressLoading: false,
         addressError: "",
@@ -82,6 +100,10 @@ Page({
         phone: "",
         address: "",
         order: null,
+        recoveredOrder: false,
+        recoveringOrder: false,
+        recoveryError: "",
+        awaitingConfirmation: false,
         consent: false,
         privacyRead: false,
         termsRead: false,
@@ -89,57 +111,35 @@ Page({
         error: "账号已改变，请重新确认收货信息",
       });
     }
-    if (this.data.loading) void this.load();
-    if (!this.data.order) void this.refreshAddress();
+    if (this.data.id && (this.data.loading || changed || (!this.data.product && !this.data.order))) void this.load();
+    else if (!this.data.order) void this.resumeCheckout();
   },
   onHide() {
     epoch.invalidate();
     addressEpoch.invalidate();
-    this.setData({ busy: false });
+    quoteEpoch.invalidate();
+    this._loading = false;
+    this.setData({ busy: false, recoveringOrder: false, quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "", quoteLoading: false });
   },
   onUnload() {
+    quoteEpoch.invalidate();
     epoch.invalidate();
     addressEpoch.invalidate();
   },
   async load() {
+    if (this._loading || this.data.recoveringOrder || this.data.busy) return;
+    this._loading = true;
     const current = epoch.next();
-    this.setData({ loading: true, error: "" });
+    this.setData({ loading: true, error: "", recoveryError: "" });
     const session = sessionVersion();
+    const valid = () => epoch.valid(current) && isSessionCurrent(session);
     try {
-      if (hasSession()) {
-        const user = await getCurrentUser();
-        if (!epoch.valid(current) || !isSessionCurrent(session)) return;
-        const pendingId = pendingCheckoutRequestId(
-          user.id,
-          this.data.id,
-          this.data.quantity,
-        );
-        if (pendingId) {
-          try {
-            const order = await request<Order>(
-              `/orders/by-request/${pendingId}`,
-            );
-            if (!epoch.valid(current) || !isSessionCurrent(session)) return;
-            this.showOrder(order);
-            this.setData({ recoveredOrder: true, awaitingConfirmation: false });
-            finishCheckoutIntent(
-              user.id,
-              this.data.id,
-              this.data.quantity,
-              pendingId,
-            );
-            return;
-          } catch (error) {
-            if (!(error instanceof ApiError && error.status === 404))
-              throw error;
-          }
-        }
-      }
+      if (await this.recoverIntent(valid) || !valid()) return;
       const [product, legal] = await Promise.all([
         request<Product>(`/shop/products/${this.data.id}`),
         currentLegal(),
       ]);
-      if (!epoch.valid(current)) return;
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       if (this.data.quantity > product.stock) {
         this.setData({
           error: "购买数量超过当前库存；如之前已提交，请先核对我的订单",
@@ -147,18 +147,86 @@ Page({
       }
       this.setData({
         product: { ...product, imageUrl: mediaUrl(product.imageUrl) },
-        totalText: money(product.priceCents * this.data.quantity),
+
         legal,
         consent: false,
         privacyRead: false,
         termsRead: false,
       });
+      void this.refreshQuote();
+      void this.refreshAddress();
     } catch (error) {
       if (epoch.valid(current)) this.setData({ error: message(error) });
     } finally {
-      if (epoch.valid(current)) this.setData({ loading: false });
+      if (epoch.valid(current)) {
+        this._loading = false;
+        this.setData({ loading: false });
+      }
     }
   },
+  async recoverIntent(current: () => boolean): Promise<boolean> {
+    if (!hasSession()) return false;
+    const { id, quantity } = this.data;
+    const user = await getCurrentUser();
+    if (!current()) return false;
+    const key = pendingCheckoutRequestId(user.id, id, quantity);
+    if (!key) return false;
+    let order: Order;
+    try {
+      order = await request<Order>(`/orders/by-request/${key}`);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return false;
+      throw error;
+    }
+    if (!current()) return false;
+    if (!safeId(order?.id)) throw new Error("原订单状态未确认，请重新核对");
+    quoteEpoch.invalidate();
+    addressEpoch.invalidate();
+    this.showOrder(order);
+    this.setData({ recoveredOrder: true, awaitingConfirmation: false, recoveryError: "", quoteLoading: false, addressLoading: false });
+    finishCheckoutIntent(user.id, id, quantity, key);
+    return true;
+  },
+  async resumeCheckout() {
+    if (!this.data.id || this.data.order || this.data.busy || this._loading || this.data.recoveringOrder) return;
+    if (!this.data.product) {
+      await this.load();
+      return;
+    }
+    const n = epoch.next(), session = sessionVersion();
+    const current = () => epoch.valid(n) && isSessionCurrent(session);
+    this.setData({ recoveringOrder: true, recoveryError: "" });
+    try {
+      if (await this.recoverIntent(current) || !current()) return;
+      await Promise.all([this.refreshQuote(), this.refreshAddress()]);
+    } catch (error) {
+      if (current()) this.setData({ recoveryError: message(error) });
+    } finally {
+      if (epoch.valid(n)) this.setData({ recoveringOrder: false });
+    }
+  },
+  async refreshQuote() {
+    const n = quoteEpoch.next(), session = sessionVersion();
+    const { id, quantity, product } = this.data;
+    this.setData({ quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "", quoteLoading: false, quoteError: "", quoteLoginRequired: false });
+    if (!id || !product || this.data.order) return;
+    if (!hasSession()) { this.setData({ quoteLoginRequired: true }); return; }
+    if (quantity > product.stock) {
+      this.setData({ quoteError: "购买数量超过当前库存，请返回商品详情调整数量" });
+      return;
+    }
+    const current = () => quoteEpoch.valid(n) && isSessionCurrent(session) &&
+      id === this.data.id && quantity === this.data.quantity && !this.data.order;
+    this.setData({quoteLoading:true});
+    try {
+      const quote = await request<ShopQuote>(`/shop/products/${id}/quote?quantity=${quantity}`);
+      if (!current()) return;
+      if (!validShopQuote(quote, id, quantity)) throw new Error("报价异常，请重新获取");
+      this.setData({ quote, quoteSession: session, totalText: money(quote.totalCents), originalTotalText: money(quote.originalTotalCents), tierName: quote.pricing.tierName || "" });
+    } catch(error) { if (current()) this.setData({ quoteError: message(error) }); }
+    finally { if(quoteEpoch.valid(n)) this.setData({quoteLoading:false}); }
+  },
+  login() { wx.navigateTo({url:"/pages/login/index"}); },
   retry() {
     void this.load();
   },
@@ -229,11 +297,8 @@ Page({
     void this.refreshAddress();
   },
   consentChange(event: WechatMiniprogram.CheckboxGroupChange) {
+    if (this.data.busy) return;
     const consent = event.detail.value.includes("yes");
-    if (consent && (!this.data.privacyRead || !this.data.termsRead)) {
-      this.setData({ consent: false, error: "请先阅读隐私政策和用户协议" });
-      return;
-    }
     this.setData({ consent, error: "" });
   },
   privacy() {
@@ -282,12 +347,12 @@ Page({
       this.data.address.trim().length > 300
     )
       return "请填写完整收货地址";
-    if (!this.data.consent || !this.data.privacyRead || !this.data.termsRead)
+    if (!this.data.consent)
       return "请阅读并同意当前隐私政策和用户协议";
     return "";
   },
   async submit() {
-    if (this.data.busy) return;
+    if (this.data.busy || this.data.recoveringOrder || this.data.recoveryError) return;
     if (this.data.order) {
       await this.payExisting();
       return;
@@ -297,9 +362,16 @@ Page({
       this.setData({ error: invalid || "订单信息尚未准备完成" });
       return;
     }
+    if (!this.data.quote || this.data.quoteLoading || !isSessionCurrent(this.data.quoteSession)
+        || !validShopQuote(this.data.quote, this.data.id, this.data.quantity)) {
+      this.setData({ error: "请重新获取当前账号的价格并确认" });
+      return;
+    }
+    const expectedTotalCents = this.data.quote.totalCents;
     this.setData({ busy: true, error: "" });
     const current = epoch.next();
     const session = sessionVersion();
+    let sent = false;
     try {
       await requireSession();
       if (!epoch.valid(current) || !isSessionCurrent(session)) return;
@@ -369,8 +441,10 @@ Page({
         });
         throw new Error("收货地址已更新，请核对后重新提交");
       }
+      sent = true;
       const order = await request<Order>("/orders", "POST", {
         requestId,
+        expectedTotalCents,
         items: [{ productId: this.data.id, quantity: this.data.quantity }],
         recipientName: this.data.recipientName.trim(),
         phone: this.data.phone.trim(),
@@ -392,23 +466,42 @@ Page({
       if (epoch.valid(current) && isSessionCurrent(session))
         this.showOrder(paidOrder);
     } catch (error) {
-      if (epoch.valid(current)) {
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        if (error instanceof ApiError && error.code === "PRICE_CHANGED") {
+          await this.refreshQuote();
+          if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+          this.setData({error:"价格已变化，请核对最新价格后再次提交",awaitingConfirmation:false});
+          return;
+        }
         if (
           error instanceof ApiError &&
           ["LEGAL_VERSION_CHANGED", "LEGAL_NOT_READY"].includes(error.code)
-        )
+        ) {
           this.setData({
             legal: null,
             consent: false,
             privacyRead: false,
             termsRead: false,
           });
+          try {
+            const legal = await currentLegal();
+            if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+            this.setData({ legal });
+          } catch (_) {
+            // Keep an explicit retry available if the current documents cannot load.
+          }
+          if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+        }
         this.setData({
           error:
             error instanceof ApiError && error.code === "IDEMPOTENCY_CONFLICT"
               ? "此前提交已被记录，请再次点击提交以找回原订单，或到我的订单核对；不会重复创建。"
               : message(error),
           awaitingConfirmation: false,
+          ...(sent && !this.data.order && (!(error instanceof ApiError) ||
+            error.code === "IDEMPOTENCY_CONFLICT" || error.status === 0 || error.status === 408 ||
+            (error.status >= 500 && error.code !== "LEGAL_NOT_READY"))
+            ? { recoveryError: "订单提交结果待核对，请先查找原订单。" } : {}),
         });
       }
     } finally {
@@ -442,6 +535,7 @@ Page({
     this.setData({
       order,
       orderTotalText: money(order.totalCents),
+      orderOriginalTotalText: money(order.originalTotalCents ?? order.totalCents),
       orderStatusText: orderStatusLabel(order.status),
       orderDeadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     });

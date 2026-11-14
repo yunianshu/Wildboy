@@ -2,6 +2,7 @@ package com.wildboy;
 
 import jakarta.validation.constraints.*;
 import java.time.OffsetDateTime;
+import java.util.List;
 
 public final class UserModels {
   private UserModels() {}
@@ -22,6 +23,8 @@ public final class UserModels {
     COMPLETE,
     INCOMPLETE
   }
+  public enum AdminRegistrationStatus { CONFIRMED, CANCELLED, PENDING_PAYMENT }
+  public enum RegistrationSource { FREE_REGISTRATION, ACTIVITY_ORDER }
 
   public record ProfileInput(
       @NotBlank @Size(max = 40) String realName,
@@ -39,6 +42,7 @@ public final class UserModels {
       OffsetDateTime profileUpdatedAt,
       long registrationCount,
       long confirmedRegistrationCount,
+      long pendingRegistrationCount,
       OffsetDateTime lastRegistrationAt,
       String role,
       AccountSource accountSource,
@@ -47,6 +51,7 @@ public final class UserModels {
       String roleChangeBlockReason,
       long version) {}
 
-  public record AdminUserDetail(
-      AdminUser user, Models.Page<Models.Registration> registrations) {}
+  public record AdminRegistration(String id,String activityId,String activityTitle,String status,
+      OffsetDateTime createdAt,List<Models.Participant> participants,RegistrationSource source,String orderStatus) {}
+  public record AdminUserDetail(AdminUser user,Models.Page<AdminRegistration> registrations) {}
 }

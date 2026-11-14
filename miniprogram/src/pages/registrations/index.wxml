@@ -1,6 +1,7 @@
 <view class="page page-motion {{pageMotionClass}}">
   <view><button class="text-button" bindtap="messages">活动消息</button></view>
   <view class="title">我的报名</view>
+  <view class="notice">本页显示免费活动报名。收费活动（含会员免支付）请查看<button class="text-button" bindtap="activityOrders">活动订单</button></view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty"
     ><view>登录后查看报名</view
     ><button
@@ -34,7 +35,7 @@
     <ui-state wx:if="{{loading}}" kind="loading">正在加载报名…</ui-state>
     <ui-state wx:elif="{{!items.length && !error}}" kind="empty"
       >{{status === 'CANCELLED' ? '还没有取消记录' :
-      '这里还没有报名记录'}}<button class="secondary ui-button ui-button-block" bindtap="explore">
+      '还没有免费活动报名记录'}}<button class="secondary ui-button ui-button-block" bindtap="explore">
         去发现活动
       </button></ui-state
     >

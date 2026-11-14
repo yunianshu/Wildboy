@@ -1,20 +1,34 @@
 // Upload dist/ to WeChat as a development version via miniprogram-ci.
 // Requires the code upload key: WILDBOY_UPLOAD_KEY or
 // %USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key.
-// The uploaded package must already be built with an owned HTTPS API origin.
-// Never upload a package configured for the local development server.
+// Run with --check-config to validate the built package without uploading.
 const path = require("node:path");
-const ci = require("miniprogram-ci");
-
-const keyPath =
-  process.env.WILDBOY_UPLOAD_KEY ||
-  path.join(process.env.USERPROFILE || "", ".wechat-keys", "private.wxa62bfca387e6809b.key");
+const projectPath = path.resolve(__dirname, "..");
+const publicApiOrigin = "https://api.wildboy.com.cn";
 
 (async () => {
+  let config;
+  try {
+    ({ config } = require(path.join(projectPath, "dist", "config.js")));
+  } catch {
+    throw new Error("无法读取 dist/config.js，请先运行 npm run build");
+  }
+  if (config?.apiOrigin !== publicApiOrigin || config.devLogin !== false)
+    throw new Error(`上传包必须使用 ${publicApiOrigin} 且关闭开发登录，请运行 npm run build`);
+
+  if (process.argv.includes("--check-config")) {
+    console.log(`上传配置校验通过：${publicApiOrigin}，开发登录已关闭`);
+    return;
+  }
+
+  const ci = require("miniprogram-ci");
+  const keyPath =
+    process.env.WILDBOY_UPLOAD_KEY ||
+    path.join(process.env.USERPROFILE || "", ".wechat-keys", "private.wxa62bfca387e6809b.key");
   const project = new ci.Project({
     appid: "wxa62bfca387e6809b",
     type: "miniProgram",
-    projectPath: path.resolve(__dirname, ".."),
+    projectPath,
     privateKeyPath: keyPath,
     ignores: ["node_modules/**/*"],
   });

@@ -6,7 +6,8 @@ import {
   sessionVersion,
   isSessionCurrent,
 } from "../../utils/api";
-import { Activity, Registration } from "../../utils/models";
+import { Activity, Registration, PageResult } from "../../utils/models";
+import { ActivityOrder, activityOrderStatus } from "../../utils/activity-orders";
 import {
   activityView,
   dateLabel,
@@ -26,6 +27,8 @@ Page({
     contentError: "",
     activity: null as ReturnType<typeof activityView> | null,
     registration: null as Registration | null,
+    activeOrder: null as ActivityOrder | null,
+    activeOrderText: "",
     loading: true,
     error: "",
     registrationError: "",
@@ -44,7 +47,7 @@ Page({
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ registration: null, cancelling: false });
+    this.setData({ registration: null, activeOrder: null, activeOrderText: "", cancelling: false });
   },
   onUnload() {
     this._contentGeneration++;
@@ -60,6 +63,8 @@ Page({
       error: "",
       registrationError: "",
       registration: null,
+      activeOrder: null,
+      activeOrderText: "",
     });
     try {
       const a = await request<Activity>(`/activities/${this.data.id}`);
@@ -74,11 +79,22 @@ Page({
         endDate: dateLabel(a.endAt),
       });
       if (hasSession()) {
+        const session = sessionVersion();
         try {
-          const registration = await request<Registration | null>(
-            `/activities/${this.data.id}/registrations/me`,
-          );
-          if (epoch.valid(n)) this.setData({ registration });
+          if (a.priceCents > 0) {
+            const orders = await request<PageResult<ActivityOrder>>(
+              `/me/activity-orders?page=0&size=20&activityId=${a.id}`,
+            );
+            if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+            const activeOrder = orders.items.find(order => order.activityId === a.id && safeId(order.id) &&
+              ["PENDING_PAYMENT", "PAID", "CONFIRMED_FREE", "REFUND_PENDING"].includes(order.status));
+            if (activeOrder) this.setData({ activeOrder, activeOrderText: activityOrderStatus(activeOrder.status) });
+          } else if (a.priceCents === 0) {
+            const registration = await request<Registration | null>(
+              `/activities/${a.id}/registrations/me`,
+            );
+            if (epoch.valid(n) && isSessionCurrent(session)) this.setData({ registration });
+          }
         } catch (e) {
           if (epoch.valid(n)) this.setData({ registrationError: message(e) });
         }
@@ -98,8 +114,14 @@ Page({
   retry() {
     void this.load();
   },
+  activityOrders() {
+    if (!this.data.activity?.priceCents || !this.data.id) return;
+    const orderId = safeId(this.data.activeOrder?.id);
+    wx.navigateTo({ url: `/pages/activity-orders/index?activityId=${this.data.id}${orderId ? "&id=" + orderId : ""}` });
+  },
   register() {
-    if (this.data.activity?.enabled)
+    if (this.data.activeOrder) this.activityOrders();
+    else if (this.data.activity?.enabled && !this.data.registrationError)
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });
   },
   async cancel() {

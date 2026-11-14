@@ -1,0 +1,49 @@
+<view class="page page-motion {{pageMotionClass}}">
+  <view wx:if="{{loading}}" class="state">加载中…</view>
+  <view wx:if="{{error}}" class="error">{{error}}</view>
+  <view wx:if="{{notice}}" class="notice">{{notice}}</view>
+  <button class="secondary" disabled="{{saving || savingUser || loading}}" bindtap="requestReload">刷新并重新读取</button>
+  <button wx:if="{{!authorized && !loading}}" class="secondary" bindtap="login">验证管理员身份</button>
+  <view wx:if="{{pendingChange}}" class="notice">等级有未保存修改，确认放弃后继续？<button bindtap="confirmChange">放弃修改并继续</button><button bindtap="dismissChange">继续编辑</button></view>
+  <block wx:if="{{authorized}}">
+    <view class="tabs"><button data-section="tiers" bindtap="section">会员等级</button><button data-section="users" bindtap="section">用户身份</button></view>
+    <block wx:if="{{section === 'tiers'}}">
+      <view class="muted">活动、商品优惠分别设置，未开启优惠按原价。</view>
+      <view class="tier-list"><button size="mini" bindtap="create" disabled="{{saving}}">＋新等级</button><button wx:for="{{tiers}}" wx:key="id" size="mini" data-id="{{item.id}}" bindtap="edit" disabled="{{saving}}">{{item.name}}{{item.enabled ? '' : '（停用）'}}</button></view>
+      <view class="card">
+        <view>{{editId ? '编辑等级' : '新增等级'}}</view>
+        <input placeholder="等级名称，如银卡" maxlength="40" value="{{form.name}}" data-key="name" bindinput="field" disabled="{{saving || blocked}}"/>
+        <view class="row">启用等级<switch checked="{{form.enabled}}" bindchange="enabled" disabled="{{saving || blocked}}"/></view>
+        <view class="muted">停用后已有会员保留身份，但不享受该等级优惠。</view>
+        <view class="row">排序<input type="number" value="{{form.sortOrder}}" data-key="sortOrder" bindinput="field" disabled="{{saving || blocked}}"/></view>
+        <view wx:for="{{form.rules}}" wx:key="scope" class="rule">
+          <view class="row">{{item.label}}优惠<switch checked="{{item.enabled}}" data-index="{{index}}" data-key="enabled" bindchange="rule" disabled="{{saving || blocked}}"/></view>
+          <view wx:if="{{item.enabled}}">
+            <picker wx:if="{{item.scope === 'ACTIVITY'}}" range="{{participantPolicies}}" value="{{item.participantPolicy}}" data-index="{{index}}" data-key="participantPolicy" bindchange="rule" disabled="{{saving || blocked}}"><view class="select">{{participantPolicies[item.participantPolicy]}} ▾</view></picker>
+            <view wx:if="{{item.scope === 'ACTIVITY'}}" class="muted">按报名账号计算，不核验参加者个人会员身份。请选择后保存。</view>
+            <picker range="{{modeLabels}}" value="{{item.mode}}" data-index="{{index}}" data-key="mode" bindchange="rule" disabled="{{saving || blocked}}"><view class="select">{{modeLabels[item.mode]}} ▾</view></picker>
+            <view class="row"><input type="digit" value="{{item.value}}" data-index="{{index}}" data-key="value" bindinput="rule" disabled="{{saving || blocked}}"/><text>{{item.mode === 0 ? '折（8 即八折）' : '元'}}</text></view>
+          </view>
+        </view>
+        <button loading="{{saving}}" disabled="{{saving || blocked}}" bindtap="save">保存等级</button>
+      </view>
+    </block>
+    <block wx:else>
+      <view class="muted">昵称可能重复，请核对完整用户编号。领队仅为业务身份，不获得管理权限。</view>
+      <input placeholder="昵称或完整用户编号" maxlength="80" value="{{query}}" bindinput="query"/>
+      <picker range="{{filters}}" value="{{filterIndex}}" bindchange="filter"><view class="select">{{filters[filterIndex]}} ▾</view></picker>
+      <button bindtap="search" disabled="{{usersLoading || savingUser}}">搜索</button>
+      <view wx:for="{{users}}" wx:key="id" class="card">
+        <view>{{item.nickname || '山野同行者'}} · {{item.identity}}</view>
+        <text selectable="true" class="user-id">编号：{{item.id}}</text>
+        <view wx:if="{{item.customerType === 'MEMBER'}}" class="muted">当前等级：{{item.tierName || '未分配'}}{{item.tierEnabled ? '' : '（已停用）'}}</view>
+        <picker range="{{customerLabels}}" value="{{item.typeIndex}}" data-id="{{item.id}}" data-key="typeIndex" bindchange="userField" disabled="{{!!savingUser}}"><view class="select">身份：{{customerLabels[item.typeIndex]}} ▾</view></picker>
+        <picker wx:if="{{item.typeIndex === 1}}" range="{{tierNames}}" value="{{item.tierIndex}}" data-id="{{item.id}}" data-key="tierIndex" bindchange="userField" disabled="{{!!savingUser}}"><view class="select">{{tierNames[item.tierIndex]}} ▾</view></picker>
+        <button data-id="{{item.id}}" bindtap="saveUser" loading="{{savingUser === item.id}}" disabled="{{!!savingUser}}">保存身份</button>
+      </view>
+      <view wx:if="{{usersLoading}}" class="state">正在加载…</view>
+      <view wx:if="{{!usersLoading && !users.length}}" class="state">暂无用户，请调整搜索条件</view>
+      <button wx:if="{{hasMore}}" bindtap="more" disabled="{{usersLoading || savingUser}}">加载更多</button>
+    </block>
+  </block>
+</view>

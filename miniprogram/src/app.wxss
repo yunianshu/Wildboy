@@ -12,13 +12,20 @@ button {
 }
 button {
   font-size: 28rpx;
-  border-radius: 12rpx;
+  border-radius: 10rpx;
+  text-align: center;
 }
 button::after {
   border: 0;
 }
 image {
   display: block;
+}
+.ui-icon {
+  display: block;
+  width: 40rpx;
+  height: 40rpx;
+  flex-shrink: 0;
 }
 .page {
   padding: 32rpx 28rpx 64rpx;
@@ -56,11 +63,19 @@ image {
   color: #6e7767;
   padding: 12rpx 0 12rpx 20rpx;
 }
+.primary,
+.secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  padding: 14rpx 24rpx;
+  line-height: 1.4;
+}
 .primary {
   background: #193f34;
   color: #fffdf4;
-  min-height: 90rpx;
-  line-height: 90rpx;
+  min-height: 84rpx;
   font-weight: 600;
 }
 .primary[disabled] {
@@ -70,8 +85,7 @@ image {
 .secondary {
   background: #e8ecdf;
   color: #193f34;
-  min-height: 82rpx;
-  line-height: 82rpx;
+  min-height: 76rpx;
 }
 .pill {
   display: inline-block;

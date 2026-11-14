@@ -1,6 +1,36 @@
 @import "../../styles/admin-flow.wxss";
 @import "../../styles/user-flow.wxss";
 .admin-users-picker { min-width: 120px; }
-.user-detail-body { height: 56vh; max-height: 60vh; }
-.user-detail-dialog .na-picker { padding: 8px; height: auto; min-height: 44px; }
-.user-detail-dialog .na-record { background: var(--color-page); }
+.users-overlay .dialog-head, .users-overlay .dialog-actions { flex-shrink: 0; }
+.user-filter-body { height: 380px; max-height: calc(100vh - 232px); min-height: 0; }
+.user-filter-body .field:last-child { margin-bottom: 0; }
+.user-detail-body { height: 56vh; max-height: calc(100vh - 232px); min-height: 0; }
+.users-overlay .na-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #dde4db;
+  border-radius: 10px;
+  background: #fff;
+  color: #203e34;
+  font-size: 14px;
+  line-height: 22px;
+}
+.users-overlay .picker-icon { width: 18px; height: 18px; transform: rotate(90deg); }
+.user-detail-dialog .na-record {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f6f4ed;
+  word-break: break-all;
+}
+.user-detail-dialog .na-record-title { font-size: 15px; font-weight: 600; line-height: 1.5; }
+.user-detail-dialog .uf-caption, .user-detail-dialog .section-title { word-break: break-all; }
+.user-detail-dialog .single-action { grid-template-columns: minmax(0, 1fr); }

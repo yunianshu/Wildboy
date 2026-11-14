@@ -20,13 +20,13 @@
  </view>
  <view class="category-panel" wx:if="{{categoryManagerOpen}}">
   <view class="section-title">{{categoryMode==='edit'?'编辑分类':'新建分类'}}</view>
-  <view wx:if="{{categoryMode==='edit'}}" class="field"><text class="label">选择要编辑的分类</text><picker range="{{categories}}" range-key="name" bindchange="chooseManagedCategory"><view class="picker">从列表选择 ›</view></picker></view>
-  <label>分类名称<input value="{{categoryForm.name}}" maxlength="20" data-field="name" bindinput="categoryInput" disabled="{{saving}}"/></label>
-  <label>排序（0–9999）<input value="{{categoryForm.sortOrder}}" type="number" data-field="sortOrder" bindinput="categoryInput" disabled="{{saving}}"/></label>
+  <view wx:if="{{categoryMode==='edit'}}" class="field"><text class="label">正在编辑的分类</text><picker range="{{categories}}" range-key="name" value="{{managedCategoryIndex}}" bindchange="chooseManagedCategory" disabled="{{saving || categorySaving || categoryUncertain}}"><view class="picker">{{managedCategoryName}} ›</view></picker></view>
+  <label>分类名称<input value="{{categoryForm.name}}" maxlength="20" data-field="name" bindinput="categoryInput" disabled="{{saving || categorySaving || categoryUncertain}}"/></label>
+  <label>排序（0–9999）<input value="{{categoryForm.sortOrder}}" type="number" data-field="sortOrder" bindinput="categoryInput" disabled="{{saving || categorySaving || categoryUncertain}}"/></label>
   <view wx:if="{{categoryError}}" class="error">{{categoryError}}</view>
-  <view class="actions"><button class="primary" bindtap="saveCategory" disabled="{{saving}}">保存分类</button><button wx:if="{{categoryMode==='edit'}}" class="secondary" bindtap="newCategory" disabled="{{saving}}">新建分类</button><button class="secondary" bindtap="reloadCategory" disabled="{{saving}}">重新加载分类</button><button class="secondary" bindtap="toggleCategoryManager" disabled="{{saving}}">收起</button></view>
+  <view class="actions"><button class="primary" bindtap="saveCategory" loading="{{categorySaving}}" disabled="{{saving || categorySaving || categoryConflict || categoryUncertain}}">保存分类</button><button wx:if="{{categoryMode==='edit'}}" class="secondary" bindtap="newCategory" disabled="{{saving || categorySaving || categoryUncertain}}">新建分类</button><button wx:else class="secondary" bindtap="editCategory" disabled="{{saving || categorySaving || categoryUncertain || !categories.length}}">编辑已有分类</button><button class="secondary" bindtap="reloadCategory" disabled="{{saving || categorySaving}}">重新加载分类</button><button class="secondary" bindtap="toggleCategoryManager" disabled="{{saving || categorySaving || categoryUncertain}}">收起</button></view>
  </view>
- <button wx:if="{{!categoryManagerOpen}}" class="secondary" bindtap="toggleCategoryManager" disabled="{{saving}}">分类管理</button>
+ <view wx:if="{{!categoryManagerOpen}}" class="actions"><button class="secondary" bindtap="editCategory" disabled="{{saving || categorySaving || !categories.length}}">编辑当前分类</button><button class="secondary" bindtap="newCategory" disabled="{{saving || categorySaving}}">新建分类</button></view>
  <view wx:if="{{pendingSave}}" class="confirmation"><view>确认保存商品？{{form.status === 'ON_SALE' ? '商品将上架供用户购买。' : '商品保持下架。'}}价格 ¥{{form.price}}，库存 {{form.stock}}。</view><button bindtap="confirmSave" disabled="{{saving}}">确认保存</button><button class="secondary" bindtap="cancelSave" disabled="{{saving}}">取消</button></view>
- <button wx:if="{{!pendingSave}}" loading="{{saving}}" disabled="{{saving || loading}}" bindtap="save">确认并保存</button>
+ <button wx:if="{{!pendingSave}}" loading="{{saving}}" disabled="{{saving || loading || categorySaving}}" bindtap="save">确认并保存</button>
  <button class="secondary" disabled="{{saving}}" bindtap="reload">重新加载</button><view wx:if="{{dirty || categoryDirty}}" class="muted">有未保存修改</view></view></view>

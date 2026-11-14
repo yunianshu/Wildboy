@@ -28,6 +28,7 @@ Page({
       { value: "", label: "全部" },
       { value: "PENDING_PAYMENT", label: "待付款" },
       { value: "PAID", label: "待发货" },
+      { value: "CONFIRMED_FREE", label: "免支付待发货" },
       { value: "SHIPPED", label: "已发货" },
       { value: "REFUNDED", label: "已退款" },
       { value: "CANCELLED", label: "已取消" },
@@ -189,7 +190,7 @@ Page({
       s = this._session;
     if (this.data.pendingId !== id || !this.data.pendingConfirmed) {
       const row = this.data.items.find((x) => x.id === id);
-      if (!row || row.status !== "PAID") return;
+      if (!row || !["PAID", "CONFIRMED_FREE"].includes(row.status)) return;
       if (row.reconciliationRequired) {
         this.setData({
           error: "该订单存在待核对的售后或对账，处理完成前不能发货。",
@@ -211,7 +212,7 @@ Page({
       pendingConfirmed: false,
       pendingOrder: null,
     });
-    if (!snapshot || !current || current.version !== snapshot.version) {
+    if (!snapshot || !current || current.version !== snapshot.version || current.status !== snapshot.status || current.reconciliationRequired) {
       this.setData({ error: "订单已变化，请重新核对后再操作" });
       return;
     }

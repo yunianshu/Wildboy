@@ -31,6 +31,12 @@ public class ShopController {
     return shop.product(id, false);
   }
 
+  @GetMapping("/shop/products/{id}/quote")
+  Quote quote(@PathVariable String id, @RequestParam(defaultValue="1") int quantity,
+      @AuthenticationPrincipal Models.User user) {
+    return shop.quote(id, quantity, user.id());
+  }
+
   @PostMapping("/orders")
   ResponseEntity<Order> createOrder(
       @AuthenticationPrincipal Models.User user, @Valid @RequestBody OrderInput input) {

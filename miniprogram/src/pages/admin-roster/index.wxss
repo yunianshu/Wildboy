@@ -1,3 +1,30 @@
+.tabs {
+  display: flex;
+  gap: 12rpx;
+  margin: 24rpx 0 8rpx;
+}
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  height: 80rpx;
+  min-height: 80rpx;
+  padding: 0 12rpx;
+  border-radius: 12rpx;
+  background: #e8ecdf;
+  color: #193f34;
+  font-size: 28rpx;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.tab.active {
+  background: #193f34;
+  color: #fffdf4;
+  font-weight: 600;
+}
 .activity-title {
   font-size: 35rpx;
   font-weight: 650;

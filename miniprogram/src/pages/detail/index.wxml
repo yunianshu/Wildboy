@@ -14,6 +14,10 @@
       <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load />
     </view>
     <view class="notice" wx:if="{{activity.status === 'CANCELLED'}}">该活动已被主理人取消，请勿按原计划前往。</view>
+    <view class="notice" wx:if="{{activity.priceCents > 0}}">
+      标准费用 {{activity.priceLabel}}，会员优惠以报名报价为准。
+      <button wx:if="{{!activeOrder}}" class="secondary" bindtap="activityOrders">查看本活动订单</button>
+    </view>
     <view class="article-section">
       <view class="section-bar">活动安排</view>
       <view class="section-body facts">
@@ -22,7 +26,7 @@
         <view><text>【活动地点】</text><text>{{activity.location}}</text></view>
         <view><text>【集合地点】</text><text>{{activity.meetingPoint}}</text></view>
         <view><text>【报名截止】</text><text>{{deadline}}</text></view>
-        <view><text>【同行名额】</text><text>{{activity.registeredCount}} / {{activity.capacity}} 人</text></view>
+        <view><text>【同行名额】</text><text>{{activity.registeredCount}} / {{activity.capacity}} 人占用<text wx:if="{{activity.pendingPaymentCount}}"> · {{activity.pendingPaymentCount}} 人待付款</text></text></view>
       </view>
     </view>
     <view class="article-section">
@@ -43,6 +47,7 @@
     </view>
     <view class="sticky-action">
       <button wx:if="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
+      <button wx:elif="{{activeOrder}}" class="primary" bindtap="activityOrders">{{activeOrderText}} · 查看订单</button>
       <block wx:else><button class="primary" disabled="{{!activity.enabled || !activity.available || !!registrationError}}" bindtap="register">{{activity.available ? activity.label : '名额已满'}}</button></block>
     </view>
   </block>

@@ -1,5 +1,7 @@
 # Wildboy 服务器部署
 
+独立的 `api.wildboy.com.cn:443` 入口及生产支付配置见 [公网 HTTPS API](https-api.md)。
+
 一台 Linux 服务器（当前：阿里云轻量应用服务器）上的完整部署单元。所有步骤固化为
 `deploy/deploy.sh`，在服务器的仓库检出里执行：
 

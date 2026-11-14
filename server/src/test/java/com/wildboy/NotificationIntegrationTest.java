@@ -218,11 +218,13 @@ class NotificationIntegrationTest {
     activities.cancelOwn(a.id(), next.id()); activities.cancelOwn(a.id(), next.id());
     var available = activities.get(a.id(), true);
     assertThat(available.registeredCount()).isEqualTo(1);
-    var edited = activities.edit(a.id(), edit(available, 1, true, available.location(), available.startAt()), "test");
-    assertThat(edited.capacity()).isEqualTo(1); assertThat(edited.identityRequired()).isTrue();
+    var edited = activities.edit(a.id(), edit(available, 1, false, available.location(), available.startAt()), "test");
+    assertThat(edited.capacity()).isEqualTo(1);
     assertThat(db.queryForObject("SELECT COUNT(*) FROM activity_waitlist WHERE activity_id=? AND participants_json='historical payload' AND status IN ('WAITING','OFFERED')", Integer.class, a.id())).isEqualTo(2);
     assertThat(db.queryForObject("SELECT COUNT(*) FROM notification_outbox WHERE activity_id=?", Integer.class, a.id())).isZero();
     activities.cancelOwn(a.id(), holder.id());
+    var empty = activities.get(a.id(), true);
+    assertThat(activities.edit(a.id(), edit(empty, 1, true, empty.location(), empty.startAt()), "test").identityRequired()).isTrue();
     var identityInput = new RegistrationInput(List.of(new ParticipantInput("QA identity", "11010519491231002X", "13800000000")), 1L, 1L);
     assertThat(activities.register(a.id(), user().id(), identityInput).created()).isTrue();
     assertThat(activities.get(a.id(), true).registeredCount()).isEqualTo(1);

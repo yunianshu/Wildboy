@@ -39,11 +39,14 @@ function page(name) {
     if (typeof p[key] === "function") p[key] = p[key].bind(p);
   return p;
 }
+const standardQuote = { productId: 'product-1', quantity: 1, originalTotalCents: 1200, totalCents: 1200, pricing: {originalPriceCents:1200,priceCents:1200,tierName:null} };
 function checkout() {
   const p = page("checkout");
   Object.assign(p.data, {
     id: "product-1",
     quantity: 1,
+    quote: structuredClone(standardQuote),
+    quoteSession: session,
     product: { id: "product-1", stock: 3 },
     legal: legalCurrent,
     selectedAddressId: "address-1",
@@ -91,6 +94,7 @@ beforeEach(() => {
   api.request = async (path, method = "GET", data) => {
     requests.push({ path, method, data });
     if (path === "/me/addresses") return { items: [savedAddress] };
+    if (path === "/shop/products/product-1/quote?quantity=1") return standardQuote;
     if (path.includes("/by-request/"))
       throw new api.ApiError("not found", 404, "NOT_FOUND");
     if (path === "/orders") return { ...baseOrder };
@@ -126,6 +130,7 @@ test("lost create response retries original request identity, never uses a new k
   let first;
   api.request = async (path, method, data) => {
     if (path === "/me/addresses") return { items: [savedAddress] };
+    if (path.includes("/quote?")) return standardQuote;
     if (path.includes("/by-request/"))
       throw new api.ApiError("missing", 404, "NOT_FOUND");
     if (path === "/orders") {
@@ -136,6 +141,8 @@ test("lost create response retries original request identity, never uses a new k
   };
   await p.submit();
   assert.equal(p.data.busy, false);
+  assert.match(p.data.recoveryError, /待核对/);
+  await p.resumeCheckout();
   await p.submit();
   assert.equal(requests.length, 2);
   assert.equal(requests[0].requestId, requests[1].requestId);
@@ -155,6 +162,49 @@ test("reopened checkout recovers original order before unavailable product looku
   assert.equal(p.data.recoveredOrder, true);
   assert.equal(requests.length, 1);
   assert.equal(p.data.loading, false);
+});
+test("resume finds a committed last-stock order before reading quote or address", async () => {
+  const p = checkout();
+  const path = "/orders/by-request/";
+  let requestId;
+  api.request = async (url, method, data) => {
+    requests.push(url);
+    if (url.startsWith(path) && requestId) return baseOrder;
+    if (url.startsWith(path)) throw new api.ApiError("不存在", 404, "NOT_FOUND");
+    if (url === "/me/addresses") return { items: [savedAddress] };
+    if (url === "/orders" && method === "POST") {
+      requestId = data.requestId;
+      throw new Error("提交结果丢失");
+    }
+    throw new Error("找回原订单前不应读取报价或开启支付");
+  };
+  await p.submit();
+  assert.match(p.data.recoveryError, /待核对/);
+  p.onHide();
+  p.setData({ product: { id: "product-1", stock: 0 }, selectedAddressId: "", legal: null });
+  requests.length = 0;
+  p.onShow();
+  await flush();
+  assert.deepEqual(requests, [path + requestId]);
+  assert.equal(p.data.order.id, baseOrder.id);
+  assert.equal(p.data.recoveredOrder, true);
+  assert.equal(p.data.recoveryError, "");
+});
+test("explicit order recovery preserves the intent through repeated weak reads", async () => {
+  const p = checkout();
+  const key = shop.checkoutRequestId("user-1", "product-1", 1);
+  p.setData({ recoveryError: "订单待核对", quote: null, selectedAddressId: "" });
+  api.request = async (path) => {
+    requests.push(path);
+    if (requests.length === 1) throw new Error("查单暂时失败");
+    return baseOrder;
+  };
+  await p.resumeCheckout();
+  assert.equal(shop.pendingCheckoutRequestId("user-1", "product-1", 1), key);
+  assert.match(p.data.recoveryError, /查单暂时失败/);
+  await p.resumeCheckout();
+  assert.deepEqual(requests, Array(2).fill("/orders/by-request/" + key));
+  assert.equal(p.data.order.id, baseOrder.id);
 });
 test("recover prior order even after shipping fields change, without creating or paying again", async () => {
   const p = checkout();
@@ -275,6 +325,7 @@ test("orders new status filter wins over slower old page response", async () => 
 test("cancel confirmation after page hide cannot send mutation", async () => {
   const p = page("orders");
   p.data.loading = false;
+  p.data.items = [p.view(baseOrder)];
   let release;
   wx.showModal = () => new Promise((resolve) => (release = resolve));
   const pending = p.cancel(event("order-1"));
@@ -305,6 +356,7 @@ test("pay helper does not launch native payment when page became stale", async (
 test("cancel modal failure unlocks row without sending cancellation", async () => {
   const p = page("orders");
   p.data.loading = false;
+  p.data.items = [p.view(baseOrder)];
   wx.showModal = async () => {
     throw new Error("弹窗未打开");
   };
@@ -329,9 +381,10 @@ test("order list authentication revocation clears previously loaded private orde
 test("payment cannot open native sheet after account switches during prepay request", async () => {
   let release,
     native = 0;
-  api.request = () => new Promise((resolve) => (release = resolve));
+  api.request = (path) => path.endsWith("/verify") ? Promise.resolve(baseOrder) : new Promise((resolve) => (release = resolve));
   wx.requestPayment = () => native++;
   const result = shop.payOrder("order-1");
+  await flush();
   session++;
   release({ package: "prepay_id=x" });
   await assert.rejects(result, /登录状态/);
@@ -426,4 +479,143 @@ test("refund actions cannot invalidate an in-flight order page and leave loading
   await loading;
   assert.equal(p.data.loading, false);
   assert.equal(requests.length, 1);
+});
+
+test("server legal conflict loads current documents and requires fresh consent before retrying the order", async () => {
+  const p=checkout();let legalReads=0,creates=0;
+  const latest={...legalCurrent,privacy:{...legalCurrent.privacy,version:2}};
+  legal.currentLegal=async()=>++legalReads===1?legalCurrent:latest;
+  const normalRequest=api.request;
+  api.request=async(path,method,data)=>{
+    if(path==='/orders'&&method==='POST') {
+      creates++;
+      if(creates===1) throw new api.ApiError('协议已更新，请重新阅读并确认',409,'LEGAL_VERSION_CHANGED');
+      assert.equal(data.privacyVersion,2);
+    }
+    return normalRequest(path,method,data);
+  };
+  await p.submit();
+  assert.equal(p.data.legal.privacy.version,2);
+  assert.equal(p.data.consent,false);assert.equal(p.data.privacyRead,false);assert.equal(p.data.termsRead,false);
+  assert.equal(p.data.busy,false);assert.equal(p.data.order,null);
+  p.privacy();assert.match(navigation.at(-1),/kind=PRIVACY&version=2/);
+  await p.submit();assert.equal(creates,1);
+  p.consentChange({detail:{value:['yes']}});await p.submit();
+  assert.equal(creates,2);assert.equal(p.data.order.id,baseOrder.id);
+});
+
+test("failed legal recovery offers a retry that restores checkout without losing the address", async () => {
+  const p=checkout();let legalReads=0;
+  legal.currentLegal=async()=>{if(++legalReads>1)throw Error('暂时离线');return legalCurrent;};
+  const normalRequest=api.request;
+  api.request=async(path,method,data)=>{
+    if(path==='/orders'&&method==='POST')throw new api.ApiError('协议尚未就绪',503,'LEGAL_NOT_READY');
+    if(path==='/shop/products/product-1')return {id:'product-1',stock:3,imageUrl:'',priceCents:1200};
+    return normalRequest(path,method,data);
+  };
+  await p.submit();assert.equal(p.data.legal,null);assert.equal(p.data.busy,false);
+  const wxml=fs.readFileSync('src/pages/checkout/index.wxml','utf8');
+  assert.match(wxml,/<button wx:if="\{\{!legal\}\}"[^>]*bindtap="retry"/);
+  legal.currentLegal=async()=>legalCurrent;
+  p.retry();await flush();
+  assert.equal(p.data.legal.privacy.version,1);assert.equal(p.data.selectedAddressId,savedAddress.id);
+  assert.equal(p.data.recipientName,savedAddress.recipientName);assert.equal(p.data.consent,false);
+});
+
+test("legal recovery after leaving checkout cannot write documents or restart an order", async () => {
+  const p=checkout();let reads=0,release;
+  legal.currentLegal=()=>++reads===1?Promise.resolve(legalCurrent):new Promise(resolve=>release=resolve);
+  const normalRequest=api.request;
+  api.request=async(path,method,data)=>{
+    if(path==='/orders'&&method==='POST')throw new api.ApiError('协议已更新',409,'LEGAL_VERSION_CHANGED');
+    return normalRequest(path,method,data);
+  };
+  const pending=p.submit();await flush();p.onHide();release(legalCurrent);await pending;
+  assert.equal(p.data.legal,null);assert.equal(p.data.order,null);assert.equal(p.data.busy,false);
+});
+
+test("checkout accepts explicit agreement without requiring document-reader visits", async () => {
+  const p=checkout();p.setData({consent:false,privacyRead:false,termsRead:false});
+  await p.submit();assert.equal(requests.length,0);assert.match(p.data.error,/同意/);
+  p.consentChange({detail:{value:['yes']}});await p.submit();
+  assert.equal(p.data.order.id,baseOrder.id);
+  assert.equal(requests.filter(request=>request.path==='/orders').length,1);
+});
+
+
+test('checkout always sends the displayed price and free orders never call payment', async () => {
+  const p = checkout();
+  p.data.quote.totalCents = 0;
+  p.data.quote.pricing.priceCents = 0;
+  const normal = api.request;
+  api.request = async (path, method, data) => {
+    if (path === '/orders') { requests.push({path,method,data}); return {...baseOrder,status:'CONFIRMED_FREE',totalCents:0,paidAt:null,paymentTransactionId:null}; }
+    return normal(path,method,data);
+  };
+  await p.submit();
+  assert.equal(requests.find(x=>x.path==='/orders').data.expectedTotalCents,0);
+  assert.equal(p.data.orderStatusText,'免支付已确认');
+  assert.equal(requests.some(x=>x.path.endsWith('/pay')),false);
+  await p.payExisting();
+  assert.equal(requests.some(x=>x.path.endsWith('/pay')),false);
+});
+test('price conflict refreshes quote but requires another explicit submission', async () => {
+  const p = checkout();
+  const normal = api.request;
+  api.request = async (path,method,data) => {
+    if(path==='/orders'){requests.push({path,method,data});throw new api.ApiError('changed',409,'PRICE_CHANGED');}
+    if(path.includes('/quote?')) return {productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:900,pricing:{originalPriceCents:1200,priceCents:900,tierName:'银卡'}};
+    return normal(path,method,data);
+  };
+  await p.submit();
+  assert.equal(requests.filter(x=>x.path==='/orders').length,1);
+  assert.equal(p.data.quote.totalCents,900);
+  assert.equal(p.data.totalText,'¥9.00');
+  assert.equal(p.data.originalTotalText,'¥12.00');
+  assert.match(p.data.error,/再次提交/);
+  assert.equal(p.data.order,null);
+});
+test('quote failure and switched account quote fail closed before creating an order', async () => {
+  const p=checkout();
+  api.request=async()=>{throw new Error('quote unavailable');};
+  await p.refreshQuote();
+  await p.submit();
+  assert.equal(p.data.quote,null);
+  assert.equal(requests.length,0);
+  assert.match(p.data.quoteError,/unavailable/);
+  let release;
+  api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.refreshQuote();
+  session++;
+  release({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:600,pricing:{originalPriceCents:1200,priceCents:600,tierName:'金卡'}});
+  await pending;
+  assert.equal(p.data.quote,null);
+  assert.equal(p.data.totalText,'');
+});
+test('hidden quote cannot repopulate, returning refreshes without erasing legal consent', async () => {
+  const p=checkout();
+  let release;
+  api.request=()=>new Promise(resolve=>release=resolve);
+  const pending=p.refreshQuote();
+  p.onHide();
+  release({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:600,pricing:{originalPriceCents:1200,priceCents:600,tierName:'金卡'}});
+  await pending;
+  assert.equal(p.data.quote,null);
+  assert.equal(p.data.consent,true);
+  assert.equal(p.data.privacyRead,true);
+});
+test('malformed quote total never becomes payable', async () => {
+  const p=checkout();
+  api.request=async()=>({productId:'product-1',quantity:1,originalTotalCents:1200,totalCents:1,pricing:{originalPriceCents:1200,priceCents:900}});
+  await p.refreshQuote();
+  assert.equal(p.data.quote,null);
+  assert.match(p.data.quoteError,/报价异常/);
+});
+test('free merchandise orders expose cancellation without implying payment or refund',async()=>{
+ const p=page('orders');p.data.loading=false;p.data.items=[{...baseOrder,status:'CONFIRMED_FREE',totalCents:0}];
+ let prompt;wx.showModal=async o=>{prompt=o;return {confirm:true};};
+ api.request=async(path,method)=>{requests.push({path,method});return {...baseOrder,status:'CANCELLED',totalCents:0};};
+ await p.cancel(event(baseOrder.id));assert.match(prompt.content,/免支付.*不涉及支付退款/);assert.equal(requests[0].path,'/orders/order-1/cancel');assert.equal(p.data.items[0].status,'CANCELLED');
+ p.data.items=[{...baseOrder,status:'PAID'}];await p.cancel(event(baseOrder.id));assert.equal(requests.length,1);
+ const markup=fs.readFileSync('src/pages/orders/index.wxml','utf8');assert.match(markup,/PENDING_PAYMENT' \|\| item.status === 'CONFIRMED_FREE'[\s\S]*?bindtap="cancel"/);
 });

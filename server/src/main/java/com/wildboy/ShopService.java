@@ -26,6 +26,7 @@ public class ShopService {
   private final WechatPayService pay;
   private final ShopCategoryService categories;
   private final TransactionTemplate transactions;
+  private final MembershipService memberships;
 
   public ShopService(
       JdbcTemplate db,
@@ -34,8 +35,10 @@ public class ShopService {
       ActivityService activities,
       WechatPayService pay,
       ShopCategoryService categories,
-      PlatformTransactionManager transactionManager) {
+      PlatformTransactionManager transactionManager,
+      MembershipService memberships) {
     this.db = db;
+    this.memberships = memberships;
     this.legal = legal;
     this.auth = auth;
     this.activities = activities;
@@ -86,7 +89,8 @@ public class ShopService {
               r.getObject("updated_at", OffsetDateTime.class),
               r.getObject("expires_at", OffsetDateTime.class),
               r.getBoolean("reconciliation_required"),
-              List.of());
+              List.of(),
+              r.getInt("original_total_cents"));
 
   public List<Product> products(boolean admin) {
     return products(admin, null);
@@ -113,6 +117,20 @@ public class ShopService {
             id);
     if (result.isEmpty()) throw ApiException.notFound();
     return result.getFirst();
+  }
+
+  @Transactional
+  public Quote quote(String productId, int quantity, String userId) {
+    if (quantity < 1 || quantity > 99) throw new ApiException(400, "INVALID_ORDER_ITEM", "商品数量无效");
+    memberships.price(userId, MembershipModels.Scope.SHOP, 0);
+    Product product = db.query(PRODUCT_SELECT + " WHERE p.id=? AND p.status='ON_SALE' FOR SHARE OF p", productMapper, productId)
+        .stream().findFirst().orElseThrow(ApiException::notFound);
+    if (quantity > product.stock()) throw ApiException.conflict("INSUFFICIENT_STOCK", "商品库存不足");
+    var pricing = memberships.price(userId, MembershipModels.Scope.SHOP, product.priceCents());
+    long original = (long) product.priceCents() * quantity;
+    long total = (long) pricing.priceCents() * quantity;
+    if (original > 100000000 || total > 100000000) throw new ApiException(400, "INVALID_ORDER_TOTAL", "订单金额超出范围");
+    return new Quote(productId, quantity, (int) original, (int) total, pricing);
   }
 
   private void validateProduct(ProductInput input) {
@@ -198,7 +216,9 @@ public class ShopService {
                     r.getString("product_name"),
                     r.getString("image_url"),
                     r.getInt("price_cents"),
-                    r.getInt("quantity")),
+                    r.getInt("quantity"),
+                    r.getInt("original_price_cents"),
+                    r.getString("membership_tier_name")),
             order.id());
     return new Order(
         order.id(),
@@ -217,7 +237,8 @@ public class ShopService {
         order.updatedAt(),
         order.expiresAt(),
         order.reconciliationRequired(),
-        items);
+        items,
+        order.originalTotalCents());
   }
 
   public Order order(String id, String userId, boolean admin) {
@@ -295,7 +316,7 @@ public class ShopService {
       quantities.put(item.productId(), quantity);
     }
     // A per-owner lock serializes retries and the pending-order limit, including concurrent requests.
-    db.queryForObject("SELECT id FROM app_user WHERE id=? FOR UPDATE", String.class, userId);
+    db.queryForObject("SELECT id FROM app_user WHERE id=? FOR NO KEY UPDATE", String.class, userId);
     String requestId = input.requestId();
     if (requestId != null && (!requestId.matches("[A-Za-z0-9_-]{8,80}")))
       throw new ApiException(400, "INVALID_REQUEST_ID", "下单请求号格式无效");
@@ -311,6 +332,7 @@ public class ShopService {
     }
     if (db.queryForObject("SELECT COUNT(*) FROM shop_order WHERE user_id=? AND status='PENDING_PAYMENT'", Integer.class, userId) >= 10)
       throw ApiException.conflict("TOO_MANY_PENDING_ORDERS", "待支付订单过多，请先完成或取消已有订单");
+    memberships.price(userId, MembershipModels.Scope.SHOP, 0);
     var productIds = quantities.keySet().stream().sorted().toList();
     var products = new HashMap<String, Product>();
     for (String productId : productIds) {
@@ -325,35 +347,50 @@ public class ShopService {
         throw ApiException.conflict("INSUFFICIENT_STOCK", "商品库存不足，请调整数量后重试");
       products.put(productId, product);
     }
-    long total = 0;
-    for (String productId : productIds)
-      total += (long) products.get(productId).priceCents() * quantities.get(productId);
-    if (total > 100000000) throw new ApiException(400, "INVALID_ORDER_TOTAL", "订单金额超出范围");
+    long total = 0, originalTotal = 0;
+    var prices = new HashMap<String, MembershipModels.Pricing>();
+    for (String productId : productIds) {
+      var pricing = memberships.price(userId, MembershipModels.Scope.SHOP, products.get(productId).priceCents());
+      prices.put(productId, pricing);
+      total += (long) pricing.priceCents() * quantities.get(productId);
+      originalTotal += (long) pricing.originalPriceCents() * quantities.get(productId);
+    }
+    if (input.expectedTotalCents() != null && input.expectedTotalCents() != total)
+      throw ApiException.conflict("PRICE_CHANGED", "会员价或商品价格已变化，请刷新报价后重新确认");
+    if (total > 100000000 || originalTotal > 100000000) throw new ApiException(400, "INVALID_ORDER_TOTAL", "订单金额超出范围");
     String id = UUID.randomUUID().toString();
     String orderNo = UUID.randomUUID().toString().replace("-", "");
     db.update(
-        "INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address,request_id,request_fingerprint) VALUES(?,?,?,?,'PENDING_PAYMENT',?,?,?,?,?)",
+        "INSERT INTO shop_order(id,order_no,user_id,total_cents,status,recipient_name,phone,address,request_id,request_fingerprint,original_total_cents) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
         id,
         orderNo,
         userId,
         (int) total,
+        total == 0 ? "CONFIRMED_FREE" : "PENDING_PAYMENT",
         recipient,
         phone,
         address,
         requestId,
-        fingerprint);
+        fingerprint,
+        (int) originalTotal);
     for (String productId : productIds) {
       Product product = products.get(productId);
       int quantity = quantities.get(productId);
       db.update(
-          "INSERT INTO shop_order_item(id,order_id,product_id,product_name,image_url,price_cents,quantity) VALUES(?,?,?,?,?,?,?)",
+          "INSERT INTO shop_order_item(id,order_id,product_id,product_name,image_url,price_cents,quantity,original_price_cents,membership_tier_id,membership_tier_name,membership_tier_version,pricing_mode,pricing_value) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
           UUID.randomUUID().toString(),
           id,
           productId,
           product.name(),
           product.imageUrl(),
+          prices.get(productId).priceCents(),
+          quantity,
           product.priceCents(),
-          quantity);
+          prices.get(productId).tierId(),
+          prices.get(productId).tierName(),
+          prices.get(productId).tierVersion(),
+          prices.get(productId).pricingMode(),
+          prices.get(productId).pricingValue());
       db.update("UPDATE product SET stock=stock-?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", quantity, productId);
     }
     legal.accept(userId, input.privacyVersion(), input.termsVersion(), "ORDER");
@@ -457,7 +494,7 @@ public class ShopService {
 
   private Order closePending(Order order, String actor, String action) {
     if (order.status().equals("CANCELLED")) return withItems(order);
-    if (!order.status().equals("PENDING_PAYMENT"))
+    if (!order.status().equals("PENDING_PAYMENT") && !order.status().equals("CONFIRMED_FREE"))
       throw ApiException.conflict("ORDER_NOT_CANCELLABLE", "当前订单不能取消");
     if (order.paymentInitiated()) {
       try {
@@ -530,8 +567,8 @@ public class ShopService {
     Order order = lockOrder(id, null, true);
     if (order.version() != version)
       throw ApiException.conflict("STALE_VERSION", "订单已被修改，请刷新后重试");
-    if (!order.status().equals("PAID"))
-      throw ApiException.conflict("ORDER_NOT_SHIPPABLE", "只有已支付订单可以发货");
+    if (!order.status().equals("PAID") && !order.status().equals("CONFIRMED_FREE"))
+      throw ApiException.conflict("ORDER_NOT_SHIPPABLE", "只有已支付或免支付已确认订单可以发货");
     if (db.queryForObject("SELECT COUNT(*) FROM refund_request WHERE order_id=? AND status NOT IN ('REJECTED','CLOSED')",Integer.class,id)>0)
       throw ApiException.conflict("REFUND_PENDING", "退款申请处理中，不能发货");
     db.update(

@@ -704,6 +704,34 @@ class BackendIntegrationTest {
   }
 
   @Test
+  void adminTitleFilterMatchesAcrossPagesWithStatusAndCategory() throws Exception {
+    Activity first = activities.create(input(2), "fixture");
+    db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100% trail", first.id());
+    Activity second = activities.create(input(2), "fixture");
+    db.update("UPDATE activity SET title=? WHERE id=?", "FOREST 100% loop", second.id());
+    Activity unrelated = activities.create(input(2), "fixture");
+    db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100X loop", unrelated.id());
+    Activity published = publish(2);
+    db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100% ridge", published.id());
+
+    String path = "/api/v1/admin/activities";
+    String token = bearer(auth.user("fixture:title-filter", "Admin", "ADMIN"));
+    mvc.perform(get(path).param("title", "  forest 100% ").param("status", "DRAFT")
+            .param("category", "WEEKLY").param("size", "1").header("Authorization", token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.total").value(2))
+        .andExpect(jsonPath("$.items[0].id").value(first.id()))
+        .andExpect(jsonPath("$.hasMore").value(true));
+    mvc.perform(get(path).param("title", "forest 100%").param("status", "DRAFT")
+            .param("page", "1").param("size", "1").header("Authorization", token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.items[0].id").value(second.id()))
+        .andExpect(jsonPath("$.hasMore").value(false));
+    mvc.perform(get(path).param("title", "a".repeat(101)).header("Authorization", token))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
   void ownRegistrationStatusFilterIsGlobalPaginatedAndUserScoped() throws Exception {
     User owner = user();
     User other = user();
@@ -732,6 +760,36 @@ class BackendIntegrationTest {
     mvc.perform(get(path + "?status=UNKNOWN").header("Authorization", token))
         .andExpect(status().isBadRequest());
     mvc.perform(get(path).header("Authorization", token)).andExpect(jsonPath("$.total").value(3));
+  }
+
+  @Test
+  void adminRosterFiltersBeforePaginationAndAcceptsExportPageSize() throws Exception {
+    Activity activity = publish(5);
+    for (int i = 0; i < 3; i++) {
+      User attendee = user();
+      activities.register(activity.id(), attendee.id(), registrationInput("Member " + i, "1380000000" + i));
+      if (i == 2) activities.cancelOwn(activity.id(), attendee.id());
+    }
+    String path = "/api/v1/admin/activities/" + activity.id() + "/registrations";
+    String admin = bearer(auth.user("fixture:roster-admin", "Admin", "ADMIN"));
+    mvc.perform(get(path + "?status=CONFIRMED&size=1&page=0").header("Authorization", admin))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2))
+        .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.hasMore").value(true))
+        .andExpect(jsonPath("$.items[0].status").value("CONFIRMED"));
+    mvc.perform(get(path + "?status=CONFIRMED&size=1&page=1").header("Authorization", admin))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2))
+        .andExpect(jsonPath("$.hasMore").value(false));
+    mvc.perform(get(path + "?status=CANCELLED&size=50").header("Authorization", admin))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1))
+        .andExpect(jsonPath("$.items[0].status").value("CANCELLED"));
+    mvc.perform(get(path + "?size=50").header("Authorization", admin))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(3));
+    mvc.perform(get(path + "?status=UNKNOWN").header("Authorization", admin))
+        .andExpect(status().isBadRequest());
+    mvc.perform(get(path + "?size=100").header("Authorization", admin))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_PAGE"));
+    mvc.perform(get(path + "?status=CONFIRMED").header("Authorization", bearer(user())))
+        .andExpect(status().isForbidden());
   }
 
   void publishLegalPrivacy2() {

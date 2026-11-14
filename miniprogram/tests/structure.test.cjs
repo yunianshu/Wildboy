@@ -3,11 +3,15 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
-test("all twenty-seven registered native pages have compiled JS WXML WXSS JSON", () => {
+test("all thirty registered native pages have compiled JS WXML WXSS JSON", () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
-  assert.equal(app.pages.length, 27);
+  assert.equal(app.pages.length, 30);
+  assert.equal(new Set(app.pages).size, app.pages.length);
   for (const route of [
     "article",
+    "activity-orders",
+    "admin-activity-orders",
+    "admin-memberships",
     "notifications",
     "profile",
     "admin-users",
@@ -67,8 +71,9 @@ test("custom page headers remove old titles and center compact activity tabs", (
   assert.match(styles, /\.filter\s*\{[^}]*align-items:\s*center/s);
   assert.match(styles, /\.filters\s*\{[^}]*height:\s*72rpx/s);
 });
-test("production configuration fails closed and domain validation stays enabled", () => {
+test("production configuration uses the public HTTPS API and keeps domain validation enabled", () => {
   const config = require("../dist/config.js").config;
+  assert.equal(config.apiOrigin, "https://api.wildboy.com.cn");
   assert.equal(config.devLogin, false);
   const project = require("../project.config.json");
   assert.equal(project.setting.urlCheck, true);

@@ -5,7 +5,7 @@ const cats=[{id:'c1',name:'徒步装备',sortOrder:1,version:0},{id:'c2',name:'�
 const product=(id,categoryId='c1')=>({id,name:'真实装备 '+id,description:'商品说明',imageUrl:'/assets/equipment.jpg',priceCents:1299,originalPriceCents:1699,stock:3,status:'ON_SALE',version:0,categoryId,categoryName:cats.find(c=>c.id===categoryId)?.name||'未分类'});
 function page(name='shop'){const f=require.resolve('../dist/pages/'+name+'/index.js');delete require.cache[f];require(f);return {...definition,data:structuredClone(definition.data),updates:[],setData(v,done){this.updates.push(v);Object.assign(this.data,v);done?.()}}}
 const flush=()=>new Promise(r=>setImmediate(r)),event=id=>({currentTarget:{dataset:{id}}});
-beforeEach(()=>{calls=[];nav=[];now=0;Date.now=()=>now;global.wx={navigateTo:o=>nav.push(o.url),stopPullDownRefresh(){}};handler=async url=>url==='/shop/categories'?cats:[product(url.includes('c2')?'p2':url.includes('c1')?'p1':'all',url.includes('c2')?'c2':'c1')];api.request=async url=>{calls.push(url);return handler(url)}});
+beforeEach(()=>{calls=[];nav=[];now=0;Date.now=()=>now;global.wx={getStorageSync:()=>undefined,navigateTo:o=>nav.push(o.url),stopPullDownRefresh(){}};handler=async url=>url==='/shop/categories'?cats:[product(url.includes('c2')?'p2':url.includes('c1')?'p1':'all',url.includes('c2')?'c2':'c1')];api.request=async url=>{calls.push(url);return handler(url)}});
 afterEach(()=>{Date.now=actualNow});
 test('first catalog and independent public categories each request once and retain real IDs and prices',async()=>{
  const p=page();p.onShow();await Promise.all([p._flight,p._categoryFlight]);assert.deepEqual(calls.sort(),['/shop/categories','/shop/products']);assert.equal(p.data.categories.length,2);assert.equal(p.data.items[0].id,'all');assert.equal(p.data.items[0].priceText,'¥12.99');assert.equal(p.data.items[0].originalPriceText,'¥16.99');
@@ -40,6 +40,20 @@ test('original price is only displayed for a valid genuine discount, never deriv
 test('product quantity and checkout navigation use current price while the higher original stays display-only',async()=>{
  const p=page('product');p.setData({id:'p1'});handler=async()=>product('p1');await p.load();assert.equal(p.data.originalPriceText,'¥16.99');p.changeQuantity({currentTarget:{dataset:{delta:1}}});assert.equal(p.data.totalText,'¥25.98');p.buy();assert.equal(nav[0],'/pages/checkout/index?id=p1&quantity=2');
 });
+
+test('product quantity respects the 99-item limit before checkout so the quantity and total do not change across pages', async () => {
+ const p=page('product');p.setData({id:'p1'});handler=async()=>({...product('p1'),stock:150});await p.load();
+ for(let count=0;count<100;count++)p.changeQuantity({currentTarget:{dataset:{delta:1}}});
+ assert.equal(p.data.quantity,99);assert.equal(p.data.totalText,prices.priceText(1299*99));
+ p.buy();const target=new URL(nav.at(-1),'https://local.test');
+ const checkout=page('checkout');checkout.load=async()=>{};
+ checkout.onLoad(Object.fromEntries(target.searchParams));
+ assert.equal(checkout.data.quantity,p.data.quantity);
+ p.changeQuantity({currentTarget:{dataset:{delta:-1}}});assert.equal(p.data.quantity,98);
+ p.setData({quantity:1,product:{...p.data.product,stock:2}});
+ p.changeQuantity({currentTarget:{dataset:{delta:1}}});p.changeQuantity({currentTarget:{dataset:{delta:1}}});
+ assert.equal(p.data.quantity,2);
+});
 test('category metadata retry is deduplicated and forced refresh never discards the active catalog',async()=>{
  const p=page();await p.load();let finish;handler=url=>url==='/shop/categories'?new Promise(r=>finish=r):Promise.resolve([product('all')]);const first=p.loadCategories(true);assert.equal(p.retryCategories(),first);assert.equal(p.loadCategories(),first);await flush();assert.equal(p.data.items[0].id,'all');finish(cats);await first;const count=calls.filter(x=>x==='/shop/products').length;now=1000;await p.loadCategories();assert.equal(calls.filter(x=>x==='/shop/categories').length,1);assert.equal(calls.filter(x=>x==='/shop/products').length,count);
 });
@@ -52,4 +66,37 @@ test('shop track positioning rejects stale category queries and touch starts whi
 });
 test('returning to a category with an active background refresh keeps its cards and compact refresh state',async()=>{
  const p=page();p.onShow();await Promise.all([p._flight,p._categoryFlight]);p.selectCategory(event('c1'));await p._flight;p.selectCategory(event('c2'));await p._flight;now=30000;let finish;handler=url=>url.includes('c1')?new Promise(r=>finish=r):Promise.resolve([product('B','c2')]);p.selectCategory(event('c1'));const a=p._flight;await flush();p.selectCategory(event('c2'));await p._flight;p.selectCategory(event('c1'));assert.equal(p._flight,a);assert.equal(p.data.loaded,true);assert.equal(p.data.loading,false);assert.equal(p.data.refreshing,true);assert.equal(p.data.items[0].id,'p1');finish([product('fresh')]);await a;assert.equal(p.data.refreshing,false);assert.equal(p.data.items[0].id,'fresh');
+});
+
+test('returning within the category TTL does not prevent later expiry or forced refresh', async () => {
+ const p=page();p.onShow();await Promise.all([p._flight,p._categoryFlight]);
+ now=1000;p.onHide();p.onShow();await Promise.all([p._flight,p._categoryFlight]);
+ assert.equal(p._categoryFlight,undefined);
+ const updated=[{...cats[0],name:'更新后的分类'}];
+ handler=async url=>url==='/shop/categories'?updated:[product('fresh')];
+ now=31000;p.onHide();p.onShow();await Promise.all([p._flight,p._categoryFlight]);
+ assert.deepEqual(p.data.categories,updated);
+ assert.equal(calls.filter(url=>url==='/shop/categories').length,2);
+ await p.retryCategories();
+ assert.equal(calls.filter(url=>url==='/shop/categories').length,3);
+});
+
+test('late failure from a previous category cannot end the current loading state or add an error', async () => {
+ const p=page();p._visible=true;p.setData({categories:cats});let rejectA,finishB;
+ handler=url=>url.includes('c1')?new Promise((_,reject)=>rejectA=reject):new Promise(resolve=>finishB=resolve);
+ p.selectCategory(event('c1'));const a=p._flight;
+ p.selectCategory(event('c2'));const b=p._flight;
+ rejectA(Error('旧分类请求失败'));await a;
+ assert.equal(p.data.loading,true);assert.equal(p.data.error,'');
+ finishB([product('B','c2')]);await b;
+ assert.equal(p.data.items[0].id,'B');assert.equal(p.data.error,'');
+});
+
+test('a selected category missing from a refreshed response restores all products without a category bar', async () => {
+ const p=page();p._visible=true;p.setData({categories:cats});
+ p.selectCategory(event('c1'));await p._flight;
+ handler=async url=>url==='/shop/categories'?[]:[product('uncategorized')];
+ await p.retryCategories();await p._flight;
+ assert.deepEqual(p.data.categories,[]);assert.equal(p.data.selectedCategory,'all');
+ assert.equal(p.data.items[0].id,'uncategorized');assert.equal(calls.at(-1),'/shop/products');
 });

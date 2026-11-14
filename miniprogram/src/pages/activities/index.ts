@@ -35,7 +35,7 @@ Page({
     loading: false,
     loadingMore: false,
     error: "",
-    page: 0,
+    page: -1,
     hasMore: true,
     filterScrollLeft: 0,
   },
@@ -156,7 +156,7 @@ Page({
       loading: reset,
       loadingMore: !reset,
       error: "",
-      ...(reset ? { items: [], page: 0, hasMore: true } : {}),
+      ...(reset ? { items: [], page: -1, hasMore: true } : {}),
     });
     try {
       const p = await request<PageResult<Activity>>(

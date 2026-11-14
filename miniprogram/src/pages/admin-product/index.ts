@@ -50,6 +50,9 @@ Page({
     categories: [] as AdminCategory[],
     categoriesError: "",
     categoryManagerOpen: false,
+    categorySaving: false,
+    managedCategoryName: "",
+    managedCategoryIndex: 0,
     categoryMode: "new" as "new" | "edit",
     categoryForm: { name: "", sortOrder: "0" },
     categoryVersion: 0,
@@ -412,6 +415,7 @@ Page({
   async save() {
     if (
       this.data.saving ||
+      this._categorySaving ||
       !this.data.authorized ||
       !isSessionCurrent(this._session)
     )
@@ -510,16 +514,30 @@ Page({
   // ---- Category manager -------------------------------------------------
   toggleCategoryManager() {
     // An unresolved creation must be reconciled through the list first.
-    if (this.data.categoryUncertain || this._categorySaving) return;
+    if (!this.data.authorized || this.data.saving || this.data.categoryUncertain || this._categorySaving) return;
     this.setData({
       categoryManagerOpen: !this.data.categoryManagerOpen,
       categoryError: "",
     });
   },
-  newCategory() {
-    if (!this.data.authorized || this.data.saving) return;
+  canChangeCategory() {
+    return this.data.authorized && !this.data.saving && !this._categorySaving &&
+      !this.data.categoryUncertain && isSessionCurrent(this._session);
+  },
+  async confirmCategorySwitch() {
+    if (!this.canChangeCategory()) return false;
+    const n = this._epoch, session = this._session;
+    if (this.data.categoryDirty) {
+      const answer = await wx.showModal({ title: "切换分类？", content: "当前分类修改尚未保存，切换将丢弃这些修改。商品草稿会保留。" });
+      if (!answer.confirm) return false;
+    }
+    return n === this._epoch && isSessionCurrent(session) && this.canChangeCategory();
+  },
+  async newCategory() {
+    if (!await this.confirmCategorySwitch()) return;
     this._categoryId = "";
     this.setData({
+      categoryManagerOpen: true,
       categoryMode: "new",
       categoryForm: { name: "", sortOrder: "0" },
       categoryVersion: 0,
@@ -527,24 +545,31 @@ Page({
       categoryConflict: false,
       categoryError: "",
       categoryUncertain: false,
+      managedCategoryName: "",
     });
+    this.armLeave();
   },
-  chooseManagedCategory(e: WechatMiniprogram.PickerChange) {
+  async chooseManagedCategory(e: WechatMiniprogram.PickerChange) {
     const index = Number(e.detail.value);
     const found = this.data.categories[index];
     if (!Number.isInteger(index) || !found) return;
-    this._categoryId = found.id;
+    if (!await this.confirmCategorySwitch()) return;
+    this.adoptCategory(found);
   },
-  editCategory() {
-    if (!this.data.authorized || this.data.saving) return;
+  async editCategory() {
+    if (!this.canChangeCategory()) return;
     // Defaults to the product's own category so the managed id is never guessed.
     const target = this.data.categories.find(
-      (c) => c.id === (this._categoryId || this.data.form.categoryId),
-    );
+      (c) => c.id === (this.data.categoryManagerOpen && this._categoryId || this.data.form.categoryId),
+    ) || this.data.categories[0];
     if (!target) {
       this.setData({ categoryError: "请先选择要编辑的分类" });
       return;
     }
+    if (!await this.confirmCategorySwitch()) return;
+    this.adoptCategory(target);
+  },
+  adoptCategory(target: AdminCategory) {
     this._categoryId = target.id;
     this.setData({
       categoryManagerOpen: true,
@@ -555,9 +580,13 @@ Page({
       categoryConflict: false,
       categoryError: "",
       categoryUncertain: false,
+      managedCategoryName: target.name,
+      managedCategoryIndex: this.data.categories.findIndex(c => c.id === target.id),
     });
+    this.armLeave();
   },
   categoryInput(e: WechatMiniprogram.Input) {
+    if (!this.canChangeCategory()) return;
     const field = String(e.currentTarget.dataset.field);
     if (field !== "name" && field !== "sortOrder") return;
     this.setData({
@@ -565,6 +594,7 @@ Page({
       categoryDirty: true,
       categoryError: "",
     });
+    this.armLeave();
   },
   applyCategory(saved: AdminCategory, editing: boolean) {
     const categories = this.data.categories
@@ -583,6 +613,8 @@ Page({
         sortOrder: String(saved.sortOrder),
       };
       patch.categoryVersion = saved.version;
+      patch.managedCategoryName = saved.name;
+      patch.managedCategoryIndex = categories.findIndex(c => c.id === saved.id);
       patch.categoryDirty = false;
       patch.categoryConflict = false;
       if (this.data.form.categoryId === saved.id)
@@ -609,6 +641,7 @@ Page({
   async saveCategory() {
     if (
       this._categorySaving ||
+      this.data.saving ||
       !this.data.authorized ||
       !isSessionCurrent(this._session)
     )
@@ -633,7 +666,7 @@ Page({
       session = this._session,
       targetId = this._categoryId;
     this._categorySaving = true;
-    this.setData({ categoryError: "" });
+    this.setData({ categoryError: "", categorySaving: true });
     try {
       await requireAdmin();
       if (n !== this._epoch || !isSessionCurrent(session)) {
@@ -685,7 +718,7 @@ Page({
       this.setData({ categoryError: message(e) });
     } finally {
       this._categorySaving = false;
-      if (n === this._epoch) this.setData({ saving: false });
+      if (this._alive) this.setData({ categorySaving: false });
     }
   },
   async reloadCategory() {
@@ -752,6 +785,9 @@ Page({
           };
           patch.categoryVersion = target.version;
           patch.categoryConflict = false;
+          patch.categoryDirty = false;
+          patch.managedCategoryName = target.name;
+          patch.managedCategoryIndex = categories.findIndex(c => c.id === target.id);
         }
       }
       this.setData(patch);

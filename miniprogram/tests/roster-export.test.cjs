@@ -25,7 +25,9 @@ beforeEach(() => {
     calls.push(url);
     if (url.includes("/registrations?")) {
       const offset = Number(new URLSearchParams(url.split("?")[1]).get("page") || 0);
-      return { items: [registration("r" + offset)], page: offset, size: 100, total: 2, hasMore: offset === 0 };
+      const size = Number(new URLSearchParams(url.split("?")[1]).get("size"));
+      if (size > 50) throw new api.ApiError("分页参数超出范围", 400, "INVALID_PAGE");
+      return { items: [registration("r" + offset)], page: offset, size, total: 2, hasMore: offset === 0 };
     }
     return { id: "a", title: "山野徒步", capacity: 10, registeredCount: 1, startAt: "2026-11-10T00:00:00Z", location: "东门" };
   };
@@ -46,7 +48,7 @@ test("export fetches every page, writes a UTF-8 BOM CSV and hands one file to We
   await p.load(true);
   await p.export();
   await flush();
-  const pages = calls.filter((u) => u.includes("/registrations?") && u.includes("size=100"));
+  const pages = calls.filter((u) => u.includes("/registrations?") && u.includes("size=50"));
   assert.equal(pages.length, 2);
   assert.match(pages[0], /page=0/);
   assert.match(pages[1], /page=1/);
@@ -81,4 +83,38 @@ test("a share failure surfaces as a page error instead of a fake success", async
   assert.ok(p.data.error);
   assert.equal(p.data.loading, false);
   assert.equal(p.data.authorized, true);
+});
+
+test("export locks duplicate confirmations and filter changes, then releases after denial", async () => {
+  const p = page(); await p.load(true); let resolve, modalCount = 0;
+  global.wx.showModal = () => { modalCount++; return new Promise(done => { resolve = done; }); };
+  const pending = p.export(); await p.export();
+  p.filter({ currentTarget: { dataset: { status: 'CANCELLED' } } });
+  assert.equal(modalCount, 1); assert.equal(p.data.status, '');
+  resolve({ confirm: true }); shared.requireAdmin = async () => { throw new api.ApiError('权限已失效', 403, 'FORBIDDEN'); };
+  await pending;
+  assert.equal(p.data.exporting, false); assert.equal(p.data.loading, false); assert.equal(p.data.authorized, false);
+  assert.equal(written.length, 0);
+});
+
+test("export keeps its status filter across all pages and never truncates at page 100", async () => {
+  const p = page(); await p.load(true); p.setData({ status: 'CONFIRMED' }); calls = [];
+  api.request = async url => {
+    calls.push(url); const query = new URLSearchParams(url.split('?')[1]);
+    assert.equal(query.get('status'), 'CONFIRMED'); assert.equal(query.get('size'), '50');
+    const page = Number(query.get('page'));
+    const r = registration('r' + page); r.participants[0].participantName = page === 101 ? '=1+1' : '张三';
+    return { items: [r], page, size: 50, total: 102, hasMore: page < 101 };
+  };
+  await p.export();
+  assert.equal(calls.length, 102); assert.equal(written[0].c.split('\r\n').length, 103);
+  assert.ok(written[0].c.includes('"\'=1+1"')); assert.equal(p.data.exporting, false);
+});
+
+test("hiding during export prevents a late response from writing or sharing a file", async () => {
+  const p = page(); await p.load(true); let resolve;
+  api.request = () => new Promise(done => { resolve = done; });
+  const pending = p.export(); await flush(); p.onHide();
+  resolve({ items: [registration('late')], page: 0, hasMore: false }); await pending;
+  assert.equal(written.length, 0); assert.equal(shared_files.length, 0); assert.equal(p.data.exporting, false);
 });

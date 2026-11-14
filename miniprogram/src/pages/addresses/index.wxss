@@ -2,6 +2,42 @@
 .addresses-page .title {
   margin-bottom: 32rpx;
 }
+.address-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.address-field-header .label {
+  margin: 0;
+}
+.address-field-header .locate-address {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 8px;
+  line-height: 1.4;
+  font-size: 14px;
+  background: transparent;
+  color: #193f34;
+}
+.location-error {
+  margin-top: 8px;
+}
+.addresses-page textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 168rpx;
+  padding: 20rpx;
+  border: 1rpx solid #dce1d5;
+  border-radius: 10rpx;
+  background: #fffdf7;
+  color: #193e33;
+  font-size: 30rpx;
+  line-height: 1.5;
+  text-align: left;
+}
 .address-card {
   background: #fff;
   padding: 28rpx;
@@ -32,8 +68,14 @@
   gap: 16rpx;
 }
 .address-actions button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72rpx;
+  line-height: 1.4;
+  text-align: center;
   margin: 0;
-  padding: 0 18rpx;
+  padding: 10rpx 18rpx;
   font-size: 25rpx;
 }
 .address-actions .select-address {
@@ -47,5 +89,5 @@
 }
 .addresses-page .primary,
 .addresses-page .secondary {
-  margin-top: 24rpx;
+  margin-top: 16rpx;
 }

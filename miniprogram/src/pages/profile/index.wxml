@@ -2,6 +2,15 @@
   <view class="uf-header"><view class="uf-muted">参加活动前，请完善当前账号的本人姓名与手机号。</view></view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后管理活动联系资料<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
   <view wx:else class="uf-stack">
+    <ui-state wx:if="{{membershipLoading}}" compact="{{true}}" kind="loading">正在读取会员身份…</ui-state>
+    <ui-state wx:elif="{{membershipError}}" compact="{{true}}" kind="error">{{membershipError}}<button class="secondary" bindtap="loadMembership">重试会员信息</button></ui-state>
+    <view wx:elif="{{membership}}" class="uf-card uf-gap-12">
+      <view class="section-title">会员身份</view>
+      <view>{{membershipLabel}}</view>
+      <view wx:if="{{membership.customerType === 'MEMBER'}}">{{membership.tierName || '未分配等级'}}{{membership.tierEnabled ? '' : ' · 等级已停用'}}</view>
+      <view class="uf-muted">向管理员提供用户编号以核对身份</view>
+      <text user-select="true" style="word-break:break-all">{{membership.id}}</text>
+    </view>
     <ui-state wx:if="{{loading}}" kind="loading">正在读取用户资料…</ui-state>
     <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
     <block wx:elif="{{activityUser}}">
@@ -31,6 +40,6 @@
       <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" disabled="{{saving || legalLoading || !legal}}" color="#193F34" aria-label="同意资料处理说明"/><view class="consent-copy">我同意当前《隐私政策》和《用户协议》，同意将姓名和手机号用于活动组织、身份核验和联系。</view></view></checkbox-group>
       <view wx:if="{{fieldError}}" class="error dialog-error" aria-role="alert">{{fieldError}}</view>
     </scroll-view>
-    <view class="dialog-actions"><button class="secondary ui-button ui-button-block {{(saving) ? 'button-disabled' : ''}}" bindtap="cancel" disabled="{{saving}}">取消</button><button class="primary ui-button ui-button-block {{(saving || legalLoading || !consent || !legal) ? 'primary-disabled' : ''}}" bindtap="save" loading="{{saving}}" disabled="{{saving || legalLoading || !consent || !legal}}">保存资料</button></view>
+    <view class="dialog-actions"><button class="secondary ui-button ui-button-block {{(saving) ? 'button-disabled' : ''}}" bindtap="cancel" disabled="{{saving}}">取消</button><button class="primary ui-button ui-button-block {{(saving || legalLoading || !consent || !legal) ? 'primary-disabled' : ''}}" bindtap="save" loading="{{saving}}" disabled="{{saving || legalLoading || !consent || !legal}}">{{fromRegister ? '保存并返回报名' : '保存资料'}}</button></view>
   </view>
 </view>

@@ -64,7 +64,8 @@ export function productInput(f: ProductForm | ProductDraft, version?: number) {
   const hasCategory = "categoryId" in f;
   let originalPriceCents: number | undefined;
   if (hasOriginal) {
-    originalPriceCents = parseCents(String(f.originalPrice ?? ""), "原价");
+    const original = String(f.originalPrice ?? "").trim();
+    originalPriceCents = original ? parseCents(original, "原价") : priceCents;
     if (originalPriceCents < priceCents)
       throw new Error("原价不能低于现价");
   }
@@ -109,6 +110,7 @@ export function categoryInput(
 export const adminOrderStatus = (s: string) =>
   ({
     PENDING_PAYMENT: "待付款",
+    CONFIRMED_FREE: "免支付已确认（待发货）",
     PAID: "待发货",
     SHIPPED: "已发货",
     CANCELLED: "已取消",
