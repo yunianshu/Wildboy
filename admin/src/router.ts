@@ -14,6 +14,7 @@ import OperationsView from "./views/OperationsView.vue";
 import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
 import ArticlesView from "./views/ArticlesView.vue";
+import ArticleEditorView from "./views/ArticleEditorView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import MembershipsView from "./views/MembershipsView.vue";
 import ActivityOrdersView from "./views/ActivityOrdersView.vue";
@@ -35,6 +36,8 @@ export const router = createRouter({
     { path: "/notifications", component: NotificationsView },
     { path: "/legal", component: LegalView },
     { path: "/articles", component: ArticlesView },
+    { path: "/articles/new", component: ArticleEditorView },
+    { path: "/articles/:id/edit", component: ArticleEditorView },
     { path: "/settings", component: SettingsView },
     { path: "/settings/admin-account", component: AdminAccountView },
     { path: "/activities/new", component: EditorView },

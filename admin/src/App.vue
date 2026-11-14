@@ -103,8 +103,10 @@ const pageTitle = computed(() => {
   const path = route.path;
   if (pageTitles[path]) return pageTitles[path];
   if (path.endsWith("registrations")) return "报名名单";
-  if (path.endsWith("edit")) return "编辑活动";
-  if (path.endsWith("new")) return "新建活动";
+  if (path.endsWith("edit"))
+    return path.startsWith("/articles/") ? "编辑文章" : "编辑活动";
+  if (path.endsWith("new"))
+    return path.startsWith("/articles/") ? "新建文章" : "新建活动";
   return "活动工作台";
 });
 watch(currentUser, (user) => {

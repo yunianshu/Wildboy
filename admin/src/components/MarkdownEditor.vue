@@ -5,15 +5,15 @@ import Vditor from "vditor";
 import "vditor/dist/index.css";
 import { request, currentUser, errorMessage } from "../api";
 
-// 有道云风格的 Markdown 编辑器（Vditor WYSIWYG 模式），替换文章的块编辑器。
+// 有道云风格的 Markdown 编辑器（Vditor WYSIWYG 模式），内嵌在文章编辑页文档流中。
+// 保存动作由页面顶栏触发（expose save），组件只负责正文内容的加载、编辑与上传。
 // 存储：article.markdown（服务端用 commonmark 渲染白名单 HTML 给小程序）。
-// 接口与 RichContentEditor 保持一致，ArticlesView 仅换组件名。
 const props = defineProps<{
   path: string;
   disabled?: boolean;
   managedNavigation?: boolean;
-  /** 编辑页签是否可见：Vditor 需要可见容器才能正确布局，隐藏时延迟初始化。 */
-  active?: boolean;
+  /** 编辑器高度（px），默认 520。 */
+  height?: number;
 }>();
 const emit = defineEmits<{ saved: [version: number] }>();
 
@@ -62,12 +62,6 @@ watch(
   { immediate: true },
 );
 watch(
-  () => props.active,
-  (visible) => {
-    if (visible) void maybeInit();
-  },
-);
-watch(
   () => props.disabled,
   () => syncDisabled(),
 );
@@ -107,7 +101,7 @@ async function handleUpload(files: File[]): Promise<string | null> {
   }
 }
 function maybeInit() {
-  if (inited || !loaded.value || props.active === false || !host.value) return;
+  if (inited || !loaded.value || !host.value) return;
   inited = true;
   void nextTick(() => {
     vditor = new Vditor(host.value as HTMLElement, {
@@ -115,8 +109,8 @@ function maybeInit() {
       lang: "zh_CN",
       mode: "wysiwyg",
       value: markdown,
-      height: 480,
-      placeholder: "用 Markdown 记录行程、装备与注意事项…",
+      height: props.height ?? 520,
+      placeholder: "开始写正文…输入 / 呼出格式菜单，或直接粘贴图片",
       cache: { enable: false },
       toolbar: [
         "headings",
@@ -198,7 +192,7 @@ async function save() {
 function canLeave() {
   return !dirty.value || window.confirm("图文尚未保存，确定离开吗？");
 }
-defineExpose({ canLeave, dirty, busy, loaded });
+defineExpose({ canLeave, dirty, busy, loaded, save });
 onBeforeRouteLeave(
   (to) => props.managedNavigation || to.path === "/login" || canLeave(),
 );
@@ -209,8 +203,7 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <section class="editor-section rich-editor">
-    <h2>图文正文 · Markdown</h2>
+  <section class="md-editor">
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
     <button
       v-if="!loaded"
@@ -220,38 +213,85 @@ onUnmounted(() => {
     >
       重新加载图文
     </button>
-    <div v-show="loaded" class="md-editor-wrap">
-      <div
-        ref="host"
-        class="md-editor"
-        aria-label="图文正文（Markdown 编辑器）"
-      ></div>
-      <div class="rich-tools md-editor-tools">
-        <span class="muted md-editor-hint"
-          >支持 Markdown 与图片上传；正文由系统渲染为小程序页面。</span
-        >
-        <button
-          type="button"
-          class="primary button"
-          :disabled="busy || disabled || !loaded"
-          @click="save"
-        >
-          {{ busy ? "保存中…" : "保存图文" }}
-        </button>
-      </div>
-    </div>
+    <div
+      ref="host"
+      class="md-canvas"
+      aria-label="图文正文（Markdown 编辑器）"
+    ></div>
   </section>
 </template>
 <style scoped>
-.md-editor-wrap {
+.md-editor {
   margin-top: 4px;
 }
-.md-editor-tools {
-  margin-top: 12px;
-  justify-content: flex-end;
+/* 定制 vditor 皮肤：去掉默认边框与阴影，融入文档画布。 */
+.md-editor :deep(.vditor) {
+  border: 0;
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px var(--admin-line);
+  background: var(--admin-surface);
 }
-.md-editor-hint {
-  margin-right: auto;
-  font-size: 11px;
+.md-editor :deep(.vditor-toolbar) {
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-hairline);
+  border-radius: 10px 10px 0 0;
+  padding: 4px 8px;
+}
+.md-editor :deep(.vditor-toolbar--pin) {
+  border-radius: 10px 10px 0 0;
+}
+.md-editor :deep(.vditor-toolbar svg) {
+  fill: var(--admin-muted);
+}
+.md-editor :deep(.vditor-toolbar .vditor-toolbar__item:hover svg),
+.md-editor :deep(.vditor-toolbar .vditor-toolbar__item--current svg) {
+  fill: var(--admin-primary);
+}
+.md-editor :deep(.vditor-content) {
+  border-radius: 0 0 10px 10px;
+}
+.md-editor :deep(.vditor-wysiwyg) {
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--admin-body);
+  padding: 20px 24px;
+}
+.md-editor :deep(.vditor-wysiwyg h1) {
+  font-size: 25px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.md-editor :deep(.vditor-wysiwyg h2) {
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+.md-editor :deep(.vditor-wysiwyg h3) {
+  font-size: 17px;
+  font-weight: 700;
+}
+.md-editor :deep(.vditor-wysiwyg blockquote) {
+  border-left: 3px solid var(--admin-primary);
+  background: rgba(236, 253, 245, 0.6);
+  border-radius: 0 8px 8px 0;
+  padding: 8px 16px;
+  color: #065f46;
+}
+.md-editor :deep(.vditor-wysiwyg table) {
+  border-collapse: collapse;
+}
+.md-editor :deep(.vditor-wysiwyg table thead th) {
+  background: var(--admin-paper);
+}
+.md-editor :deep(.vditor-wysiwyg th),
+.md-editor :deep(.vditor-wysiwyg td) {
+  border: 0;
+  border-bottom: 1px solid var(--admin-hairline);
+}
+.md-editor :deep(.vditor-wysiwyg img) {
+  border-radius: 8px;
+}
+.md-editor :deep(.vditor-wysiwyg code) {
+  background: var(--admin-paper);
 }
 </style>

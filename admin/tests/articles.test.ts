@@ -7,6 +7,8 @@ const { VditorMock, vditorInstances } = vi.hoisted(() => {
     options: any;
     value = "";
     readied = false;
+    disabledCalls = 0;
+    enabledCalls = 0;
     constructor(_el: HTMLElement, options: any) {
       this.options = options;
       this.value = options.value ?? "";
@@ -18,8 +20,12 @@ const { VditorMock, vditorInstances } = vi.hoisted(() => {
     getValue() {
       return this.value;
     }
-    disabled() {}
-    enable() {}
+    disabled() {
+      this.disabledCalls++;
+    }
+    enable() {
+      this.enabledCalls++;
+    }
     destroy() {}
     fireInput() {
       this.options?.input?.(this.value);
@@ -35,8 +41,24 @@ const { VditorMock, vditorInstances } = vi.hoisted(() => {
 vi.mock("vditor", () => ({ default: VditorMock }));
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
-import ArticlesView from "../src/views/ArticlesView.vue";
+import { defineComponent } from "vue";
+import ArticleEditorView from "../src/views/ArticleEditorView.vue";
+import MarkdownEditor from "../src/components/MarkdownEditor.vue";
 import { acceptAuth, clearSession } from "../src/api";
+// ConfirmDialog 真身 Teleport 到 body，单测内用内联替身验证确认/取消协作。
+const ConfirmDialogStub = defineComponent({
+  props: {
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    confirmLabel: { type: String, required: true },
+    busy: { type: Boolean, default: false },
+    danger: { type: Boolean, default: false },
+  },
+  emits: ["confirm", "cancel"],
+  template: `<div role="dialog"><h2>{{ title }}</h2><p>{{ description }}</p>
+    <button :disabled="busy" @click="$emit('cancel')">返回检查</button>
+    <button :disabled="busy" @click="$emit('confirm')">{{ confirmLabel }}</button></div>`,
+});
 const base = {
   id: "article-1",
   title: "活动回顾",
@@ -56,6 +78,7 @@ function button(w: VueWrapper, text: string) {
 beforeEach(() => {
   vi.restoreAllMocks();
   clearSession();
+  localStorage.clear();
   acceptAuth({
     token: "test",
     user: { id: "admin", nickname: "管理员", role: "ADMIN" },
@@ -96,130 +119,122 @@ beforeEach(() => {
   });
   vi.stubGlobal("fetch", fetcher);
 });
-async function view() {
+async function view(path: string) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: "/", component: ArticlesView },
+      { path: "/articles", component: { template: "<div />" } },
+      { path: "/articles/new", component: ArticleEditorView },
+      { path: "/articles/:id/edit", component: ArticleEditorView },
       { path: "/other", component: { template: "<div />" } },
     ],
   });
-  await router.push("/");
+  await router.push(path);
+  await router.isReady();
   const w = mount(
     { template: "<RouterView />" },
-    { global: { plugins: [router] } },
+    {
+      global: { plugins: [router], stubs: { ConfirmDialog: ConfirmDialogStub } },
+      // Teleport 目标按 selector 解析，需挂载到 document 才能找到
+      attachTo: document.body,
+    },
   );
   await flushPromises();
   return w;
 }
-async function edit(w: VueWrapper) {
-  await button(
-    w,
-    article.status === "PUBLISHED" ? "查看文章" : "编辑文章",
-  ).trigger("click");
-  await flushPromises();
+function rich(w: VueWrapper) {
+  return w.getComponent(MarkdownEditor);
 }
-async function showContent(w: VueWrapper) {
-  await button(w, "图文正文").trigger("click");
+async function loadRich(w: VueWrapper) {
   await flushPromises();
-  expect(w.get(".rich-editor").isVisible()).toBe(true);
   expect(vditorInstances.length).toBeGreaterThan(0);
   vditorInstances.at(-1)!.ready();
+  await flushPromises();
 }
-
 async function typeContent(w: VueWrapper, text: string) {
   const inst = vditorInstances.at(-1)!;
   inst.value = text;
   inst.fireInput();
-}
-async function confirmPublish(w: VueWrapper) {
-  await button(w, "发布文章").trigger("click");
-  expect(w.text()).toContain("发布文章？");
-  await button(w, "确认发布").trigger("click");
   await flushPromises();
 }
 const writes = () => fetcher.mock.calls.filter((c: any) => c[1]?.method);
-describe("article editor", () => {
+describe("article editor page", () => {
   it("creates a draft before loading its structured content", async () => {
-    const w = await view();
-    await button(w, "新建文章").trigger("click");
-    await flushPromises();
-    expect(w.find(".rich-editor").exists()).toBe(false);
+    const w = await view("/articles/new");
+    expect(vditorInstances.length).toBe(0);
     await w.get('[aria-label="文章标题"]').setValue("新文章");
-    await w.get("form").trigger("submit");
+    await button(w, "保存草稿").trigger("click");
     await flushPromises();
     expect(writes()[0][1].method).toBe("POST");
     expect(JSON.parse(writes()[0][1].body).activityId).toBeNull();
-    expect(w.find(".rich-editor").exists()).toBe(true);
+    expect(w.vm.$route.path).toBe("/articles/article-1/edit");
+    await loadRich(w);
+    expect(vditorInstances.length).toBe(1);
     w.unmount();
   });
-  it("blocks publication with unsaved content, synchronizes shared version on save", async () => {
-    const w = await view();
-    await edit(w);
-    await showContent(w);
+  it("refuses to save a draft without a title", async () => {
+    const w = await view("/articles/new");
+    await button(w, "保存草稿").trigger("click");
+    await flushPromises();
+    expect(w.text()).toContain("请填写文章标题");
+    expect(writes()).toHaveLength(0);
+    w.unmount();
+  });
+  it("saves content before metadata with a shared version chain, then publishes", async () => {
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
     await typeContent(w, "更新正文");
-    await button(w, "基本资料").trigger("click");
-    expect(button(w, "发布文章").attributes("disabled")).toBeDefined();
-    await showContent(w);
-    expect(vditorInstances.at(-1)!.value).toBe("更新正文");
-    await button(w, "保存图文").trigger("click");
-    await flushPromises();
-    await button(w, "基本资料").trigger("click");
-    await confirmPublish(w);
-    const publish = fetcher.mock.calls.find((c: any) =>
-      c[0].endsWith("/publish"),
-    )!;
-    expect(JSON.parse(publish[1].body)).toEqual({ version: 1 });
-    expect(w.text()).toContain("已发布文章为只读");
-    w.unmount();
-  });
-  it("blocks publishing unsaved metadata, then reloads content version after metadata save", async () => {
-    const w = await view();
-    await edit(w);
     await w.get('[aria-label="文章标题"]').setValue("修改标题");
-    expect(button(w, "发布文章").attributes("disabled")).toBeDefined();
-    await w.get("form").trigger("submit");
+    expect(button(w, "发布").attributes("disabled")).toBeDefined();
+    await button(w, "保存").trigger("click");
     await flushPromises();
-    await showContent(w);
-    await typeContent(w, "再次编辑");
-    await button(w, "保存图文").trigger("click");
+    expect(writes()[0][0].endsWith("/content")).toBe(true);
+    expect(JSON.parse(writes()[0][1].body)).toEqual({
+      markdown: "更新正文",
+      version: 0,
+    });
+    expect(writes()[1][0].endsWith("/articles/article-1")).toBe(true);
+    expect(JSON.parse(writes()[1][1].body).version).toBe(1);
+    await button(w, "发布").trigger("click");
+    expect(w.text()).toContain("发布文章？");
+    await button(w, "确认发布").trigger("click");
     await flushPromises();
-    const put = fetcher.mock.calls.find(
-      (c: any) => c[0].endsWith("/content") && c[1]?.method === "PUT",
-    )!;
-    expect(JSON.parse(put[1].body).markdown).toBe("再次编辑");
-    expect(JSON.parse(put[1].body).version).toBe(1);
-    w.unmount();
-  });
-  it("saves content, closes, reopens current detail and publishes the latest version", async () => {
-    const w = await view();
-    await edit(w);
-    await showContent(w);
-    await typeContent(w, "保存后关闭");
-    await button(w, "保存图文").trigger("click");
-    await flushPromises();
-    await button(w, "关闭").trigger("click");
-    await edit(w);
-    await confirmPublish(w);
     const publish = fetcher.mock.calls.find((c: any) =>
       c[0].endsWith("/publish"),
     )!;
-    expect(JSON.parse(publish[1].body).version).toBe(1);
-    expect(
-      fetcher.mock.calls.filter(
-        (c: any) => c[0].endsWith("/articles/article-1") && !c[1]?.method,
-      ),
-    ).toHaveLength(2);
+    expect(JSON.parse(publish[1].body)).toEqual({ version: 2 });
+    expect(w.text()).toContain("文章已发布，将在小程序探索页展示。");
     w.unmount();
   });
-  it("confirms designation replacement and allows only a published article", async () => {
+  it("keeps a published article read-only until it is unpublished", async () => {
     article.status = "PUBLISHED";
-    const w = await view();
-    await edit(w);
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
+    expect(
+      w.get('[aria-label="文章标题"]').attributes("disabled"),
+    ).toBeDefined();
+    expect(vditorInstances.at(-1)!.disabledCalls).toBeGreaterThan(0);
+    expect(button(w, "保存")).toBeUndefined();
+    await button(w, "下架并编辑").trigger("click");
+    await flushPromises();
+    expect(writes()[0][0].endsWith("/unpublish")).toBe(true);
+    expect(
+      w.get('[aria-label="文章标题"]').attributes("disabled"),
+    ).toBeUndefined();
+    w.unmount();
+  });
+  it("confirms official designation and allows it only for published articles", async () => {
+    const draft = await view("/articles/article-1/edit");
+    await loadRich(draft);
+    expect(button(draft, "设为官方介绍")).toBeUndefined();
+    draft.unmount();
+    article.status = "PUBLISHED";
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
     await button(w, "设为官方介绍").trigger("click");
     expect(w.text()).toContain("替换原官方介绍");
     expect(w.text()).toContain(article.title);
-    await button(w, "取消").trigger("click");
+    await button(w, "返回检查").trigger("click");
     expect(writes()).toHaveLength(0);
     await button(w, "设为官方介绍").trigger("click");
     await button(w, "确认设为官方介绍").trigger("click");
@@ -228,47 +243,24 @@ describe("article editor", () => {
     expect(writes()).toHaveLength(1);
     w.unmount();
   });
-  it("does not discard dirty form on cancelled Close", async () => {
-    const w = await view();
-    await edit(w);
-    await w.get('[aria-label="文章标题"]').setValue("未保存");
-    vi.mocked(window.confirm).mockReturnValue(false);
-    await button(w, "关闭").trigger("click");
-    expect(w.find('[role="dialog"]').exists()).toBe(true);
-    expect(writes()).toHaveLength(0);
-    vi.mocked(window.confirm).mockReturnValue(true);
-    await button(w, "关闭").trigger("click");
-    expect(w.find('[role="dialog"]').exists()).toBe(false);
-    w.unmount();
-  });
-  it("honors cancelled navigation with dirty metadata and then allows confirmed departure", async () => {
-    const w = await view();
-    await edit(w);
-    await w.get('[aria-label="文章标题"]').setValue("未保存导航");
+  it("asks once before leaving with unsaved content or metadata", async () => {
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
+    await typeContent(w, "尚未保存的图文");
     const router = (w.vm as any).$router;
+    vi.mocked(window.confirm).mockClear();
     vi.mocked(window.confirm).mockReturnValue(false);
     await router.push("/other");
-    expect(router.currentRoute.value.path).toBe("/");
-    expect(w.find('[role="dialog"]').exists()).toBe(true);
+    expect(window.confirm).toHaveBeenCalledTimes(1);
+    expect(router.currentRoute.value.path).toBe("/articles/article-1/edit");
     vi.mocked(window.confirm).mockReturnValue(true);
     await router.push("/other");
     expect(router.currentRoute.value.path).toBe("/other");
-    expect(w.find('[role="dialog"]').exists()).toBe(false);
-    w.unmount();
-  });
-  it("asks once before leaving with unsaved rich content", async () => {
-    const w = await view();
-    await edit(w);
-    await showContent(w);
-    await typeContent(w, "尚未保存的图文");
-    vi.mocked(window.confirm).mockClear();
-    await (w.vm as any).$router.push("/other");
-    expect(window.confirm).toHaveBeenCalledTimes(1);
     w.unmount();
   });
   it("prevents repeated saves and ignores a late response after logout", async () => {
-    const w = await view();
-    await edit(w);
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
     await w.get('[aria-label="文章标题"]').setValue("延迟保存");
     let finish!: (value: any) => void;
     fetcher.mockImplementationOnce(
@@ -277,8 +269,10 @@ describe("article editor", () => {
           finish = resolve;
         }),
     );
-    await w.get("form").trigger("submit");
-    await w.get("form").trigger("submit");
+    const saveButton = button(w, "保存")!;
+    await saveButton.trigger("click");
+    // 保存中按钮文案变化，重复点击应被 saving 守卫拦截
+    await button(w, "正在保存…")?.trigger("click");
     expect(writes()).toHaveLength(1);
     clearSession();
     await flushPromises();
@@ -288,31 +282,54 @@ describe("article editor", () => {
       json: async () => ({ ...article, title: "延迟保存", version: 1 }),
     });
     await flushPromises();
-    expect(w.find('[role="dialog"]').exists()).toBe(false);
-    expect(w.find("tbody").exists()).toBe(false);
+    expect(button(w, "正在保存…")).toBeUndefined();
     w.unmount();
   });
-  it("clears article data when the session ends", async () => {
-    const w = await view();
-    await edit(w);
+  it("clears article state when the session ends", async () => {
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
     clearSession();
     await flushPromises();
-    expect(w.find('[role="dialog"]').exists()).toBe(false);
-    expect(w.find("tbody").exists()).toBe(false);
+    expect(w.find(".status-pill").exists()).toBe(false);
+    expect(button(w, "发布")).toBeUndefined();
+    w.unmount();
+  });
+  it("switches editor layouts without remounting the editor or losing content", async () => {
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
+    await typeContent(w, "切换布局也不丢正文");
+    expect(w.find(".workbench").isVisible()).toBe(true);
+    expect(w.find(".doc-canvas").isVisible()).toBe(false);
+    await button(w, "文档").trigger("click");
+    await flushPromises();
+    expect(w.find(".doc-canvas").isVisible()).toBe(true);
+    expect(w.find(".workbench").isVisible()).toBe(false);
+    // 编辑器实例未重建，未保存的正文仍在
+    expect(vditorInstances).toHaveLength(1);
+    expect(Boolean(rich(w).vm.dirty)).toBe(true);
+    expect(localStorage.getItem("wildboy-admin-article-layout")).toBe("canvas");
+    await button(w, "工作台").trigger("click");
+    await flushPromises();
+    expect(localStorage.getItem("wildboy-admin-article-layout")).toBe(
+      "workbench",
+    );
+    expect(vditorInstances).toHaveLength(1);
     w.unmount();
   });
   it("shows version conflict without overwriting or auto-publishing", async () => {
-    const w = await view();
-    await edit(w);
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
     fetcher.mockResolvedValueOnce({
       ok: false,
       status: 409,
       json: async () => ({ message: "文章版本冲突" }),
     });
-    await confirmPublish(w);
+    await button(w, "发布").trigger("click");
+    await button(w, "确认发布").trigger("click");
+    await flushPromises();
     expect(w.text()).toContain("文章版本或状态已变化");
     expect(writes()).toHaveLength(1);
-    expect(button(w, "发布文章").exists()).toBe(true);
+    expect(button(w, "发布").exists()).toBe(true);
     w.unmount();
   });
 });

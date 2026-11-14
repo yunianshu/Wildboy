@@ -92,7 +92,8 @@ describe("markdown article content editor", () => {
     instances[0].value = "# 标题\n\n新正文";
     instances[0].fireInput();
     expect(dirtyOf(w)).toBe(true);
-    await w.get("button.primary").trigger("click");
+    // 保存动作由编辑页顶栏触发：调用组件暴露的 save()
+    await (w.vm as unknown as { save: () => Promise<void> }).save();
     await flushPromises();
     const put = fetch.mock.calls.find((c: any) => c[1]?.method === "PUT")!;
     expect(JSON.parse(put[1].body)).toEqual({
@@ -123,7 +124,7 @@ describe("markdown article content editor", () => {
     const inst = instances[0];
     inst.value = "本地修改";
     inst.fireInput();
-    await w.get("button.primary").trigger("click");
+    await (w.vm as unknown as { save: () => Promise<void> }).save();
     await flushPromises();
     expect(w.get('[role="alert"]').text()).toContain("内容冲突");
     expect(inst.value).toBe("本地修改");
