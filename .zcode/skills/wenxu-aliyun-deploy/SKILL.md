@@ -67,6 +67,31 @@ release.sh 的 6 步（0 前置检查 → 1 admin 门禁 typecheck+vitest+build 
 发布完成：b5a281a 已上线。
 ```
 
+## 第 5 步（条件）：小程序上传
+
+**触发条件**：本次发布区间内的提交改动了 `miniprogram/`，或**服务端公开接口的响应字段发生变化**。
+后一条尤其重要——服务端改了返回格式而小程序不重新上传，线上旧版小程序会因校验新字段失败
+（实际事故：响应 `blocks`→`contentNodes` 切换后，旧版小程序文章详情全部报「文章加载失败」，列表却正常）。
+
+先问用户「本次发布是否动了小程序或接口契约」，用户确认后再执行；也可用
+`git diff --name-only <上次发布commit>..HEAD -- miniprogram/` 自查。
+
+```sh
+cd "$(git rev-parse --show-toplevel)/miniprogram"
+npm test                                        # 全量测试（约 520 项）
+npm run build                                   # 生产配置构建（脚本会校验 apiOrigin 与开发登录关闭）
+node scripts/upload.cjs --check-config          # 上传前配置校验
+WILDBOY_VERSION=<语义化版本> WILDBOY_DESC="<本次改动说明>" node scripts/upload.cjs
+```
+
+- 上传密钥：`%USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key`（或环境变量 `WILDBOY_UPLOAD_KEY`）。
+- `ci.upload` 只是把新版本传成微信平台的**开发版本**，输出 `UPLOAD OK` 仅代表上传成功。
+
+**上传成功后必须告知用户剩余的人工步骤**（无法代操作）：
+
+1. [mp.weixin.qq.com](https://mp.weixin.qq.com) → 版本管理 → 开发版本 → 设为体验版，真机验收
+2. 提交审核 → 审核通过后全量发布，线上正式版才更新
+
 ## 失败处理
 
 | 失败点 | 动作 |
@@ -75,6 +100,7 @@ release.sh 的 6 步（0 前置检查 → 1 admin 门禁 typecheck+vitest+build 
 | 步骤 3 GitHub 推送失败 | 检查凭证/网络后重试一次，仍失败报告用户 |
 | 步骤 5 服务器部署失败 | `ssh root@<host> 'tail -50 /root/deploy-run.log'` 贴日志尾部，诊断后决定重试或回退 |
 | 步骤 6 公网烟雾失败 | 先查服务器 `docker ps` 与容器日志，可能是 nginx 重建未完成，等 30 秒复查一次 |
+| 小程序 `ci.upload` 失败 | 常见原因：上传密钥缺失/过期（微信平台「开发设置-代码上传密钥」重新下载）、平台开了 IP 白名单但本机出口 IP 未加入；按报错贴给用户 |
 
 ## 数据库与回退（发布前必读场景）
 
