@@ -85,6 +85,18 @@ onDark 各值在 #193F34 侧栏底上对比度 5.74–7.14（≥4.5）。
 
 未验证/遗留：Pencil 应用内最终渲染与画板级微调（恢复方式见上文）；生产域名 wildboy.com.cn 的实际部署不在本轮范围。
 
+## 生产部署记录（2026-11-14 14:00）
+
+经用户确认后部署上线。生产原状：服务器 main（02835ec）是本地谱系的祖先，GitHub origin/main（4f91b7b）为同一会员定价功能的平行冗余实现。整合与发布过程：
+
+1. 将本地完整工作区（含 V13–V23 迁移、服务端与管理端全部演进）固化为提交 ec00f3f；本地门禁：`mvn verify` 228/228、vitest 194/194、浏览器 158/158。
+2. Flyway 预检：以生产库 flyway_schema_history 的 23 条 checksum 构造临时库，用部署树迁移文件执行真实 `validate`，23/23 通过（生产库已应用至 V23，本次部署零迁移，纯代码发布）。
+3. `git merge -s ours origin/main`（122aee7）统一历史——GitHub 谱系仅多出已按需求下线的候补功能，其余内容均被本地谱系包含；推送 GitHub `4f91b7b..122aee7`。
+4. 服务器 GitHub 连接超时（deploy.sh 第 1 步既有的已知风险），改走 SSH 直推：`deploy-staging` 分支推送后在服务器 ff-merge 至 122aee7，按 deploy.sh 第 2–5 步原样执行（凭据变量从凭据文件导出修正了脚本中未定义引用）。
+5. 服务器烟雾检查全过：api OK、edge 凭据 200/匿名 403、admin OK。公网复核：https://www.wildboy.com.cn/ 200 且线上 CSS（index-Dqxc3bA1.css）含全部模块色/语义色令牌（--acc-*、--tone-*、--page-accent），https://api.wildboy.com.cn 公开接口 200，登录页截图正常。
+
+回退方式：服务器 `git reset --hard 02835ec` + 重跑 deploy.sh 第 2–5 步（数据库 V23 与 02835ec 代码兼容，迁移文件在服务器谱系缺失不影响已应用状态）；更早回退用 .bak 恢复 Pen 设计。
+
 ## 改版覆盖表
 
 | 编号 | 路由 | Pen 画板（id） | 模块色 | 实现文件 | 设计状态 | 实现状态 | 验证证据 |
