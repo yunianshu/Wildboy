@@ -6,6 +6,8 @@ import java.io.*;
 import java.nio.file.*;
 import java.util.*;
 import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +16,7 @@ import org.springframework.web.servlet.config.annotation.*;
 @RestController @RequestMapping("/api/v1/admin/media")
 public class MediaController implements WebMvcConfigurer {
   static final int MAX_BYTES=4*1024*1024;
+  static final Logger log=LoggerFactory.getLogger(MediaController.class);
   final Path root;
   public MediaController(@Value("${wildboy.media-dir:./data/media}") String directory){root=Path.of(directory).toAbsolutePath().normalize();}
   public record Upload(@NotBlank @Size(max=5592408) String dataBase64) {}
@@ -40,7 +43,11 @@ public class MediaController implements WebMvcConfigurer {
         Files.write(root.resolve(name),output.toByteArray(),StandardOpenOption.CREATE_NEW);
         return ResponseEntity.status(201).body(Map.of("url","/assets/uploads/"+name));
       }finally{reader.dispose();}
-    }catch(ApiException e){throw e;}catch(IOException e){throw new ApiException(503,"UPLOAD_FAILED","图片保存失败，请重试");}
+    }catch(ApiException e){throw e;}
+    catch(IOException e){
+      log.error("图片保存失败 media-dir={}",root,e);
+      throw new ApiException(503,"UPLOAD_FAILED","图片保存失败，请重试");
+    }
   }
   static ApiException invalid(){return new ApiException(400,"INVALID_IMAGE","仅支持 4MB 内的 JPG/PNG 图片，最大 1600 万像素");}
   @Override public void addResourceHandlers(ResourceHandlerRegistry registry){
