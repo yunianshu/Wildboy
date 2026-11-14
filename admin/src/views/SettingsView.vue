@@ -180,7 +180,7 @@ async function save() {
   );
   if (invalidImage) {
     activeSlot.value = invalidImage.slot;
-    error.value = `入口 ${invalidImage.slot} 的图片须为 HTTPS 或 /assets/ 地址。`;
+    error.value = `入口 ${invalidImage.slot} 的图片须为上传的图片地址或 HTTPS 地址。`;
     return;
   }
   const n = epoch,

@@ -206,7 +206,7 @@ it("reload cancellation preserves edits after a failed upload", async () => {
       value: "data:image/png;base64,cG5n",
       configurable: true,
     });
-    this.onload?.(new ProgressEvent("load"));
+    this.onload?.({} as ProgressEvent<FileReader>);
   } as any);
   await input.trigger("change");
   await flushPromises();

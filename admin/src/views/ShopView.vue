@@ -56,7 +56,7 @@ const products = ref<Product[]>([]),
   form = ref({
     name: "",
     description: "",
-    imageUrl: "/assets/equipment.jpg",
+    imageUrl: "",
     categoryId: "",
     originalPriceYuan: "99.00",
     currentPriceYuan: "99.00",
@@ -220,7 +220,7 @@ function openNew() {
   form.value = {
     name: "",
     description: "",
-    imageUrl: "/assets/equipment.jpg",
+    imageUrl: "",
     categoryId: "",
     originalPriceYuan: "99.00",
     currentPriceYuan: "99.00",
@@ -267,7 +267,7 @@ function reset() {
   form.value = {
     name: "",
     description: "",
-    imageUrl: "/assets/equipment.jpg",
+    imageUrl: "",
     categoryId: "",
     originalPriceYuan: "99.00",
     currentPriceYuan: "99.00",
@@ -297,6 +297,10 @@ async function save() {
     stock = Number(form.value.stock);
   if (!name || name.length > 120 || !form.value.description.trim()) {
     showFormError("请填写商品名称和说明");
+    return;
+  }
+  if (!imageUrl) {
+    showFormError("请上传商品图片");
     return;
   }
   if (

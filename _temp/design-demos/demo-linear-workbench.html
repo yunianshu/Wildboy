@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Demo A · Linear 式编辑部工作台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1440px; height: 900px; overflow: hidden; }
+  body {
+    font-family: "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    background: #f6f7f9; color: #1f2937; font-size: 14px; line-height: 1.6;
+    display: flex; flex-direction: column;
+  }
+  svg { display: block; }
+
+  /* ---------- 顶栏 ---------- */
+  .topbar {
+    height: 56px; flex: none; background: #fff; border-bottom: 1px solid #e5e8ec;
+    display: flex; align-items: center; gap: 12px; padding: 0 20px;
+  }
+  .crumbs { font-size: 13px; color: #6b7280; display: flex; align-items: center; gap: 8px; }
+  .crumbs b { color: #111827; font-weight: 650; }
+  .crumbs .sep { color: #d1d5db; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+    border-radius: 999px; font-size: 12px; font-weight: 550;
+  }
+  .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+  .pill.draft { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+  .pill.draft .dot { background: #d97706; }
+  .topbar .grow { flex: 1; }
+  .saved { font-size: 12px; color: #9ca3af; margin-right: 4px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px;
+    border-radius: 8px; font-size: 13px; font-weight: 550; border: 1px solid transparent; cursor: pointer;
+  }
+  .btn.ghost { background: #fff; border-color: #e5e8ec; color: #374151; }
+  .btn.primary { background: #047857; color: #fff; }
+  .btn.tint { background: #ecfdf5; color: #047857; }
+
+  /* ---------- 主体 ---------- */
+  .frame { flex: 1; display: flex; min-height: 0; }
+
+  /* 左侧设置栏 */
+  .sidebar {
+    width: 300px; flex: none; background: #f6f7f9; border-right: 1px solid #e5e8ec;
+    padding: 20px 16px; overflow: hidden; display: flex; flex-direction: column; gap: 18px;
+  }
+  .side-label {
+    font-size: 11px; font-weight: 650; letter-spacing: .08em; color: #6b7280; margin-bottom: 8px;
+  }
+  .card {
+    background: #fff; border: 1px solid #e5e8ec; border-radius: 8px; padding: 10px;
+  }
+  .card.cover { padding: 8px; }
+  .card.cover img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: 5px; display: block; }
+  .card .row-link {
+    display: flex; align-items: center; justify-content: space-between; padding: 6px 4px 2px;
+  }
+  .card .row-link span { font-size: 12px; color: #6b7280; }
+  .card .row-link a { font-size: 12px; color: #047857; font-weight: 550; }
+  .card.summary p { font-size: 12.5px; color: #4b5563; line-height: 1.7; padding: 2px 4px 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 4px 4px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px;
+    border-radius: 999px; background: #f0fdf9; border: 1px solid #99f6e4; color: #0f766e; font-size: 12px; font-weight: 550;
+  }
+  .chip svg { opacity: .55; }
+  .chip.add {
+    background: transparent; border: 1px dashed #d1d5db; color: #6b7280; font-weight: 450;
+  }
+  .card.select {
+    display: flex; align-items: center; justify-content: space-between; padding: 10px 12px;
+    font-size: 13px; color: #111827; font-weight: 500;
+  }
+  .card.select .val { display: inline-flex; align-items: center; gap: 6px; color: #374151; font-weight: 450; font-size: 13px; }
+
+  /* 右侧画布 */
+  .canvas { flex: 1; background: #fff; min-width: 0; display: flex; flex-direction: column; }
+  .toolbar {
+    height: 40px; flex: none; border-bottom: 1px solid #eef0f3;
+    display: flex; align-items: center; gap: 2px; padding: 0 20px;
+  }
+  .tool {
+    width: 28px; height: 28px; border-radius: 6px; border: 0; background: transparent;
+    display: inline-flex; align-items: center; justify-content: center; color: #4b5563; cursor: pointer;
+  }
+  .tool:hover { background: #f3f4f6; }
+  .tool.txt { width: auto; padding: 0 7px; font-size: 11.5px; font-weight: 700; color: #4b5563; }
+  .tool.on { background: #ecfdf5; color: #047857; }
+  .tool-sep { width: 1px; height: 16px; background: #e5e8ec; margin: 0 7px; }
+  .mode {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #6b7280; border: 1px solid #e5e8ec; border-radius: 6px;
+    height: 26px; padding: 0 9px; background: #fff;
+  }
+
+  .doc { flex: 1; overflow: hidden; padding: 40px 48px; }
+  .doc-inner { max-width: 760px; margin: 0 auto; }
+  .doc h1 { font-size: 26px; line-height: 1.35; font-weight: 800; color: #111827; margin-bottom: 22px; letter-spacing: -0.01em; }
+  .doc p { font-size: 15px; line-height: 1.8; color: #1f2937; margin-bottom: 14px; }
+  .doc h2 { font-size: 17px; font-weight: 750; color: #111827; margin: 22px 0 12px; }
+  .doc ul { margin: 0 0 14px; padding-left: 22px; }
+  .doc li { font-size: 15px; line-height: 1.8; color: #1f2937; }
+  .doc li b { color: #111827; }
+  .doc .meta-line { font-size: 13px; color: #6b7280; }
+  .caret { display: inline-block; width: 1.5px; height: 1.05em; background: #047857; vertical-align: -0.15em; margin-left: 2px; }
+
+  blockquote {
+    margin: 14px 0; padding: 10px 16px; border-left: 3px solid #047857;
+    background: rgba(236,253,245,.6); border-radius: 0 8px 8px 0;
+    font-size: 14.5px; line-height: 1.75; color: #065f46;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 16px; font-size: 14px; }
+  th { text-align: left; background: #f6f7f9; color: #374151; font-weight: 600; padding: 8px 12px; border-bottom: 1px solid #e5e8ec; }
+  td { padding: 8px 12px; border-bottom: 1px solid #eef0f3; color: #1f2937; }
+  .tag-req { color: #b45309; font-size: 12.5px; }
+  .tag-opt { color: #6b7280; font-size: 12.5px; }
+
+  figure { margin: 16px 0 8px; }
+  figure img { width: 100%; border-radius: 8px; display: block; }
+  figcaption { font-size: 12.5px; color: #6b7280; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="crumbs">文章 <span class="sep">/</span> <b>武功山反穿两天一夜：帐篷、云海和高山韭菜园</b></div>
+  <span class="pill draft"><span class="dot"></span>草稿</span>
+  <div class="grow"></div>
+  <span class="saved">已自动保存 10:42</span>
+  <button class="btn ghost">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    预览
+  </button>
+  <button class="btn primary">保存</button>
+  <button class="btn tint">发布</button>
+</header>
+
+<div class="frame">
+  <aside class="sidebar">
+    <div>
+      <div class="side-label">封面</div>
+      <div class="card cover">
+        <img src="https://images.unsplash.com/photo-1501554728187-ce583db33af7?w=800&q=80" alt="封面">
+        <div class="row-link"><span>16:9 · 野小子图床</span><a href="#">更换</a></div>
+      </div>
+    </div>
+    <div>
+      <div class="side-label">摘要</div>
+      <div class="card summary">
+        <p>从沈子村上山，经发云界、好汉坡，夜宿金顶帐篷营地。两天 26 公里，爬升 1800 米，适合有夜爬经验的徒步者。</p>
+      </div>
+    </div>
+    <div>
+      <div class="side-label">关联活动</div>
+      <div class="card">
+        <div class="chips">
+          <span class="chip">武功山两天一夜
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </span>
+          <span class="chip add">＋ 添加</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="side-label">可见范围</div>
+      <div class="card select">
+        探索页文章
+        <span class="val">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </span>
+      </div>
+    </div>
+  </aside>
+
+  <section class="canvas">
+    <div class="toolbar">
+      <button class="tool txt">H1</button>
+      <button class="tool txt on">H2</button>
+      <button class="tool txt">H3</button>
+      <span class="tool-sep"></span>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 11H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4"/><path d="M20 11h-4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4"/></svg></button>
+      <span class="tool-sep"></span>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+      <button class="tool"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <span class="mode">所见即所得
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </div>
+
+    <div class="doc">
+      <div class="doc-inner">
+        <h1>武功山反穿两天一夜：帐篷、云海和高山韭菜园</h1>
+        <p>反穿武功山是老驴们心照不宣的选择——避开龙山村的人潮，从沈子村一路爬升，把最难的绝望坡留给第二天清晨的云海。这篇按两天一夜的节奏拆解路线、营地和装备，照着走不会踩坑。</p>
+        <h2>路线概览</h2>
+        <ul>
+          <li><b>D1</b>　沈子村 → 发云界 → 好汉坡 → 金顶营地（14km，爬升 1200m）</li>
+          <li><b>D2</b>　金顶 → 吊马桩 → 中庵索道下山（12km）<span class="caret"></span></li>
+        </ul>
+        <h2>装备清单</h2>
+        <table>
+          <thead><tr><th>装备</th><th>说明</th><th style="width:76px">备注</th></tr></thead>
+          <tbody>
+            <tr><td>冲锋衣裤</td><td>山顶风大、昼夜温差超 10℃</td><td class="tag-req">必备</td></tr>
+            <tr><td>65L 背包 + 防雨罩</td><td>两日重装，帐篷公摊另计</td><td class="tag-req">必备</td></tr>
+            <tr><td>睡袋</td><td>舒适温标 5℃，夏季山上仍偏冷</td><td class="tag-req">必备</td></tr>
+            <tr><td>登山杖 / 头灯</td><td>夜爬路段使用，带备用电池</td><td class="tag-opt">建议</td></tr>
+          </tbody>
+        </table>
+        <blockquote>山上昼夜温差超过 10℃，即使是七月也要带抓绒。帐篷节期间金顶营地非常拥挤，尽量周五下午出发。</blockquote>
+        <figure>
+          <img src="https://images.unsplash.com/photo-1501554728187-ce583db33af7?w=1200&q=80" alt="发云界高山草甸">
+          <figcaption>发云界高山草甸，下午四点的光</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+</div>
+
+</body>
+</html>
