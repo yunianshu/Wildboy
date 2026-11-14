@@ -420,12 +420,13 @@ onMounted(() => void load());
               aria-label="文章摘要"
             />
           </label>
-          <label
-            >封面图片地址<input
-              v-model="form.coverUrl"
-              aria-label="文章封面"
-              placeholder="HTTPS 或 /assets/ 图片地址"
-          /></label>
+          <label class="preset-heading">封面图片（上传）</label>
+          <img
+            v-if="form.coverUrl"
+            class="cover-preview"
+            :src="form.coverUrl"
+            alt="封面预览"
+          />
           <label
             >关联活动（选填）<select
               v-model="form.activityId"

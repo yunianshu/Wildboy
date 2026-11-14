@@ -41,7 +41,7 @@ const fields = reactive({
     title: "",
     category: "WEEKLY" as ActivityInput["category"],
     coverUrl: "",
-    gallery: "",
+    galleryUrls: [] as string[],
     summary: "",
     description: "",
     location: "",
@@ -54,14 +54,7 @@ const fields = reactive({
   }),
   errors = ref<Record<string, string>>({}),
   baseline = ref(JSON.stringify(fields));
-const coverPresets = [
-  { name: "山野徒步", file: "hero-hiking" },
-  { name: "本周活动", file: "category-weekly" },
-  { name: "国内游行", file: "category-domestic" },
-  { name: "假期露营", file: "category-holiday" },
-  { name: "休闲户外", file: "category-leisure" },
-  { name: "户外装备", file: "equipment" },
-];
+// 封面与更多图片一律通过上传获得，不再提供 /assets/ 预设选图
 const priceYuan = ref("0.00");
 const editSection = ref<"basic" | "schedule" | "detail">("basic");
 const sections = [
@@ -90,7 +83,7 @@ function assign(data: Activity) {
     title: data.title,
     category: data.category,
     coverUrl: data.coverUrl,
-    gallery: data.galleryUrls.join("\n"),
+    galleryUrls: [...(data.galleryUrls || [])],
     summary: data.summary,
     description: data.description,
     location: data.location,
@@ -126,10 +119,7 @@ function input(): ActivityInput {
     title: fields.title.trim(),
     category: fields.category,
     coverUrl: fields.coverUrl.trim(),
-    galleryUrls: fields.gallery
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean),
+    galleryUrls: [...fields.galleryUrls],
     summary: fields.summary.trim(),
     description: fields.description.trim(),
     location: fields.location.trim(),
@@ -478,49 +468,43 @@ onUnmounted(() => {
                   placeholder="活动简介"
                 /><small class="field-error">{{ errors.summary }}</small></label
               >
-              <div class="preset-heading">封面预设</div>
+              <div class="preset-heading">活动封面（上传）</div>
               <ImageUpload
                 :disabled="saving || readonly"
                 @uploaded="fields.coverUrl = $event"
               />
-              <div class="cover-presets">
-                <button
-                  v-for="preset in coverPresets"
-                  :key="preset.file"
-                  type="button"
-                  :class="{
-                    selected: fields.coverUrl === `/assets/${preset.file}.jpg`,
-                  }"
-                  :aria-pressed="
-                    fields.coverUrl === `/assets/${preset.file}.jpg`
-                  "
-                  @click="fields.coverUrl = `/assets/${preset.file}.jpg`"
+              <img
+                v-if="fields.coverUrl"
+                class="cover-preview"
+                :src="fields.coverUrl"
+                alt="封面预览"
+              />
+              <small class="field-error">{{ errors.coverUrl }}</small>
+              <div class="preset-heading">更多图片（可选，最多 8 张）</div>
+              <div class="gallery-grid">
+                <div
+                  v-for="(url, i) in fields.galleryUrls"
+                  :key="url"
+                  class="gallery-item"
                 >
-                  <img
-                    :src="`/assets/${preset.file}.jpg`"
-                    :alt="preset.name"
-                    loading="lazy"
-                  /><span>{{ preset.name }}</span>
-                </button>
+                  <img :src="url" alt="更多图片" loading="lazy" />
+                  <button
+                    type="button"
+                    class="gallery-remove"
+                    :disabled="saving || readonly"
+                    @click="fields.galleryUrls.splice(i, 1)"
+                  >
+                    移除
+                  </button>
+                </div>
+                <ImageUpload
+                  v-if="fields.galleryUrls.length < 8"
+                  :key="`gallery-${fields.galleryUrls.length}`"
+                  :disabled="saving || readonly"
+                  @uploaded="fields.galleryUrls.push($event)"
+                />
               </div>
-              <label
-                >封面图片地址 <span>*</span
-                ><input
-                  v-model="fields.coverUrl"
-                  maxlength="2000"
-                  placeholder="https://… 或 /assets/hiking.jpg"
-                /><small class="field-error">{{ errors.coverUrl }}</small
-                ><small class="field-hint"
-                  >图片须已托管并允许小程序访问。</small
-                ></label
-              ><label
-                >更多图片地址<textarea
-                  v-model="fields.gallery"
-                  rows="3"
-                  placeholder="每行一个 HTTPS 图片地址，最多 8 张"
-                /><small class="field-error">{{
-                  errors.galleryUrls
-                }}</small></label
+              <small class="field-error">{{ errors.galleryUrls }}</small>
               >
             </fieldset>
           </section>

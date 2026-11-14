@@ -719,6 +719,23 @@ async function fillEventually(page, label, value, section) {
   await control.fill(value);
 }
 
+const uploadPng = {
+  name: "upload.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+};
+async function uploadFirstImage(scope, marker = 'img[src*="/assets/uploads/"]') {
+  const input = scope.locator('input[type="file"]').first();
+  await input.setInputFiles(uploadPng);
+  await scope
+    .locator(marker)
+    .first()
+    .waitFor({ state: "visible", ...headingTimeout });
+}
+
 async function activityCreate(page, name) {
   await route(page, "/activities/new", /新建活动/);
   await fillEventually(page, /活动标题/, name, /基本信息/);
@@ -728,11 +745,8 @@ async function activityCreate(page, name) {
     "隔离浏览器验收合成活动。",
     /基本信息/,
   );
-  await fillEventually(
-    page,
-    /封面图片地址/,
-    "/assets/category-weekly.jpg",
-    /基本信息/,
+  await uploadFirstImage(
+    page.locator(".form-section", { hasText: "活动标题" }).first(),
   );
   await fillEventually(page, /人数上限/, "8", /基本信息/);
   await fillEventually(page, /^开始时间/, datetimeLocal(14 * 24), /时间与地点/);
@@ -892,7 +906,7 @@ async function createProduct(page, category) {
   await button(page, /新商品|新建商品/).click();
   const editor = dialog(page, /创建商品|新建商品/);
   await editor.getByLabel(/商品名称/).fill(qa("装备"));
-  await editor.getByLabel(/图片地址/).fill("/assets/category-weekly.jpg");
+  await uploadFirstImage(editor);
   await editor.getByLabel(/商品分类/).selectOption(category.id);
   await editor.getByLabel(/原价/).fill("25.00");
   await editor.getByLabel(/现价/).fill("19.50");
@@ -1211,7 +1225,7 @@ async function articleWorkflow(page) {
   const editor = dialog(page, /新建文章|编辑文章/);
   await editor.getByLabel(/文章标题/).fill(qa("文章"));
   await editor.getByLabel(/文章摘要/).fill("只用于隔离浏览器验收。");
-  await editor.getByLabel(/文章封面/).fill("/assets/category-weekly.jpg");
+  await uploadFirstImage(editor);
   const article = await write(page, "/admin/articles", "POST", () =>
     button(editor, /保存文章信息/).click(),
   );

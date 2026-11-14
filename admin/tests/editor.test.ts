@@ -42,16 +42,44 @@ async function render(path: string) {
   return { wrapper, router };
 }
 beforeEach(() => vi.unstubAllGlobals());
+// 封面与更多图片走上传：向 ImageUpload 的文件输入注入 PNG 并打桩上传接口
+const pngBuffer = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+async function uploadCover(wrapper: ReturnType<typeof mount>) {
+  const input = wrapper.findAll('input[type="file"]')[0]!;
+  const file = new File([pngBuffer], "cover.png", { type: "image/png" });
+  Object.defineProperty(input.element, "files", { value: [file] });
+  await input.trigger("change");
+  // FileReader 回调是宏任务，微任务 flush 等不到
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await flushPromises();
+}
+function withMedia(
+  fetch: ReturnType<typeof vi.fn>,
+  rest: (url: string, options: any) => any,
+) {
+  return fetch.mockImplementation(async (url: string, options: any = {}) => {
+    if (url.includes("/admin/media"))
+      return {
+        ok: true,
+        status: 201,
+        json: async () => ({ url: "/assets/uploads/mock-cover.png" }),
+      };
+    return rest(url, options);
+  });
+}
 async function fillNew(wrapper: ReturnType<typeof mount>) {
   for (const [selector, value] of [
     ['input[placeholder="活动名称"]', base.title],
-    ['input[placeholder^="https://"]', base.coverUrl],
     ['textarea[placeholder="活动简介"]', base.summary],
     ['textarea[maxlength="20000"]', base.description],
     ['input[placeholder="城市 / 路线 / 目的地"]', base.location],
     ['input[placeholder="写明集合位置、交通指引"]', base.meetingPoint],
   ])
     await wrapper.get(selector!).setValue(value);
+  await uploadCover(wrapper);
   const dates = wrapper.findAll('input[type="datetime-local"]');
   await dates[0]!.setValue("2027-05-02T09:00");
   await dates[1]!.setValue("2027-05-02T17:00");
@@ -77,13 +105,15 @@ describe("editor workflow", () => {
     async (mode) => {
       const fetch = vi.fn();
       if (mode === "network")
-        fetch.mockRejectedValueOnce(new Error("响应丢失"));
+        withMedia(fetch, () => {
+          throw new Error("响应丢失");
+        });
       else
-        fetch.mockResolvedValueOnce({
+        withMedia(fetch, () => ({
           ok: false,
           status: 503,
           json: async () => ({ message: "暂时无法响应" }),
-        });
+        }));
       vi.stubGlobal("fetch", fetch);
       const { wrapper } = await render("/activities/new");
       await fillNew(wrapper);
@@ -97,17 +127,21 @@ describe("editor workflow", () => {
         ).value,
       ).toBe(base.title);
       await wrapper.get("form").trigger("submit");
-      expect(fetch).toHaveBeenCalledTimes(1);
-      expect(fetch.mock.calls[0]?.[1].method).toBe("POST");
+      const posts = fetch.mock.calls.filter(
+        (c: any) => !c[0].includes("/admin/media"),
+      );
+      expect(posts).toHaveLength(1);
+      expect(posts[0]?.[1].method).toBe("POST");
       wrapper.unmount();
     },
   );
   it("keeps a rejected 400 create editable and lets the corrected draft retry", async () => {
-    const fetch = vi.fn().mockResolvedValue({
+    const fetch = vi.fn();
+    withMedia(fetch, () => ({
       ok: false,
       status: 400,
       json: async () => ({ message: "请修正活动标题" }),
-    });
+    }));
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/new");
     await fillNew(wrapper);
@@ -117,10 +151,11 @@ describe("editor workflow", () => {
     await wrapper.get('input[placeholder="活动名称"]').setValue("修正后的标题");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(JSON.parse(fetch.mock.calls[1]?.[1].body).title).toBe(
-      "修正后的标题",
+    const creates = fetch.mock.calls.filter(
+      (c: any) => !c[0].includes("/admin/media"),
     );
+    expect(creates).toHaveLength(2);
+    expect(JSON.parse(creates[1]?.[1].body).title).toBe("修正后的标题");
     wrapper.unmount();
   });
   it("renders paid occupancy separately and locks ID policy when seats are occupied", async () => {

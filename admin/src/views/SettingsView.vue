@@ -368,13 +368,7 @@ onMounted(() => void load());
                 :aria-label="`入口${entry.slot}弹窗文字`"
                 maxlength="2000"
               /></label
-            ><label
-              >二维码 / 图片地址<input
-                v-model="entry.popupImageUrl"
-                :aria-label="`入口${entry.slot}弹窗图片`"
-                maxlength="2048"
-                placeholder="上传真实二维码图片，或填写 HTTPS /assets/ 地址"
-            /></label>
+            ><label class="preset-heading">弹窗二维码 / 图片（上传）</label>
             <ImageUpload
               :key="`${generation}-${entry.slot}`"
               :disabled="

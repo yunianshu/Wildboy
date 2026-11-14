@@ -169,10 +169,6 @@ onBeforeRouteLeave(
               block.url = $event;
               dirty = true;
             " /><input
-            v-model="block.url"
-            placeholder="图片地址"
-            aria-label="图文图片地址"
-            @input="dirty = true" /><input
             v-model="block.caption"
             maxlength="300"
             placeholder="图片说明（选填）"

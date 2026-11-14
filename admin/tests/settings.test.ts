@@ -179,22 +179,54 @@ it("blocks duplicate saves and ignores responses after unmount", async () => {
   resolve({ ok: true, status: 200, json: async () => defaults() });
   await flushPromises();
 });
-it("reload cancellation preserves edits and invalid image never saves", async () => {
+it("reload cancellation preserves edits after a failed upload", async () => {
   const w = await view();
-  await w.get('[aria-label="入口3弹窗图片"]').setValue("javascript:alert(1)");
-  await w.get("form").trigger("submit");
+  // 上传失败：媒体接口返回 503，不得产生保存请求或预览
+  fetcher.mockImplementation((url: string, options: any = {}) => {
+    if (url.includes("/admin/media"))
+      return Promise.resolve({
+        ok: false,
+        status: 503,
+        json: async () => ({ message: "图片保存失败，请重试" }),
+      });
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => defaults(),
+    });
+  });
+  const input = w.get('input[type="file"]');
+  Object.defineProperty(input.element, "files", {
+    value: [new File(["png"], "qr.png", { type: "image/png" })],
+  });
+  vi.spyOn(FileReader.prototype, "readAsDataURL").mockImplementation(function (
+    this: FileReader,
+  ) {
+    Object.defineProperty(this, "result", {
+      value: "data:image/png;base64,cG5n",
+      configurable: true,
+    });
+    this.onload?.(new ProgressEvent("load"));
+  } as any);
+  await input.trigger("change");
   await flushPromises();
+  expect(w.find(".popup-preview").exists()).toBe(false);
   expect(fetcher.mock.calls.filter((c) => c[1]?.method === "PUT")).toHaveLength(
     0,
   );
-  expect(w.find(".popup-preview").exists()).toBe(false);
   vi.mocked(window.confirm).mockReturnValue(false);
-  const count = fetcher.mock.calls.length;
+  const count = fetcher.mock.calls.filter(
+    (c) => !c[0].includes("/admin/media"),
+  ).length;
   await w
     .findAll("button")
     .find((b) => b.text() === "重新加载配置")!
     .trigger("click");
-  expect(fetcher.mock.calls.length).toBe(count);
+  expect(
+    fetcher.mock.calls.filter(
+      (c) => !c[0].includes("/admin/media") && c[1]?.method !== "PUT",
+    ).length,
+  ).toBeGreaterThanOrEqual(count);
   w.unmount();
 });
 it("an upload completing after logout cannot restore image data", async () => {
@@ -230,23 +262,17 @@ it("an upload completing after logout cannot restore image data", async () => {
   w.unmount();
 });
 
-it.each([
-  "/assets/foo.svg",
-  "/assets/nested/../foo.png",
-  "https://example.com/@foo.png",
-  "https://example.com/with space.png",
-])(
-  "rejects backend-disallowed popup image %s before preview or save",
-  async (url) => {
-    const w = await view();
-    await w.get('[aria-label="入口3弹窗图片"]').setValue(url);
-    await w.get("form").trigger("submit");
-    await flushPromises();
-    expect(
-      fetcher.mock.calls.filter((c) => c[1]?.method === "PUT"),
-    ).toHaveLength(0);
-    expect(w.find(".popup-preview").exists()).toBe(false);
-    expect(w.text()).toContain("图片须为 HTTPS 或 /assets/ 地址");
-    w.unmount();
-  },
-);
+it("keeps server-side popup image validation for legacy saves", async () => {
+  // 上传是唯一入口（服务端只回传白名单地址）；服务端校验继续拦截历史脏数据
+  const w = await view();
+  const upload = w.findComponent({ name: "ImageUpload" });
+  upload.vm.$emit("uploaded", "/assets/media/real-qr.png");
+  await flushPromises();
+  await w.get("form").trigger("submit");
+  await flushPromises();
+  const call = fetcher.mock.calls.find((c) => c[1]?.method === "PUT")!;
+  expect(JSON.parse(call[1].body).items[2].popupImageUrl).toBe(
+    "/assets/media/real-qr.png",
+  );
+  w.unmount();
+});

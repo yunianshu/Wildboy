@@ -716,9 +716,13 @@ onUnmounted(clear);
             maxlength="120"
             :disabled="busy"
         /></label>
-        <label
-          >图片地址<input v-model="form.imageUrl" required :disabled="busy"
-        /></label>
+        <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
+        <img
+          v-if="form.imageUrl"
+          class="cover-preview"
+          :src="form.imageUrl"
+          alt="商品图片预览"
+        />
         <label
           >商品分类<select
             v-model="form.categoryId"
