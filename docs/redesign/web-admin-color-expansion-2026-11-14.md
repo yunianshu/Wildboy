@@ -34,6 +34,7 @@
 - Pen：`design/pen-web-admin-recolor-v2-2026-11-14.py` 对 38 张画板做上下文感知映射（侧栏 429+462+495、主按钮 32、品牌文字 244、正文/弱化 801、胶囊 61 组、表头 20、描边 320、分组标签 165），结构校验仅颜色变化，v1 色值零残留；备份 `设计图文件.pen.bak-recolor-v2-2026-11-14`。脚本自渲染预览 `design/exports/web-admin-recolor-v2-preview-2026-11-14.*`。
 - 代码：style.css 令牌与组件全面换肤（约 40 处），ShopView 局部描边修正；状态语义类名与模块归属机制不变（statusTone.ts、data-module/data-group 复用）。
 - 门禁：vitest 194/194、`vue-tsc`、生产构建、改动文件 Prettier 通过；浏览器验收 158/158（隔离 API + Vite，报告 `test-results/admin-redesign-browser/1794637438667-ed37a/`），桌面截图抽查活动/运营/商城/用户/消息/订单均符合 v2 规范。
+- 生产部署（2026-11-14，经用户确认）：提交 e9ebec2 已推送 GitHub 并以 SSH 直推服务器快进 + deploy.sh 第 2–5 步执行；烟雾检查全过，线上 CSS（index-7u7_e6Vq.css）实测含全部 v2 令牌（#f6f7f9/#047857/#101613/#2563eb/#c2410c/#7c3aed/#ecfdf5/#fef2f2），登录页截图 `test-results/prod-login-v2-1440.png`。回退：服务器 `git reset --hard 122aee7` + 重跑部署步骤。
 
 ---
 
