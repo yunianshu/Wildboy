@@ -21,3 +21,4 @@ miniprogram/miniprogram_npm/
 **/__pycache__/
 *.py[cod]
 admin/public/vditor/
+server/.vite
