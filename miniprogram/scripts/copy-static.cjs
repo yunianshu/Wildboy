@@ -1,6 +1,8 @@
 const fs = require("node:fs"),
   path = require("node:path");
 const { packOptions } = require("../project.config.json");
+const { version } = require("../package.json");
+const { writeBuildVersion } = require("./build-version.cjs");
 const excludedFiles = new Set(
   packOptions.ignore
     .filter(({ type }) => type === "file")
@@ -25,3 +27,4 @@ function cp(d) {
   }
 }
 cp("src");
+writeBuildVersion(process.env.WILDBOY_VERSION?.trim() || version);

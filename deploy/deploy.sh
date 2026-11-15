@@ -39,8 +39,10 @@ until curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; do
 done
 
 echo "==> 3/5 build admin bundle (node container; host node not required)"
+ADMIN_REVISION=$(git rev-parse --short HEAD)
 docker run --rm -v "$APP_DIR/admin:/app" -w /app \
   -e npm_config_registry=https://registry.npmmirror.com \
+  -e WILDBOY_ADMIN_REVISION="$ADMIN_REVISION" \
   node:22-alpine sh -c "npm ci --no-audit --no-fund && npm run build"
 
 echo "==> 4/5 render edge config and (re)start edge + admin nginx"

@@ -3,6 +3,7 @@ import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { currentUser, clearSession } from "./api";
 import AppIcon from "./components/AppIcon.vue";
+const adminVersion = __ADMIN_VERSION__;
 const route = useRoute(),
   router = useRouter();
 const pageTitles: Record<string, string> = {
@@ -164,9 +165,12 @@ function logout() {
     </aside>
     <div class="main-shell">
       <header class="topbar">
-        <span class="topbar-title"
-          >工作后台 <span>/</span> <strong>{{ pageTitle }}</strong></span
-        >
+        <div class="topbar-context">
+          <span class="topbar-title"
+            >工作后台 <span>/</span> <strong>{{ pageTitle }}</strong></span
+          >
+          <small class="admin-version">后台版本 {{ adminVersion }}</small>
+        </div>
         <div class="user-tools">
           <span>{{ currentUser?.nickname || "管理员" }}</span
           ><button class="text-button" @click="logout">退出登录</button>

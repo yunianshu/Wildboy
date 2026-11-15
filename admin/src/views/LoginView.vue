@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { login, devLogin, errorMessage } from "../api";
+const adminVersion = __ADMIN_VERSION__;
 const router = useRouter(),
   username = ref(""),
   password = ref(""),
@@ -70,6 +71,7 @@ async function submit(demo = false) {
         <p class="login-note">
           刷新后需重新登录。请勿在公共设备上展示报名名单。
         </p>
+        <p class="login-version admin-version">后台版本 {{ adminVersion }}</p>
       </div>
     </section>
   </main>

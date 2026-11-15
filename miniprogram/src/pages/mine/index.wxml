@@ -72,5 +72,6 @@
     </view>
     <view wx:if="{{adminLoginEnabled}}" class="admin-auth" bindtap="adminSignIn">管理员登录<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view wx:if="{{adminCapabilityError}}" class="error">{{adminCapabilityError}}<button class="secondary" bindtap="loadAdminCapability" disabled="{{adminCapabilityLoading}}">重试管理员入口</button></view>
+    <view class="app-version">小程序版本 {{version}}</view>
   </view>
 </view>

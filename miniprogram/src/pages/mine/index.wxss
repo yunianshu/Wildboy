@@ -59,6 +59,7 @@
 .my-content {
   position: relative;
   padding-top: 0;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 .profile {
   position: relative;
@@ -219,4 +220,11 @@ button.avatar-pressed {
 }
 .notice {
   margin-top: 24rpx;
+}
+.app-version {
+  margin-top: 32rpx;
+  color: #596a60;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: center;
 }

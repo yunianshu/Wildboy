@@ -11,6 +11,7 @@ import { isActivityUser } from "../../utils/user-profile";
 import { message, RequestEpoch } from "../../utils/domain";
 import { syncTabBar } from "../../utils/tab-bar";
 import { measureCapsuleHeader } from "../../utils/capsule-header";
+import { buildVersion } from "../../build-version";
 const epoch = new RequestEpoch();
 import { enterPage } from "../../utils/page-motion";
 
@@ -18,6 +19,7 @@ Page({
   data: {
     pageMotionClass: "",
     topInset: 48,
+    version: buildVersion,
     user: null as User | null,
     activityUser: false,
     adminLoginEnabled: false,
@@ -36,6 +38,13 @@ Page({
   onLoad() {
     const layout = measureCapsuleHeader();
     this.setData({ topInset: layout.top + 10, headerLayout: layout });
+    try {
+      // WeChat provides the published version in the release environment.
+      const version = wx.getAccountInfoSync()?.miniProgram?.version?.trim();
+      if (version) this.setData({ version });
+    } catch {
+      // The package version still works when older clients cannot read account info.
+    }
   },
   onResize() {
     this.setData({ headerLayout: measureCapsuleHeader() });

@@ -2,6 +2,7 @@
 // Requires the code upload key: WILDBOY_UPLOAD_KEY or
 // %USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key.
 // Run with --check-config to validate the built package without uploading.
+// WILDBOY_VERSION overrides the build version both in the package and on WeChat.
 const path = require("node:path");
 const projectPath = path.resolve(__dirname, "..");
 const publicApiOrigin = "https://api.wildboy.com.cn";
@@ -21,7 +22,11 @@ const publicApiOrigin = "https://api.wildboy.com.cn";
     return;
   }
 
+  const { buildVersionPath, writeBuildVersion } = require("./build-version.cjs");
+  const versionOverride = process.env.WILDBOY_VERSION?.trim();
+  const version = versionOverride || require(buildVersionPath).buildVersion;
   const ci = require("miniprogram-ci");
+  if (versionOverride) writeBuildVersion(version);
   const keyPath =
     process.env.WILDBOY_UPLOAD_KEY ||
     path.join(process.env.USERPROFILE || "", ".wechat-keys", "private.wxa62bfca387e6809b.key");
@@ -34,7 +39,7 @@ const publicApiOrigin = "https://api.wildboy.com.cn";
   });
   const result = await ci.upload({
     project,
-    version: process.env.WILDBOY_VERSION || "0.2.0",
+    version,
     desc: process.env.WILDBOY_DESC || "Wildboy 小程序体验版",
     setting: {
       es6: true,
