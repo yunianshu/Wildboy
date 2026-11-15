@@ -250,8 +250,8 @@ public class ActivityOrderService {
       if(!o.status().equals("PENDING_PAYMENT"))throw ApiException.conflict("PAYMENT_CONFLICT","订单状态异常，需要核对");
       db.update("UPDATE activity_order SET status='PAID',payment_transaction_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",t.getTransactionId(),o.id());
       activities.audit(o.userId(),o.id(),"ACTIVITY_ORDER_PAID");
-      // 活动报名属虚拟商品：向「发货信息管理」上报履约信息（交易类小程序合规要求）
-      shipping.uploadActivityFulfillment(o);
+      // 付费报名确认后上报虚拟发货，使用本次已核验的微信交易单号。
+      shipping.uploadActivityFulfillment(o,t.getTransactionId());
     });
   }
   public Order cancel(String id,String user) {

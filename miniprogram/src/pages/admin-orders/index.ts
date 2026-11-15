@@ -6,6 +6,8 @@ import { adminOrderStatus, adminMoney } from "../../utils/admin-shop";
 type Row = Order & { statusLabel: string; money: string; phoneMasked: string };
 import { enterPage } from "../../utils/page-motion";
 
+const emptyShippingForm = { shipCompany: "", shipTrackingNo: "", shipError: "" };
+
 Page({
   data: {
     pageMotionClass: "",
@@ -21,6 +23,7 @@ Page({
     pendingId: "",
     pendingConfirmed: false,
     pendingOrder: null as Row | null,
+    ...emptyShippingForm,
     resultOrder: null as Row | null,
     revealedId: "",
     query: "",
@@ -52,6 +55,7 @@ Page({
       pendingId: "",
       pendingConfirmed: false,
       pendingOrder: null,
+      ...emptyShippingForm,
       resultOrder: null,
     });
   },
@@ -109,7 +113,15 @@ Page({
           error: message(e),
           ...(reset ? { hasMore: false } : {}),
           ...(denied
-            ? { authorized: false, items: [], revealedId: "" }
+            ? {
+                authorized: false,
+                items: [],
+                revealedId: "",
+                pendingId: "",
+                pendingConfirmed: false,
+                pendingOrder: null,
+                ...emptyShippingForm,
+              }
             : {}),
         });
       }
@@ -169,7 +181,25 @@ Page({
     }
   },
   cancelShip() {
-    this.setData({ pendingId: "", pendingConfirmed: false, pendingOrder: null });
+    this.setData({
+      pendingId: "",
+      pendingConfirmed: false,
+      pendingOrder: null,
+      ...emptyShippingForm,
+    });
+  },
+  shipInput(e: WechatMiniprogram.Input) {
+    const { id, field } = e.currentTarget.dataset;
+    if (
+      this.data.busyId ||
+      !this.data.authorized ||
+      !isSessionCurrent(this._session) ||
+      id !== this.data.pendingId ||
+      this.data.pendingOrder?.status !== "PAID"
+    )
+      return;
+    if (field === "shipCompany" || field === "shipTrackingNo")
+      this.setData({ [field]: e.detail.value, shipError: "" });
   },
   confirmShip() {
     if (!this.data.pendingId) return;
@@ -202,20 +232,28 @@ Page({
         pendingId: id,
         pendingConfirmed: false,
         pendingOrder: { ...row },
+        ...emptyShippingForm,
       });
       return;
     }
     const snapshot = this.data.pendingOrder;
     const current = this.data.items.find((x) => x.id === id);
-    this.setData({
-      pendingId: "",
-      pendingConfirmed: false,
-      pendingOrder: null,
-    });
     if (!snapshot || !current || current.version !== snapshot.version || current.status !== snapshot.status || current.reconciliationRequired) {
+      this.cancelShip();
       this.setData({ error: "订单已变化，请重新核对后再操作" });
       return;
     }
+    const company = this.data.shipCompany.trim();
+    const trackingNo = this.data.shipTrackingNo.trim();
+    const requiresShippingInfo = current.status === "PAID";
+    if (requiresShippingInfo && (!company || !trackingNo)) {
+      this.setData({
+        pendingConfirmed: false,
+        shipError: "请填写物流公司和运单号。",
+      });
+      return;
+    }
+    this.cancelShip();
     this.setData({ busyId: id, error: "" });
     try {
       if (n !== this._epoch || !isSessionCurrent(s)) return;
@@ -223,6 +261,7 @@ Page({
       if (n !== this._epoch || !isSessionCurrent(s)) return;
       const result = await request<Order>(`/admin/orders/${id}/ship`, "POST", {
         version: current.version,
+        ...(requiresShippingInfo ? { company, trackingNo } : {}),
       });
       if (n !== this._epoch || !isSessionCurrent(s)) return;
       if (!result || result.status !== "SHIPPED") {

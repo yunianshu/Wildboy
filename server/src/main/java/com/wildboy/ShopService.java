@@ -574,6 +574,9 @@ public class ShopService {
       throw ApiException.conflict("ORDER_NOT_SHIPPABLE", "只有已支付或免支付已确认订单可以发货");
     if (db.queryForObject("SELECT COUNT(*) FROM refund_request WHERE order_id=? AND status NOT IN ('REJECTED','CLOSED')",Integer.class,id)>0)
       throw ApiException.conflict("REFUND_PENDING", "退款申请处理中，不能发货");
+    if (order.status().equals("PAID")
+        && (company == null || company.isBlank() || trackingNo == null || trackingNo.isBlank()))
+      throw new ApiException(400, "SHIPPING_DETAILS_REQUIRED", "微信支付订单发货需填写物流公司和运单号");
     db.update(
         "UPDATE shop_order SET status='SHIPPED',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         id);

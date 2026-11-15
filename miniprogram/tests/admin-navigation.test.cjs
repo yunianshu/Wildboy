@@ -19,6 +19,12 @@ function page(name) {
     done?.();
   }};
 }
+async function prepareShipment(p, row) {
+  await p.ship({ currentTarget: { dataset: { id: row.id } } });
+  for (const [field, value] of [["shipCompany", "SF"], ["shipTrackingNo", "SF123456"]]) {
+    p.shipInput({ currentTarget: { dataset: { id: row.id, field } }, detail: { value } });
+  }
+}
 beforeEach(() => {
   writes=[]; navigation=[]; current=1; nextCapability=async()=>true; nextModal=async()=>({confirm:true});
   shared.requireAdmin=async()=>current;
@@ -108,7 +114,7 @@ for (const name of ['admin-activities', 'admin-orders']) {
     const row = name === 'admin-activities' ? { ...activity, status: 'PUBLISHED' } : { id: 'order-one', status: 'PAID', version: 1 };
     p.data.items = [row];
     if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-    else await p.ship({ currentTarget: { dataset: { id: row.id } } });
+    else await prepareShipment(p, row);
     let finish, reads = 0;
     api.request = async (url, method = 'GET') => {
       if (method === 'POST') return new Promise(resolve => { finish = resolve; });
@@ -209,7 +215,7 @@ for (const name of ['admin-activities', 'admin-orders']) {
       : { id: 'order-one', status: 'PAID', version: 3, phone: '13800000000', totalCents: 100 };
     p.data.items = [row];
     if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-    else await p.ship({ currentTarget: { dataset: { id: row.id } } });
+    else await prepareShipment(p, row);
     let finish;
     api.request = async (url, method = 'GET', body) => {
       if (method === 'POST') { writes.push({ url, body }); return row; }
@@ -230,7 +236,7 @@ for (const name of ['admin-activities', 'admin-orders']) {
     const row = name === 'admin-activities' ? { ...activity, status: 'PUBLISHED' } : { id: 'order-one', status: 'PAID', version: 3 };
     p.data.items = [row];
     if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-    else await p.ship({ currentTarget: { dataset: { id: row.id } } });
+    else await prepareShipment(p, row);
     p.data.items = [];
     if (name === 'admin-activities') await p.confirmChange(); else await p.confirmShip();
     assert.equal(writes.length, 0); assert.equal(p.data.pendingId, ''); assert.match(p.data.error, /重新核对/);
@@ -240,7 +246,7 @@ for (const name of ['admin-activities', 'admin-orders']) {
 test('a server refund block preserves its accurate reason instead of suggesting an unrelated stale version', async () => {
   const p = page('admin-orders'); p.data.authorized = true; p._session = current;
   p.data.items = [{ id: 'order-one', status: 'PAID', version: 3 }];
-  await p.ship({ currentTarget: { dataset: { id: 'order-one' } } });
+  await prepareShipment(p, p.data.items[0]);
   api.request = async () => { throw new api.ApiError('退款申请处理中，不能发货', 409, 'REFUND_PENDING'); };
   await p.confirmShip();
   assert.equal(p.data.error, '退款申请处理中，不能发货'); assert.equal(p.data.busyId, '');
@@ -251,7 +257,7 @@ for (const name of ['admin-activities', 'admin-orders']) {
     : { id:'order-one', orderNo:'QA-ORDER-1', status:'PAID', version:3, phone:'13800000000', totalCents:100, items:[] };
   const choose = async (p,row) => name === 'admin-activities'
     ? p.change({currentTarget:{dataset:{id:row.id,action:'cancel'}}})
-    : p.ship({currentTarget:{dataset:{id:row.id}}});
+    : prepareShipment(p,row);
   const confirm = p => name === 'admin-activities' ? p.confirmChange() : p.confirmShip();
   const result = p => name === 'admin-activities' ? p.data.resultItem : p.data.resultOrder;
 

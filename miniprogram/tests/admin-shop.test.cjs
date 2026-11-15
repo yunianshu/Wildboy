@@ -201,14 +201,26 @@ test("orders paginate without duplicate rows and use filter", async () => {
 test("shipping requires paid row and explicit confirmation", async () => {
   const p = page("admin-orders");
   await p.load(true);
+  const field = (name, value) => p.shipInput({
+    currentTarget: { dataset: { id: order.id, field: name } },
+    detail: { value },
+  });
   await p.ship({ currentTarget: { dataset: { id: "order-1" } } });
+  field("shipCompany", "旧物流");
   p.cancelShip();
   assert.equal(calls.filter((x) => x.m === "POST").length, 0);
   await p.ship({ currentTarget: { dataset: { id: "order-1" } } });
   await p.confirmShip();
+  assert.equal(p.data.shipCompany, "");
+  assert.match(p.data.shipError, /物流公司和运单号/);
+  field("shipCompany", " 顺丰速运 ");
+  await p.confirmShip();
+  assert.equal(calls.filter((x) => x.m === "POST").length, 0);
+  field("shipTrackingNo", " SF123456 ");
+  await p.confirmShip();
   const write = calls.find((x) => x.m === "POST");
   assert.equal(write.p, "/admin/orders/order-1/ship");
-  assert.equal(write.d.version, 2);
+  assert.deepEqual(write.d, { version: 2, company: "顺丰速运", trackingNo: "SF123456" });
   assert.equal(p.data.busyId, "");
 });
 test("revoked admin reveal clears recipient data", async () => {
@@ -304,5 +316,7 @@ test('free confirmed merchandise orders can be shipped without claiming paid', a
   assert.match(p.data.items[0].statusLabel,/免支付/);
   await p.ship({currentTarget:{dataset:{id:order.id}}});
   await p.confirmShip();
-  assert.equal(calls.filter(x=>x.p.endsWith('/ship')).length,1);
+  const shipments = calls.filter(x=>x.p.endsWith('/ship'));
+  assert.equal(shipments.length,1);
+  assert.deepEqual(shipments[0].d, {version:order.version});
 });

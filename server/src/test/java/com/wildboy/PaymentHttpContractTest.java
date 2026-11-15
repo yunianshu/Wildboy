@@ -269,6 +269,15 @@ class PaymentHttpContractTest {
         .andExpect(status().isForbidden());
     mvc.perform(post("/api/v1/admin/orders/" + order.id() + "/ship").header("Authorization", adminToken)
             .contentType("application/json").content("{\"version\":" + version + "}"))
+        .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SHIPPING_DETAILS_REQUIRED"));
+    var stillPaid = readOrder(order);
+    assertThat(stillPaid.status()).isEqualTo("PAID");
+    assertThat(stillPaid.version()).isEqualTo(version);
+    audit(order.id(), "ORDER_SHIP", 0);
+    mvc.perform(post("/api/v1/admin/orders/" + order.id() + "/ship").header("Authorization", adminToken)
+            .contentType("application/json").content("""
+                {"version":%d,"company":"顺丰速运","trackingNo":"SF0000000000"}
+                """.formatted(version)))
         .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("SHIPPED"));
     audit(order.id(), "ORDER_SHIP", 1); stock(8);
     mvc.perform(post("/api/v1/orders/" + order.id() + "/cancel").header("Authorization", ownerToken))

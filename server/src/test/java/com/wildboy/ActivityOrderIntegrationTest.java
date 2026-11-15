@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.*;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,6 +44,7 @@ class ActivityOrderIntegrationTest {
   @Autowired PlatformTransactionManager transactionManager;
   @Autowired OperationsService operations;
   @org.springframework.test.context.bean.override.mockito.MockitoBean WechatPayService pay;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean WechatShippingService shipping;
   @BeforeEach void setup(){
     db.execute("TRUNCATE app_user,activity,legal_consent,legal_document_version,audit_event CASCADE");
     db.update("INSERT INTO admin_account_configuration(id) VALUES(1) ON CONFLICT DO NOTHING");
@@ -156,7 +158,11 @@ class ActivityOrderIntegrationTest {
   @Test void paymentAndRefundAreValidatedIdempotentAndNeverTouchShop(){
     var a=activity(1);var u=user();var o=reserve(a,u,1,600);var transaction=paid(o);
     transaction.getAmount().setTotal(1);assertThatThrownBy(()->orders.completePayment(transaction)).hasMessageContaining("不匹配");
+    verifyNoInteractions(shipping);
     transaction.getAmount().setTotal(600);orders.completePayment(transaction);orders.completePayment(transaction);
+    var fulfillmentOrder = ArgumentCaptor.forClass(Order.class);
+    verify(shipping).uploadActivityFulfillment(fulfillmentOrder.capture(), eq(transaction.getTransactionId()));
+    assertThat(fulfillmentOrder.getValue().id()).isEqualTo(o.id());
     assertThatThrownBy(()->orders.get(o.id(),user().id())).isInstanceOf(ApiException.class);
     var r=orders.refund(o.id(),u.id(),"QA cancel");
     var result=new RefundModels.GatewayResult((String)r.get("out_refund_no"),o.orderNo(),transaction.getTransactionId(),"refund-1",600,600,"CNY","SUCCESS");

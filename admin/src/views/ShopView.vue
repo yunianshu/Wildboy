@@ -670,8 +670,8 @@ onUnmounted(clear);
       <div class="dialog" role="dialog" aria-modal="true">
         <h2>确认订单已发货？</h2>
         <p>
-          只有实际交给物流后才应标记发货。运单号会同步到微信「发货信息管理」，
-          微信支付订单不申报发货信息会被平台限制支付能力。
+          请在实际交给物流后确认发货。系统会为微信支付订单上报物流信息，
+          可在微信「发货信息管理」中核对结果。
         </p>
         <p v-if="shippingError" role="alert" class="error-box">{{ shippingError }}</p>
         <label
@@ -679,7 +679,7 @@ onUnmounted(clear);
             v-model="shipCompany"
             maxlength="64"
             :disabled="busy"
-            placeholder="如：顺丰速运"
+            placeholder="名称或编码，如顺丰速运 / SF"
         /></label>
         <label
           >运单号<input
