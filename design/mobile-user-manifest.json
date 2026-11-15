@@ -6,7 +6,7 @@
   "penDocument": "/C:/Users/59290/.pencil/documents/cbd623ad-6808-4e8c-9e6e-2d821034ed80/pencil-new.pen",
   "exportDirectory": "D:/AiProject/Wildboy/design/exports/mobile-user",
   "scope": {
-    "mainScreens": 15,
+    "mainScreens": 16,
     "stateBoards": 12,
     "excludedRoute": "pages/home/index",
     "protectedNodes": [
@@ -675,6 +675,37 @@
       "stateBoards": [
         "CX7SL"
       ]
+    },
+    {
+      "key": "article",
+      "route": "pages/article/index",
+      "nodeId": "jy5Vc",
+      "title": "文章详情（Markdown 渲染）",
+      "group": "探索与内容",
+      "position": {
+        "x": 4920,
+        "y": 2800
+      },
+      "export": "design/exports/mobile-user/jy5Vc.png",
+      "majorStates": [
+        "含封面、标题、摘要的已发布文章",
+        "Markdown 结构化正文（标题/段落/列表/图片）",
+        "加载中/失败/空与链接无效复用共享 ui-state（加载、错误保留重试）",
+        "演示数据标注：画板正文为演示文案，不代表真实发布内容"
+      ],
+      "implementationConstraints": [
+        "页面沿用探索页基线样式（app.wxss：纸色 #f6f4ed、墨绿 #193e33、摘要 #68776c），不套用 user-flow 新稿作用域。",
+        "正文由 markdown-view 原生组件渲染结构化节点，不使用 rich-text/web-view；图片经 mediaUrl 还原。",
+        "画板基线样式恢复：2026-11-15 修复 v2 Web 换肤误改共享 $wb-* 变量导致的小程序画板变色（Web 画板全部为字面量色值，不受影响）。"
+      ],
+      "api": [
+        "GET /articles/:id",
+        "GET /articles/official"
+      ],
+      "existingTests": [
+        "miniprogram/tests/articles.test.cjs"
+      ],
+      "stateBoards": []
     }
   ],
   "stateBoards": [
@@ -969,8 +1000,8 @@
   "remainingValidation": [
     "Physical-device/real WeChat identity, merchant payment/refund and production message delivery have not been executed."
   ],
-  "updatedAt": "2026-10-31",
-  "revision": 4,
+  "updatedAt": "2026-11-15",
+  "revision": 5,
   "reviewFixes": [
     {
       "issue": "已报名详情缺少取消入口变体",

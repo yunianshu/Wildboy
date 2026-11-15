@@ -66,7 +66,9 @@ const form = reactive({
 });
 const baseline = ref(JSON.stringify(form));
 const dirty = computed(() => JSON.stringify(form) !== baseline.value);
-const locked = computed(() => !!current.value && current.value.status === "PUBLISHED");
+const locked = computed(
+  () => !!current.value && current.value.status === "PUBLISHED",
+);
 const contentPending = computed(
   () =>
     !!id.value &&
@@ -292,13 +294,10 @@ async function confirmAction() {
   saving.value = true;
   error.value = "";
   try {
-    const a = await request<Article>(
-      `/admin/articles/${target.id}/${action}`,
-      {
-        method: "POST",
-        body: JSON.stringify({ version: target.version }),
-      },
-    );
+    const a = await request<Article>(`/admin/articles/${target.id}/${action}`, {
+      method: "POST",
+      body: JSON.stringify({ version: target.version }),
+    });
     if (alive) {
       fill(a);
       success.value =
@@ -431,7 +430,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
         <template v-else-if="current">
           <button
             class="primary"
-            :disabled="saving || !dirty && !rich?.dirty"
+            :disabled="saving || (!dirty && !rich?.dirty)"
             @click="save"
           >
             {{ saving ? "正在保存…" : "保存" }}
@@ -583,7 +582,9 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
                 保存草稿后，就可以在这里写图文正文（Markdown）。
               </p>
             </template>
-            <div class="article-editor-host article-editor-host--workbench"></div>
+            <div
+              class="article-editor-host article-editor-host--workbench"
+            ></div>
             <template v-if="layout === 'workbench'">
               <p class="doc-foot">
                 Markdown 已就绪<span class="doc-foot-sep">·</span
@@ -611,7 +612,9 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
                       : "草稿 · 未发布"
                   }}</span
                 >
-                <span v-else class="doc-prop-empty">新建文章，保存后可发布</span>
+                <span v-else class="doc-prop-empty"
+                  >新建文章，保存后可发布</span
+                >
               </span>
             </div>
             <div class="doc-prop">
@@ -760,9 +763,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
           ? `「${current.title}」发布后将在小程序探索页公开展示。`
           : `探索页「野小子」入口将打开「${current.title}」，替换原官方介绍。原官方介绍仍是已发布文章，会回到探索页文章轮播。`
       "
-      :confirm-label="
-        dialog === 'publish' ? '确认发布' : '确认设为官方介绍'
-      "
+      :confirm-label="dialog === 'publish' ? '确认发布' : '确认设为官方介绍'"
       @confirm="confirmAction"
       @cancel="!saving && (dialog = null)"
     />
@@ -1165,12 +1166,12 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
     font-size: 25px;
   }
   .article-topbar {
-    margin-inline: -16px;
-    padding-inline: 16px;
+    margin-inline: calc(var(--admin-inset) * -1);
+    padding-inline: var(--admin-inset);
   }
   .workbench {
     grid-template-columns: minmax(0, 1fr);
-    margin-inline: -16px;
+    margin-inline: calc(var(--admin-inset) * -1);
   }
   .workbench-side {
     border-right: 0;

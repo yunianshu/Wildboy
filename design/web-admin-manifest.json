@@ -189,20 +189,6 @@
       "height": 800
     },
     {
-      "id": "HpfmJ",
-      "name": "Web / 文章管理 · 草稿编辑",
-      "route": "/articles",
-      "width": 1280,
-      "height": 800
-    },
-    {
-      "id": "pF4I3",
-      "name": "Web / 文章管理 · 设置官方介绍确认",
-      "route": "/articles",
-      "width": 1280,
-      "height": 800
-    },
-    {
       "id": "DbJts",
       "name": "Web / 基础配置 · 四入口与目标页",
       "route": "/settings",
@@ -271,6 +257,63 @@
       "route": "/settings/admin-account",
       "width": 1280,
       "height": 800
+    },
+    {
+      "id": "Rkx83",
+      "name": "Web / 文章编辑 · 工作台",
+      "route": "/articles/:id/edit",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "MYBYC",
+      "name": "Web / 文章编辑 · 文档",
+      "route": "/articles/:id/edit",
+      "width": 1280,
+      "height": 900
+    },
+    {
+      "id": "LzCfb",
+      "name": "Web / 文章编辑 · 新建草稿",
+      "route": "/articles/new",
+      "width": 1280,
+      "height": 800
+    },
+    {
+      "id": "TNona",
+      "name": "Web / 文章编辑 · 窄屏",
+      "route": "/articles/new",
+      "width": 390,
+      "height": 900
+    },
+    {
+      "id": "P6RC06",
+      "name": "Web / 文章编辑 · 设为官方介绍确认",
+      "route": "/articles/:id/edit",
+      "width": 1280,
+      "height": 900
     }
+  ],
+  "routes": [
+    "/activities",
+    "/activities/:id/edit",
+    "/activities/:id/registrations",
+    "/activities/new",
+    "/activity-orders",
+    "/articles",
+    "/articles/:id/edit",
+    "/articles/new",
+    "/legal",
+    "/login",
+    "/memberships",
+    "/notifications",
+    "/operations",
+    "/refunds",
+    "/settings",
+    "/settings/admin-account",
+    "/shop",
+    "/shop/categories",
+    "/templates",
+    "/users"
   ]
 }

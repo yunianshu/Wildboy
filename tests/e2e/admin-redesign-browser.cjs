@@ -1220,26 +1220,25 @@ async function templateWorkflow(page, activity) {
 }
 
 async function articleWorkflow(page) {
+  // 文章编辑已是独立页面 /articles/new 与 /articles/:id/edit（双布局）。
   await route(page, "/articles", /文章管理/);
   await button(page, /新建文章/).click();
-  const editor = dialog(page, /新建文章|编辑文章/);
-  await editor.getByLabel(/文章标题/).fill(qa("文章"));
-  await editor.getByLabel(/文章摘要/).fill("只用于隔离浏览器验收。");
-  await uploadFirstImage(editor);
+  await page.waitForURL("**/articles/new", headingTimeout);
+  await page.getByLabel(/文章标题/).fill(qa("文章"));
+  await page.getByLabel(/文章摘要/).fill("只用于隔离浏览器验收。");
+  await uploadFirstImage(page);
   const article = await write(page, "/admin/articles", "POST", () =>
-    button(editor, /保存文章信息/).click(),
+    button(page, /保存草稿/).click(),
   );
   report.fixtures.article = article.id;
   const endpoint = `/admin/articles/${article.id}`;
-  const contentTab = button(editor, /图文正文/);
-  const metadataTab = button(editor, /基本资料/);
-  if (await contentTab.isVisible()) await contentTab.click();
-  const md = editor
+  await page.waitForURL("**/articles/*/edit", headingTimeout);
+  const md = page
     .locator(
       '[aria-label="图文正文（Markdown 编辑器）"] .vditor-wysiwyg pre[contenteditable="true"]',
     )
     .first();
-  await editor
+  await page
     .locator('[aria-label="图文正文（Markdown 编辑器）"][data-vditor-ready="1"]')
     .waitFor({ state: "visible", ...headingTimeout });
   await md.click();
@@ -1247,21 +1246,16 @@ async function articleWorkflow(page) {
   // Vditor 的 input 处理带防抖：轮询等待"未保存图文"禁用发布按钮生效
   let publishLocked = false;
   for (let i = 0; i < 20 && !publishLocked; i++) {
-    if (await metadataTab.isVisible()) await metadataTab.click();
-    publishLocked = await button(editor, /发布文章/).isDisabled();
+    publishLocked = await button(page, /^发布$/).isDisabled();
     if (!publishLocked) await page.waitForTimeout(250);
   }
   assert.equal(publishLocked, true);
-  if (await contentTab.isVisible()) await contentTab.click();
-  assert.equal(
-    await md.textContent(),
-    "合成文章正文，仅隔离环境。",
-  );
+  assert.equal(await md.textContent(), "合成文章正文，仅隔离环境。");
+  // 统一保存：先存图文（推进版本），再存基本资料
   await write(page, `${endpoint}/content`, "PUT", () =>
-    button(editor, /保存图文/).click(),
+    button(page, /^保存$/).click(),
   );
-  if (await metadataTab.isVisible()) await metadataTab.click();
-  const publish = button(editor, /发布文章/);
+  const publish = button(page, /^发布$/);
   await useConfirmation(page, publish, /发布文章/, false, async () => {
     await screenshot(page, "article-publish-confirm-desktop");
   });
@@ -1282,7 +1276,7 @@ async function articleWorkflow(page) {
     status: [200, 404],
   });
   fixture.previousOfficial = previousOfficial?.id;
-  const official = button(editor, /设为官方介绍/);
+  const official = button(page, /设为官方介绍/);
   await useConfirmation(page, official, /设为官方介绍/, false, async () => {
     assert.ok((await layout(page)).horizontalOverflow <= 1);
     await screenshot(page, "article-official-confirm-mobile");
@@ -1295,7 +1289,7 @@ async function articleWorkflow(page) {
     }),
   );
   assert.equal((await http("GET", "/articles/official")).id, article.id);
-  await button(editor, /^关闭$/).click();
+  await visible(button(page, /当前官方介绍/));
   return article;
 }
 
