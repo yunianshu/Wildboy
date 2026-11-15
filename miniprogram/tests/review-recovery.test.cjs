@@ -99,12 +99,12 @@ test('notification pagination deduplicates overlapping results', async () => {
   assert.deepEqual(p.data.items.map(x => x.id), ['same', 'next']);
 });
 
-test('returning home reloads activity capacity and equipment instead of keeping session-long stale data', async () => {
+test('returning home reloads activity capacity and banners instead of keeping session-long stale data', async () => {
   const { homeEntries } = require('../dist/utils/home.js');
   api.request = async url => {
     calls.push(url);
     if (url === '/home/shortcuts') return { version: 0, items: homeEntries };
-    if (url === '/home') return { banners: [], equipment: [] };
+    if (url === '/home') return { banners: [] };
     return { items: [], page: 0, hasMore: false };
   };
   const p = page('home');

@@ -59,11 +59,14 @@ beforeEach(() => {
   });
 });
 
-test('the four declared Tab destinations match the native routing whitelist', () => {
-  const nav = source('utils/tab-bar.ts');
+test('the declared Tab destinations are exactly the three native Tab pages', () => {
   const config = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/app.json'), 'utf8'));
   assert.equal(config.tabBar.custom, true);
-  assert.deepEqual(JSON.parse(JSON.stringify(nav.TAB_ITEMS)), config.tabBar.list);
+  assert.deepEqual(config.tabBar.list, [
+    { pagePath: 'pages/home/index', text: '探索' },
+    { pagePath: 'pages/activities/index', text: '活动' },
+    { pagePath: 'pages/mine/index', text: '我的' },
+  ]);
 });
 
 test('each independent component initializes and resynchronizes from the actual visible route', () => {
@@ -78,9 +81,9 @@ test('each independent component initializes and resynchronizes from the actual 
   assert.equal(calls.length, 0);
 });
 
-test('all four real page onShow hooks synchronize external navigation without wrapping their loads', () => {
-  const nav = source('utils/tab-bar.ts');
-  for (const item of nav.TAB_ITEMS) {
+test('all three real page onShow hooks synchronize external navigation without wrapping their loads', () => {
+  const config = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../src/app.json'), 'utf8'));
+  for (const item of config.tabBar.list) {
     source(`${item.pagePath}.ts`);
     const actual = pageDefinition;
     const p = page(item.pagePath);
@@ -97,7 +100,7 @@ test('all four real page onShow hooks synchronize external navigation without wr
 
 test('same Tab and invalid paths never navigate or optimistically change selection', () => {
   const p = page('pages/home/index'); activate(p); p.component.attached();
-  for (const value of [p.route, '/pages/home/index', 'pages/product/index', 'pages/shop/index?x=1', null, {}, ''])
+  for (const value of [p.route, '/pages/home/index', 'pages/detail/index', 'pages/article/index?x=1', null, {}, ''])
     p.component.selectTab(event(value));
   assert.equal(calls.length, 0);
   assert.equal(p.component.data.selected, p.route);
@@ -105,24 +108,24 @@ test('same Tab and invalid paths never navigate or optimistically change selecti
 
 test('rapid and cross-instance taps share one switch; visible-route arrival accepts a new switch', () => {
   const nav = source('utils/tab-bar.ts');
-  const home = page('pages/home/index'), shop = page('pages/shop/index');
+  const home = page('pages/home/index'), activities = page('pages/activities/index');
   activate(home); home.component.attached();
-  home.component.selectTab(event(shop.route));
+  home.component.selectTab(event(activities.route));
   home.component.selectTab(event('pages/mine/index'));
-  shop.component.selectTab(event('pages/activities/index'));
-  assert.equal(calls.length, 1); assert.equal(calls[0].url, '/pages/shop/index');
+  activities.component.selectTab(event('pages/mine/index'));
+  assert.equal(calls.length, 1); assert.equal(calls[0].url, '/pages/activities/index');
   assert.equal(home.component.data.selected, home.route);
-  activate(shop); nav.syncTabBar(shop);
-  assert.equal(shop.component.data.selected, shop.route);
-  shop.component.selectTab(event('pages/activities/index'));
+  activate(activities); nav.syncTabBar(activities);
+  assert.equal(activities.component.data.selected, activities.route);
+  activities.component.selectTab(event('pages/mine/index'));
   assert.equal(calls.length, 2);
 });
 
 test('failed navigation keeps actual selection and releases the guard for immediate retry', () => {
   const p = page('pages/home/index'); activate(p); p.component.attached();
-  p.component.selectTab(event('pages/shop/index')); calls[0].fail({ errMsg: 'switchTab:fail' });
+  p.component.selectTab(event('pages/activities/index')); calls[0].fail({ errMsg: 'switchTab:fail' });
   assert.equal(p.component.data.selected, p.route); assert.equal(toasts.length, 1);
-  p.component.selectTab(event('pages/shop/index'));
+  p.component.selectTab(event('pages/activities/index'));
   assert.equal(calls.length, 2);
 });
 
@@ -133,35 +136,35 @@ test('native reentry during switchTab cannot start a second route operation', ()
     calls.push(options);
     nav.switchTab('pages/mine/index');
   };
-  p.component.selectTab(event('pages/shop/index'));
-  assert.equal(calls.length, 1); assert.equal(calls[0].url, '/pages/shop/index');
+  p.component.selectTab(event('pages/activities/index'));
+  assert.equal(calls.length, 1); assert.equal(calls[0].url, '/pages/activities/index');
 });
 
 test('synchronous native failure also releases navigation without throwing into the page', () => {
   const p = page('pages/home/index'); activate(p);
   context.wx.switchTab = () => { throw new Error('native unavailable'); };
-  assert.doesNotThrow(() => p.component.selectTab(event('pages/shop/index')));
+  assert.doesNotThrow(() => p.component.selectTab(event('pages/activities/index')));
   context.wx.switchTab = options => calls.push(options);
-  p.component.selectTab(event('pages/shop/index'));
+  p.component.selectTab(event('pages/activities/index'));
   assert.equal(calls.length, 1); assert.equal(toasts.length, 1);
 });
 
 test('late callbacks cannot clear a newer switch, overwrite its route or show a stale error', () => {
   const nav = source('utils/tab-bar.ts');
-  const home = page('pages/home/index'), shop = page('pages/shop/index'), mine = page('pages/mine/index');
-  activate(home); home.component.selectTab(event(shop.route)); const first = calls[0];
-  activate(shop); nav.syncTabBar(shop);
-  shop.component.selectTab(event(mine.route)); const second = calls[1];
+  const home = page('pages/home/index'), activities = page('pages/activities/index'), mine = page('pages/mine/index');
+  activate(home); home.component.selectTab(event(activities.route)); const first = calls[0];
+  activate(activities); nav.syncTabBar(activities);
+  activities.component.selectTab(event(mine.route)); const second = calls[1];
   first.fail({ errMsg: 'late failure' }); first.success({ errMsg: 'late success' });
-  shop.component.selectTab(event('pages/activities/index'));
-  assert.equal(calls.length, 2); assert.equal(shop.component.data.selected, shop.route); assert.equal(toasts.length, 0);
+  activities.component.selectTab(event('pages/home/index'));
+  assert.equal(calls.length, 2); assert.equal(activities.component.data.selected, activities.route); assert.equal(toasts.length, 0);
   activate(mine); nav.syncTabBar(mine); second.success({ errMsg: 'switchTab:ok' });
   assert.equal(mine.component.data.selected, mine.route);
 });
 
 test('an external route change before a failed callback restores only the now-visible component', () => {
   const home = page('pages/home/index'), mine = page('pages/mine/index');
-  activate(home); home.component.attached(); home.component.selectTab(event('pages/shop/index'));
+  activate(home); home.component.attached(); home.component.selectTab(event('pages/activities/index'));
   activate(mine); calls[0].fail({ errMsg: 'stale route failure' });
   assert.equal(mine.component.data.selected, mine.route);
   assert.equal(home.component.data.selected, home.route);
@@ -174,6 +177,6 @@ test('component attachment recovers selection before getTabBar is available; non
   assert.equal(component.data.selected, 'pages/activities/index');
   activate({ route: 'pages/detail/index' });
   assert.equal(nav.syncTabBar(), '');
-  component.selectTab(event('pages/shop/index'));
+  component.selectTab(event('pages/mine/index'));
   assert.equal(calls.length, 0);
 });

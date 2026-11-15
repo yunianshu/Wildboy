@@ -1,7 +1,7 @@
 import { enterPage } from "../../utils/page-motion";
 import { ApiError, request, hasSession, sessionVersion, isSessionCurrent, isAccessDenied } from '../../utils/api';
 import { message, safeId, dateLabel } from '../../utils/domain';
-import { money } from '../../utils/shop';
+import { money } from '../../utils/money';
 import { ActivityOrder, ActivityRefund, activityOrderStatus, activityRefundStatus, payActivityOrder, verifyActivityPayment, priceLines } from '../../utils/activity-orders';
 type Row=ActivityOrder & {statusText:string;totalText:string;originalText:string;expiresText:string;lines:ReturnType<typeof priceLines>};
 Page({

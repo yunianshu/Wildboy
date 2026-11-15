@@ -1,6 +1,6 @@
 import { request, sessionVersion, isSessionCurrent } from './api';
 import { PaymentRequest } from './models';
-import { money, checkoutRequestId, pendingCheckoutRequestId, finishCheckoutIntent } from './shop';
+import { money, checkoutRequestId, pendingCheckoutRequestId, finishCheckoutIntent } from './money';
 export interface ActivityPriceLine {unitPriceCents:number; quantity:number; chargedUnitPriceCents:number; tierId:string|null; tierName:string|null; tierVersion:number; pricingMode:string|null; pricingValue:number}
 export interface ActivityQuote {participants:number;originalTotalCents:number;totalCents:number;currency:string;participantPricing:string|null;quote:{lines:ActivityPriceLine[];policyVersion:string}}
 export interface ActivityOrder {id:string;orderNo:string;activityId:string;activityTitle:string;userId:string;status:string;partySize:number;originalTotalCents:number;totalCents:number;currency:string;quote:ActivityQuote['quote'];paymentTransactionId:string|null;paymentAttempted:boolean;expiresAt:string;version:number}

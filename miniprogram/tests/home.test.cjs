@@ -52,20 +52,9 @@ function page(name = "home") {
 }
 const home = {
   banners: [],
-  equipment: [],
   categories: [],
   paymentEnabled: false,
 };
-const equipment = (id, priceCents = 12900, originalPriceCents = priceCents) => ({
-  id,
-  name: `装备 ${id}`,
-  imageUrl: "/assets/equipment.jpg",
-  description: "",
-  categoryName: "徒步",
-  priceCents,
-  originalPriceCents,
-  priceLabel: "",
-});
 const banner = {
   id: "banner-1",
   activityId: "real-1",
@@ -193,51 +182,6 @@ test("carousel opens article and official shortcut resolves current designation"
   ]);
   assert.equal(storage.has("wildboy-category"), false);
 });
-test("equipment uses the first four real products and shows only actual discounts", async () => {
-  const products = [
-    { ...equipment("sale", 10900, 12900), priceLabel: "¥109.00" },
-    equipment("same"),
-    equipment("third"),
-    equipment("fourth"),
-    equipment("fifth"),
-  ];
-  const request = api.request;
-  api.request = (path) =>
-    path === "/home" ? Promise.resolve({ ...home, equipment: products }) : request(path);
-  const p = page();
-  await p.load();
-  assert.deepEqual(p.data.equipment.map((item) => item.id), ["sale", "same", "third", "fourth"]);
-  assert.equal(p.data.equipment[0].priceLabel, "¥109.00");
-  assert.equal(p.data.equipment[0].originalPriceText, "¥129.00");
-  assert.equal(p.data.equipment[1].priceLabel, "¥129.00");
-  assert.ok(p.data.equipment.slice(1).every((item) => !item.originalPriceText));
-  p.openProduct({ currentTarget: { dataset: { id: p.data.equipment[3].id } } });
-  assert.deepEqual(navigation, ["/pages/product/index?id=fourth"]);
-});
-test("equipment failure leaves activities usable and its retry reads only equipment", async () => {
-  responses([activity("a")]);
-  const request = api.request;
-  api.request = (path) =>
-    path === "/home" ? Promise.reject(new Error("装备暂不可用")) : request(path);
-  const p = page();
-  await p.load();
-  assert.equal(p.data.equipmentError, "装备暂不可用");
-  assert.equal(p.data.equipmentLoading, false);
-  assert.deepEqual(p.data.equipment, []);
-  assert.equal(p.data.error, "");
-  assert.deepEqual(p.data.items.map((item) => item.id), ["a"]);
-  calls.length = 0;
-  api.request = async (path) => {
-    calls.push(path);
-    return { ...home, equipment: [equipment("only-item")] };
-  };
-  await p.retryEquipment();
-  await new Promise((resolve) => setImmediate(resolve));
-  assert.deepEqual(calls, ["/home"]);
-  assert.equal(p.data.equipmentError, "");
-  assert.deepEqual(p.data.equipment.map((item) => item.id), ["only-item"]);
-  assert.deepEqual(p.data.items.map((item) => item.id), ["a"]);
-});
 test("article load failure leaves activities usable and clears stale carousel", async () => {
   responses([activity("a")]);
   const p = page();
@@ -263,17 +207,11 @@ test("empty refresh removes old activities; failure offers retry without fake da
   assert.deepEqual(p.data.items, []);
   const request = api.request;
   api.request = (path) =>
-    path.startsWith("/activities")
-      ? Promise.reject(new Error("网络失败"))
-      : path === "/home"
-        ? Promise.resolve({ ...home, equipment: [equipment("ready")] })
-        : request(path);
+    path.startsWith("/activities") ? Promise.reject(new Error("网络失败")) : request(path);
   await p.load();
   assert.equal(p.data.error, "网络失败");
   assert.deepEqual(p.data.items, []);
   assert.equal(p.data.loading, false);
-  assert.equal(p.data.equipmentError, "");
-  assert.deepEqual(p.data.equipment.map((item) => item.id), ["ready"]);
   responses([activity("b")]);
   await p.load();
   assert.equal(p.data.error, "");
@@ -332,27 +270,22 @@ test("all activities clears an earlier category and keeps separate pagination ro
   assert.equal(listing.data.selected, "");
   assert.ok(calls.some((x) => x.path === "/activities?page=0&size=10"));
 });
-test("native home keeps its hero, shortcuts, activity cards, full-width equipment, carousel and original logo", () => {
+test("native home keeps its hero, shortcuts, activity cards, carousel and original logo", () => {
   const markup = fs.readFileSync("dist/pages/home/index.wxml", "utf8");
   const positions = [
     'class="hero"',
     'class="category-grid"',
     'class="grid"',
-    'class="shop"',
-    'src="/assets/equipment-banner.jpg"',
-    'class="equipment-grid"',
     'class="scenery-swiper"',
     'src="/assets/platform-brand-original-transparent.png"',
   ].map((x) => markup.indexOf(x));
   assert.ok(positions.every((x, i) => x >= 0 && (!i || x > positions[i - 1])));
   assert.equal((markup.match(/<swiper\s/g) || []).length, 1);
-  assert.doesNotMatch(markup, /class="equipment-strip"/);
+  assert.doesNotMatch(markup, /class="shop"|class="equipment|equipment-banner/);
   assert.match(markup, /wx:key="slotKey"/);
   assert.match(markup, /autoplay="{{true}}"/);
   const styles = fs.readFileSync("dist/pages/home/index.wxss", "utf8");
   assert.match(styles, /\.category-grid\s*\{[^}]*repeat\(4,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(styles, /\.shop\s*\{[^}]*margin:[^;]*calc\(-1\s*\*\s*var\(--page-gutter/);
-  assert.match(styles, /\.equipment-grid\s*\{[^}]*repeat\(2,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(styles, /safe-area-inset-bottom/);
 });
 
@@ -462,7 +395,6 @@ test("all allowlisted destinations dispatch correctly without arbitrary routes",
     ["WEEKLY", "activities"],
     ["DOMESTIC", "activities"],
     ["ACTIVITIES", "activities"],
-    ["SHOP", "shop"],
     ["PROFILE", "mine"],
   ]) {
     const items = structuredClone(homeEntries);

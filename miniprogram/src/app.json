@@ -2,10 +2,6 @@
   "pages": [
     "pages/home/index",
     "pages/activities/index",
-    "pages/shop/index",
-    "pages/product/index",
-    "pages/checkout/index",
-    "pages/orders/index",
     "pages/detail/index",
     "pages/register/index",
     "pages/mine/index",
@@ -18,10 +14,6 @@
     "pages/admin-roster/index",
     "pages/login/index",
     "pages/admin-legal/index",
-    "pages/admin-shop/index",
-    "pages/admin-product/index",
-    "pages/admin-orders/index",
-    "pages/addresses/index",
     "pages/notifications/index",
     "pages/profile/index",
     "pages/admin-users/index",
@@ -57,10 +49,6 @@
       {
         "pagePath": "pages/activities/index",
         "text": "活动"
-      },
-      {
-        "pagePath": "pages/shop/index",
-        "text": "商城"
       },
       {
         "pagePath": "pages/mine/index",

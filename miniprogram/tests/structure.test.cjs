@@ -3,9 +3,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
-test("all thirty registered native pages have compiled JS WXML WXSS JSON", () => {
+test("all twenty-two registered native pages have compiled JS WXML WXSS JSON", () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
-  assert.equal(app.pages.length, 30);
+  assert.equal(app.pages.length, 22);
   assert.equal(new Set(app.pages).size, app.pages.length);
   for (const route of [
     "article",
@@ -25,13 +25,6 @@ test("all thirty registered native pages have compiled JS WXML WXSS JSON", () =>
     "admin-activities",
     "admin-editor",
     "admin-roster",
-    "shop",
-    "product",
-    "checkout",
-    "orders",
-    "admin-shop",
-    "admin-product",
-    "admin-orders",
   ])
     assert.ok(app.pages.includes(`pages/${route}/index`));
   for (const page of app.pages)

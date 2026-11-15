@@ -79,38 +79,6 @@
         </view>
       </view>
     </block>
-    <view class="shop" bindtap="equipmentInfo" aria-role="button" aria-label="逛野小子装备小店">
-      <image class="shop-banner-image" src="/assets/equipment-banner.jpg" mode="aspectFill" />
-      <view class="shop-copy">
-        <view class="shop-tag">山野好物 · 轻装出发</view>
-        <view class="shop-title">把山野，装进行囊</view>
-        <view class="shop-cta">去逛逛 <image class="ui-icon" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      </view>
-    </view>
-    <ui-state wx:if="{{equipmentError}}" class="equipment-state" kind="error" compact="{{true}}">
-      <view>{{equipmentError}}</view>
-      <button class="secondary" bindtap="retryEquipment">重新加载装备</button>
-    </ui-state>
-    <ui-state wx:elif="{{equipmentLoading}}" class="equipment-state" kind="loading" compact="{{true}}">正在加载装备…</ui-state>
-    <ui-state wx:elif="{{!equipment.length}}" class="equipment-state" kind="empty" compact="{{true}}">装备正在准备中</ui-state>
-    <view wx:else class="equipment-grid">
-      <view
-        class="equipment-item"
-        wx:for="{{equipment}}"
-        wx:key="id"
-        data-id="{{item.id}}"
-        bindtap="openProduct"
-        aria-role="button"
-        aria-label="{{item.name}}，{{item.priceLabel}}"
-      >
-        <image class="equipment-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
-        <view class="equipment-name">{{item.name}}</view>
-        <view class="equipment-price-stack">
-          <view wx:if="{{item.originalPriceText}}" class="equipment-original-price">原价 {{item.originalPriceText}}</view>
-          <view class="equipment-price">{{item.priceLabel}}</view>
-        </view>
-      </view>
-    </view>
     <view class="section-head gallery-head">
       <view>
         <view class="eyebrow">MOMENTS OUTSIDE</view>

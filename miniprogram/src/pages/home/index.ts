@@ -6,7 +6,6 @@ import {
   fallbackBanners,
   HOME_ACTIVITY_COUNT,
   homeActivitySlots,
-  homeEquipmentSlots,
 } from "../../utils/home";
 import { ArticleSummary } from "../../utils/articles";
 import {
@@ -21,7 +20,7 @@ import { enterPage } from "../../utils/page-motion";
 const shortcutEpoch = new RequestEpoch();
 const tapEpoch = new RequestEpoch();
 const epoch = new RequestEpoch();
-const equipmentEpoch = new RequestEpoch();
+const bannerEpoch = new RequestEpoch();
 const articleEpoch = new RequestEpoch();
 
 Page({
@@ -29,9 +28,6 @@ Page({
     pageMotionClass: "",
     devMode: false,
     topInset: 48,
-    equipment: [] as ReturnType<typeof homeEquipmentSlots>,
-    equipmentLoading: false,
-    equipmentError: "",
     banners: fallbackBanners,
     categories: defaultShortcutViews,
     shortcutLoading: true,
@@ -74,7 +70,6 @@ Page({
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
     articleEpoch.invalidate();
-    equipmentEpoch.invalidate();
     epoch.invalidate();
   },
   onPullDownRefresh() {
@@ -84,7 +79,7 @@ Page({
     await Promise.all([
       this.loadArticles(),
       this.loadShortcuts(),
-      this.loadEquipment(),
+      this.loadBanners(),
       this.loadActivities(),
     ]);
   },
@@ -111,17 +106,12 @@ Page({
       if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
-  async loadEquipment() {
-    const n = equipmentEpoch.next();
-    this.setData({ equipmentLoading: true, equipmentError: "" });
+  async loadBanners() {
+    const n = bannerEpoch.next();
     try {
       const home = await request<Home>("/home");
-      if (!equipmentEpoch.valid(n)) return;
+      if (!bannerEpoch.valid(n)) return;
       this.setData({
-        equipment: homeEquipmentSlots(home.equipment).map((item) => ({
-          ...item,
-          imageUrl: mediaUrl(item.imageUrl),
-        })),
         banners: home.banners.length
           ? home.banners.map((item) => ({
               ...item,
@@ -130,13 +120,8 @@ Page({
           : fallbackBanners,
       });
     } catch (e) {
-      if (equipmentEpoch.valid(n)) this.setData({ equipmentError: message(e) });
-    } finally {
-      if (equipmentEpoch.valid(n)) this.setData({ equipmentLoading: false });
+      // 横幅加载失败时保留兜底图，不阻断首页
     }
-  },
-  retryEquipment() {
-    return this.loadEquipment();
   },
   async loadArticles() {
     const n = articleEpoch.next();
@@ -274,12 +259,5 @@ Page({
   allActivities() {
     wx.setStorageSync("wildboy-category", "ALL");
     wx.switchTab({ url: "/pages/activities/index" });
-  },
-  equipmentInfo() {
-    wx.switchTab({ url: "/pages/shop/index" });
-  },
-  openProduct(event: WechatMiniprogram.TouchEvent) {
-    const id = safeId(event.currentTarget.dataset.id);
-    if (id) wx.navigateTo({ url: `/pages/product/index?id=${id}` });
   },
 });

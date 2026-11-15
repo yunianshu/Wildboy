@@ -12,7 +12,7 @@ public class HomeShortcutService {
   private final JdbcTemplate db;
   private final ObjectMapper json;
   private static final Set<String> ICONS = Set.of("WEEKLY", "DOMESTIC", "QRCODE", "INTRO");
-  private static final Set<String> PAGES = Set.of("WEEKLY", "DOMESTIC", "ACTIVITIES", "SHOP", "PROFILE");
+  private static final Set<String> PAGES = Set.of("WEEKLY", "DOMESTIC", "ACTIVITIES", "PROFILE");
   public HomeShortcutService(JdbcTemplate db, ObjectMapper json) { this.db=db; this.json=json; }
 
   public Configuration get(boolean admin) {

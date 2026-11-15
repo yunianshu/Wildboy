@@ -66,13 +66,14 @@ class HomeShortcutIntegrationTest {
     reject(new Configuration(null,old.items()));
     reject(replace(3,new Item(3,"入口","INTRO","PAGE","/pages/admin/index","","","","")));
     reject(replace(3,new Item(3,"入口","UNKNOWN","PAGE","SHOP","","","","")));
+    reject(replace(3,new Item(3,"入口","INTRO","PAGE","SHOP","","","","")));
     reject(replace(3,new Item(3,"入口","INTRO","SCRIPT","","","","","")));
     reject(replace(3,new Item(3,"一".repeat(13),"INTRO","PAGE","SHOP","","","","")));
     reject(replace(3,new Item(3,"入口","INTRO","POPUP","","","","一".repeat(2001),"")));
     for(String image:List.of("javascript:alert(1)","http://example.com/a.png","/assets/../secret.png","https://user@host/x.png","data:image/png;base64,abcd")) reject(replace(3,popup(image)));
   }
   @Test void acceptsAllAllowlistedPagesAndEmptyPopup() {
-    for(String page:List.of("WEEKLY","DOMESTIC","ACTIVITIES","SHOP","PROFILE")) {
+    for(String page:List.of("WEEKLY","DOMESTIC","ACTIVITIES","PROFILE")) {
       var result=shortcuts.save(replace(1,new Item(1,"入口","WEEKLY","PAGE",page,"OFFICIAL","discard","discard","javascript:discard")),actor);
       assertThat(result.items().getFirst().page()).isEqualTo(page);
       assertThat(result.items().getFirst().popupText()).isEmpty();

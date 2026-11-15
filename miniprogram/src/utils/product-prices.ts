@@ -1,4 +1,4 @@
-import { money } from "./shop";
+import { money } from "./money";
 
 /** Only a whole non-negative cent amount renders as a price; anything else stays blank. */
 export function priceText(cents: number | undefined): string {
