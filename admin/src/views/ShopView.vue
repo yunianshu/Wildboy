@@ -52,6 +52,8 @@ const products = ref<Product[]>([]),
   appliedCategory = ref(""),
   categoryFilterDraft = ref(""),
   shipping = ref<Order | null>(null),
+  shipCompany = ref(""),
+  shipTracking = ref(""),
   tab = ref<"products" | "orders">("products"),
   form = ref({
     name: "",
@@ -402,6 +404,8 @@ function openShipping(order: Order) {
   if (busy.value || !canShip(order) || shippingConflictId.value === order.id)
     return;
   shippingError.value = "";
+  shipCompany.value = "";
+  shipTracking.value = "";
   shipping.value = order;
 }
 function closeShipping() {
@@ -420,13 +424,24 @@ async function ship() {
   )
     return;
   const order = shipping.value;
+  if (
+    order.status === "PAID" &&
+    (!shipCompany.value.trim() || !shipTracking.value.trim())
+  ) {
+    shippingError.value = "微信支付订单必须填写物流公司和运单号后再标记发货。";
+    return;
+  }
   const n = generation;
   busy.value = true;
   shippingError.value = "";
   try {
     await request<Order>(`/admin/orders/${order.id}/ship`, {
       method: "POST",
-      body: JSON.stringify({ version: order.version }),
+      body: JSON.stringify({
+        version: order.version,
+        company: shipCompany.value.trim(),
+        trackingNo: shipTracking.value.trim(),
+      }),
     });
     if (n !== generation) return;
     shipping.value = null;
@@ -651,17 +666,53 @@ onUnmounted(clear);
       @cancel="revealTarget = null"
       @confirm="confirmReveal"
     />
-    <ConfirmDialog
-      v-if="shipping"
-      title="确认订单已发货？"
-      description="只有实际交给物流后才应标记发货，操作会写入订单状态。"
-      confirm-label="确认发货"
-      :busy="busy"
-      :error="shippingError"
-      :confirm-disabled="shippingConflictId === shipping.id"
-      @cancel="closeShipping"
-      @confirm="ship"
-    />
+    <div v-if="shipping" class="dialog-overlay" @click.self="closeShipping">
+      <div class="dialog" role="dialog" aria-modal="true">
+        <h2>确认订单已发货？</h2>
+        <p>
+          只有实际交给物流后才应标记发货。运单号会同步到微信「发货信息管理」，
+          微信支付订单不申报发货信息会被平台限制支付能力。
+        </p>
+        <p v-if="shippingError" role="alert" class="error-box">{{ shippingError }}</p>
+        <label
+          >物流公司<input
+            v-model="shipCompany"
+            maxlength="64"
+            :disabled="busy"
+            placeholder="如：顺丰速运"
+        /></label>
+        <label
+          >运单号<input
+            v-model="shipTracking"
+            maxlength="64"
+            :disabled="busy"
+            :placeholder="shipping.status === 'PAID' ? '微信支付订单必填' : '选填'"
+        /></label>
+        <div class="dialog-actions">
+          <button
+            type="button"
+            class="secondary"
+            :disabled="busy"
+            @click="closeShipping"
+          >
+            返回
+          </button>
+          <button
+            type="button"
+            class="primary"
+            :disabled="
+              busy ||
+              shippingConflictId === shipping.id ||
+              (shipping.status === 'PAID' &&
+                (!shipCompany.trim() || !shipTracking.trim()))
+            "
+            @click="ship"
+          >
+            确认发货
+          </button>
+        </div>
+      </div>
+    </div>
     <ConfirmDialog
       v-if="pendingPayload"
       title="确认保存商品？"

@@ -24,9 +24,10 @@ public class ActivityOrderService {
   private final IdentityProtection identity;
   private final ObjectMapper json;
   private final TransactionTemplate tx;
+  private final WechatShippingService shipping;
   public ActivityOrderService(JdbcTemplate db, ActivityService activities, WechatPayService pay,
-      ObjectMapper json, PlatformTransactionManager tm, MembershipService memberships, LegalService legal, IdentityProtection identity) {
-    this.legal=legal;this.identity=identity;this.memberships=memberships;this.db=db;this.activities=activities;this.pay=pay;this.json=json;this.tx=new TransactionTemplate(tm);
+      ObjectMapper json, PlatformTransactionManager tm, MembershipService memberships, LegalService legal, IdentityProtection identity, WechatShippingService shipping) {
+    this.legal=legal;this.identity=identity;this.memberships=memberships;this.db=db;this.activities=activities;this.pay=pay;this.json=json;this.tx=new TransactionTemplate(tm);this.shipping=shipping;
   }
   public Order get(String id,String user) {
     return db.query("SELECT * FROM activity_order WHERE id=?"+(user==null?"":" AND user_id=?"),(r,n)-> {
@@ -249,6 +250,8 @@ public class ActivityOrderService {
       if(!o.status().equals("PENDING_PAYMENT"))throw ApiException.conflict("PAYMENT_CONFLICT","订单状态异常，需要核对");
       db.update("UPDATE activity_order SET status='PAID',payment_transaction_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",t.getTransactionId(),o.id());
       activities.audit(o.userId(),o.id(),"ACTIVITY_ORDER_PAID");
+      // 活动报名属虚拟商品：向「发货信息管理」上报履约信息（交易类小程序合规要求）
+      shipping.uploadActivityFulfillment(o);
     });
   }
   public Order cancel(String id,String user) {

@@ -109,7 +109,7 @@ public class ShopController {
       @PathVariable String id,
       @AuthenticationPrincipal Models.User user,
       @Valid @RequestBody ShipInput input) {
-    return shop.ship(id, input.version(), user.id());
+    return shop.ship(id, input.version(), user.id(), input.company(), input.trackingNo());
   }
 
   @PostMapping("/payments/wechat/notify")

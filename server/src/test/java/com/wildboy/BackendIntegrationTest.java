@@ -1085,7 +1085,7 @@ class BackendIntegrationTest {
     assertThat(shop.order(order.id(), customer.id(), false).status()).isEqualTo("PAID");
     shop.completePayment(transaction);
     assertThat(shop.order(order.id(), customer.id(), false).version()).isEqualTo(1);
-    var shipped = shop.ship(order.id(), 1L, "fixture-admin");
+    var shipped = shop.ship(order.id(), 1L, "fixture-admin", "顺丰速运", "SF0000000000");
     assertThat(shipped.status()).isEqualTo("SHIPPED");
     var secondProduct = product(3600, 1);
     var second = shop.createOrder(user().id(), orderInput(secondProduct.id(), 1));

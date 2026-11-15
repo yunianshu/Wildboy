@@ -27,6 +27,7 @@ public class ShopService {
   private final ShopCategoryService categories;
   private final TransactionTemplate transactions;
   private final MembershipService memberships;
+  private final WechatShippingService shipping;
 
   public ShopService(
       JdbcTemplate db,
@@ -36,7 +37,8 @@ public class ShopService {
       WechatPayService pay,
       ShopCategoryService categories,
       PlatformTransactionManager transactionManager,
-      MembershipService memberships) {
+      MembershipService memberships,
+      WechatShippingService shipping) {
     this.db = db;
     this.memberships = memberships;
     this.legal = legal;
@@ -45,6 +47,7 @@ public class ShopService {
     this.pay = pay;
     this.categories = categories;
     this.transactions = new TransactionTemplate(transactionManager);
+    this.shipping = shipping;
   }
 
   // The category name is resolved at read time so renaming a category updates every product
@@ -563,7 +566,7 @@ public class ShopService {
   }
 
   @Transactional
-  public Order ship(String id, long version, String actor) {
+  public Order ship(String id, long version, String actor, String company, String trackingNo) {
     Order order = lockOrder(id, null, true);
     if (order.version() != version)
       throw ApiException.conflict("STALE_VERSION", "订单已被修改，请刷新后重试");
@@ -575,6 +578,9 @@ public class ShopService {
         "UPDATE shop_order SET status='SHIPPED',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         id);
     activities.audit(actor, id, "ORDER_SHIP");
-    return order(id, null, true);
+    var updated = order(id, null, true);
+    // 微信支付订单向「发货信息管理」上报物流；免支付单无微信交易记录，服务内部会跳过
+    shipping.uploadShopShipment(withItems(updated), company, trackingNo);
+    return updated;
   }
 }

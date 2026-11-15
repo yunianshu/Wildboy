@@ -161,6 +161,8 @@ describe("shop administration", () => {
     expect(write?.[0]).toBe("/api/v1/admin/orders/order-1/ship");
     expect(JSON.parse(String(write?.[1]?.body))).toEqual({
       version: free.version,
+      company: "",
+      trackingNo: "",
     });
     wrapper.unmount();
   });
@@ -192,14 +194,22 @@ describe("shop administration", () => {
     await flushPromises();
     await click(wrapper, "确认发货");
     const dialog = wrapper.get('[role="dialog"]');
+    const inputs = dialog.findAll("input");
+    await inputs[0]!.setValue("顺丰速运");
+    await inputs[1]!.setValue("SF123456789");
     const confirm = dialog
       .findAll("button")
       .find((b) => b.text() === "确认发货")!;
     await confirm.trigger("click");
     await flushPromises();
-    expect(
-      fetch.mock.calls.filter(([, o]) => o?.method === "POST"),
-    ).toHaveLength(1);
+    const shipCall = fetch.mock.calls.find(
+      ([, o]) => o?.method === "POST",
+    );
+    expect(JSON.parse(String(shipCall?.[1]?.body))).toEqual({
+      version: order.version,
+      company: "顺丰速运",
+      trackingNo: "SF123456789",
+    });
     const blockedDialog = wrapper.get('[role="dialog"]');
     expect(blockedDialog.get('[role="alert"]').text()).toContain(
       "退款申请处理中，不能发货",
@@ -212,7 +222,7 @@ describe("shop administration", () => {
     expect(
       fetch.mock.calls.filter(([, o]) => o?.method === "POST"),
     ).toHaveLength(1);
-    await click(wrapper, "返回检查");
+    await click(wrapper, "返回");
     await flushPromises();
     expect(wrapper.get(".order-admin-card").text()).toContain("已退款");
     expect(wrapper.findAll("button").some((b) => b.text() === "确认发货")).toBe(

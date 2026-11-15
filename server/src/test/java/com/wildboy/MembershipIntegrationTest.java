@@ -169,7 +169,7 @@ class MembershipIntegrationTest {
     assertThatThrownBy(()->shop.payment(order.id(),user.id())).isInstanceOf(ApiException.class);verify(pay,never()).prepay(any(),any());
     assertThatThrownBy(()->refunds.request(order.id(),user.id(),"No money paid")).isInstanceOf(ApiException.class);
     assertThat(shop.cancelOrder(order.id(),user.id()).status()).isEqualTo("CANCELLED");shop.cancelOrder(order.id(),user.id());assertThat(shop.product(product.id(),true).stock()).isEqualTo(100);
-    var shipped=shop.createOrder(user.id(),input("free-order-2",1,0));assertThat(shop.ship(shipped.id(),shipped.version(),admin.id()).status()).isEqualTo("SHIPPED");
+    var shipped=shop.createOrder(user.id(),input("free-order-2",1,0));assertThat(shop.ship(shipped.id(),shipped.version(),admin.id(),"顺丰速运","SF0000000000").status()).isEqualTo("SHIPPED");
     assertThatThrownBy(()->shop.cancelOrder(shipped.id(),user.id())).isInstanceOf(ApiException.class);
   }
   @Test void discountedPaymentAndRefundUseFrozenActualAmount() {

@@ -40,6 +40,9 @@ wildboy:
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
+  shipping:
+    # 微信「发货信息管理」上报开关：交易类小程序合规要求，生产开启
+    enabled: ${WILDBOY_SHIPPING_ENABLED:false}
   admin:
     username: ${ADMIN_USERNAME:}
     password-hash: ${ADMIN_PASSWORD_HASH:}

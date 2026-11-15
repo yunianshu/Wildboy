@@ -114,5 +114,8 @@ public final class ShopModels {
       String signType,
       String paySign) {}
 
-  public record ShipInput(@NotNull @Min(0) Long version) {}
+  public record ShipInput(
+      @NotNull @Min(0) Long version,
+      @Size(max = 64) String company,
+      @Size(max = 64) String trackingNo) {}
 }

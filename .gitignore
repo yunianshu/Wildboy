@@ -24,3 +24,9 @@ admin/public/vditor/
 server/.vite
 server/data/
 _temp/
+
+# 本机 AI 工具安装产物（npx skills add 等）
+.agents/
+.claude/
+.zcode/skills/wechatpay-payment-integration/
+skills-lock.json

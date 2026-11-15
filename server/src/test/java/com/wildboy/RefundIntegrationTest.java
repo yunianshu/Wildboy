@@ -42,9 +42,9 @@ class RefundIntegrationTest {
   mvc.perform(post("/api/v1/admin/refunds/"+a.id()+"/approve").header("Authorization",token).contentType("application/json").content("{\"version\":0}")).andExpect(status().isForbidden());
  }
  @Test void requestedBlocksShippingAndRejectedDoesNot(){var r=requested();var o=shop.order(order,user,false);
-  assertThatThrownBy(()->shop.ship(order,o.version(),"admin")).hasMessageContaining("退款");
+  assertThatThrownBy(()->shop.ship(order,o.version(),"admin","顺丰速运","SF0000000000")).hasMessageContaining("退款");
   refunds.reject(r.id(),r.version(),"已沟通保留商品","admin");
-  assertThat(shop.ship(order,o.version(),"admin").status()).isEqualTo("SHIPPED");
+  assertThat(shop.ship(order,o.version(),"admin","顺丰速运","SF0000000000").status()).isEqualTo("SHIPPED");
  }
  @Test void onlyPaidUnshippedEligibleAndReasonRequired(){
   assertThatThrownBy(()->refunds.request(order,user," ")).isInstanceOf(ApiException.class);
