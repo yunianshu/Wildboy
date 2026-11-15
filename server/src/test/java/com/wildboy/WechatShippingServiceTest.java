@@ -49,44 +49,6 @@ class WechatShippingServiceTest {
   }
 
   @Test
-  void reportsPhysicalShipmentByWechatTransactionAndCarrierCode() {
-    expectAvailableShippingManagement();
-    wechat.expect(requestTo(WECHAT + "/cgi-bin/express/delivery/open_msg/get_delivery_list?access_token=shipping-test-token"))
-        .andExpect(method(HttpMethod.POST))
-        .andExpect(content().json("{}", JsonCompareMode.STRICT))
-        .andRespond(withSuccess("""
-            {"errcode":0,"errmsg":"ok","delivery_list":[{"delivery_id":"SF","delivery_name":"顺丰速运"}]}
-            """, MediaType.APPLICATION_JSON));
-    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/upload_shipping_info?access_token=shipping-test-token"))
-        .andExpect(method(HttpMethod.POST))
-        .andExpect(jsonPath("$.order_key.order_number_type").value(2))
-        .andExpect(jsonPath("$.order_key.transaction_id").value(SHOP_TRANSACTION))
-        .andExpect(jsonPath("$.order_key.out_trade_no").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.payer.openid").value(OPENID))
-        .andExpect(jsonPath("$.logistics_type").value(1))
-        .andExpect(jsonPath("$.delivery_mode").value(1))
-        .andExpect(jsonPath("$.shipping_list[0].express_company").value("SF"))
-        .andExpect(jsonPath("$.shipping_list[0].tracking_no").value("323244567777"))
-        .andExpect(jsonPath("$.shipping_list[0].item_desc").value("水壶×2"))
-        .andExpect(jsonPath("$.shipping_list[0].contact.receiver_contact").value("****1234"))
-        .andExpect(jsonPath("$.shipping_list[0].company").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.shipping_list[0].owner").doesNotHaveJsonPath())
-        .andExpect(jsonPath("$.shipping_list[0].tel").doesNotHaveJsonPath())
-        .andRespond(withSuccess("{\"errcode\":0,\"errmsg\":\"ok\"}", MediaType.APPLICATION_JSON));
-
-    TransactionSynchronizationManager.initSynchronization();
-    try {
-      shipping.uploadShopShipment(shopOrder(SHOP_TRANSACTION), "顺丰速运", "323244567777");
-      verifyNoInteractions(auth);
-      TransactionSynchronizationUtils.triggerAfterCommit();
-    } finally {
-      TransactionSynchronizationManager.clearSynchronization();
-    }
-
-    wechat.verify();
-  }
-
-  @Test
   void reportsPaidActivityAsVirtualFulfillmentWithoutCourierData() {
     expectAvailableShippingManagement();
     wechat.expect(requestTo(WECHAT + "/wxa/sec/order/upload_shipping_info?access_token=shipping-test-token"))
@@ -104,14 +66,6 @@ class WechatShippingServiceTest {
 
     // The caller has verified the payment, while its prepayment snapshot has no transaction ID yet.
     shipping.uploadActivityFulfillment(activityOrder(), ACTIVITY_TRANSACTION);
-
-    wechat.verify();
-  }
-
-  @Test
-  void doesNotReportOrdersWithoutAWechatTransaction() {
-    shipping.uploadShopShipment(shopOrder(null), "DHL", "323244567777");
-    shipping.uploadActivityFulfillment(activityOrder(), null);
 
     wechat.verify();
   }
@@ -164,14 +118,6 @@ class WechatShippingServiceTest {
         .andExpect(method(HttpMethod.POST))
         .andExpect(jsonPath("$.appid").value(APP))
         .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
-  }
-
-  private static ShopModels.Order shopOrder(String transactionId) {
-    return new ShopModels.Order("shop-order-id", "SHOP-ORDER-NO", USER, 1000, "SHIPPED", "测试收件人",
-        "18900001234", "测试地址", transactionId, transactionId != null, null, 1,
-        null, null, null, false,
-        List.of(new ShopModels.OrderItem("item-id", "product-id", "水壶", "", 500, 2, 500, "")),
-        1000);
   }
 
   private static ActivityOrderModels.Order activityOrder() {

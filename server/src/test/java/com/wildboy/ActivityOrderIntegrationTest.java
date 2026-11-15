@@ -236,7 +236,7 @@ class ActivityOrderIntegrationTest {
 
   @Test void timeoutCanRecoverSamePayableOrderButSeenGatewayIsNeverReleasedOnAbsence(){
     var a=activity(1);var u=user();var o=reserve(a,u,1,600);
-    var params=new ShopModels.PaymentRequest("1","nonce","prepay_id=fixture","RSA","fixture");
+    var params=new WechatPayService.PaymentRequest("1","nonce","prepay_id=fixture","RSA","fixture");
     when(pay.prepay(eq(o.orderNo()),eq(600),any(),anyString(),anyString(),eq("activity-notify")))
         .thenThrow(new ApiException(502,"WECHAT_PAY_UNAVAILABLE","Synthetic timeout")).thenReturn(params);
     assertThatThrownBy(()->orders.prepay(o.id(),u.id())).isInstanceOf(ApiException.class);

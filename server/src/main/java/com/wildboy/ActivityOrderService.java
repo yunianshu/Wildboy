@@ -174,7 +174,7 @@ public class ActivityOrderService {
       activities.audit(user,id,"ACTIVITY_ORDER_CREATE");return get(id,user);
     });
   }
-  public ShopModels.PaymentRequest prepay(String id,String user) {
+  public WechatPayService.PaymentRequest prepay(String id,String user) {
     tx.executeWithoutResult(s->{var o=lock(id,user);requirePayable(o);
       pay.requireConfigured();
       payerOpenId(user);

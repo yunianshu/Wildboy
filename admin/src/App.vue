@@ -11,14 +11,11 @@ const pageTitles: Record<string, string> = {
   "/users": "用户管理",
   "/memberships": "会员管理",
   "/activity-orders": "活动订单",
-  "/shop/categories": "商品分类",
   "/settings": "基础配置",
   "/articles": "文章管理",
   "/operations": "运营工作台",
   "/templates": "活动模板",
-  "/refunds": "退款售后",
   "/notifications": "消息管理",
-  "/shop": "商城管理",
   "/legal": "协议管理",
 };
 const navigation = [
@@ -37,15 +34,6 @@ const navigation = [
       { path: "/activities", title: "活动管理", icon: "mountain" },
       { path: "/templates", title: "活动模板", icon: "template" },
       { path: "/activity-orders", title: "活动订单", icon: "order" },
-    ],
-  },
-  {
-    label: "商城",
-    key: "shop",
-    items: [
-      { path: "/shop", title: "商城管理", icon: "bag" },
-      { path: "/shop/categories", title: "商品分类", icon: "template" },
-      { path: "/refunds", title: "退款售后", icon: "refund" },
     ],
   },
   {
@@ -70,13 +58,9 @@ const navigation = [
 const navigationByPath = navigation
   .flatMap((group) => group.items)
   .sort((a, b) => b.path.length - a.path.length);
-// 模块色归属：与侧栏五个分组一致，驱动表头底色与页题标记。
 const moduleBySection: Record<string, string> = {
   "/operations": "ops",
   "/notifications": "ops",
-  "/shop": "shop",
-  "/shop/categories": "shop",
-  "/refunds": "shop",
   "/users": "user",
   "/memberships": "user",
   "/articles": "content",
@@ -90,6 +74,12 @@ const currentSection = computed(
       (item) =>
         route.path === item.path || route.path.startsWith(`${item.path}/`),
     )?.path || "/activities",
+);
+const currentGroup = computed(
+  () =>
+    navigation.find((group) =>
+      group.items.some((item) => item.path === currentSection.value),
+    )?.label || "活动",
 );
 const pageModule = computed(
   () => moduleBySection[currentSection.value] ?? "activity",
@@ -122,9 +112,10 @@ function logout() {
   <RouterView v-if="route.path === '/login'" />
   <div v-else class="app-shell" :data-module="pageModule">
     <aside class="sidebar">
-      <RouterLink class="brand" to="/activities"
-        >WILDBOY<span>OUTDOOR CLUB</span></RouterLink
-      >
+      <RouterLink class="brand" to="/activities" aria-label="野小子后台首页">
+        <span class="brand-mark"><AppIcon name="mountain" :size="23" /></span>
+        <span class="brand-copy">WILDBOY<small>OUTDOOR CLUB</small></span>
+      </RouterLink>
       <nav class="sidebar-nav" aria-label="管理页面">
         <div
           v-for="group in navigation"
@@ -144,6 +135,10 @@ function logout() {
           >
         </div>
       </nav>
+      <div class="sidebar-bottom">
+        <span><i class="live-dot"></i>野小子运营管理中心</span>
+        <p>后台版本 {{ adminVersion }}</p>
+      </div>
       <label class="mobile-nav">
         <span class="sr-only">切换管理页面</span>
         <select :value="currentSection" @change="switchSection">
@@ -167,13 +162,18 @@ function logout() {
       <header class="topbar">
         <div class="topbar-context">
           <span class="topbar-title"
-            >工作后台 <span>/</span> <strong>{{ pageTitle }}</strong></span
+            >{{ currentGroup }} <span>/</span>
+            <strong>{{ pageTitle }}</strong></span
           >
-          <small class="admin-version">后台版本 {{ adminVersion }}</small>
         </div>
         <div class="user-tools">
-          <span>{{ currentUser?.nickname || "管理员" }}</span
-          ><button class="text-button" @click="logout">退出登录</button>
+          <span class="user-avatar" aria-hidden="true">{{
+            (currentUser?.nickname || "管理员").slice(0, 1)
+          }}</span>
+          <span class="user-name">{{ currentUser?.nickname || "管理员" }}</span>
+          <button class="logout-button" @click="logout">
+            <AppIcon name="logout" :size="16" />退出登录
+          </button>
         </div>
       </header>
       <RouterView :key="route.path" />

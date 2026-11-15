@@ -30,18 +30,28 @@ async function submit(demo = false) {
 <template>
   <main class="login-layout">
     <section class="login-story">
-      <a class="brand" href="#/login">WILDBOY<span>OUTDOOR CLUB</span></a>
-      <h1>野小子运营后台</h1>
+      <a class="brand" href="#/login" aria-label="野小子登录页">
+        <span class="brand-mark" aria-hidden="true">W</span>
+        <span class="brand-copy">WILDBOY<small>OUTDOOR CLUB</small></span>
+      </a>
+      <div class="login-story-content">
+        <p class="login-kicker">OUTDOOR OPERATIONS</p>
+        <h1>让每一次出发，<br />都有序抵达。</h1>
+        <p>活动、订单、会员与内容，一站式管理。</p>
+      </div>
+      <p class="login-story-footer">走进山野，也管好山野里的每个细节。</p>
     </section>
     <section class="login-panel">
       <div class="login-form">
         <h2>管理员登录</h2>
+        <p class="muted">登录野小子运营管理后台</p>
         <form @submit.prevent="submit(false)">
           <label
             >管理员账号<input
               v-model="username"
               name="username"
               autocomplete="username"
+              placeholder="请输入管理员账号"
               required
               maxlength="100"
               :disabled="busy" /></label
@@ -51,6 +61,7 @@ async function submit(demo = false) {
               name="password"
               type="password"
               autocomplete="current-password"
+              placeholder="请输入登录密码"
               required
               maxlength="200"
               :disabled="busy"

@@ -184,9 +184,9 @@ class UserManagementIntegrationTest {
     var promoted = auth.finishWechat(openid, 1L, 1L);
     assertThat(promoted.user().role()).isEqualTo("ADMIN"); assertThat(promoted.user().id()).isEqualTo(target.user().id());
     assertThat(promoted.user().realName()).isEqualTo("张三测试");
-    mvc.perform(get("/api/v1/admin/shop/products").header("Authorization", bearer(promoted))).andExpect(status().isOk());
+    mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(promoted))).andExpect(status().isOk());
     role(admin, target.user(), "USER", 1).andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
-    mvc.perform(get("/api/v1/admin/shop/products").header("Authorization", bearer(promoted))).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(promoted))).andExpect(status().isUnauthorized());
     var demoted = auth.finishWechat(openid, 1L, 1L);
     assertThat(demoted.user().role()).isEqualTo("USER");
     mvc.perform(get("/api/v1/admin/users").header("Authorization", bearer(demoted))).andExpect(status().isForbidden());

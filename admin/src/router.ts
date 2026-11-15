@@ -5,13 +5,10 @@ import ActivitiesView from "./views/ActivitiesView.vue";
 import EditorView from "./views/EditorView.vue";
 import RosterView from "./views/RosterView.vue";
 import LegalView from "./views/LegalView.vue";
-import ShopView from "./views/ShopView.vue";
-import ProductCategoriesView from "./views/ProductCategoriesView.vue";
 import UsersView from "./views/UsersView.vue";
 import AdminAccountView from "./views/AdminAccountView.vue";
 import TemplatesView from "./views/TemplatesView.vue";
 import OperationsView from "./views/OperationsView.vue";
-import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
 import ArticlesView from "./views/ArticlesView.vue";
 import ArticleEditorView from "./views/ArticleEditorView.vue";
@@ -24,15 +21,12 @@ export const router = createRouter({
     { path: "/login", component: LoginView },
     { path: "/", redirect: "/activities" },
     { path: "/activities", component: ActivitiesView },
-    { path: "/shop", component: ShopView },
-    { path: "/shop/categories", component: ProductCategoriesView },
     { path: "/users", component: UsersView },
     { path: "/memberships", component: MembershipsView },
     { path: "/activity-orders", component: ActivityOrdersView },
     { path: "/templates", component: TemplatesView },
     { path: "/waitlist", redirect: "/operations" },
     { path: "/operations", component: OperationsView },
-    { path: "/refunds", component: RefundsView },
     { path: "/notifications", component: NotificationsView },
     { path: "/legal", component: LegalView },
     { path: "/articles", component: ArticlesView },

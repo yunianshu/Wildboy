@@ -54,7 +54,6 @@ class BackendIntegrationTest {
   @Autowired JdbcTemplate db;
   @Autowired ObjectMapper json;
   @Autowired LegalService legal;
-  @Autowired ShopService shop;
 
   @org.springframework.test.context.bean.override.mockito.MockitoBean
   WechatPayService pay;
@@ -70,8 +69,6 @@ class BackendIntegrationTest {
             + " draft_title='',draft_content='',draft_revision=0,published_version=NULL");
     db.update("DELETE FROM audit_event");
     db.update("DELETE FROM registration");
-    db.update("DELETE FROM shop_order");
-    db.update("DELETE FROM product");
     db.update("DELETE FROM activity");
     db.update("DELETE FROM auth_session");
     db.update("DELETE FROM app_user");
@@ -127,28 +124,6 @@ class BackendIntegrationTest {
     return auth.user("fixture:" + UUID.randomUUID(), "Test user", "USER");
   }
 
-  ShopModels.Product product(int priceCents, int stock) {
-    return shop.createProduct(
-        new ShopModels.ProductInput(
-            "QA backpack",
-            "Synthetic test product",
-            "/assets/equipment.jpg",
-            priceCents,
-            stock,
-            ShopModels.ProductStatus.ON_SALE,
-            null),
-        "fixture");
-  }
-
-  ShopModels.OrderInput orderInput(String productId, int quantity) {
-    return new ShopModels.OrderInput(
-        List.of(new ShopModels.OrderItemInput(productId, quantity)),
-        "QA recipient",
-        "13800000000",
-        "Xiamen synthetic address",
-        1L,
-        1L);
-  }
 
   String bearer(User u) {
     return "Bearer " + auth.login(u).token();
@@ -996,121 +971,6 @@ class BackendIntegrationTest {
     activities.register(a.id(), second.id(), registrationInput("QA2", "13800001235", 2L, 1L));
     assertThat(legal.consentState(first.id()).accepted().privacyVersion()).isEqualTo(1);
     assertThat(legal.consentState(second.id()).accepted().privacyVersion()).isEqualTo(2);
-  }
-
-  @Test
-  void shopUsesServerPriceAndPreventsOverselling() throws Exception {
-    var product = product(1299, 2);
-    User owner = user(), other = user();
-    var order = shop.createOrder(owner.id(), orderInput(product.id(), 2));
-    assertThat(order.totalCents()).isEqualTo(2598);
-    assertThat(order.items().getFirst().productName()).isEqualTo("QA backpack");
-    assertThat(shop.product(product.id(), true).stock()).isZero();
-    assertThatThrownBy(() -> shop.createOrder(other.id(), orderInput(product.id(), 1)))
-        .hasMessageContaining("库存不足");
-    assertThatThrownBy(() -> shop.order(order.id(), other.id(), false))
-        .isInstanceOf(ApiException.class)
-        .hasMessageContaining("不存在");
-    assertThat(shop.orders(owner.id(), null, 0, 20).total()).isEqualTo(1);
-    assertThat(shop.orders(other.id(), null, 0, 20).total()).isZero();
-  }
-
-  @Test
-  void shopConcurrentOrdersNeverExceedStock() throws Exception {
-    var product = product(100, 3);
-    var users = new ArrayList<User>();
-    for (int index = 0; index < 12; index++) users.add(user());
-    var pool = Executors.newFixedThreadPool(6);
-    var futures = new ArrayList<Future<Boolean>>();
-    for (User current : users)
-      futures.add(
-          pool.submit(
-              () -> {
-                try {
-                  shop.createOrder(current.id(), orderInput(product.id(), 1));
-                  return true;
-                } catch (ApiException e) {
-                  assertThat(e.code).isEqualTo("INSUFFICIENT_STOCK");
-                  return false;
-                }
-              }));
-    int successes = 0;
-    for (var future : futures) if (future.get(30, TimeUnit.SECONDS)) successes++;
-    pool.shutdownNow();
-    assertThat(successes).isEqualTo(3);
-    assertThat(shop.product(product.id(), true).stock()).isZero();
-    assertThat(shop.orders(null, ShopModels.OrderStatus.PENDING_PAYMENT, 0, 20).total())
-        .isEqualTo(3);
-  }
-
-  @Test
-  void paymentPrepayCloseAndShipmentFollowOrderState() {
-    var product = product(5000, 2);
-    User customer = auth.user("wechat:qa-openid", "Wechat customer", "USER");
-    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
-    when(pay.prepay(any(), eq("qa-openid")))
-        .thenReturn(
-            new ShopModels.PaymentRequest(
-                "1", "nonce", "prepay_id=qa", "RSA", "signature"));
-    var payment = shop.payment(order.id(), customer.id());
-    assertThat(payment.packageValue()).isEqualTo("prepay_id=qa");
-    assertThat(shop.order(order.id(), customer.id(), false).paymentInitiated()).isTrue();
-    var cancelled = shop.cancelOrder(order.id(), customer.id());
-    assertThat(cancelled.status()).isEqualTo("CANCELLED");
-    assertThat(shop.product(product.id(), true).stock()).isEqualTo(2);
-    verify(pay).closeOrder(order.orderNo());
-    assertThatThrownBy(() -> shop.payment(order.id(), customer.id()))
-        .hasMessageContaining("不可支付");
-  }
-
-  @Test
-  void onlyVerifiedPaymentNotificationMarksPaidOnce() {
-    var product = product(3600, 1);
-    User customer = auth.user("wechat:payment-fixture", "Test user", "USER");
-    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
-    when(pay.enabled()).thenReturn(true);
-    when(pay.merchantId()).thenReturn("merchant-qa");
-    var transaction = new com.wechat.pay.java.service.payments.model.Transaction();
-    transaction.setMchid("merchant-qa");
-    transaction.setTradeType(com.wechat.pay.java.service.payments.model.Transaction.TradeTypeEnum.JSAPI);
-    var payer = new com.wechat.pay.java.service.payments.model.TransactionPayer();payer.setOpenid("payment-fixture");transaction.setPayer(payer);
-    transaction.setOutTradeNo(order.orderNo());
-    transaction.setTransactionId("transaction-qa");
-    transaction.setTradeState(
-        com.wechat.pay.java.service.payments.model.Transaction.TradeStateEnum.SUCCESS);
-    var amount = new com.wechat.pay.java.service.payments.model.TransactionAmount();
-    amount.setTotal(order.totalCents());amount.setCurrency("CNY");
-    transaction.setAmount(amount);
-    shop.completePayment(transaction);
-    assertThat(shop.order(order.id(), customer.id(), false).status()).isEqualTo("PAID");
-    shop.completePayment(transaction);
-    assertThat(shop.order(order.id(), customer.id(), false).version()).isEqualTo(1);
-    var shipped = shop.ship(order.id(), 1L, "fixture-admin", "顺丰速运", "SF0000000000");
-    assertThat(shipped.status()).isEqualTo("SHIPPED");
-    var secondProduct = product(3600, 1);
-    var second = shop.createOrder(user().id(), orderInput(secondProduct.id(), 1));
-    transaction.setOutTradeNo(second.orderNo());
-    transaction.setTransactionId("transaction-other");
-    amount.setTotal(1);
-    assertThatThrownBy(() -> shop.completePayment(transaction))
-        .hasMessageContaining("金额不匹配");
-    assertThat(shop.order(second.id(), second.userId(), false).status())
-        .isEqualTo("PENDING_PAYMENT");
-  }
-
-  @Test
-  void devIdentityCannotCreateRealPaymentOrMarkOrderPaid() throws Exception {
-    var product = product(100, 1);
-    User customer = user();
-    var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));
-    mvc.perform(
-            post("/api/v1/orders/" + order.id() + "/pay")
-                .header("Authorization", bearer(customer)))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("WECHAT_IDENTITY_REQUIRED"));
-    assertThat(shop.order(order.id(), customer.id(), false).status())
-        .isEqualTo("PENDING_PAYMENT");
-    verify(pay, never()).prepay(any(), any());
   }
 
   @Test
