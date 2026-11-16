@@ -2243,7 +2243,8 @@ label {
     padding: 20px 16px;
   }
   .editor-actions {
-    bottom: 8px;
+    position: static;
+    bottom: auto;
   }
   .login-layout {
     display: block;

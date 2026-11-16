@@ -21,6 +21,7 @@ import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
 import AppIcon from "../components/AppIcon.vue";
 import UiState from "../components/UiState.vue";
+import DateTimeField from "../components/DateTimeField.vue";
 const contentOpen = ref(false);
 const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
 const route = useRoute(),
@@ -515,31 +516,32 @@ onUnmounted(() => {
             </div>
             <fieldset :disabled="saving || readonly">
               <div class="field-row">
-                <label
-                  >开始时间 <span>*</span
-                  ><input
-                    v-model="fields.startAt"
-                    type="datetime-local"
-                  /><small class="field-error">{{
-                    errors.startAt
-                  }}</small></label
-                ><label
-                  >结束时间 <span>*</span
-                  ><input v-model="fields.endAt" type="datetime-local" /><small
-                    class="field-error"
-                    >{{ errors.endAt }}</small
-                  ></label
-                >
+                <DateTimeField
+                  id="activity-start"
+                  v-model="fields.startAt"
+                  label="开始时间"
+                  :presets="['09:00', '14:00', '19:00']"
+                  :error="errors.startAt"
+                  required
+                />
+                <DateTimeField
+                  id="activity-end"
+                  v-model="fields.endAt"
+                  label="结束时间"
+                  :presets="['12:00', '17:00', '21:00']"
+                  :error="errors.endAt"
+                  required
+                />
               </div>
+              <DateTimeField
+                id="activity-deadline"
+                v-model="fields.registrationDeadline"
+                label="报名截止时间"
+                :presets="['18:00', '20:00', '22:00']"
+                :error="errors.registrationDeadline"
+                required
+              />
               <label
-                >报名截止时间 <span>*</span
-                ><input
-                  v-model="fields.registrationDeadline"
-                  type="datetime-local"
-                /><small class="field-error">{{
-                  errors.registrationDeadline
-                }}</small></label
-              ><label
                 >活动目的地 <span>*</span
                 ><input
                   v-model="fields.location"

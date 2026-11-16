@@ -80,10 +80,14 @@ async function fillNew(wrapper: ReturnType<typeof mount>) {
   ])
     await wrapper.get(selector!).setValue(value);
   await uploadCover(wrapper);
-  const dates = wrapper.findAll('input[type="datetime-local"]');
-  await dates[0]!.setValue("2027-05-02T09:00");
-  await dates[1]!.setValue("2027-05-02T17:00");
-  await dates[2]!.setValue("2027-05-01T18:00");
+  const dates = wrapper.findAll('input[type="date"]');
+  const times = wrapper.findAll('input[type="time"]');
+  await dates[0]!.setValue("2027-05-02");
+  await times[0]!.setValue("09:00");
+  await dates[1]!.setValue("2027-05-02");
+  await times[1]!.setValue("17:00");
+  await dates[2]!.setValue("2027-05-01");
+  await times[2]!.setValue("18:00");
 }
 describe("editor workflow", () => {
   it("rejects incomplete new activity without making a request", async () => {
@@ -98,6 +102,52 @@ describe("editor workflow", () => {
     await wrapper.get("form").trigger("submit");
     expect(wrapper.get("[role=alert]").text()).toContain("请检查");
     expect(fetch).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+  it("uses separate date and time inputs with quick time presets", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const { wrapper } = await render("/activities/new");
+    await wrapper.get("#activity-start").setValue("2027-05-02");
+    const start = wrapper.get(".datetime-field");
+    await start
+      .findAll("button")
+      .find((button) => button.text() === "09:00")!
+      .trigger("click");
+    expect(
+      (wrapper.get("#activity-start-time").element as HTMLInputElement).value,
+    ).toBe("09:00");
+    expect(
+      start
+        .findAll("button")
+        .find((button) => button.text() === "09:00")!
+        .attributes("aria-pressed"),
+    ).toBe("true");
+    wrapper.unmount();
+  });
+  it("opens explicit calendar and time dialogs and fills the selected values", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const { wrapper } = await render("/activities/new");
+    await wrapper.get("#activity-start").trigger("click");
+    expect(wrapper.get("[role=dialog]").text()).toContain("选择日期");
+    const day = wrapper.get(".calendar-day:not(.is-outside)");
+    const selectedDate = day.attributes("aria-label");
+    await day.trigger("click");
+    expect(
+      (wrapper.get("#activity-start").element as HTMLInputElement).value,
+    ).toBe(selectedDate);
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+
+    await wrapper.get("#activity-start-time").trigger("click");
+    expect(wrapper.get("[role=dialog]").text()).toContain("选择时间");
+    await wrapper
+      .get(".time-choice-grid")
+      .findAll("button")
+      .find((button) => button.text() === "09:00")!
+      .trigger("click");
+    expect(
+      (wrapper.get("#activity-start-time").element as HTMLInputElement).value,
+    ).toBe("09:00");
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
     wrapper.unmount();
   });
   it.each(["network", "server"])(
