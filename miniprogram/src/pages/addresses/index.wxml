@@ -1,0 +1,35 @@
+<view class="page addresses-page page-motion {{pageMotionClass}}">
+  <view class="title">{{editing ? (editingId ? '编辑地址' : '新增地址') : '收货地址'}}</view>
+  <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后管理收货地址<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
+  <block wx:elif="{{editing}}">
+    <view class="field"><text class="label">收货人</text><input value="{{draft.recipientName}}" maxlength="40" data-field="recipientName" bindinput="input" disabled="{{busy}}" placeholder="收货人姓名" /></view>
+    <view class="field"><text class="label">手机号</text><input value="{{draft.phone}}" type="number" maxlength="11" data-field="phone" bindinput="input" disabled="{{busy}}" placeholder="用于配送联系" /></view>
+    <view class="field">
+      <view class="address-field-header">
+        <text class="label">详细地址</text>
+        <button class="text-button locate-address" bindtap="fillFromLocation" disabled="{{busy || locating}}">{{locating ? '正在打开地图…' : '获取当前位置'}}</button>
+      </view>
+      <textarea value="{{draft.address}}" maxlength="300" data-field="address" bindinput="input" disabled="{{busy}}" placeholder="省市区、街道门牌号" />
+      <view wx:if="{{locationError}}" class="error location-error">{{locationError}}</view>
+    </view>
+    <view class="default-row"><text>{{currentDefault ? "当前默认地址" : "设为默认地址"}}</text><switch checked="{{draft.isDefault}}" bindchange="defaultChange" disabled="{{busy || currentDefault}}" color="#193F34" /></view>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy || locating}}">{{selecting ? '保存并使用' : '保存地址'}}</button>
+    <button class="secondary" bindtap="cancel" disabled="{{busy || locating}}">取消</button>
+  </block>
+  <block wx:else>
+    <ui-state wx:if="{{loading}}" kind="loading">正在加载地址…</ui-state>
+    <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
+    <ui-state wx:elif="{{!items.length}}" kind="empty">还没有收货地址</ui-state>
+    <view wx:for="{{items}}" wx:key="id" class="address-card">
+      <view class="address-name">{{item.recipientName}} <text>{{item.phone}}</text><text wx:if="{{item.isDefault}}" class="default-tag">默认</text></view>
+      <view class="address-detail">{{item.address}}</view>
+      <view class="address-actions">
+        <button class="text-button" data-id="{{item.id}}" bindtap="edit" disabled="{{busy}}">编辑</button>
+        <button class="text-button" data-id="{{item.id}}" bindtap="remove" disabled="{{busy}}">删除</button>
+        <button wx:if="{{selecting}}" class="select-address" data-id="{{item.id}}" bindtap="select" disabled="{{busy}}">使用此地址</button>
+      </view>
+    </view>
+    <button class="primary" bindtap="add" disabled="{{busy || loading}}">新增地址</button>
+  </block>
+</view>

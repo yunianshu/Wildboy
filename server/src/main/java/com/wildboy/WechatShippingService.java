@@ -49,6 +49,40 @@ public class WechatShippingService {
     client = RestClient.builder().baseUrl("https://api.weixin.qq.com").requestFactory(f).build();
   }
 
+  /** 商城实物订单发货上报（logistics_type=1 实体物流）；非微信支付订单（免支付）无交易记录，跳过。 */
+  public void uploadShopShipment(ShopModels.Order order, String company, String trackingNo) {
+    afterCommit(
+        () -> upload(order.orderNo(), order.paymentTransactionId(), order.userId(), 1,
+            () -> courierShipping(order, company, trackingNo), "shop"));
+  }
+
+  private Map<String, Object> courierShipping(ShopModels.Order order, String company, String trackingNo) {
+    if (company == null || company.isBlank() || trackingNo == null || trackingNo.isBlank()) {
+      log.warn("发货信息缺少物流公司或运单号 order={}", order.orderNo());
+      return null;
+    }
+    String carrierCode = resolveCarrierCode(company.strip());
+    if (carrierCode == null) {
+      log.warn("发货信息未匹配到唯一的微信物流公司编码 order={}", order.orderNo());
+      return null;
+    }
+    var shipping = new LinkedHashMap<String, Object>();
+    shipping.put(
+        "item_desc",
+        itemDesc(order.items().stream().map(i -> i.productName() + "×" + i.quantity()).toList()));
+    shipping.put("express_company", carrierCode);
+    shipping.put("tracking_no", trackingNo.strip());
+    if ("SF".equals(carrierCode)) {
+      String digits = order.phone() == null ? "" : order.phone().replaceAll("\\D", "");
+      if (digits.length() < 4) {
+        log.warn("顺丰发货信息缺少可用的收件电话尾号 order={}", order.orderNo());
+        return null;
+      }
+      shipping.put("contact", Map.of("receiver_contact", "****" + digits.substring(digits.length() - 4)));
+    }
+    return shipping;
+  }
+
   /** 活动订单确认报名后上报虚拟发货（logistics_type=3）。 */
   public void uploadActivityFulfillment(ActivityOrderModels.Order order, String transactionId) {
     afterCommit(
@@ -123,6 +157,32 @@ public class WechatShippingService {
       log.warn("发货信息管理开通状态查询失败 error={}", e.getClass().getSimpleName());
     }
     return tradeManaged;
+  }
+
+  private String resolveCarrierCode(String company) {
+    JsonNode r = client.post()
+        .uri(b -> b.path("/cgi-bin/express/delivery/open_msg/get_delivery_list")
+            .queryParam("access_token", gateway.accessToken()).build())
+        .body(Map.of())
+        .retrieve()
+        .body(JsonNode.class);
+    int code = errorCode(r);
+    if (code != 0 || !r.path("delivery_list").isArray()) {
+      log.warn("微信物流公司编码列表查询失败 errcode={}", code);
+      return null;
+    }
+    String nameMatch = null;
+    boolean ambiguous = false;
+    for (JsonNode carrier : r.path("delivery_list")) {
+      String carrierCode = carrier.path("delivery_id").asText("");
+      if (carrierCode.isBlank()) continue;
+      if (company.equalsIgnoreCase(carrierCode)) return carrierCode;
+      if (company.equals(carrier.path("delivery_name").asText())) {
+        if (nameMatch != null && !nameMatch.equals(carrierCode)) ambiguous = true;
+        nameMatch = carrierCode;
+      }
+    }
+    return ambiguous ? null : nameMatch;
   }
 
   private static int errorCode(JsonNode response) {

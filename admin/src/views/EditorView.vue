@@ -506,6 +506,7 @@ onUnmounted(() => {
                 />
               </div>
               <small class="field-error">{{ errors.galleryUrls }}</small>
+              >
             </fieldset>
           </section>
           <section v-show="editSection === 'schedule'" class="form-section">

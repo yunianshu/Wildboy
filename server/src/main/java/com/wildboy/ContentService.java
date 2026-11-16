@@ -9,13 +9,12 @@ import static com.wildboy.ContentModels.*;
 
 @Service
 public class ContentService {
-  final JdbcTemplate db; final ObjectMapper json; final ActivityService activities;
-  public ContentService(JdbcTemplate db,ObjectMapper json,ActivityService activities) {
-    this.db=db;this.json=json;this.activities=activities;
+  final JdbcTemplate db; final ObjectMapper json; final ActivityService activities; final ShopService shop;
+  public ContentService(JdbcTemplate db,ObjectMapper json,ActivityService activities,ShopService shop) {
+    this.db=db;this.json=json;this.activities=activities;this.shop=shop;
   }
   public Document get(String type,String id,boolean admin) {
-    if(!type.equals("activity")) throw ApiException.notFound();
-    activities.get(id,admin);
+    if(type.equals("activity")) activities.get(id,admin); else shop.product(id,admin);
     var found=db.query("SELECT blocks,version FROM rich_content WHERE entity_type=? AND entity_id=?",(r,n)-> {
       try { return new Document(Arrays.asList(json.readValue(r.getString(1),Block[].class)),r.getLong(2)); }
       catch(Exception e){throw new IllegalStateException("Invalid stored content",e);}
@@ -48,8 +47,8 @@ public class ContentService {
   static void bad(){throw new ApiException(400,"INVALID_CONTENT","图文内容格式或长度无效");}
   @Transactional public Document save(String type,String id,Input in,String actor) {
     validate(in.blocks());
-    if(!type.equals("activity")) throw ApiException.notFound();
-    if(db.queryForList("SELECT id FROM activity WHERE id=? FOR UPDATE",String.class,id).isEmpty()) throw ApiException.notFound();
+    String table=type.equals("activity")?"activity":"product";
+    if(db.queryForList("SELECT id FROM "+table+" WHERE id=? FOR UPDATE",String.class,id).isEmpty()) throw ApiException.notFound();
     var old=get(type,id,true);
     if(in.version()==null || in.version()!=old.version()) throw ApiException.conflict("CONTENT_CONFLICT","图文已更新，请重新加载");
     try {

@@ -28,11 +28,11 @@ class MembershipIntegrationTest {
   static {try {pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories","").start();}catch(Exception e){throw new ExceptionInInitializerError(e);}}
   @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->pg.getJdbcUrl("postgres","postgres"));r.add("spring.datasource.username",()->"postgres");r.add("spring.datasource.password",()->"");r.add("wildboy.orders.expiry-scan-ms",()->3600000);}
   @AfterAll static void close() throws Exception {pg.close();}
-  @Autowired MembershipService memberships; @Autowired AuthService auth;
-  @Autowired LegalService legal; @Autowired JdbcTemplate db;
+  @Autowired MembershipService memberships; @Autowired ShopService shop; @Autowired AuthService auth;
+  @Autowired LegalService legal; @Autowired RefundService refunds; @Autowired JdbcTemplate db;
   @Autowired MockMvc mvc; @Autowired ObjectMapper json; @Autowired PlatformTransactionManager manager;
   @MockitoBean WechatPayService pay;
-  Models.User user,admin; String token,adminToken;
+  Models.User user,admin; String token,adminToken; ShopModels.Product product;
   @BeforeEach void setup() {
     user=auth.user("wechat:member-"+UUID.randomUUID(),"Member QA","USER");
     admin=auth.user("membership-admin:"+UUID.randomUUID(),"Admin QA","ADMIN");
@@ -40,11 +40,28 @@ class MembershipIntegrationTest {
     if(db.queryForObject("SELECT COUNT(*) FROM legal_document_version",Integer.class)==0) {
       for(var kind:LegalModels.Kind.values()){var d=legal.save(kind,new LegalModels.DraftInput("QA "+kind,"Synthetic legal fixture only.",0L),admin.id());legal.publish(kind,d.draft().revision(),admin.id());}
     }
+    product=shop.createProduct(new ShopModels.ProductInput("QA member gear","Synthetic test product","/assets/equipment.jpg",1001,100,ShopModels.ProductStatus.ON_SALE,null),admin.id());
     when(pay.enabled()).thenReturn(true);when(pay.appId()).thenReturn("app");when(pay.merchantId()).thenReturn("merchant");
   }
   List<PricingRule> rules(PricingMode mode,int value) {return List.of(new PricingRule(Scope.ACTIVITY,false,PricingMode.DISCOUNT,9000),new PricingRule(Scope.SHOP,true,mode,value));}
   Tier tier(PricingMode mode,int value) {return memberships.create(new TierInput("QA "+UUID.randomUUID(),0,true,rules(mode,value),null),admin.id());}
   void assign(Tier tier) {memberships.assign(user.id(),new Assignment(CustomerType.MEMBER,tier.id(),memberships.me(user.id()).version()),admin.id());}
+  ShopModels.OrderInput input(String key,int quantity,Integer expected) {return new ShopModels.OrderInput(List.of(new ShopModels.OrderItemInput(product.id(),quantity)),"QA buyer","13800000000","Synthetic address only",1L,1L,key,expected);}
+  @Test void defaultsAndIndependentScopesNeverGrantAdmin() throws Exception {
+    assertThat(memberships.me(user.id()).customerType()).isEqualTo("GUEST");
+    var tier=tier(PricingMode.DISCOUNT,8000);assign(tier);
+    assertThat(memberships.price(user.id(),Scope.SHOP,1001).priceCents()).isEqualTo(801);
+    assertThat(memberships.price(user.id(),Scope.ACTIVITY,1001).priceCents()).isEqualTo(1001);
+    memberships.assign(user.id(),new Assignment(CustomerType.LEADER,null,1L),admin.id());
+    assertThat(memberships.price(user.id(),Scope.SHOP,1001).priceCents()).isEqualTo(1001);
+    mvc.perform(get("/api/v1/me").header("Authorization",token)).andExpect(jsonPath("$.role").value("USER"));
+    for(String path:List.of("/api/v1/admin/membership/tiers","/api/v1/admin/membership/users","/api/v1/admin/activities")) {
+      mvc.perform(get(path)).andExpect(status().isUnauthorized());
+      mvc.perform(get(path).header("Authorization",token).header("role","ADMIN")).andExpect(status().isForbidden());
+    }
+    mvc.perform(put("/api/v1/admin/membership/users/"+user.id()).header("Authorization",token).contentType("application/json").content("{\"customerType\":\"MEMBER\",\"tierId\":\""+tier.id()+"\",\"version\":2}")).andExpect(status().isForbidden());
+    mvc.perform(post("/api/v1/admin/membership/tiers").header("Authorization",token).contentType("application/json").content(json.writeValueAsString(new TierInput("Forbidden",0,true,rules(PricingMode.DISCOUNT,9000),null)))).andExpect(status().isForbidden());
+  }
   @Test void identityIsPrivateAndAdminSearchUsesStableId() throws Exception {
     var tier=tier(PricingMode.FIXED,700);assign(tier);
     mvc.perform(get("/api/v1/me/membership")).andExpect(status().isUnauthorized());
@@ -119,6 +136,62 @@ class MembershipIntegrationTest {
     assertThatThrownBy(()->db.update("INSERT INTO membership_pricing_rule(tier_id,scope,enabled,pricing_mode,pricing_value) VALUES(?,'OTHER',FALSE,'FIXED',0)",tier.id()))
         .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThat(db.queryForList("SELECT scope FROM membership_pricing_rule WHERE tier_id=? ORDER BY scope",String.class,tier.id())).containsExactly("ACTIVITY","SHOP");
+  }
+  @Test void staleVersionsAndDisabledLevelsAreRejectedWithoutChangingHistory() {
+    var tier=tier(PricingMode.DISCOUNT,8000);assign(tier);
+    var order=shop.createOrder(user.id(),input("snapshot-001",2,1602));
+    var changed=memberships.edit(tier.id(),new TierInput("Disabled "+UUID.randomUUID().toString().substring(0,12),1,false,rules(PricingMode.FIXED,900),tier.version()),admin.id());
+    assertThatThrownBy(()->memberships.edit(tier.id(),new TierInput(tier.name(),0,true,tier.rules(),tier.version()),admin.id())).hasMessageContaining("已被修改");
+    assertThatThrownBy(()->memberships.assign(user.id(),new Assignment(CustomerType.GUEST,null,0L),admin.id())).hasMessageContaining("已被修改");
+    assertThatThrownBy(()->memberships.assign(user.id(),new Assignment(CustomerType.MEMBER,changed.id(),1L),admin.id())).hasMessageContaining("停用");
+    assertThat(memberships.price(user.id(),Scope.SHOP,1001).priceCents()).isEqualTo(1001);
+    var historical=shop.order(order.id(),user.id(),false);
+    assertThat(historical.totalCents()).isEqualTo(1602);assertThat(historical.originalTotalCents()).isEqualTo(2002);
+    assertThat(historical.items().getFirst().tierName()).isEqualTo(tier.name());
+    assertThat(shop.createOrder(user.id(),input("snapshot-001",2,2002)).id()).isEqualTo(order.id());
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(98);
+  }
+  @Test void rejectsTamperedOrStaleAmountWithoutReservingStock() throws Exception {
+    var tier=tier(PricingMode.FIXED,700);assign(tier);
+    mvc.perform(get("/api/v1/shop/products/"+product.id()+"/quote")).andExpect(status().isUnauthorized());
+    mvc.perform(get("/api/v1/shop/products/"+product.id()+"/quote").param("quantity","2").header("Authorization",token)).andExpect(jsonPath("$.totalCents").value(1400)).andExpect(jsonPath("$.originalTotalCents").value(2002));
+    mvc.perform(post("/api/v1/orders").header("Authorization",token).contentType("application/json").content(json.writeValueAsString(input("price-guard",2,1)))).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("PRICE_CHANGED"));
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(100);
+    var payload=json.readTree(json.writeValueAsString(input("price-server",2,1400)));
+    ((com.fasterxml.jackson.databind.node.ObjectNode)payload).put("totalCents",1).put("customerType","LEADER");
+    mvc.perform(post("/api/v1/orders").header("Authorization",token).contentType("application/json").content(payload.toString())).andExpect(status().isBadRequest());
+    mvc.perform(post("/api/v1/orders").header("Authorization",token).contentType("application/json").content(json.writeValueAsString(input("price-server",2,1400)))).andExpect(status().isCreated()).andExpect(jsonPath("$.totalCents").value(1400));
+  }
+  @Test void zeroAmountHasExplicitNonPaymentStateAndCanCancelOrShip() {
+    var tier=tier(PricingMode.REDUCTION,99999);assign(tier);
+    var order=shop.createOrder(user.id(),input("free-order-1",1,0));
+    assertThat(order.status()).isEqualTo("CONFIRMED_FREE");assertThat(order.paymentTransactionId()).isNull();assertThat(order.paidAt()).isNull();assertThat(order.paymentInitiated()).isFalse();
+    assertThatThrownBy(()->shop.payment(order.id(),user.id())).isInstanceOf(ApiException.class);verify(pay,never()).prepay(any(),any());
+    assertThatThrownBy(()->refunds.request(order.id(),user.id(),"No money paid")).isInstanceOf(ApiException.class);
+    assertThat(shop.cancelOrder(order.id(),user.id()).status()).isEqualTo("CANCELLED");shop.cancelOrder(order.id(),user.id());assertThat(shop.product(product.id(),true).stock()).isEqualTo(100);
+    var shipped=shop.createOrder(user.id(),input("free-order-2",1,0));assertThat(shop.ship(shipped.id(),shipped.version(),admin.id(),"顺丰速运","SF0000000000").status()).isEqualTo("SHIPPED");
+    assertThatThrownBy(()->shop.cancelOrder(shipped.id(),user.id())).isInstanceOf(ApiException.class);
+  }
+  @Test void discountedPaymentAndRefundUseFrozenActualAmount() {
+    var tier=tier(PricingMode.FIXED,600);assign(tier);
+    var order=shop.createOrder(user.id(),input("paid-member",2,1200));
+    var tx=new Transaction();tx.setMchid("merchant");tx.setAppid("app");tx.setOutTradeNo(order.orderNo());tx.setTransactionId("synthetic-transaction");tx.setTradeState(Transaction.TradeStateEnum.SUCCESS);tx.setTradeType(Transaction.TradeTypeEnum.JSAPI);
+    var payer=new TransactionPayer();payer.setOpenid(auth.wechatOpenid(user.id()));tx.setPayer(payer);
+    var amount=new TransactionAmount();amount.setCurrency("CNY");amount.setTotal(2002);tx.setAmount(amount);
+    assertThatThrownBy(()->shop.completePayment(tx)).hasMessageContaining("金额不匹配");
+    amount.setTotal(1200);shop.completePayment(tx);shop.completePayment(tx);
+    memberships.assign(user.id(),new Assignment(CustomerType.GUEST,null,1L),admin.id());
+    var refund=refunds.request(order.id(),user.id(),"Synthetic refund request");assertThat(refund.amountCents()).isEqualTo(1200);
+    assertThat(shop.order(order.id(),user.id(),false).totalCents()).isEqualTo(1200);
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(98);
+  }
+  @Test void duplicateConcurrentOrdersReserveOnceAndKeepOnePrice() throws Exception {
+    var tier=tier(PricingMode.DISCOUNT,8000);assign(tier);
+    try(var pool=Executors.newFixedThreadPool(4)) {
+      var jobs=new ArrayList<Callable<String>>();for(int i=0;i<4;i++)jobs.add(()->shop.createOrder(user.id(),input("concurrent-member",3,2403)).id());
+      var ids=new HashSet<String>();for(var result:pool.invokeAll(jobs))ids.add(result.get(10,TimeUnit.SECONDS));assertThat(ids).hasSize(1);
+    }
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(97);
   }
   @Test void ruleEditCannotRaceAnOrderSnapshot() throws Exception {
     var tier=tier(PricingMode.FIXED,600);assign(tier);

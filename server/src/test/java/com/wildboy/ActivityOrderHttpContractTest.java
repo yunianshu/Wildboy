@@ -56,8 +56,8 @@ class ActivityOrderHttpContractTest {
   private static final String TX_ID = "activity-http-fixture-transaction";
   private static final String REFUND_ID = "activity-http-fixture-refund";
   private static final int ACTIVITY_TOTAL = 1800;
-  private static final WechatPayService.PaymentRequest PREPAY =
-      new WechatPayService.PaymentRequest("1730000000", "fixture-nonce", "prepay_id=activity-test", "RSA", "test-only");
+  private static final ShopModels.PaymentRequest PREPAY =
+      new ShopModels.PaymentRequest("1730000000", "fixture-nonce", "prepay_id=activity-test", "RSA", "test-only");
   private static final EmbeddedPostgres PG = startDatabase();
   @TempDir static Path keys;
   private static KeyPair fixtureKey;
@@ -220,6 +220,29 @@ class ActivityOrderHttpContractTest {
     var released = request("GET", "/activities/" + activityId, null, null, 200);
     assertThat(request("POST", "/admin/activities/" + activityId + "/cancel", adminToken,
         Map.of("version", released.path("version").asLong()), 200).path("status").asText()).isEqualTo("CANCELLED");
+  }
+
+  @Test
+  void shopMembershipQuoteUsesCurrentPriceAndFreezesChargedAmount() throws Exception {
+    var product = request("POST", "/admin/shop/products", adminToken, Map.of(
+        "name", "Synthetic member gear", "description", "Local HTTP fixture", "imageUrl", "/assets/equipment.jpg",
+        "priceCents", 1000, "originalPriceCents", 1600, "stock", 2, "status", "ON_SALE"), 201);
+    String productId = product.path("id").asText();
+    var quote = request("GET", "/shop/products/" + productId + "/quote?quantity=2", ownerToken, null, 200);
+    assertThat(quote.path("originalTotalCents").asInt()).isEqualTo(2000);
+    assertThat(quote.path("totalCents").asInt()).isEqualTo(1800);
+    assertThat(request("GET", "/shop/products/" + productId, null, null, 200).path("originalPriceCents").asInt())
+        .isEqualTo(1600);
+    var order = request("POST", "/orders", ownerToken, Map.of(
+        "items", List.of(Map.of("productId", productId, "quantity", 2)), "recipientName", "测试收件人",
+        "phone", "13800000000", "address", "仅用于本地测试的收货地址", "privacyVersion", 1, "termsVersion", 1,
+        "requestId", "local-http-member-gear", "expectedTotalCents", 1800), 201);
+    assertThat(order.path("totalCents").asInt()).isEqualTo(1800);
+    assertThat(order.path("originalTotalCents").asInt()).isEqualTo(2000);
+    String orderId = order.path("id").asText();
+    assertThat(request("POST", "/orders/" + orderId + "/cancel", ownerToken, null, 200).path("status").asText())
+        .isEqualTo("CANCELLED");
+    assertThat(request("GET", "/shop/products/" + productId, null, null, 200).path("stock").asInt()).isEqualTo(2);
   }
 
   @Test

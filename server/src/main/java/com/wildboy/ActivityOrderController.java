@@ -37,7 +37,7 @@ public class ActivityOrderController {
   @PostMapping("/admin/activity-orders/{id}/participants/reveal")
   List<Models.Participant> revealParticipants(@PathVariable String id,@AuthenticationPrincipal Models.User user){return orders.revealParticipants(id,user.id());}
   @PostMapping("/activity-orders/{id}/pay")
-  WechatPayService.PaymentRequest prepay(@PathVariable String id,@AuthenticationPrincipal Models.User user){return orders.prepay(id,user.id());}
+  ShopModels.PaymentRequest prepay(@PathVariable String id,@AuthenticationPrincipal Models.User user){return orders.prepay(id,user.id());}
   @PostMapping("/activity-orders/{id}/cancel")
   ActivityOrderModels.Order cancel(@PathVariable String id,@AuthenticationPrincipal Models.User user){return orders.cancel(id,user.id());}
   @GetMapping("/activity-orders/{id}/refund")

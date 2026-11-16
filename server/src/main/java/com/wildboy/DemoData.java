@@ -12,16 +12,19 @@ import org.springframework.stereotype.Component;
 @Component
 public class DemoData implements ApplicationRunner {
   final ActivityService activities;
+  final ShopService shop;
   final AuthService auth;
   final boolean enabled;
   final LegalService legal;
 
   public DemoData(
       ActivityService activities,
+      ShopService shop,
       AuthService auth,
       LegalService legal,
       @Value("${wildboy.demo-data:false}") boolean enabled) {
     this.activities = activities;
+    this.shop = shop;
     this.auth = auth;
     this.legal = legal;
     this.enabled = enabled;
@@ -43,6 +46,38 @@ public class DemoData implements ApplicationRunner {
                 "demo-seed");
         legal.publish(kind, draft.draft().revision(), "demo-seed");
       }
+    }
+    if (shop.products(true).isEmpty()) {
+      shop.createProduct(
+          new ShopModels.ProductInput(
+              "【演示】轻量徒步背包",
+              "开发环境演示商品，不代表真实库存或售价。20L 轻量设计，适合一日徒步。",
+              "/assets/equipment.jpg",
+              19900,
+              12,
+              ShopModels.ProductStatus.ON_SALE,
+              null),
+          "demo-seed");
+      shop.createProduct(
+          new ShopModels.ProductInput(
+              "【演示】山野保温水壶",
+              "开发环境演示商品，不代表真实库存或售价。750ml 保温水壶。",
+              "/assets/category-holiday.jpg",
+              8900,
+              20,
+              ShopModels.ProductStatus.ON_SALE,
+              null),
+          "demo-seed");
+      shop.createProduct(
+          new ShopModels.ProductInput(
+              "【演示】折叠登山杖",
+              "开发环境演示商品，不代表真实库存或售价。轻量铝合金折叠登山杖。",
+              "/assets/category-weekly.jpg",
+              25900,
+              0,
+              ShopModels.ProductStatus.ON_SALE,
+              null),
+          "demo-seed");
     }
     if (activities.list(null, 0, 1, true).total() > 0) return;
     String[] titles = {"【演示】周末山野徒步", "【演示】山海国内旅行", "【演示】假日星空露营", "【演示】林间休闲野餐"};

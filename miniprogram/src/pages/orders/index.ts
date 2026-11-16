@@ -1,0 +1,272 @@
+import {
+  request,
+  hasSession,
+  sessionVersion,
+  isSessionCurrent,
+} from "../../utils/api";
+import { Order, PageResult } from "../../utils/models";
+import { message, safeId, dateLabel, RequestEpoch } from "../../utils/domain";
+import { money, orderStatusLabel, payOrder, verifyPayment } from "../../utils/shop";
+
+const epoch = new RequestEpoch();
+type Refund = { id:string; orderId:string; status:string; reason:string; decisionNote:string; lastError:string; amountCents:number };
+const refundLabels:Record<string,string>={REQUESTED:"待审核",REJECTED:"已拒绝",PROCESSING:"退款中",UNKNOWN:"结果待核对",SUCCESS:"已退款",ABNORMAL:"退款异常",CLOSED:"退款关闭"};
+type OrderView = Order & {
+  statusText: string;
+  totalText: string;
+  originalTotalText: string;
+  dateText: string;
+  deadlineText: string;
+};
+import { enterPage } from "../../utils/page-motion";
+
+Page({
+  data: {
+    pageMotionClass: "",
+    loggedIn: false,
+    items: [] as OrderView[],
+    loading: true,
+    loadingMore: false,
+    page: 0,
+    hasMore: false,
+    selected: "",
+    filters: [
+      { code: "", name: "全部" },
+      { code: "PENDING_PAYMENT", name: "待支付" },
+      { code: "PAID", name: "待发货" },
+      { code: "CONFIRMED_FREE", name: "免支付待发货" },
+      { code: "SHIPPED", name: "已发货" },
+      { code: "CANCELLED", name: "已取消" },
+      { code: "REFUNDED", name: "已退款" },
+    ],
+    busyId: "",
+    refundOrderId: "", refundRecord: null as Refund | null, refundAmountText: "", refundStatusText: "", refundReason: "", refundError: "",
+    error: "",
+  },
+  onShow() {
+    enterPage(this);
+    this.setData({ loggedIn: hasSession() });
+    void this.load();
+  },
+  onHide() {
+    epoch.invalidate();
+    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:"" });
+  },
+  onReachBottom() {
+    void this.load(false);
+  },
+  select(event: WechatMiniprogram.TouchEvent) {
+    const selected = event.currentTarget.dataset.code || "";
+    if (
+      !this.data.filters.some((item) => item.code === selected) ||
+      selected === this.data.selected ||
+      this.data.busyId
+    )
+      return;
+    this.setData({ selected });
+    void this.load();
+  },
+  more() {
+    void this.load(false);
+  },
+  onUnload() {
+    epoch.invalidate();
+  },
+  onPullDownRefresh() {
+    void this.load().finally(() => wx.stopPullDownRefresh());
+  },
+  view(order: Order): OrderView {
+    return {
+      ...order,
+      items: order.items.map((item) => ({ ...item })),
+      statusText: orderStatusLabel(order.status),
+      totalText: money(order.totalCents),
+      originalTotalText: money(order.originalTotalCents ?? order.totalCents),
+      dateText: dateLabel(order.createdAt),
+      deadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
+    };
+  },
+  async load(reset = true) {
+    if (
+      this.data.busyId ||
+      (!reset &&
+        (this.data.loading || this.data.loadingMore || !this.data.hasMore))
+    )
+      return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    const page = reset ? 0 : this.data.page + 1;
+    this.setData({
+      loading: reset,
+      loadingMore: !reset,
+      error: "",
+      loggedIn: hasSession(),
+      ...(reset ? { items: [], page: 0, hasMore: false } : {}),
+    });
+    if (!hasSession()) {
+      this.setData({ loading: false, loadingMore: false, items: [] });
+      return;
+    }
+    try {
+      const result = await request<PageResult<Order>>(
+        `/orders?page=${page}&size=20${this.data.selected ? "&status=" + this.data.selected : ""}`,
+      );
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        const rows = result.items.map((order) => this.view(order));
+        const previous = reset ? [] : this.data.items;
+        const ids = new Set(previous.map((item) => item.id));
+        this.setData({
+          items: [...previous, ...rows.filter((item) => !ids.has(item.id))],
+          page: result.page,
+          hasMore: result.hasMore,
+        });
+      }
+    } catch (error) {
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
+    } finally {
+      if (epoch.valid(current))
+        this.setData({ loading: false, loadingMore: false });
+    }
+  },
+  updateOrder(order: Order) {
+    this.setData({
+      items: this.data.items
+        .filter(
+          (item) =>
+            item.id !== order.id ||
+            !this.data.selected ||
+            order.status === this.data.selected,
+        )
+        .map((item) => (item.id === order.id ? this.view(order) : item)),
+    });
+  },
+  retry() {
+    void this.load();
+  },
+  signIn() {
+    wx.navigateTo({ url: "/pages/login/index" });
+  },
+  async pay(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
+      return;
+    if (this.data.items.find(x => x.id === id)?.status !== "PENDING_PAYMENT") return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    this.setData({ busyId: id, error: "" });
+    try {
+      const order = await payOrder(id, () => epoch.valid(current));
+      if (!epoch.valid(current) || !isSessionCurrent(session)) return;
+      this.updateOrder(order);
+      if (order.status === "PENDING_PAYMENT")
+        wx.showModal({
+          title: "支付结果确认中",
+          content: "请稍后下拉刷新订单；不要重复创建新订单。",
+          showCancel: false,
+        });
+    } catch (error) {
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
+    } finally {
+      if (epoch.valid(current)) this.setData({ busyId: "" });
+    }
+  },
+  async verify(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore) return;
+    const current = epoch.next();
+    const session = sessionVersion();
+    this.setData({ busyId: id, error: "" });
+    try {
+      const order = await verifyPayment(id, () => epoch.valid(current));
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        this.updateOrder(order);
+        if (order.status === "PENDING_PAYMENT") this.setData({ error: "尚未确认到账，请稍后刷新，勿重复下单" });
+      }
+    } catch (error) {
+      if (epoch.valid(current)) this.setData({ error: message(error), ...(!hasSession() ? {items: [], loggedIn: false, hasMore: false} : {}) });
+    } finally {
+      if (epoch.valid(current)) this.setData({busyId: ""});
+    }
+  },
+  async openRefund(event:WechatMiniprogram.TouchEvent) {
+    const id=safeId(event.currentTarget.dataset.id);
+    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore)return;
+    const current=epoch.next(),session=sessionVersion();
+    this.setData({busyId:id,error:""});
+    try {
+      const record=await request<Refund|null>(`/orders/${id}/refund`);
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundAmountText:record&&Number.isFinite(record.amountCents)?`¥${(record.amountCents/100).toFixed(2)}`:"",refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
+    } catch(error){if(epoch.valid(current))this.setData({error:message(error),...(!hasSession()?{items:[],loggedIn:false}:{})});}
+    finally{if(epoch.valid(current))this.setData({busyId:""});}
+  },
+  refundInput(event:WechatMiniprogram.Input){if(!this.data.busyId)this.setData({refundReason:event.detail.value,refundError:""});},
+  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:""});},
+  stopRefundEvent(){},
+  async requestRefund(){
+    const id=this.data.refundOrderId,reason=this.data.refundReason.trim();
+    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore||this.data.refundRecord)return;
+    if(!reason||reason.length>200){this.setData({refundError:"请填写退款原因"});return;}
+    const current=epoch.next(),session=sessionVersion();this.setData({busyId:id,refundError:""});
+    try {
+      const record=await request<Refund>(`/orders/${id}/refund`,"POST",{reason});
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundRecord:record,refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
+    } catch(error){if(epoch.valid(current))this.setData({refundError:message(error),...(!hasSession()?{items:[],loggedIn:false,refundOrderId:"",refundRecord:null}:{})});}
+    finally{if(epoch.valid(current))this.setData({busyId:""});}
+  },
+  async cancel(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore)
+      return;
+    const row=this.data.items.find(x=>x.id===id);
+    if(!row || !["PENDING_PAYMENT","CONFIRMED_FREE"].includes(row.status)) return;
+    const session = sessionVersion();
+    const prompt = epoch.next();
+    this.setData({ busyId: id });
+    let answer;
+    try {
+      answer = await wx.showModal({
+        title: "取消这笔订单？",
+        content: row.status === "CONFIRMED_FREE" ? "取消这笔免支付订单后释放库存，不涉及支付退款。" : "服务端关单成功后会释放库存；已支付订单不能直接取消。",
+        confirmText: "确认取消",
+      });
+    } catch (error) {
+      if (epoch.valid(prompt))
+        this.setData({ busyId: "", error: message(error) });
+      return;
+    }
+    if (!epoch.valid(prompt) || !isSessionCurrent(session)) return;
+    if (!answer.confirm) {
+      this.setData({ busyId: "" });
+      return;
+    }
+    const current = epoch.next();
+    this.setData({ busyId: id, error: "" });
+    try {
+      const order = await request<Order>(`/orders/${id}/cancel`, "POST");
+      if (epoch.valid(current) && isSessionCurrent(session))
+        this.updateOrder(order);
+    } catch (error) {
+      if (epoch.valid(current))
+        this.setData({
+          error: message(error),
+          ...(!hasSession()
+            ? { items: [], loggedIn: false, hasMore: false }
+            : {}),
+        });
+    } finally {
+      if (epoch.valid(current)) this.setData({ busyId: "" });
+    }
+  },
+});

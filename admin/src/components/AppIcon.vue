@@ -24,10 +24,6 @@ const paths: Record<string, string[]> = {
   error: ["M12 8v5M12 17h.01", "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"],
   check: ["m5 12 4 4L19 6"],
   logout: ["M9 4H4v16h5M9 12h12M17 8l4 4-4 4"],
-  search: ["M21 21l-4.35-4.35", "M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"],
-  calendar: ["M5 3v3M19 3v3M3 9h18M4 5h16v16H4z"],
-  wallet: ["M3 6h16v14H3zM3 6l2-3h12l2 3M15 12h6v5h-6a2.5 2.5 0 0 1 0-5Z"],
-  trend: ["M3 17l6-6 4 4 8-9M15 6h6v6"],
 };
 </script>
 <template>

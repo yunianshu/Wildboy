@@ -100,15 +100,12 @@ public class WechatPayService {
     return new JsapiServiceExtension.Builder().config(config()).build();
   }
 
-  /** Shared SDK adapter; callers retain their independent order and inventory state machines. */
-  public record PaymentRequest(
-      String timeStamp,
-      String nonceStr,
-      @com.fasterxml.jackson.annotation.JsonProperty("package") String packageValue,
-      String signType,
-      String paySign) {}
+  public ShopModels.PaymentRequest prepay(ShopModels.Order order, String openid) {
+    return prepay(order.orderNo(), order.totalCents(), order.expiresAt(), openid, "Wildboy 户外装备 " + order.orderNo(), "notify");
+  }
 
-  public PaymentRequest prepay(String orderNo, int totalCents, java.time.OffsetDateTime expiresAt,
+  /** Shared SDK adapter; callers retain their independent order and inventory state machines. */
+  public ShopModels.PaymentRequest prepay(String orderNo, int totalCents, java.time.OffsetDateTime expiresAt,
       String openid, String description, String callbackName) {
     if (totalCents <= 0) throw new ApiException(400, "INVALID_PAYMENT_AMOUNT", "零元订单无需微信支付");
     if (!java.util.Set.of("notify", "activity-notify").contains(callbackName))
@@ -131,7 +128,7 @@ public class WechatPayService {
       payer.setOpenid(openid);
       request.setPayer(payer);
       PrepayWithRequestPaymentResponse response = service().prepayWithRequestPayment(request);
-      return new PaymentRequest(
+      return new ShopModels.PaymentRequest(
           response.getTimeStamp(),
           response.getNonceStr(),
           response.getPackageVal(),
@@ -229,7 +226,10 @@ public class WechatPayService {
     return new RefundModels.GatewayResult(r.getOutRefundNo(),r.getOutTradeNo(),r.getTransactionId(),r.getRefundId(),
         r.getAmount().getTotal(),r.getAmount().getRefund(),r.getAmount().getCurrency(),r.getStatus().name());
   }
-
+  public RefundModels.GatewayResult createRefund(ShopModels.Order order,RefundModels.Refund refund) {
+    return createRefund(order.orderNo(), order.paymentTransactionId(), order.totalCents(), refund.outRefundNo(),
+        refund.amountCents(), refund.reason(), "refund-notify");
+  }
   public RefundModels.GatewayResult createRefund(String orderNo, String transactionId, int totalCents,
       String outRefundNo, int refundCents, String reason, String callbackName) {
     if (refundCents <= 0 || refundCents > totalCents)
@@ -278,4 +278,5 @@ public class WechatPayService {
     } catch(ValidationException e){throw new ApiException(401,"INVALID_REFUND_SIGNATURE","退款通知验签失败");}
       catch(ApiException e){throw e;} catch(Exception e){throw new ApiException(400,"INVALID_REFUND_NOTIFICATION","退款通知内容无效");}
   }
+
 }

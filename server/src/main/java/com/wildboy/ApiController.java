@@ -13,12 +13,14 @@ import org.springframework.web.bind.annotation.*;
 public class ApiController {
   final ActivityService activities;
   final AuthService auth;
+  final ShopService shop;
   final WechatPayService pay;
 
   public ApiController(
-      ActivityService activities, AuthService auth, WechatPayService pay) {
+      ActivityService activities, AuthService auth, ShopService shop, WechatPayService pay) {
     this.activities = activities;
     this.auth = auth;
+    this.shop = shop;
     this.pay = pay;
   }
 
@@ -179,6 +181,21 @@ public class ApiController {
             Map.of("code", "DOMESTIC", "name", "国内游行"),
             Map.of("code", "HOLIDAY", "name", "假期活动"),
             Map.of("code", "LEISURE", "name", "休闲活动")),
+        "equipment",
+        shop.products(false).stream()
+            .limit(6)
+            .map(
+                product ->
+                    Map.of(
+                        "id", product.id(),
+                        "name", product.name(),
+                        "imageUrl", product.imageUrl(),
+                        "description", product.description(),
+                        "categoryName", product.categoryName() == null ? "" : product.categoryName(),
+                        "priceCents", product.priceCents(),
+                        "originalPriceCents", product.originalPriceCents(),
+                        "priceLabel", String.format("¥%.2f", product.priceCents() / 100.0)))
+            .toList(),
         "paymentEnabled",
         pay.enabled());
   }
