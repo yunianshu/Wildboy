@@ -113,6 +113,18 @@ const skipReason = (value: string) =>
         : value === "disabled"
           ? "发货上报未启用"
           : value || "—";
+const pillClass = (value: string) =>
+  value === "PENDING"
+    ? "pill-warning"
+    : value === "FAILED"
+      ? "pill-danger"
+      : value === "REPORTED"
+        ? "pill-success"
+        : "pill-neutral";
+// 无交易记录/无微信身份的订单永远无法上报；其余“无需上报”（如功能未启用）保留人工补报入口。
+const unreportable = (r: ShippingReport) =>
+  r.status === "SKIPPED" &&
+  ["missing_transaction", "no_wechat_identity"].includes(r.last_error);
 onMounted(() => void load());
 import UiState from "../components/UiState.vue";
 </script>
@@ -166,7 +178,7 @@ import UiState from "../components/UiState.vue";
             <td>{{ sourceLabel(r.source) }}</td>
             <td class="mono">{{ r.order_no }}</td>
             <td>{{ logisticsLabel(r.logistics_type) }}</td>
-            <td>{{ statusLabel(r.status) }}</td>
+            <td><span class="pill" :class="pillClass(r.status)">{{ statusLabel(r.status) }}</span></td>
             <td>{{ r.attempts }}</td>
             <td>
               <template v-if="r.status === 'FAILED'"
@@ -182,7 +194,7 @@ import UiState from "../components/UiState.vue";
               <button
                 v-if="r.status !== 'REPORTED'"
                 class="text-button"
-                :disabled="!!retrying"
+                :disabled="!!retrying || unreportable(r)"
                 @click="retry(r.id)"
               >
                 补报
@@ -212,5 +224,30 @@ import UiState from "../components/UiState.vue";
 }
 .mono {
   font-variant-numeric: tabular-nums;
+}
+.pill {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.pill-success {
+  background: #ecfdf5;
+  color: #047857;
+}
+.pill-warning {
+  background: #fffbeb;
+  color: #92400e;
+}
+.pill-danger {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.pill-neutral {
+  background: #f3f4f6;
+  color: #374151;
 }
 </style>

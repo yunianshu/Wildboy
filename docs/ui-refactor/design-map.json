@@ -1,0 +1,3718 @@
+{
+ "generatedAt": "2026-11-16",
+ "sourceFile": "design/设计图文件.pen",
+ "penVersion": "2.22",
+ "designDigest": "sha256:ae7f591b4e80dfe5（前 16 位，锚定本次读取的文件版本）",
+ "artboardTotal": 148,
+ "variables": [
+  "wb-bg",
+  "wb-surface",
+  "wb-primary",
+  "wb-ink",
+  "wb-muted",
+  "wb-line",
+  "wb-soft",
+  "wb-danger",
+  "wb-font",
+  "wb-gap",
+  "wb-acc-ops-strong",
+  "wb-acc-ops-soft",
+  "wb-acc-ops-border",
+  "wb-acc-ops-onDark",
+  "wb-acc-activity-strong",
+  "wb-acc-activity-soft",
+  "wb-acc-activity-border",
+  "wb-acc-activity-onDark",
+  "wb-acc-shop-strong",
+  "wb-acc-shop-soft",
+  "wb-acc-shop-border",
+  "wb-acc-shop-onDark",
+  "wb-acc-user-strong",
+  "wb-acc-user-soft",
+  "wb-acc-user-border",
+  "wb-acc-user-onDark",
+  "wb-acc-content-strong",
+  "wb-acc-content-soft",
+  "wb-acc-content-border",
+  "wb-acc-content-onDark",
+  "wb-tone-success-bg",
+  "wb-tone-success-text",
+  "wb-tone-warning-bg",
+  "wb-tone-warning-text",
+  "wb-tone-danger-bg",
+  "wb-tone-danger-text",
+  "wb-tone-info-bg",
+  "wb-tone-info-text",
+  "wb-tone-neutral-bg",
+  "wb-tone-neutral-text",
+  "wb-tone-user-bg",
+  "wb-tone-user-text",
+  "wb-sidebar",
+  "wb-sidebar-active",
+  "wb-brand-text",
+  "wb-accent",
+  "wb-th",
+  "wb-tag",
+  "wb-acc-ops",
+  "wb-acc-activity",
+  "wb-acc-shop",
+  "wb-acc-user",
+  "wb-acc-content",
+  "wb-dot-ops",
+  "wb-dot-activity",
+  "wb-dot-shop",
+  "wb-dot-user",
+  "wb-dot-content"
+ ],
+ "pages": {
+  "web": [
+   {
+    "端": "web",
+    "模块": "登录",
+    "路由": "/login",
+    "实现文件": "admin/src/views/LoginView.vue",
+    "画板": [
+     {
+      "id": "PoJPW",
+      "name": "Web / 管理员登录",
+      "w": 1280,
+      "h": 800,
+      "route": "/login",
+      "nodes": 19,
+      "texts": 9,
+      "icons": 0,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#101613",
+       "#1F2937",
+       "#6B7280",
+       "#74857B",
+       "#F6F7F9",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "野小子运营后台",
+       "管理员登录",
+       "账号",
+       "请输入管理员账号"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "运营工作台",
+    "路由": "/operations",
+    "实现文件": "admin/src/views/OperationsView.vue",
+    "画板": [
+     {
+      "id": "jooRk",
+      "name": "Web / 运营工作台",
+      "w": 1280,
+      "h": 800,
+      "route": "/operations",
+      "nodes": 163,
+      "texts": 63,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#74857B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "mS4Tg",
+      "name": "Web / 运营工作台 · 列表状态",
+      "w": 1280,
+      "h": 800,
+      "route": "/operations",
+      "nodes": 92,
+      "texts": 34,
+      "icons": 18,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#74857B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "活动管理",
+    "路由": "/activities",
+    "实现文件": "admin/src/views/ActivitiesView.vue",
+    "画板": [
+     {
+      "id": "dxs6Q",
+      "name": "Web / 活动管理",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities",
+      "nodes": 166,
+      "texts": 60,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "UFr8b",
+      "name": "Web / 活动管理 · 窄屏",
+      "w": 390,
+      "h": 900,
+      "route": "/activities",
+      "nodes": 69,
+      "texts": 30,
+      "icons": 1,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#6B7280",
+       "#74857B",
+       "#C4CDC7",
+       "#E5E7EB"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "活动管理 · 窄屏",
+       "工作后台",
+       "管理员",
+       "退出登录"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "新建/编辑活动",
+    "路由": "/activities/new|/activities/:id/edit",
+    "实现文件": "admin/src/views/EditorView.vue",
+    "画板": [
+     {
+      "id": "CCqVo",
+      "name": "Web / 新建活动",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities/new",
+      "nodes": 133,
+      "texts": 49,
+      "icons": 17,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "afpqo",
+      "name": "Web / 编辑活动",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities/:id/edit",
+      "nodes": 133,
+      "texts": 49,
+      "icons": 17,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "jlF19",
+      "name": "Web / 活动管理 · 发布确认",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities",
+      "nodes": 84,
+      "texts": 30,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "AypoA",
+      "name": "后台 / 活动取消确认 / cancel-confirm",
+      "w": 1440,
+      "h": 900,
+      "route": "/activities/:id/edit",
+      "state": "edit-schedule",
+      "nodes": 88,
+      "texts": 26,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7E8E2",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "活动说明与图文",
+    "路由": "/activities/:id/edit（图文分栏）",
+    "实现文件": "admin/src/views/EditorView.vue",
+    "画板": [
+     {
+      "id": "b5wac",
+      "name": "后台 / 活动说明与图文 / activity-details",
+      "w": 1440,
+      "h": 900,
+      "route": "/activities/:id/edit",
+      "state": "activity-details",
+      "nodes": 64,
+      "texts": 20,
+      "icons": 12,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "报名名单",
+    "路由": "/activities/:id/registrations",
+    "实现文件": "admin/src/views/RosterView.vue",
+    "画板": [
+     {
+      "id": "A7gFGK",
+      "name": "Web / 报名名单",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities/:id/registrations",
+      "nodes": 124,
+      "texts": 44,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#74857B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "tSb5v",
+      "name": "Web / 报名名单 · 查看资料确认",
+      "w": 1280,
+      "h": 800,
+      "route": "/activities/:id/registrations",
+      "nodes": 84,
+      "texts": 30,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "活动模板",
+    "路由": "/templates",
+    "实现文件": "admin/src/views/TemplatesView.vue",
+    "画板": [
+     {
+      "id": "VZIjm",
+      "name": "Web / 活动模板",
+      "w": 1280,
+      "h": 800,
+      "route": "/templates",
+      "nodes": 133,
+      "texts": 47,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "AG35F",
+      "name": "后台 / 生成活动草稿 / template-generate",
+      "w": 1440,
+      "h": 900,
+      "route": "/templates",
+      "state": "template-generate",
+      "nodes": 71,
+      "texts": 24,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     },
+     {
+      "id": "dg1pU",
+      "name": "后台 / 保存活动模板 / template-create",
+      "w": 1440,
+      "h": 900,
+      "route": "/templates",
+      "state": "template-create",
+      "nodes": 62,
+      "texts": 20,
+      "icons": 13,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "活动订单",
+    "路由": "/activity-orders",
+    "实现文件": "admin/src/views/ActivityOrdersView.vue",
+    "画板": [
+     {
+      "id": "xHqTA",
+      "name": "Web / 活动订单 · 全部订单",
+      "w": 1280,
+      "h": 800,
+      "route": "/activity-orders",
+      "nodes": 237,
+      "texts": 84,
+      "icons": 17,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1D4ED8",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "XErK6",
+      "name": "Web / 活动订单 · 待支付详情",
+      "w": 1280,
+      "h": 800,
+      "route": "/activity-orders",
+      "nodes": 275,
+      "texts": 100,
+      "icons": 20,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#11182766",
+       "#1D4ED8",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "othlP",
+      "name": "Web / 活动订单 · 退款审核",
+      "w": 1280,
+      "h": 800,
+      "route": "/activity-orders",
+      "nodes": 287,
+      "texts": 108,
+      "icons": 20,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#11182766",
+       "#1D4ED8",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "D02kiL",
+      "name": "Web / 活动订单 · 窄屏",
+      "w": 390,
+      "h": 844,
+      "route": "/activity-orders",
+      "nodes": 72,
+      "texts": 32,
+      "icons": 3,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#374151",
+       "#6B7280",
+       "#74857B",
+       "#92400E"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "活动订单",
+       "工作后台",
+       "管理员",
+       "退出登录"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "商城管理",
+    "路由": "/shop",
+    "实现文件": "admin/src/views/ShopView.vue",
+    "画板": [
+     {
+      "id": "jv8du",
+      "name": "Web / 商城管理",
+      "w": 1280,
+      "h": 800,
+      "route": "/shop",
+      "nodes": 158,
+      "texts": 58,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "jLyLI",
+      "name": "Web / 商城管理 · 装备订单",
+      "w": 1280,
+      "h": 800,
+      "route": "/shop",
+      "nodes": 98,
+      "texts": 37,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "VrBZD",
+      "name": "后台 / 发货确认 / ship-confirm",
+      "w": 1440,
+      "h": 900,
+      "route": "/shop",
+      "state": "orders",
+      "nodes": 189,
+      "texts": 76,
+      "icons": 13,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     },
+     {
+      "id": "irybD",
+      "name": "后台 / 商品保存确认 / product-save-confirm",
+      "w": 1440,
+      "h": 900,
+      "route": "/shop",
+      "state": "product-edit",
+      "nodes": 100,
+      "texts": 32,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "商品分类",
+    "路由": "/shop/categories",
+    "实现文件": "admin/src/views/ProductCategoriesView.vue",
+    "画板": [
+     {
+      "id": "Z4snv",
+      "name": "Web / 商品分类",
+      "w": 1280,
+      "h": 800,
+      "route": "/shop/categories",
+      "nodes": 129,
+      "texts": 45,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "ie3cy",
+      "name": "后台 / 商品分类 / 创建与编辑",
+      "w": 1440,
+      "h": 900,
+      "route": "/shop/categories",
+      "nodes": 66,
+      "texts": 21,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "退款售后",
+    "路由": "/refunds",
+    "实现文件": "admin/src/views/RefundsView.vue",
+    "画板": [
+     {
+      "id": "kc418",
+      "name": "Web / 退款售后",
+      "w": 1280,
+      "h": 800,
+      "route": "/refunds",
+      "nodes": 130,
+      "texts": 46,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#74857B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "pKPcb",
+      "name": "Web / 退款售后 · 申请审核",
+      "w": 1280,
+      "h": 800,
+      "route": "/refunds",
+      "nodes": 100,
+      "texts": 37,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "SLpMS",
+      "name": "后台 / 拒绝退款 / refund-reject",
+      "w": 1440,
+      "h": 900,
+      "route": "/refunds",
+      "state": "refund-list",
+      "nodes": 167,
+      "texts": 68,
+      "icons": 12,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7E8E2",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "发货上报",
+    "路由": "/shipping-reports",
+    "实现文件": "admin/src/views/ShippingReportsView.vue",
+    "画板": [
+     {
+      "id": "sPQxB",
+      "name": "Web / 发货上报",
+      "w": 1280,
+      "h": 800,
+      "route": "/shipping-reports",
+      "nodes": 189,
+      "texts": 75,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151",
+       "#60A5FA"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "MuHVO",
+      "name": "Web / 发货上报 · 补报确认",
+      "w": 1280,
+      "h": 800,
+      "route": "/shipping-reports",
+      "state": "retry-confirm",
+      "nodes": 87,
+      "texts": 31,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#00000033",
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "用户管理",
+    "路由": "/users",
+    "实现文件": "admin/src/views/UsersView.vue",
+    "画板": [
+     {
+      "id": "Nwr2l",
+      "name": "后台 / 用户管理 / 列表",
+      "w": 1440,
+      "h": 900,
+      "route": "/users",
+      "nodes": 133,
+      "texts": 54,
+      "icons": 12,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     },
+     {
+      "id": "a35E2",
+      "name": "后台 / 用户管理 / 资料与权限",
+      "w": 1440,
+      "h": 900,
+      "route": "/users",
+      "nodes": 75,
+      "texts": 27,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     },
+     {
+      "id": "z7k8T",
+      "name": "后台 / 用户管理 / 报名历史",
+      "w": 1440,
+      "h": 900,
+      "route": "/users",
+      "nodes": 95,
+      "texts": 32,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     },
+     {
+      "id": "wqrUO",
+      "name": "后台 / 用户管理 / 授予权限确认",
+      "w": 1440,
+      "h": 900,
+      "route": "/users",
+      "nodes": 60,
+      "texts": 20,
+      "icons": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "会员管理",
+    "路由": "/memberships",
+    "实现文件": "admin/src/views/MembershipsView.vue",
+    "画板": [
+     {
+      "id": "x9gG8s",
+      "name": "Web / 会员管理 · 等级列表",
+      "w": 1280,
+      "h": 800,
+      "route": "/memberships",
+      "nodes": 147,
+      "texts": 54,
+      "icons": 17,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151",
+       "#60A5FA"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "V6uBE",
+      "name": "Web / 会员管理 · 用户业务身份",
+      "w": 1280,
+      "h": 800,
+      "route": "/memberships",
+      "nodes": 188,
+      "texts": 69,
+      "icons": 18,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "vruDl",
+      "name": "Web / 会员管理 · 等级编辑",
+      "w": 1280,
+      "h": 800,
+      "route": "/memberships",
+      "nodes": 208,
+      "texts": 77,
+      "icons": 25,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#11182766",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "Asyql",
+      "name": "Web / 会员管理 · 分配业务身份",
+      "w": 1280,
+      "h": 800,
+      "route": "/memberships",
+      "nodes": 215,
+      "texts": 79,
+      "icons": 22,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#11182766",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "文章管理",
+    "路由": "/articles",
+    "实现文件": "admin/src/views/ArticlesView.vue",
+    "画板": [
+     {
+      "id": "hSL6j",
+      "name": "Web / 文章管理 · 文章列表",
+      "w": 1280,
+      "h": 800,
+      "route": "/articles",
+      "nodes": 140,
+      "texts": 49,
+      "icons": 18,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#374151",
+       "#60A5FA"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "文章编辑",
+    "路由": "/articles/new|/articles/:id/edit",
+    "实现文件": "admin/src/views/ArticleEditorView.vue",
+    "画板": [
+     {
+      "id": "Rkx83",
+      "name": "Web / 文章编辑 · 工作台",
+      "w": 1280,
+      "h": 800,
+      "route": "/articles",
+      "nodes": 155,
+      "texts": 47,
+      "icons": 32,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#0F766E",
+       "#101613",
+       "#111827",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "MYBYC",
+      "name": "Web / 文章编辑 · 文档",
+      "w": 1280,
+      "h": 900,
+      "route": "/articles",
+      "nodes": 155,
+      "texts": 48,
+      "icons": 33,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#0F766E",
+       "#101613",
+       "#111827",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "LzCfb",
+      "name": "Web / 文章编辑 · 新建草稿",
+      "w": 1280,
+      "h": 800,
+      "route": "/articles",
+      "nodes": 114,
+      "texts": 38,
+      "icons": 17,
+      "vars": [],
+      "hexTop": [
+       "#00000000",
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "TNona",
+      "name": "Web / 文章编辑 · 窄屏",
+      "w": 390,
+      "h": 900,
+      "route": "/activities/:id/edit",
+      "nodes": 52,
+      "texts": 20,
+      "icons": 3,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#6B7280",
+       "#74857B",
+       "#C4CDC7",
+       "#C7CCD4",
+       "#E5E7EB"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "文章管理",
+       "工作后台",
+       "管理员",
+       "退出登录"
+      ]
+     },
+     {
+      "id": "P6RC06",
+      "name": "Web / 文章编辑 · 设为官方介绍确认",
+      "w": 1280,
+      "h": 900,
+      "route": "/articles",
+      "nodes": 167,
+      "texts": 52,
+      "icons": 34,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#0F766E",
+       "#101613",
+       "#111827",
+       "#11182766",
+       "#1F2937",
+       "#22332B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "协议管理",
+    "路由": "/legal",
+    "实现文件": "admin/src/views/LegalView.vue",
+    "画板": [
+     {
+      "id": "Pr4cO",
+      "name": "Web / 协议管理",
+      "w": 1280,
+      "h": 800,
+      "route": "/legal",
+      "nodes": 105,
+      "texts": 38,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "y49HRk",
+      "name": "后台 / 协议管理 / legal-draft",
+      "w": 1440,
+      "h": 900,
+      "route": "/legal",
+      "state": "legal-draft",
+      "nodes": 75,
+      "texts": 24,
+      "icons": 12,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#193F34",
+       "#315B48",
+       "#BBCDBD",
+       "#D9E4CF",
+       "#F7F8EE",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "运营工作台",
+       "活动管理",
+       "用户管理",
+       "商品与库存",
+       "订单与发货"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "消息管理",
+    "路由": "/notifications",
+    "实现文件": "admin/src/views/NotificationsView.vue",
+    "画板": [
+     {
+      "id": "vMuxZ",
+      "name": "Web / 消息管理",
+      "w": 1280,
+      "h": 800,
+      "route": "/notifications",
+      "nodes": 130,
+      "texts": 46,
+      "icons": 16,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#74857B"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "Sfyhp",
+      "name": "Web / 消息管理 · 恢复通知",
+      "w": 1280,
+      "h": 800,
+      "route": "/notifications",
+      "nodes": 90,
+      "texts": 33,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "基础配置",
+    "路由": "/settings",
+    "实现文件": "admin/src/views/SettingsView.vue",
+    "画板": [
+     {
+      "id": "DbJts",
+      "name": "Web / 基础配置 · 四入口与目标页",
+      "w": 1280,
+      "h": 800,
+      "route": "/settings",
+      "nodes": 135,
+      "texts": 47,
+      "icons": 28,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "xNcp5",
+      "name": "Web / 基础配置 · 弹窗内容配置",
+      "w": 1280,
+      "h": 800,
+      "route": "/settings",
+      "nodes": 143,
+      "texts": 51,
+      "icons": 28,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "k0nVX",
+      "name": "Web / 基础配置 · 版本冲突恢复",
+      "w": 1280,
+      "h": 800,
+      "route": "/settings",
+      "nodes": 138,
+      "texts": 48,
+      "icons": 29,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280",
+       "#6D4B18"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "yJl1Q",
+      "name": "Web / 基础配置 · 窄屏",
+      "w": 390,
+      "h": 844,
+      "route": "/settings",
+      "nodes": 77,
+      "texts": 28,
+      "icons": 14,
+      "vars": [],
+      "hexTop": [
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#6B7280",
+       "#74857B",
+       "#C4CDC7",
+       "#E5E7EB",
+       "#F6F7F9"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "基础配置",
+       "工作后台",
+       "管理员",
+       "退出登录"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   },
+   {
+    "端": "web",
+    "模块": "管理员账号",
+    "路由": "/settings/admin-account",
+    "实现文件": "admin/src/views/AdminAccountView.vue",
+    "画板": [
+     {
+      "id": "UHolL",
+      "name": "Web / 管理员账号",
+      "w": 1280,
+      "h": 800,
+      "route": "/settings/admin-account",
+      "nodes": 87,
+      "texts": 32,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     },
+     {
+      "id": "jwaEj",
+      "name": "Web / 管理员账号 · 修改",
+      "w": 1280,
+      "h": 800,
+      "route": "/settings/admin-account",
+      "nodes": 102,
+      "texts": 38,
+      "icons": 15,
+      "vars": [],
+      "hexTop": [
+       "#047857",
+       "#065F46",
+       "#101613",
+       "#1F2937",
+       "#22332B",
+       "#2DD4BF",
+       "#60A5FA",
+       "#6B7280"
+      ],
+      "textSamples": [
+       "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
+       "运营工作台",
+       "消息管理",
+       "活动"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/admin/**（管理鉴权）",
+    "验证方式": "vitest + npm run build + 人工对照"
+   }
+  ],
+  "mini": [
+   {
+    "端": "mini",
+    "模块": "首页（保护）",
+    "路由": "pages/home/index",
+    "实现文件": "miniprogram/src/pages/home/*",
+    "画板": [
+     {
+      "id": "Q78i6",
+      "name": "探索页 / 保留原样参考",
+      "w": 390,
+      "h": 2157,
+      "route": "pages/home/index",
+      "nodes": 1,
+      "texts": 0,
+      "icons": 0,
+      "vars": [],
+      "hexTop": [],
+      "textSamples": []
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动列表",
+    "路由": "pages/activities/index",
+    "实现文件": "miniprogram/src/pages/activities/*",
+    "画板": [
+     {
+      "id": "zdkYd",
+      "name": "小程序 / 活动",
+      "w": 390,
+      "h": 923,
+      "route": "pages/activities/index",
+      "nodes": 68,
+      "texts": 25,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "活动",
+       "选一条路，走进山野。",
+       "全部",
+       "本周活动",
+       "国内游行"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动详情",
+    "路由": "pages/detail/index",
+    "实现文件": "miniprogram/src/pages/detail/*",
+    "画板": [
+     {
+      "id": "mzsV1",
+      "name": "小程序 / 活动详情",
+      "w": 390,
+      "h": 978,
+      "route": "pages/detail/index",
+      "nodes": 44,
+      "texts": 12,
+      "icons": 10,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "活动详情",
+       "本周活动 · 免费参加",
+       "【演示】周末山野徒步",
+       "沿山间小路出发，在林间停留，和同行的人一起感",
+       "11 月 7 日 周六 · 09:00 出发"
+      ]
+     },
+     {
+      "id": "KGp4I",
+      "name": "小程序 / 活动详情 · 已报名",
+      "w": 390,
+      "h": 1082,
+      "route": "pages/detail/index",
+      "nodes": 52,
+      "texts": 17,
+      "icons": 12,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "活动详情",
+       "已报名 · 2 位参与人",
+       "【演示】周末山野徒步",
+       "11 月 7 日 09:00 · 示例目的地",
+       "出发前，再核对一次"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "填写报名",
+    "路由": "pages/register/index",
+    "实现文件": "miniprogram/src/pages/register/*",
+    "画板": [
+     {
+      "id": "v2aly",
+      "name": "小程序 / 填写报名",
+      "w": 390,
+      "h": 986,
+      "route": "pages/register/index",
+      "nodes": 50,
+      "texts": 15,
+      "icons": 8,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "填写报名",
+       "免费活动 · 还可报名 8 人",
+       "【演示】周末山野徒步",
+       "11 月 7 日 09:00 · 示例集合点",
+       "参与人 · 1 位"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "报名结果",
+    "路由": "pages/signup-success/index",
+    "实现文件": "miniprogram/src/pages/signup-success/*",
+    "画板": [
+     {
+      "id": "ScdDU",
+      "name": "小程序 / 报名结果",
+      "w": 390,
+      "h": 818,
+      "route": "pages/signup-success/index",
+      "nodes": 39,
+      "texts": 10,
+      "icons": 11,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "报名结果",
+       "报名已确认",
+       "1 位参与人已成功加入活动。\n出发前，请再次",
+       "【演示】周末山野徒步",
+       "11 月 7 日 09:00 出发"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "我的报名",
+    "路由": "pages/registrations/index",
+    "实现文件": "miniprogram/src/pages/registrations/*",
+    "画板": [
+     {
+      "id": "bVFjG",
+      "name": "小程序 / 我的报名",
+      "w": 390,
+      "h": 811,
+      "route": "pages/registrations/index",
+      "nodes": 46,
+      "texts": 16,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "我的报名",
+       "查看参与记录，管理接下来的出行。",
+       "全部",
+       "已确认",
+       "已取消"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动消息",
+    "路由": "pages/notifications/index",
+    "实现文件": "miniprogram/src/pages/notifications/*",
+    "画板": [
+     {
+      "id": "fhwJH",
+      "name": "小程序 / 活动消息",
+      "w": 390,
+      "h": 950,
+      "route": "pages/notifications/index",
+      "nodes": 45,
+      "texts": 16,
+      "icons": 10,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "活动消息",
+       "接收活动提醒",
+       "本页可查看已有消息。微信提醒需你主动授权，每",
+       "微信提醒已发送",
+       "活动变更通知"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "我的活动订单",
+    "路由": "pages/activity-orders/index",
+    "实现文件": "miniprogram/src/pages/activity-orders/*",
+    "画板": [
+     {
+      "id": "3yIfJ",
+      "name": "小程序 / 活动订单",
+      "w": 390,
+      "h": 1160,
+      "route": "pages/activity-orders/index",
+      "nodes": 65,
+      "texts": 29,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface",
+       "$wb-tone-success-bg",
+       "$wb-tone-success-text",
+       "$wb-tone-warning-bg",
+       "$wb-tone-warning-text"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "我的活动订单",
+       "登录后展示本人全部收费活动订单；待付款单提供",
+       "龙门山周末徒步",
+       "待支付",
+       "2 人 · 合计 ¥200.00"
+      ]
+     },
+     {
+      "id": "kx38q",
+      "name": "状态稿 / 订单售后 · 申请与核对",
+      "w": 390,
+      "h": 1084,
+      "route": "pages/orders/index",
+      "nodes": 33,
+      "texts": 14,
+      "icons": 4,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "订单售后 · 申请与核对",
+       "以下为独立状态示例，不同时显示。",
+       "申请整单退款",
+       "申请金额 ¥199",
+       "仅适用于已支付、尚未发货的订单。提交后由运营",
+       "退款原因"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "商城",
+    "路由": "pages/shop/index",
+    "实现文件": "miniprogram/src/pages/shop/*",
+    "画板": [
+     {
+      "id": "E7QA9",
+      "name": "小程序 / 商城",
+      "w": 390,
+      "h": 939,
+      "route": "pages/shop/index",
+      "nodes": 67,
+      "texts": 25,
+      "icons": 5,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "商城",
+       "把需要的装备带上。",
+       "3 件商品",
+       "全部",
+       "徒步装备"
+      ]
+     },
+     {
+      "id": "mGkPt",
+      "name": "状态稿 / 商城 · 加载与刷新",
+      "w": 390,
+      "h": 959,
+      "route": "pages/shop/index",
+      "nodes": 31,
+      "texts": 12,
+      "icons": 5,
+      "vars": [
+       "$wb-bg",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "商城 · 加载与刷新",
+       "以下为独立状态示例，不同时显示。",
+       "正在加载商品…",
+       "还没有在售商品",
+       "稍后再来看看，或下拉刷新。",
+       "商品暂时加载失败"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "商品详情",
+    "路由": "pages/product/index",
+    "实现文件": "miniprogram/src/pages/product/*",
+    "画板": [
+     {
+      "id": "YbhOC",
+      "name": "小程序 / 商品详情",
+      "w": 390,
+      "h": 938,
+      "route": "pages/product/index",
+      "nodes": 44,
+      "texts": 14,
+      "icons": 9,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "商品详情",
+       "¥199.00",
+       "有货",
+       "原价 ¥249.00",
+       "徒步装备"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "确认订单",
+    "路由": "pages/checkout/index",
+    "实现文件": "miniprogram/src/pages/checkout/*",
+    "画板": [
+     {
+      "id": "KgWt0",
+      "name": "小程序 / 确认订单",
+      "w": 390,
+      "h": 823,
+      "route": "pages/checkout/index",
+      "nodes": 49,
+      "texts": 13,
+      "icons": 9,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "确认订单",
+       "林小野  138 0000 8000",
+       "上海市示例区 山野路 18 号 2 室",
+       "点击更换，订单提交后保存本次地址快照。",
+       "【演示】轻量徒步背包"
+      ]
+     },
+     {
+      "id": "vaPck",
+      "name": "状态稿 / 结算与支付 · 恢复",
+      "w": 390,
+      "h": 1011,
+      "route": "pages/checkout/index",
+      "nodes": 32,
+      "texts": 12,
+      "icons": 5,
+      "vars": [
+       "$wb-bg",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "结算与支付 · 恢复",
+       "以下为独立状态示例，不同时显示。",
+       "协议暂时加载失败",
+       "商品与收货地址已保留。重新加载后，请再次阅读",
+       "购买数量超出范围",
+       "每单最多 99 件，并以当前库存为限。请返回"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "我的订单",
+    "路由": "pages/orders/index",
+    "实现文件": "miniprogram/src/pages/orders/*",
+    "画板": [
+     {
+      "id": "kD4zv",
+      "name": "小程序 / 我的订单",
+      "w": 390,
+      "h": 904,
+      "route": "pages/orders/index",
+      "nodes": 59,
+      "texts": 19,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "我的订单",
+       "全部",
+       "待支付",
+       "待发货",
+       "已发货"
+      ]
+     },
+     {
+      "id": "Xwjvy",
+      "name": "状态稿 / 订单取消与退款结果",
+      "w": 390,
+      "h": 1155,
+      "route": "pages/orders/index",
+      "nodes": 33,
+      "texts": 12,
+      "icons": 4,
+      "vars": [
+       "$wb-bg",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#F7E8E3"
+      ],
+      "textSamples": [
+       "订单取消与退款结果",
+       "以下为独立状态示例，不同时显示。",
+       "取消这笔订单？",
+       "服务端关单成功后会释放库存；已支付订单不能直",
+       "退款申请已拒绝",
+       "申请原因：行程调整。\n审核说明：退款原因需进"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "收货地址",
+    "路由": "pages/addresses/index",
+    "实现文件": "miniprogram/src/pages/addresses/*",
+    "画板": [
+     {
+      "id": "AIEqe",
+      "name": "小程序 / 收货地址",
+      "w": 390,
+      "h": 738,
+      "route": "pages/addresses/index",
+      "nodes": 46,
+      "texts": 9,
+      "icons": 9,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "收货地址",
+       "轻触地址即可选择并返回结算。",
+       "林小野  138 0000 8000",
+       "上海市示例区 山野路 18 号 2 室",
+       "默认地址"
+      ]
+     },
+     {
+      "id": "MJO4e",
+      "name": "状态稿 / 收货地址 · 编辑与空态",
+      "w": 390,
+      "h": 1016,
+      "route": "pages/addresses/index",
+      "nodes": 35,
+      "texts": 14,
+      "icons": 1,
+      "vars": [
+       "$wb-bg",
+       "$wb-danger",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#F7E8E3"
+      ],
+      "textSamples": [
+       "收货地址 · 编辑与空态",
+       "以下为独立状态示例，不同时显示。",
+       "新增收货地址",
+       "收件人姓名",
+       "手机号",
+       "请输入 11 位中国大陆手机号"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "我的山野",
+    "路由": "pages/mine/index",
+    "实现文件": "miniprogram/src/pages/mine/*",
+    "画板": [
+     {
+      "id": "asCpo",
+      "name": "小程序 / 我的山野",
+      "w": 390,
+      "h": 816,
+      "route": "pages/mine/index",
+      "nodes": 69,
+      "texts": 17,
+      "icons": 20,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "我的山野",
+       "山野同行者",
+       "微信用户",
+       "我的报名",
+       "我的订单"
+      ]
+     },
+     {
+      "id": "tZwlR",
+      "name": "状态稿 / 我的 · 身份与独立恢复",
+      "w": 390,
+      "h": 1153,
+      "route": "pages/mine/index",
+      "nodes": 36,
+      "texts": 13,
+      "icons": 3,
+      "vars": [
+       "$wb-bg",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "我的 · 身份与独立恢复",
+       "以下为独立状态示例，不同时显示。",
+       "一起走进山野",
+       "报名、订单与个人消息需要登录，公开内容仍可浏",
+       "暂时无法核对协议版本",
+       "当前账号和已有记录仍保留，报名与订单入口可继"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "联系资料",
+    "路由": "pages/profile/index",
+    "实现文件": "miniprogram/src/pages/profile/*",
+    "画板": [
+     {
+      "id": "u9yYo",
+      "name": "小程序 / 活动联系人 / 资料摘要",
+      "w": 390,
+      "h": 844,
+      "route": "pages/profile/index",
+      "nodes": 22,
+      "texts": 8,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "活动联系人",
+       "参加活动前，完善本人联系资料",
+       "林小野 · 示例",
+       "本人姓名：林小野",
+       "联系手机号：13800000000"
+      ]
+     },
+     {
+      "id": "CX7SL",
+      "name": "小程序 / 活动联系人 / 编辑与未同意",
+      "w": 390,
+      "h": 844,
+      "route": "pages/profile/index",
+      "nodes": 45,
+      "texts": 15,
+      "icons": 8,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#11291F80",
+       "#D9DED3"
+      ],
+      "textSamples": [
+       "9:41",
+       "活动联系人",
+       "参加活动前，完善本人联系资料",
+       "林小野 · 示例",
+       "本人姓名：林小野",
+       "联系手机号：13800000000"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "微信登录",
+    "路由": "pages/login/index",
+    "实现文件": "miniprogram/src/pages/login/*",
+    "画板": [
+     {
+      "id": "r2Vg3F",
+      "name": "小程序 / 微信登录",
+      "w": 390,
+      "h": 833,
+      "route": "pages/login/index",
+      "nodes": 34,
+      "texts": 8,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "微信登录",
+       "下一程，\n和同频的人一起出发。",
+       "登录后可报名活动、管理订单和查看活动消息。公",
+       "由你阅读，由你选择",
+       "请先打开两份当前版本文件。阅读完成后，再勾选"
+      ]
+     },
+     {
+      "id": "KGIQF",
+      "name": "状态稿 / 登录与协议 · 恢复",
+      "w": 390,
+      "h": 1033,
+      "route": "pages/login/index",
+      "nodes": 34,
+      "texts": 12,
+      "icons": 3,
+      "vars": [
+       "$wb-bg",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "登录与协议 · 恢复",
+       "以下为独立状态示例，不同时显示。",
+       "暂时无法登录",
+       "当前协议尚未就绪，请稍后重试。你仍可先浏览公",
+       "登录暂未完成",
+       "请检查网络后重试，只有服务确认身份后才会进入"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "文章",
+    "路由": "pages/article/index",
+    "实现文件": "miniprogram/src/pages/article/*",
+    "画板": [
+     {
+      "id": "jy5Vc",
+      "name": "小程序 / 文章",
+      "w": 390,
+      "h": 816,
+      "route": "pages/privacy/index",
+      "nodes": 36,
+      "texts": 10,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-primary"
+      ],
+      "hexTop": [
+       "#193E33",
+       "#203E34",
+       "#68776C",
+       "#7A8476",
+       "#D7DED5",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "野小子 · 文章",
+       "开发演示 · 已发布文章",
+       "初冬徒步装备清单",
+       "从保暖分层到头灯，出发前逐项检查，再确认集合",
+       "出发前的装备原则"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "隐私政策",
+    "路由": "pages/privacy/index",
+    "实现文件": "miniprogram/src/pages/privacy/*",
+    "画板": [
+     {
+      "id": "r5wRDb",
+      "name": "小程序 / 隐私政策",
+      "w": 390,
+      "h": 816,
+      "route": "pages/privacy/index",
+      "nodes": 29,
+      "texts": 8,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "隐私政策",
+       "开发演示 · 当前版本",
+       "【开发演示】隐私政策",
+       "版本 1 · 以服务端发布版本为准",
+       "仅供开发环境流程演示，非正式法律条款。请勿作"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "管理员验证",
+    "路由": "pages/admin-login/index",
+    "实现文件": "miniprogram/src/pages/admin-login/*",
+    "画板": [
+     {
+      "id": "Jt0Pi",
+      "name": "小程序管理 / 身份验证",
+      "w": 390,
+      "h": 553,
+      "route": "pages/admin-login/index",
+      "nodes": 26,
+      "texts": 7,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "管理员身份验证",
+       "进入运营工作区",
+       "使用已在网页后台配置的管理员账号。登录不会改",
+       "管理员账号",
+       "密码"
+      ]
+     },
+     {
+      "id": "r2Js0",
+      "name": "小程序管理 / 入口状态查询失败",
+      "w": 390,
+      "h": 488,
+      "route": "pages/admin-login/index",
+      "nodes": 22,
+      "texts": 5,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "管理员身份验证",
+       "暂时无法核对入口状态",
+       "请检查网络后重试。核对完成前，账号和密码输入",
+       "网络恢复后可重新核对，无需修改后台账号。"
+      ]
+     },
+     {
+      "id": "ouWUv",
+      "name": "小程序管理 / 尚未配置账号",
+      "w": 390,
+      "h": 506,
+      "route": "pages/admin-login/index",
+      "nodes": 21,
+      "texts": 5,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "管理员身份验证",
+       "管理员登录尚未启用",
+       "请先在网页后台配置管理员账号。配置完成后，小",
+       "已在网页后台完成设置？返回后重新打开此页即可"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动目录",
+    "路由": "pages/admin-activities/index",
+    "实现文件": "miniprogram/src/pages/admin-activities/*",
+    "画板": [
+     {
+      "id": "hRh1p",
+      "name": "小程序管理 / 活动目录",
+      "w": 390,
+      "h": 698,
+      "route": "pages/admin-activities/index",
+      "nodes": 52,
+      "texts": 15,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#F7E8E2",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "活动管理",
+       "全部",
+       "已发布",
+       "草稿",
+       "已取消"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动编辑",
+    "路由": "pages/admin-editor/index",
+    "实现文件": "miniprogram/src/pages/admin-editor/*",
+    "画板": [
+     {
+      "id": "yNHlA",
+      "name": "小程序管理 / 活动编辑 · 基本",
+      "w": 390,
+      "h": 911,
+      "route": "pages/admin-editor/index",
+      "nodes": 47,
+      "texts": 13,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "编辑活动",
+       "基本信息",
+       "报名设置",
+       "详情内容",
+       "活动名称"
+      ]
+     },
+     {
+      "id": "h50occ",
+      "name": "小程序管理 / 活动编辑 · 报名",
+      "w": 390,
+      "h": 770,
+      "route": "pages/admin-editor/index",
+      "nodes": 48,
+      "texts": 14,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "报名设置",
+       "基本信息",
+       "报名设置",
+       "详情内容",
+       "活动名额"
+      ]
+     },
+     {
+      "id": "wfShm",
+      "name": "小程序管理 / 活动编辑 · 详情",
+      "w": 390,
+      "h": 721,
+      "route": "pages/admin-editor/index",
+      "nodes": 34,
+      "texts": 9,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "详情内容",
+       "基本信息",
+       "报名设置",
+       "详情内容",
+       "活动简介"
+      ]
+     },
+     {
+      "id": "NFbtm",
+      "name": "小程序管理 / 取消活动确认",
+      "w": 390,
+      "h": 500,
+      "route": "pages/admin-activities/index",
+      "nodes": 28,
+      "texts": 8,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-danger",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "取消活动",
+       "确认取消这个活动？",
+       "【演示】周末山野徒步",
+       "11月6日 09:00—15:00\n演示目的",
+       "已发布"
+      ]
+     },
+     {
+      "id": "YIDDP",
+      "name": "小程序管理 / 取消活动结果",
+      "w": 390,
+      "h": 499,
+      "route": "pages/admin-activities/index",
+      "nodes": 28,
+      "texts": 7,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "活动已取消",
+       "活动已取消",
+       "【演示】周末山野徒步",
+       "11月6日 09:00—15:00\n此处为成",
+       "已取消"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "报名名单",
+    "路由": "pages/admin-roster/index",
+    "实现文件": "miniprogram/src/pages/admin-roster/*",
+    "画板": [
+     {
+      "id": "X6euG",
+      "name": "小程序管理 / 报名名单",
+      "w": 390,
+      "h": 675,
+      "route": "pages/admin-roster/index",
+      "nodes": 34,
+      "texts": 12,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "报名名单",
+       "【演示】周末山野徒步",
+       "11月6日 09:00 · 按报名组查看",
+       "有效报名",
+       "取消历史"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "协议管理",
+    "路由": "pages/admin-legal/index",
+    "实现文件": "miniprogram/src/pages/admin-legal/*",
+    "画板": [
+     {
+      "id": "E7GexY",
+      "name": "小程序管理 / 协议草稿",
+      "w": 390,
+      "h": 751,
+      "route": "pages/admin-legal/index",
+      "nodes": 34,
+      "texts": 9,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "协议管理",
+       "隐私政策",
+       "用户协议",
+       "已发布 v2 · 草稿修订 4",
+       "标题"
+      ]
+     },
+     {
+      "id": "oXo8G",
+      "name": "小程序管理 / 协议历史",
+      "w": 390,
+      "h": 617,
+      "route": "pages/admin-legal/index",
+      "nodes": 36,
+      "texts": 10,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "已发布历史",
+       "已发布版本保持只读",
+       "演示隐私政策",
+       "版本 v2 · 历史记录",
+       "当前版本"
+      ]
+     },
+     {
+      "id": "vm86H",
+      "name": "小程序管理 / 发布确认",
+      "w": 390,
+      "h": 478,
+      "route": "pages/admin-activities/index",
+      "nodes": 30,
+      "texts": 9,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "确认发布活动",
+       "向用户发布这个活动？",
+       "【演示】周末山野徒步",
+       "11月6日 09:00—15:00\n示例目的",
+       "草稿"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "商品库存",
+    "路由": "pages/admin-shop/index",
+    "实现文件": "miniprogram/src/pages/admin-shop/*",
+    "画板": [
+     {
+      "id": "W9vBy",
+      "name": "小程序管理 / 商品库存",
+      "w": 390,
+      "h": 659,
+      "route": "pages/admin-shop/index",
+      "nodes": 40,
+      "texts": 10,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "商品管理",
+       "商品与库存",
+       "【演示】轻量徒步背包",
+       "¥199.00 · 可售12件",
+       "上架中"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "商品编辑",
+    "路由": "pages/admin-product/index",
+    "实现文件": "miniprogram/src/pages/admin-product/*",
+    "画板": [
+     {
+      "id": "IWwi8",
+      "name": "小程序管理 / 商品编辑 / 双价与分类",
+      "w": 390,
+      "h": 1009,
+      "route": "pages/admin-product/index",
+      "nodes": 53,
+      "texts": 13,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "编辑商品",
+       "商品名称",
+       "商品分类",
+       "徒步装备",
+       "原价（元）"
+      ]
+     },
+     {
+      "id": "L50wpo",
+      "name": "小程序管理 / 商品编辑 / 同页分类管理",
+      "w": 390,
+      "h": 1551,
+      "route": "pages/admin-product/index",
+      "nodes": 75,
+      "texts": 20,
+      "icons": 8,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "编辑商品",
+       "商品名称",
+       "商品分类",
+       "徒步装备",
+       "原价（元）"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "订单发货",
+    "路由": "pages/admin-orders/index",
+    "实现文件": "miniprogram/src/pages/admin-orders/*",
+    "画板": [
+     {
+      "id": "R9RNM",
+      "name": "小程序管理 / 订单发货",
+      "w": 390,
+      "h": 706,
+      "route": "pages/admin-orders/index",
+      "nodes": 36,
+      "texts": 13,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#596A60",
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "订单管理",
+       "待发货",
+       "已发货",
+       "全部",
+       "演示装备订单"
+      ]
+     },
+     {
+      "id": "p6tHR",
+      "name": "小程序管理 / 发货前核对",
+      "w": 390,
+      "h": 528,
+      "route": "pages/admin-orders/index",
+      "nodes": 29,
+      "texts": 9,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "确认发货",
+       "商品已实际交付发出？",
+       "演示订单号 WB202611060001",
+       "【演示】轻量徒步背包",
+       "数量 1 · 合计 ¥199.00"
+      ]
+     },
+     {
+      "id": "q9SqVI",
+      "name": "小程序管理 / 发货完成结果",
+      "w": 390,
+      "h": 527,
+      "route": "pages/admin-orders/index",
+      "nodes": 28,
+      "texts": 8,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "发货完成",
+       "订单已标记为发货",
+       "演示订单号 WB202611060001",
+       "【演示】轻量徒步背包",
+       "数量 1 · 此处为成功结果设计示例"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "图文编辑",
+    "路由": "pages/admin-content/index",
+    "实现文件": "miniprogram/src/pages/admin-content/*",
+    "画板": [
+     {
+      "id": "qF4od",
+      "name": "小程序管理 / 图文编辑",
+      "w": 390,
+      "h": 757,
+      "route": "pages/admin-content/index",
+      "nodes": 37,
+      "texts": 6,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#E2E7DD",
+       "#F7E8E2"
+      ],
+      "textSamples": [
+       "9:41",
+       "图文详情",
+       "修改尚未保存。确认当前内容块后，再保存整篇图",
+       "文字 · 活动介绍",
+       "此处为演示说明，实际路线与装备要求由组织者填",
+       "图片 · 场景示例"
+      ]
+     },
+     {
+      "id": "yxY9p",
+      "name": "小程序管理 / 图文版本冲突",
+      "w": 390,
+      "h": 839,
+      "route": "pages/admin-content/index",
+      "nodes": 38,
+      "texts": 6,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-danger",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [
+       "#E2E7DD",
+       "#F7E8E2"
+      ],
+      "textSamples": [
+       "9:41",
+       "图文详情",
+       "图文已被其他管理员更新。本地修改已保留，请先",
+       "文字 · 活动介绍",
+       "此处为演示说明，实际路线与装备要求由组织者填",
+       "图片 · 场景示例"
+      ]
+     },
+     {
+      "id": "FGTf9",
+      "name": "小程序管理 / 确认重载图文",
+      "w": 390,
+      "h": 386,
+      "route": "pages/admin-content/index",
+      "nodes": 20,
+      "texts": 5,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "重新加载图文",
+       "放弃本地修改并重新加载？",
+       "重新加载会替换本地内容块与尚未确认的输入，请",
+       "返回检查会保留当前输入和内容块，不发送重新加"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "用户管理",
+    "路由": "pages/admin-users/index",
+    "实现文件": "miniprogram/src/pages/admin-users/*",
+    "画板": [
+     {
+      "id": "gbfMY",
+      "name": "小程序管理 / 用户管理",
+      "w": 390,
+      "h": 845,
+      "route": "pages/admin-users/index",
+      "nodes": 33,
+      "texts": 13,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "用户管理",
+       "用户资料与权限",
+       "姓名、手机号与证件默认脱敏。正式管理员可为已",
+       "林小野 · 示例",
+       "微信账号 · 普通用户"
+      ]
+     },
+     {
+      "id": "n2142A",
+      "name": "小程序管理 / 用户资料与权限",
+      "w": 390,
+      "h": 617,
+      "route": "pages/admin-users/index",
+      "nodes": 28,
+      "texts": 9,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft"
+      ],
+      "hexTop": [],
+      "textSamples": [
+       "9:41",
+       "用户详情",
+       "林小野 · 示例",
+       "账号来源",
+       "已验证微信账号",
+       "当前角色：普通用户"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "活动订单与退款",
+    "路由": "pages/admin-activity-orders/index",
+    "实现文件": "miniprogram/src/pages/admin-activity-orders/*",
+    "画板": [
+     {
+      "id": "sreFA",
+      "name": "小程序管理 / 活动订单与退款",
+      "w": 390,
+      "h": 1210,
+      "route": "pages/admin-activity-orders/index",
+      "nodes": 73,
+      "texts": 32,
+      "icons": 7,
+      "vars": [
+       "$wb-bg",
+       "$wb-danger",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface",
+       "$wb-tone-danger-bg",
+       "$wb-tone-success-bg",
+       "$wb-tone-success-text",
+       "$wb-tone-warning-bg",
+       "$wb-tone-warning-text"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "活动订单与退款管理",
+       "已验证管理员 · 仅显示当前收费活动的订单",
+       "龙门山周末徒步",
+       "待支付",
+       "订单号 A404a66a09a7a4447"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   },
+   {
+    "端": "mini",
+    "模块": "会员管理",
+    "路由": "pages/admin-memberships/index",
+    "实现文件": "miniprogram/src/pages/admin-memberships/*",
+    "画板": [
+     {
+      "id": "aoeMz",
+      "name": "小程序管理 / 会员管理",
+      "w": 390,
+      "h": 1330,
+      "route": "pages/admin-memberships/index",
+      "nodes": 96,
+      "texts": 36,
+      "icons": 6,
+      "vars": [
+       "$wb-bg",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface",
+       "$wb-tone-user-bg",
+       "$wb-tone-user-text"
+      ],
+      "hexTop": [
+       "#FFFFFF"
+      ],
+      "textSamples": [
+       "9:41",
+       "会员管理",
+       "会员等级",
+       "用户身份",
+       "活动、商品优惠分别设置，未开启优惠按原价。",
+       "＋新等级"
+      ]
+     }
+    ],
+    "数据来源": "/api/v1/**（用户态）或 /admin/**（管理页）",
+    "验证方式": "node --test 源码断言 + 构建"
+   }
+  ]
+ }
+}
