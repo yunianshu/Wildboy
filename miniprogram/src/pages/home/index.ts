@@ -15,6 +15,7 @@ import {
   defaultShortcutViews,
 } from "../../utils/home-shortcuts";
 import { syncTabBar } from "../../utils/tab-bar";
+import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 import { enterPage } from "../../utils/page-motion";
 
 const shortcutEpoch = new RequestEpoch();
@@ -24,6 +25,7 @@ const bannerEpoch = new RequestEpoch();
 const articleEpoch = new RequestEpoch();
 
 Page({
+  ...tabSwipeHandlers,
   data: {
     pageMotionClass: "",
     devMode: false,
@@ -62,11 +64,13 @@ Page({
   },
   _shown: false,
   onHide() {
+    resetTabSwipe(this);
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
     this.setData({ popup: null, shortcutBusy: false });
   },
   onUnload() {
+    resetTabSwipe(this);
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
     articleEpoch.invalidate();

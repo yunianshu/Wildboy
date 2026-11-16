@@ -58,6 +58,8 @@
 }
 .activities-content {
   padding-top: 0;
+  padding-bottom: 70px;
+  padding-bottom: calc(70px + env(safe-area-inset-bottom));
 }
 .filters {
   width: 100%;

@@ -17,10 +17,11 @@ function source(relative) {
   }).outputText;
   const requireSource = request => {
     if (request.endsWith('/tab-bar')) return source('utils/tab-bar.ts');
+    if (request.endsWith('/tab-swipe')) return source('utils/tab-swipe.ts');
     if (request.endsWith('/capsule-header')) return source('utils/capsule-header.ts');
     // Only onShow is exercised on real page definitions; business effects are replaced below.
     if (request.endsWith('/domain')) return { categories: [], RequestEpoch: class {} };
-    if (request.endsWith('/page-motion')) return { enterPage() {} };
+    if (request.endsWith('/page-motion')) return source('utils/page-motion.ts');
     if (request.endsWith('/home')) return { fallbackBanners: [] };
     if (request.endsWith('/config')) return { config: {} };
     return {};
@@ -40,7 +41,10 @@ function bar() {
   return component;
 }
 function page(route, component = bar()) {
-  return { route, getTabBar: () => component, component };
+  return {
+    route, getTabBar: () => component, component, data: {},
+    setData(update) { Object.assign(this.data, update); },
+  };
 }
 function activate(p) { pages = [p]; }
 const event = path => ({ currentTarget: { dataset: { path } } });
@@ -178,5 +182,98 @@ test('component attachment recovers selection before getTabBar is available; non
   activate({ route: 'pages/detail/index' });
   assert.equal(nav.syncTabBar(), '');
   component.selectTab(event('pages/mine/index'));
+  assert.equal(calls.length, 0);
+});
+
+test('tap arrivals animate from the correct side, independently of the native callback order', () => {
+  const { enterPage } = source('utils/page-motion.ts');
+  const home = page('pages/home/index'), activities = page('pages/activities/index');
+  activate(home);
+  enterPage(home);
+  assert.equal(home.data.pageMotionClass, 'motion-enter-a');
+
+  home.component.selectTab(event(activities.route));
+  calls[0].success();
+  activate(activities);
+  activities.component.show();
+  enterPage(activities);
+  const firstArrival = activities.data.pageMotionClass;
+  assert.match(firstArrival, /motion-tab-from-right/);
+
+  activities.component.selectTab(event(home.route));
+  activate(home);
+  home.component.show();
+  enterPage(home);
+  calls[1].success();
+  assert.match(home.data.pageMotionClass, /motion-tab-from-left/);
+
+  home.component.selectTab(event(activities.route));
+  activate(activities);
+  enterPage(activities);
+  assert.match(activities.data.pageMotionClass, /motion-tab-from-right/);
+  assert.notEqual(activities.data.pageMotionClass, firstArrival);
+  enterPage(activities);
+  assert.match(activities.data.pageMotionClass, /^motion-enter-/);
+});
+
+test('a failed or interrupted native switch cannot animate a later unrelated arrival', () => {
+  const { enterPage } = source('utils/page-motion.ts');
+  const home = page('pages/home/index'), activities = page('pages/activities/index');
+  activate(home); home.component.selectTab(event(activities.route)); calls[0].fail();
+  activate(activities); enterPage(activities);
+  assert.match(activities.data.pageMotionClass, /^motion-enter-/);
+  activate(home); home.component.selectTab(event(activities.route));
+  enterPage(page('pages/detail/index'));
+  activate(activities); enterPage(activities);
+  assert.match(activities.data.pageMotionClass, /^motion-enter-/);
+});
+
+const point = (clientX, clientY, identifier = 1) => ({ identifier, clientX, clientY });
+const touch = (p, type, touches, changedTouches = touches) =>
+  p[type]({ touches, changedTouches });
+
+test('page swipes enter the adjacent Tab in either direction and stop at the ends', () => {
+  const { enterPage } = source('utils/page-motion.ts');
+  const { tabSwipeHandlers } = source('utils/tab-swipe.ts');
+  const home = Object.assign(page('pages/home/index'), tabSwipeHandlers);
+  const activities = Object.assign(page('pages/activities/index'), tabSwipeHandlers);
+  const mine = Object.assign(page('pages/mine/index'), tabSwipeHandlers);
+  const swipe = (p, from, to) => {
+    touch(p, 'startTabSwipe', [point(from, 100)]);
+    touch(p, 'moveTabSwipe', [point((from + to) / 2, 104)]);
+    touch(p, 'endTabSwipe', [], [point(to, 108)]);
+  };
+  activate(home); swipe(home, 40, 150);
+  assert.equal(calls.length, 0);
+  swipe(home, 250, 100);
+  assert.equal(calls[0].url, '/pages/activities/index');
+  activate(activities); enterPage(activities); activities.component.show();
+  assert.match(activities.data.pageMotionClass, /motion-tab-from-right/);
+  swipe(activities, 245, 110);
+  assert.equal(calls[1].url, '/pages/mine/index');
+  activate(mine); enterPage(mine); mine.component.show();
+  swipe(mine, 240, 80);
+  assert.equal(calls.length, 2);
+  swipe(mine, 80, 240);
+  assert.equal(calls[2].url, '/pages/activities/index');
+  activate(activities); enterPage(activities);
+  assert.match(activities.data.pageMotionClass, /motion-tab-from-left/);
+});
+
+test('vertical, diagonal, short, interrupted and control gestures leave the active page in place', () => {
+  const { tabSwipeHandlers } = source('utils/tab-swipe.ts');
+  const p = Object.assign(page('pages/activities/index'), tabSwipeHandlers);
+  activate(p);
+  const start = () => touch(p, 'startTabSwipe', [point(210, 150)]);
+  const end = (x, y, id) => touch(p, 'endTabSwipe', [], [point(x, y, id)]);
+  start(); end(195, 151);
+  start(); end(90, 263);
+  start(); touch(p, 'moveTabSwipe', [point(207, 176)]); end(80, 182);
+  start(); p.cancelTabSwipe(); end(80, 160);
+  start(); touch(p, 'moveTabSwipe', [point(185, 151), point(55, 151, 2)]); end(80, 160);
+  start(); end(80, 160, 2);
+  p.startTabSwipe({touches:[point(210, 150)], mark:{tabSwipeIgnore:true}});
+  end(80, 160);
+  start(); activate(page('pages/mine/index')); end(80, 160);
   assert.equal(calls.length, 0);
 });

@@ -10,12 +10,14 @@ import { User } from "../../utils/models";
 import { isActivityUser } from "../../utils/user-profile";
 import { message, RequestEpoch } from "../../utils/domain";
 import { syncTabBar } from "../../utils/tab-bar";
+import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 import { measureCapsuleHeader } from "../../utils/capsule-header";
 import { buildVersion } from "../../build-version";
 const epoch = new RequestEpoch();
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  ...tabSwipeHandlers,
   data: {
     pageMotionClass: "",
     topInset: 48,
@@ -56,6 +58,7 @@ Page({
     void this.loadAdminCapability();
   },
   onHide() {
+    resetTabSwipe(this);
     epoch.invalidate();
     this.capabilityEpoch++;
     this.capabilityFlight = undefined;
@@ -73,6 +76,7 @@ Page({
     });
   },
   onUnload() {
+    resetTabSwipe(this);
     epoch.invalidate();
     this.capabilityEpoch++;
     this.capabilityFlight = undefined;

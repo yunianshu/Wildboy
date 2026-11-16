@@ -29,7 +29,25 @@ export async function payActivityOrder(order:ActivityOrder,current:()=>boolean=(
   const p=await request<PaymentRequest>(`/activity-orders/${encodeURIComponent(order.id)}/pay`,'POST');
   if(!current()||!isSessionCurrent(s)) throw new Error('页面或账号已改变，请重新确认');
   if(!p||!/^\d+$/.test(p.timeStamp)||!p.nonceStr||!/^prepay_id=\S+$/.test(p.package)||p.signType!=='RSA'||!p.paySign) throw new Error('支付参数异常，订单已保留');
-  await new Promise<void>((resolve,reject)=>wx.requestPayment({...p,signType:'RSA',success:()=>resolve(),fail:e=>reject(new Error(/cancel/i.test(e.errMsg||'')?'支付已取消，订单和名额暂保留，可继续付款或取消订单':'付款结果未知，请刷新订单核对，不要重复报名'))}));
+  await new Promise<void>((resolve, reject) => {
+    wx.requestPayment({
+      ...p,
+      signType: 'RSA',
+      success: () => resolve(),
+      fail: (error) => {
+        const reason = error.errMsg || '';
+        const code = 'errno' in error ? error.errno : undefined;
+        if (/cancel/i.test(reason)) {
+          reject(new Error('支付已取消，订单和名额暂保留，可继续付款或取消订单'));
+        } else if (code === 102 && /jsapi has no permission/i.test(reason)) {
+          reject(new Error('微信限制了该小程序的支付权限（102），请联系活动主办方。'));
+        } else {
+          const detail = typeof code === 'number' && Number.isSafeInteger(code) ? `（微信错误码 ${code}）` : '';
+          reject(new Error(`付款结果未知${detail}，请刷新订单核对，不要重复报名`));
+        }
+      },
+    });
+  });
   if(!current()||!isSessionCurrent(s)) throw new Error('请在活动订单核对付款结果');
   return verifyActivityPayment(order.id,current);
 }

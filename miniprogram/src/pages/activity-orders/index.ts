@@ -5,12 +5,12 @@ import { money } from '../../utils/money';
 import { ActivityOrder, ActivityRefund, activityOrderStatus, activityRefundStatus, payActivityOrder, verifyActivityPayment, priceLines } from '../../utils/activity-orders';
 type Row=ActivityOrder & {statusText:string;totalText:string;originalText:string;expiresText:string;lines:ReturnType<typeof priceLines>};
 Page({
-  data: { pageMotionClass: "",items:[] as Row[],loggedIn:false,loading:false,loadingMore:false,error:'',page:0,hasMore:false,selectedId:'',activityId:'',busyId:'',confirmId:'',confirmAction:'',refundId:'',refund:null as ActivityRefund|null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[] as {id:string;participantName:string;idNumber:string;phone:string}[]},
+  data: { pageMotionClass: "",items:[] as Row[],loggedIn:false,loading:false,loadingMore:false,error:'',paymentNotice:null as {orderId:string;text:string}|null,page:0,hasMore:false,selectedId:'',activityId:'',busyId:'',confirmId:'',confirmAction:'',refundId:'',refund:null as ActivityRefund|null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[] as {id:string;participantName:string;idNumber:string;phone:string}[]},
   _epoch:0,_session:-1,
   onLoad(o:Record<string,string>){this.setData({selectedId:safeId(o.id),activityId:safeId(o.activityId)});},
   onShow() { enterPage(this); void this.load();},
   onHide(){this.clear();},onUnload(){this.clear();},
-  clear(){this._epoch++;this.setData({items:[],loggedIn:false,loading:false,loadingMore:false,busyId:'',page:0,hasMore:false,confirmId:'',confirmAction:'',refundId:'',refund:null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[]});},
+  clear(){this._epoch++;this.setData({items:[],loggedIn:false,loading:false,loadingMore:false,busyId:'',paymentNotice:null,page:0,hasMore:false,confirmId:'',confirmAction:'',refundId:'',refund:null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[]});},
   current(n:number,s:number){return n===this._epoch&&isSessionCurrent(s);},
   checkAccess(n: number, session: number, error?: unknown): boolean {
     if (n !== this._epoch) return false;
@@ -55,14 +55,22 @@ Page({
   update(o:ActivityOrder){this.setData({items:this.data.items.map(x=>x.id===o.id?this.row(o):x)});},
   async pay(e:WechatMiniprogram.TouchEvent){
     const row=this.data.items.find(o=>o.id===e.currentTarget.dataset.id);if(!this.canAct()||!row||row.status!=='PENDING_PAYMENT'||row.totalCents<=0)return;
-    const n=this._epoch,s=this._session;this.setData({busyId:row.id,error:''});
-    try{const result=await payActivityOrder(row,()=>this.current(n,s));if(this.current(n,s)){this.update(result);if(result.status==='PENDING_PAYMENT')this.setData({error:'付款尚未确认，请刷新订单核对，不要重复报名。'});}}
-    catch(e){if(this.checkAccess(n,s,e))this.setData({error:message(e)});}
+    const n=this._epoch,s=this._session;this.setData({busyId:row.id,error:'',paymentNotice:null});
+    try {
+      const result = await payActivityOrder(row, () => this.current(n,s));
+      if (!this.current(n,s)) return;
+      this.update(result);
+      if (result.status === 'PENDING_PAYMENT') {
+        this.setData({paymentNotice:{orderId:row.id,text:'付款尚未确认，请刷新订单核对，不要重复报名。'}});
+      }
+    } catch (e) {
+      if (this.checkAccess(n,s,e)) this.setData({paymentNotice:{orderId:row.id,text:message(e)}});
+    }
     finally{if(this.checkAccess(n,s))this.setData({busyId:''});}
   },
   async verify(e:WechatMiniprogram.TouchEvent){
     const id=safeId(e.currentTarget.dataset.id);if(!this.canAct()||!this.data.items.some(row=>row.id===id&&row.status==='PENDING_PAYMENT'))return;
-    const n=this._epoch,s=this._session;this.setData({busyId:id,error:''});
+    const n=this._epoch,s=this._session;this.setData({busyId:id,error:'',paymentNotice:null});
     try{const result=await verifyActivityPayment(id,()=>this.current(n,s));if(this.current(n,s)){this.update(result);if(result.status==='PENDING_PAYMENT')this.setData({error:'暂未确认付款，名额仍按服务端状态保留，请稍后刷新。'});}}
     catch(e){if(this.checkAccess(n,s,e))this.setData({error:message(e)});}
     finally{if(this.checkAccess(n,s))this.setData({busyId:''});}

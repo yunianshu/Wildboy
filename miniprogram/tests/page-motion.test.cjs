@@ -14,15 +14,19 @@ function page() {
 
 test("every native page shares the arrival helper without replacing navigation semantics", () => {
   const root = path.resolve(__dirname, "../src");
-  const routes = JSON.parse(fs.readFileSync(path.join(root, "app.json"))).pages;
-  for (const route of routes) {
+  const config = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
+  const tabs = new Set(config.tabBar.list.map(item => item.pagePath));
+  for (const route of config.pages) {
     const source = fs.readFileSync(path.join(root, route + ".ts"), "utf8");
     const markup = fs.readFileSync(path.join(root, route + ".wxml"), "utf8");
     assert.match(source, /import\s*{\s*enterPage\s*}\s*from\s*["']\.\.\/\.\.\/utils\/page-motion["']/);
     assert.match(source, /pageMotionClass:\s*["']["']/);
     assert.match(source, /onShow\(\)\s*{\s*enterPage\(this\);/);
     assert.equal((source.match(/enterPage\(this\)/g) || []).length, 1, route);
-    assert.match(markup.match(/^\s*<view\b[^>]*>/)?.[0] || "",
+    const motionRoot = tabs.has(route)
+      ? markup.match(/^\s*<view\b[^>]*\btab-page-viewport\b[^>]*>\s*(<view\b[^>]*>)/)?.[1]
+      : markup.match(/^\s*<view\b[^>]*>/)?.[0];
+    assert.match(motionRoot || "",
       /class="[^"]*\bpage-motion\b[^\"]*{{pageMotionClass}}/);
   }
 });

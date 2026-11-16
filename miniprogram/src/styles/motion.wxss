@@ -29,6 +29,35 @@
   to { opacity: 1; }
 }
 
+/* Clip the moving content while the native bottom bar stays in place. */
+.tab-page-viewport {
+  min-height: 100vh;
+  overflow-x: hidden;
+  overflow-x: clip;
+}
+
+.motion-tab-from-left { --tab-enter-offset: -24vw; }
+.motion-tab-from-right { --tab-enter-offset: 24vw; }
+
+.page-motion.motion-tab-a,
+.page-motion.motion-tab-b {
+  animation-duration: 240ms;
+  animation-timing-function: var(--motion-ease, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.page-motion.motion-tab-a { animation-name: wildboy-tab-enter-a; }
+.page-motion.motion-tab-b { animation-name: wildboy-tab-enter-b; }
+
+@keyframes wildboy-tab-enter-a {
+  from { transform: translateX(var(--tab-enter-offset)); }
+  to { transform: none; }
+}
+
+@keyframes wildboy-tab-enter-b {
+  from { transform: translateX(var(--tab-enter-offset)); }
+  to { transform: none; }
+}
+
 /* Dialog panels get a bounded arrival; the page root never scales. */
 .motion-dialog-enter {
   opacity: 1;
@@ -45,6 +74,8 @@
 @media (prefers-reduced-motion: reduce) {
   .page-motion.motion-enter-a,
   .page-motion.motion-enter-b,
+  .page-motion.motion-tab-a,
+  .page-motion.motion-tab-b,
   .motion-dialog-enter {
     animation: none !important;
   }

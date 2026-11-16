@@ -1,33 +1,37 @@
-<view class="activities-page page-motion {{pageMotionClass}}">
-  <view class="activities-hero">
-    <view class="brand" style="top:{{topInset}}px">
-      <text class="brand-name">wildboy.</text>
-      <text class="brand-caption">OUTDOOR CLUB</text>
-    </view>
-    <view class="activities-heading">
-      <view class="hero-title">活动</view>
-    </view>
-  </view>
-  <view class="page activities-content">
-    <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" bindtouchstart="onFilterTouchStart">
-      <view class="filter-track" id="activity-filters-track">
-        <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" id="activity-category-all" bindtap="select">全部活动</text>
-        <text wx:for="{{categories}}" wx:key="code" class="filter {{selected === item.code ? 'active' : ''}}" data-code="{{item.code}}" id="activity-category-{{item.code}}" bindtap="select">{{item.name}}</text>
+<view class="tab-page-viewport"
+  bindtouchstart="startTabSwipe" bindtouchmove="moveTabSwipe"
+  bindtouchend="endTabSwipe" bindtouchcancel="cancelTabSwipe">
+  <view class="activities-page page-motion {{pageMotionClass}}">
+    <view class="activities-hero">
+      <view class="brand" style="top:{{topInset}}px">
+        <text class="brand-name">wildboy.</text>
+        <text class="brand-caption">OUTDOOR CLUB</text>
       </view>
-    </scroll-view>
-    <ui-state wx:if="{{loading}}" kind="loading">正在加载活动…</ui-state>
-    <ui-state wx:elif="{{!items.length && !error}}" kind="empty">该分类暂无活动</ui-state>
-    <view class="grid">
-      <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
-        <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
-        <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
-        <view class="card-title">{{item.title}}</view>
-        <view class="card-detail">{{item.location}}</view>
-        <view class="card-footer"><text class="free">{{item.priceLabel}}</text><text class="muted">{{item.available}} 个余位</text></view>
+      <view class="activities-heading">
+        <view class="hero-title">活动</view>
       </view>
     </view>
-    <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
-    <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
-    <view wx:elif="{{items.length}}" class="loading-line">{{hasMore ? '上拉加载更多' : '已显示全部活动'}}</view>
+    <view class="page activities-content">
+      <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
+        <view class="filter-track" id="activity-filters-track">
+          <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" id="activity-category-all" bindtap="select">全部活动</text>
+          <text wx:for="{{categories}}" wx:key="code" class="filter {{selected === item.code ? 'active' : ''}}" data-code="{{item.code}}" id="activity-category-{{item.code}}" bindtap="select">{{item.name}}</text>
+        </view>
+      </scroll-view>
+      <ui-state wx:if="{{loading}}" kind="loading">正在加载活动…</ui-state>
+      <ui-state wx:elif="{{!items.length && !error}}" kind="empty">该分类暂无活动</ui-state>
+      <view class="grid">
+        <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
+          <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
+          <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
+          <view class="card-title">{{item.title}}</view>
+          <view class="card-detail">{{item.location}}</view>
+          <view class="card-footer"><text class="free">{{item.priceLabel}}</text><text class="muted">{{item.available}} 个余位</text></view>
+        </view>
+      </view>
+      <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
+      <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
+      <view wx:elif="{{items.length}}" class="loading-line">{{hasMore ? '上拉加载更多' : '已显示全部活动'}}</view>
+    </view>
   </view>
 </view>

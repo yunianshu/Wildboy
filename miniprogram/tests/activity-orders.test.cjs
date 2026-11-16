@@ -32,6 +32,15 @@ test('activity payment cannot launch when order verification fails or returns an
   assert.equal(payments, 0);
 });
 test('invalid payment and cancelled payment leave order unchanged',async()=>{respond=async(path)=>path.endsWith('/verify')?order:{};await assert.rejects(activityOrders.payActivityOrder(order),/支付参数异常/);assert.equal(payments,0);respond=async(path)=>path.endsWith('/verify')?order:{timeStamp:'1',nonceStr:'n',package:'prepay_id=p',signType:'RSA',paySign:'sign'};wx.requestPayment=o=>o.fail({errMsg:'cancel'});await assert.rejects(activityOrders.payActivityOrder(order),/名额暂保留/);});
+test('a native payment permission failure is shown on the affected pending order', async () => {
+  const p = page('activity-orders');
+  await p.load();
+  wx.requestPayment = (options) => options.fail({errno:102, errMsg:'requestPayment:fail jsapi has no permission'});
+  await p.pay(event(order.id));
+  assert.equal(p.data.items[0].status, 'PENDING_PAYMENT');
+  assert.equal(p.data.paymentNotice.orderId, order.id);
+  assert.match(p.data.paymentNotice.text, /支付权限.*102/);
+});
 test('activity order page cancellation and refund need separate inline confirmation',async()=>{const p=page('activity-orders');await p.load();p.askCancel(event(order.id));assert.equal(calls.some(x=>x.p.endsWith('/cancel')),false);p.dismiss();await p.confirm();assert.equal(calls.some(x=>x.p.endsWith('/cancel')),false);p.askCancel(event(order.id));respond=async()=>({...order,status:'CLOSED'});await p.confirm();assert.equal(p.data.items[0].statusText,'已取消');assert.equal(calls.filter(x=>x.p.endsWith('/cancel')).length,1);p.data.items[0].status='PAID';respond=async()=>({});await p.openRefund(event(order.id));p.data.reason='行程变化';p.askRefund();assert.equal(calls.some(x=>x.p.endsWith('/refund')&&x.m==='POST'),false);respond=async(path,m)=>path.endsWith('/refund')?{status:'REQUESTED',amount_cents:800,version:0}:{...order,status:'REFUND_PENDING'};await p.confirm();assert.equal(p.data.refundStatus,'待审核');assert.equal(p.data.items[0].status,'REFUND_PENDING');});
 test('late private activity orders and participant details are discarded after hiding',async()=>{const p=page('activity-orders'),d=deferred();respond=()=>d.promise;const pending=p.load();p.onHide();d.resolve({items:[order],page:0,hasMore:false});await pending;assert.deepEqual(p.data.items,[]);});
 test('member activity policy has no default and must be explicit; shop scope remains null',()=>{const m=require('../dist/utils/membership.js'),f=m.emptyTier();f.name='银卡';f.rules[0].enabled=true;assert.equal(f.rules[0].participantPolicy,0);assert.throws(()=>m.tierInput(f,null),/多人优惠/);f.rules[0].participantPolicy=2;const body=m.tierInput(f,null);assert.equal(body.rules[0].participantPricing,'ONE_BENEFIT');assert.equal(body.rules[1].participantPricing,null);assert.deepEqual(body.rules.map(r=>r.scope),['ACTIVITY','SHOP']);});

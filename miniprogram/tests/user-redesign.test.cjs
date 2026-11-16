@@ -2,7 +2,6 @@ const { test, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const ts = require("typescript");
 const api = require("../dist/utils/api.js");
 const legal = require("../dist/utils/legal.js");
 const routes = ["activities", "detail", "register", "signup-success", "registrations", "mine", "profile", "admin-users", "notifications", "login", "privacy"];
@@ -109,31 +108,19 @@ test("redesigned native templates keep real event handlers and use supported cal
   for (const name of routes) {
     const base = path.join(source, "pages", name, "index");
     const markup = fs.readFileSync(base + ".wxml", "utf8");
-    const script = ts.createSourceFile(base + ".ts", fs.readFileSync(base + ".ts", "utf8"), ts.ScriptTarget.Latest, true);
-    const methods = new Set();
-    function visit(node) {
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "Page") {
-        for (const property of node.arguments[0].properties) if (ts.isMethodDeclaration(property)) methods.add(property.name.getText(script));
-      }
-      ts.forEachChild(node, visit);
-    }
-    visit(script);
-    for (const match of markup.matchAll(/\b(?:bind|catch):?[a-z-]+="([^"]+)"/g)) assert.ok(methods.has(match[1]), name + ": missing " + match[1]);
+    const instance = page(name);
+    for (const match of markup.matchAll(/\b(?:bind|catch):?[a-z-]+="([^"]+)"/g))
+      assert.equal(typeof instance[match[1]], "function", name + ": missing " + match[1]);
     for (const expression of markup.match(/{{[\s\S]*?}}/g) || []) assert.doesNotMatch(expression, /\.[a-z_$][\w$]*\s*\(/i, name + ": unsupported native expression");
     assert.doesNotMatch(markup, /=>/, name + ": generated code must not leak into markup");
     assert.doesNotMatch(markup, /\srole="/, name + ": use native aria-role");
     assert.match(fs.readFileSync(base + ".wxss", "utf8"), /@import "\.\.\/\.\.\/styles\/user-flow\.wxss"/, name);
-    // pages/mine/index.wxml still carries one stray </view> left over from the removed
-    // shop order menu entry (orphan order icon/title around the 我的报名 item); restore
-    // the balance check for mine as soon as src is repaired.
-    if (name !== "mine") {
-      const stack = [];
-      for (const match of markup.matchAll(/<\/?([a-z][\w-]*)\b(?:"[^"]*"|'[^']*'|[^'">])*>/g)) {
-        const tag = match[0];
-        if (tag.startsWith("</")) assert.equal(stack.pop(), match[1], name + ": mismatched " + tag);
-        else if (!tag.endsWith("/>")) stack.push(match[1]);
-      }
-      assert.deepEqual(stack, [], name + ": unclosed native nodes");
+    const stack = [];
+    for (const match of markup.matchAll(/<\/?([a-z][\w-]*)\b(?:"[^"]*"|'[^']*'|[^'">])*>/g)) {
+      const tag = match[0];
+      if (tag.startsWith("</")) assert.equal(stack.pop(), match[1], name + ": mismatched " + tag);
+      else if (!tag.endsWith("/>")) stack.push(match[1]);
     }
+    assert.deepEqual(stack, [], name + ": unclosed native nodes");
   }
 });

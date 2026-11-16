@@ -13,6 +13,7 @@
     <button data-id="{{item.id}}" bindtap="participants" disabled="{{!!busyId}}">{{participantsId === item.id ? '收起参与人' : '查看本单参与人'}}</button>
     <view wx:if="{{participantsId === item.id}}"><view wx:for="{{participants}}" wx:for-item="person" wx:key="id">{{person.participantName}} · {{person.phone}}<view wx:if="{{person.idNumber}}">证件 {{person.idNumber}}</view></view></view>
     <button wx:if="{{item.status === 'PENDING_PAYMENT' && item.totalCents > 0}}" data-id="{{item.id}}" bindtap="pay" disabled="{{!!busyId}}" loading="{{busyId === item.id}}">确认支付 {{item.totalText}}</button>
+    <view wx:if="{{item.status === 'PENDING_PAYMENT' && paymentNotice && paymentNotice.orderId === item.id}}" class="error">{{paymentNotice.text}}</view>
     <button wx:if="{{item.status === 'PENDING_PAYMENT'}}" data-id="{{item.id}}" bindtap="verify" disabled="{{!!busyId}}">刷新付款结果</button>
     <button wx:if="{{item.status === 'PENDING_PAYMENT' || item.status === 'CONFIRMED_FREE'}}" data-id="{{item.id}}" bindtap="askCancel" disabled="{{!!busyId}}">取消本单全部报名</button>
     <button wx:if="{{item.status === 'PAID' || item.status === 'REFUND_PENDING' || item.status === 'REFUNDED'}}" data-id="{{item.id}}" bindtap="openRefund" disabled="{{!!busyId}}">退款申请 / 查看进度</button>

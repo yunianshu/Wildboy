@@ -10,6 +10,7 @@ import {
   safeId,
 } from "../../utils/domain";
 import { syncTabBar } from "../../utils/tab-bar";
+import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 import { enterPage } from "../../utils/page-motion";
 import { measureCapsuleHeader } from "../../utils/capsule-header";
 import { centeredFilterScroll } from "../../utils/filter-scroll";
@@ -26,6 +27,7 @@ function withinTolerance(a: number, b: number): boolean {
 }
 
 Page({
+  ...tabSwipeHandlers,
   data: {
     pageMotionClass: "",
     topInset: 48,
@@ -65,10 +67,12 @@ Page({
     void this.load(true);
   },
   onHide() {
+    resetTabSwipe(this);
     this.filterActive = false;
     this.filterEpoch++;
   },
   onUnload() {
+    resetTabSwipe(this);
     this.filterActive = false;
     this.filterEpoch++;
     epoch.invalidate();
@@ -100,6 +104,7 @@ Page({
     void this.load(true);
   },
   onFilterTouchStart() {
+    resetTabSwipe(this);
     // A native drag takes over the strip: pending queries and staged
     // animation commits are void so the finger never fights a setData.
     this.filterEpoch++;

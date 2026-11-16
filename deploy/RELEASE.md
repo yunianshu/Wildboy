@@ -11,6 +11,12 @@ sh deploy/release.sh --dry-run            # 预演（只打印步骤，不执行
 
 前置条件：本机 `main` 分支且工作区干净；SSH 免密可达服务器（首次配置见 [README](README.md)）；服务器 `/root/Wildboy` 部署检出与 `/root/Wildboy/.env` 机密文件就位。
 
+## 发版前递增版本号
+
+后台和小程序各自维护版本号。发布新版后台前递增 `admin/package.json` 的版本；上传新版小程序前递增 `miniprogram/package.json` 的版本。普通更新默认升补丁号；如已约定其他版本号，使用约定值。可在对应目录运行 `npm version patch --no-git-tag-version`，并把 `package.json` 和 `package-lock.json` 一起纳入本次发布提交。
+
+后台构建会显示包版本和短提交号；短提交号用于定位代码。小程序用更新后的包版本重新构建并上传，常规发版直接使用构建版本，确保微信平台与包内显示一致。设为体验版、提审和发布正式版都在微信公众平台的版本管理中操作。
+
 ## release.sh 每一步做什么
 
 | 步骤 | 内容 | 失败处理 |

@@ -9,6 +9,7 @@ function source(relative) {
  const loader=request=>{
   for(const [suffix,file] of [['/domain','domain'],['/filter-scroll','filter-scroll'],['/capsule-header','capsule-header']])if(request.endsWith(suffix))return source('utils/'+file+'.ts');
   if(request.endsWith('/page-motion'))return {enterPage(){}};if(request.endsWith('/tab-bar'))return {syncTabBar(){}};
+  if(request.endsWith('/tab-swipe'))return {resetTabSwipe(){}};
   if(request.endsWith('/api'))return {request:async url=>{requests.push(url);return {items:[],page:0,hasMore:false}},mediaUrl:x=>x};return {};
  };
  vm.runInContext(`(function(require,module,exports){${code}\n})`,context,{filename})(loader,module,module.exports);return module.exports;

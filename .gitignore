@@ -30,3 +30,4 @@ _temp/
 .claude/
 .zcode/skills/wechatpay-payment-integration/
 skills-lock.json
+.zcode/plans/

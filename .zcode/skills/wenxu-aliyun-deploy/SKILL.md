@@ -23,6 +23,8 @@ cd "$(git rev-parse --show-toplevel)"
 
 ### 第 1 步：发布前检查
 
+发布新版后台前，递增 `admin/package.json` 的版本号；本次需要上传新版小程序时，也递增 `miniprogram/package.json` 的版本号。普通更新默认升补丁号，在对应目录执行 `npm version patch --no-git-tag-version`，将版本号和锁文件一起纳入本次发布提交。发布后的短提交号用于定位代码，版本号以对应的 `package.json` 为准。
+
 ```sh
 git rev-parse --abbrev-ref HEAD   # 必须是 main
 git status --porcelain            # 必须为空，有未提交改动先和用户确认提交
@@ -81,9 +83,10 @@ cd "$(git rev-parse --show-toplevel)/miniprogram"
 npm test                                        # 全量测试（约 520 项）
 npm run build                                   # 生产配置构建（脚本会校验 apiOrigin 与开发登录关闭）
 node scripts/upload.cjs --check-config          # 上传前配置校验
-WILDBOY_VERSION=<语义化版本> WILDBOY_DESC="<本次改动说明>" node scripts/upload.cjs
+WILDBOY_DESC="<本次改动说明>" node scripts/upload.cjs
 ```
 
+- 上传前确认 `package.json` 中的版本号高于上次上传的版本，常规发布使用新构建的包版本。
 - 上传密钥：`%USERPROFILE%/.wechat-keys/private.wxa62bfca387e6809b.key`（或环境变量 `WILDBOY_UPLOAD_KEY`）。
 - `ci.upload` 只是把新版本传成微信平台的**开发版本**，输出 `UPLOAD OK` 仅代表上传成功。
 
