@@ -99,8 +99,8 @@ test('native measurements refresh after resize and one failing API preserves the
   assert.doesNotThrow(measureCapsuleHeader);
 });
 
-test('both real load/resize hooks update only header geometry without business calls', () => {
-  for (const name of ['activities', 'mine']) {
+test('all three real load/resize hooks update only header geometry without business calls', () => {
+  for (const name of ['activities', 'shop', 'mine']) {
     source(`pages/${name}/index.ts`);
     const definition = pageDefinition;
     const p = { data: structuredClone(definition.data), setData(update) { Object.assign(this.data, update); },
@@ -112,5 +112,5 @@ test('both real load/resize hooks update only header geometry without business c
     definition.onResize.call(p);
     assert.equal(center(p.data.headerLayout), menu.top + menu.height / 2);
   }
-  assert.deepEqual(reads, { window: 4, menu: 4 });
+  assert.deepEqual(reads, { window: 6, menu: 6 });
 });

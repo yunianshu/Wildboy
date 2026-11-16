@@ -189,6 +189,12 @@ Page({
     wx.navigateTo({ url: "/pages/registrations/index" });
   },
   notifications() { wx.navigateTo({url:"/pages/notifications/index"}); },
+  addresses() {
+    wx.navigateTo({ url: "/pages/addresses/index" });
+  },
+  orders() {
+    wx.navigateTo({ url: "/pages/orders/index" });
+  },
   profile() {
     wx.navigateTo({ url: "/pages/profile/index" });
   },
@@ -199,6 +205,14 @@ Page({
   manage() {
     if (this.data.user?.role === "ADMIN")
       wx.navigateTo({ url: "/pages/admin-activities/index" });
+  },
+  shopManage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-shop/index" });
+  },
+  orderManage() {
+    if (this.data.user?.role === "ADMIN")
+      wx.navigateTo({ url: "/pages/admin-orders/index" });
   },
   legalManage() {
     if (this.data.user?.role === "ADMIN")

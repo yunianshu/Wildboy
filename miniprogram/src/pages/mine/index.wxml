@@ -42,8 +42,14 @@
           <view class="menu-title">我的报名</view>
 
         </view>
+        <view class="menu" bindtap="orders">
+          <image class="menu-icon" src="/assets/icons/order.svg" mode="aspectFit" aria-hidden="{{true}}" />
+          <view class="menu-title">我的订单</view>
+
+        </view>
       </view>
       <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="menu-row" bindtap="activityOrders"><view class="menu-title">我的活动订单</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="menu-row" bindtap="profile"><view class="menu-title">联系资料与会员身份</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="userManage">
@@ -58,6 +64,8 @@
         <view><view class="menu-title">协议管理</view></view>
         <image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" />
       </view>
+      <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="shopManage"><view><view class="menu-title">商品管理</view></view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="orderManage"><view><view class="menu-title">订单管理</view></view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="membershipManage"><view class="menu-title">会员管理</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view wx:if="{{user.role === 'ADMIN'}}" class="menu-row" bindtap="activityOrderManage"><view class="menu-title">活动订单与退款管理</view><image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="links">

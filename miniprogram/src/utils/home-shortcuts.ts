@@ -21,6 +21,7 @@ export const shortcutPages: Record<string, string> = {
   WEEKLY: "/pages/activities/index",
   DOMESTIC: "/pages/activities/index",
   ACTIVITIES: "/pages/activities/index",
+  SHOP: "/pages/shop/index",
   PROFILE: "/pages/mine/index",
 };
 export const defaultShortcuts: Shortcut[] = [

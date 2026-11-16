@@ -134,7 +134,7 @@ test("network failures surface retry message without silently registering", asyn
   );
 });
 test("public image URLs allow bundled assets and safe HTTPS only", () => {
-  assert.equal(api.mediaUrl("/assets/hero-hiking.jpg"), "/assets/hero-hiking.jpg");
+  assert.equal(api.mediaUrl("/assets/equipment.jpg"), "/assets/equipment.jpg");
   assert.equal(
     api.mediaUrl("/assets/user-cover.jpg"),
     "https://wildboy.test/assets/user-cover.jpg",
@@ -307,8 +307,8 @@ test("uploaded images use the configured HTTP API without a cloud transport", as
     url = o.url;
     o.success({statusCode: 200, data: {imageUrl: path}});
   };
-  const value = await api.request("/activities");
-  assert.equal(url, "https://wildboy.test/api/v1/activities");
+  const value = await api.request("/shop/products");
+  assert.equal(url, "https://wildboy.test/api/v1/shop/products");
   assert.equal(api.mediaUrl(value.imageUrl), "https://wildboy.test" + path);
   assert.equal(requestCount, 1);
 });

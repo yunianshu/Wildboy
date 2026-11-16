@@ -216,7 +216,7 @@ test("expired reconfirmation session never silently switches to another WeChat l
 });
 
 test("inline policy links open exact versions without changing consent, including after return", async () => {
-  for (const name of ["login", "register"]) {
+  for (const name of ["login", "register", "checkout"]) {
     const p = page(name);
     const loginPage = name === "login";
     const consentKey = loginPage ? "agreed" : "consent";
@@ -249,7 +249,7 @@ test("inline policy links open exact versions without changing consent, includin
 });
 
 test("stale inline document callbacks cannot mark a replacement policy version read", () => {
-  for (const name of ["login", "register"]) {
+  for (const name of ["login", "register", "checkout"]) {
     const p = page(name);
     const legalKey = name === "login" ? "current" : "legal";
     p.setData({ [legalKey]: structuredClone(legal), loading: false });

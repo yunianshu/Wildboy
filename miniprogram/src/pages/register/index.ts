@@ -37,7 +37,7 @@ import {
   validActivityQuote,
   priceLines,
 } from "../../utils/activity-orders";
-import { money } from "../../utils/money";
+import { money } from "../../utils/shop";
 const epoch = new RequestEpoch();
 const quoteEpoch = new RequestEpoch();
 const emptyParticipant = (): ParticipantInput => ({

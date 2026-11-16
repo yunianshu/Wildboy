@@ -50,6 +50,11 @@ test("user icon controls share assets and retain their accessible actions", () =
     for (const match of markup.matchAll(/src="(\/assets\/icons\/[^"{}]+\.svg)"/g))
       assert.ok(fs.existsSync(path.join(root, match[1])), match[1]);
   }
-  for (const [route, panel] of [["register", "participant-dialog"]])
+  const product = read("pages/product/index.wxml");
+  assert.match(product, /data-delta="-1"[\s\S]*?aria-label="减少购买数量"/);
+  assert.match(product, /data-delta="1"[\s\S]*?aria-label="增加购买数量"/);
+  assert.match(product, /icons\/minus\.svg/);
+  assert.match(product, /icons\/plus\.svg/);
+  for (const [route, panel] of [["register", "participant-dialog"], ["orders", "refund-dialog"]])
     assert.match(read(`pages/${route}/index.wxml`), new RegExp(`class="${panel} motion-dialog-enter"`));
 });

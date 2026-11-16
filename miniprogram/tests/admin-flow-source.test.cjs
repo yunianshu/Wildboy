@@ -41,6 +41,7 @@ beforeEach(() => {
   shared.requireAdmin = async () => session;
   api.request = async (url, method = 'GET', data) => {
     calls.push({ url, method, data });
+    if (url === '/admin/shop/categories') return [{ id: 'uncategorized', name: '未分类', sortOrder: 9999, version: 0, productCount: 0 }];
     if (url.endsWith('/versions')) return [structuredClone(document)];
     if (url.includes('/admin/legal/')) return structuredClone(state);
     return { blocks: [], version: 3 };
@@ -120,6 +121,23 @@ test('unconfirmed content cannot be saved as a document and keeps its leave warn
   assert.equal(p.data.draftText, '尚未确认的文字'); assert.equal(alerts.at(-1), true);
 });
 
+test('product status segments use the guarded state transition and cover preview resolves uploaded paths', async () => {
+  const p = page('admin-product'); await p.load();
+  p.chooseStatus(event({ index: 1 })); assert.equal(p.data.form.status, 'ON_SALE'); assert.equal(p.data.dirty, true);
+  type(p, 'imageUrl', '/assets/uploads/uploaded.png'); assert.equal(p.data.coverPreview, 'resolved:/assets/uploads/uploaded.png');
+  session++; p.chooseStatus(event({ index: 0 })); assert.equal(p.data.form.status, 'ON_SALE');
+});
+
+test('product retry revalidates access without overwriting retained edits or cover preview', async () => {
+  const p = page('admin-product'); await p.load();
+  p.setData({ id: 'product-one', authorized: false, loadFailed: true });
+  p.data.form.name = '保留的本地商品'; p.data.dirty = true; p.data.coverPreview = 'retained-preview';
+  await p.retryLoad();
+  assert.equal(p.data.authorized, true); assert.equal(p.data.form.name, '保留的本地商品');
+  assert.equal(p.data.coverPreview, 'retained-preview'); assert.equal(p.data.dirty, true);
+  assert.equal(calls.filter(c => c.url === '/admin/shop/products').length, 0);
+});
+
 test('content conflict blocks repeated saves and cancelled reload keeps all local blocks and input',async()=>{
   const p=page('admin-content');p.onLoad({id:'activity-one'});await p.load();
   p.setData({blocks:[{type:'text',text:'保留的本地文字'}],dirty:true});
@@ -166,6 +184,17 @@ test('returning to legal editing restores this page dirty protection without los
   const p=page('admin-legal');await p.load();type(p,'title','返回后保留的标题');p.onHide();
   alerts=[];wx.disableAlertBeforeUnload();p._visible=true;await p.load(false);
   assert.equal(p.data.title,'返回后保留的标题');assert.equal(p.data.dirty,true);assert.equal(alerts.at(-1),true);
+});
+test('a hidden product upload retains its local image without changing the active page leave protection',async()=>{
+  const content=require('../dist/utils/content.js'),original=content.uploadImage;
+  const p=page('admin-product');await p.load();let finish;
+  content.uploadImage=()=>new Promise(resolve=>finish=resolve);
+  try{
+    const pending=p.uploadCover();p.onHide();alerts=[];wx.enableAlertBeforeUnload();
+    finish('/assets/uploads/qa-product.png');await pending;
+    assert.deepEqual(alerts,[true]);assert.equal(p.data.dirty,true);assert.equal(p.data.form.imageUrl,'/assets/uploads/qa-product.png');
+    p._visible=true;await p.load();assert.equal(alerts.at(-1),true);assert.equal(p.data.dirty,true);
+  }finally{content.uploadImage=original;}
 });
 test('confirmed content reload locks edits until the new server revision arrives',async()=>{
   const p=page('admin-content');p.onLoad({id:'activity-one'});await p.load();

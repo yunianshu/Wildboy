@@ -1,6 +1,7 @@
 export const TAB_ITEMS = [
   { pagePath: "pages/home/index", text: "探索" },
   { pagePath: "pages/activities/index", text: "活动" },
+  { pagePath: "pages/shop/index", text: "商城" },
   { pagePath: "pages/mine/index", text: "我的" },
 ];
 

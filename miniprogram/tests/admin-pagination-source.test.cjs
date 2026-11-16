@@ -26,6 +26,8 @@ function page(name) {
 
 function item(name, index, status) {
   if (name === 'admin-activities') return { ...activity, id: `activity-${index}`, status: status || 'PUBLISHED' };
+  if (name === 'admin-orders') return { id: `order-${index}`, orderNo: `QA-${index}`, status: status || 'PAID',
+    version: 1, totalCents: 100, phone: '13800000000', items: [] };
   return { id: `registration-${index}`, status: status || 'CONFIRMED', createdAt: '2026-10-31T00:00:00Z',
     participants: [{ id: `participant-${index}`, participantName: 'QA participant', phone: '13800000000', idNumber: '******************' }] };
 }
@@ -49,13 +51,13 @@ beforeEach(() => {
   global.wx = { showToast() {}, pageScrollTo() {}, showModal: async () => ({ confirm: true }) };
 });
 
-for (const name of ['admin-activities', 'admin-roster']) {
+for (const name of ['admin-activities', 'admin-orders', 'admin-roster']) {
   test(`${name} retries failed filtered page zero before it can load any later page`, async () => {
     const p = page(name);
     if (name === 'admin-roster') p.onLoad({ id: activity.id });
     respond(name); await p.load(true);
     assert.equal(p.data.hasMore, true); assert.equal(p.data.items.length, 1);
-    const filter = name === 'admin-activities' ? 'DRAFT' : 'CANCELLED';
+    const filter = name === 'admin-activities' ? 'DRAFT' : name === 'admin-orders' ? 'REFUNDED' : 'CANCELLED';
     listReads = []; failPage = 0;
     p.filter({ currentTarget: { dataset: { status: filter } } }); await settle();
     assert.equal(p.data.items.length, 0); assert.equal(p.data.hasMore, false); assert.equal(p.data.page, 0);

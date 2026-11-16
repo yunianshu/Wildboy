@@ -19,6 +19,12 @@ function page(name) {
     done?.();
   }};
 }
+async function prepareShipment(p, row) {
+  await p.ship({ currentTarget: { dataset: { id: row.id } } });
+  for (const [field, value] of [["shipCompany", "SF"], ["shipTrackingNo", "SF123456"]]) {
+    p.shipInput({ currentTarget: { dataset: { id: row.id, field } }, detail: { value } });
+  }
+}
 beforeEach(() => {
   writes=[]; navigation=[]; current=1; nextCapability=async()=>true; nextModal=async()=>({confirm:true});
   shared.requireAdmin=async()=>current;
@@ -76,6 +82,12 @@ test('a queued identity switch cannot modify the submitted form while saving or 
   p.data.busy=false;p.data.authorized=false;p.identityChange({detail:{value:true}});
   assert.equal(p.data.form.identityRequired,false);assert.equal(p.data.dirty,false);
 });
+test('product status writes prevent queued refresh and navigation from invalidating their operation',async()=>{
+  const p=page('admin-shop');p.data.authorized=true;p._session=current;p.data.busyId='product-one';p._epoch=7;
+  let reads=0;api.request=async()=>{reads++;return[];};
+  await p.load();p.create();p.edit({currentTarget:{dataset:{id:'product-one'}}});p.orders();
+  assert.equal(reads,0);assert.equal(p._epoch,7);assert.deepEqual(navigation,[]);
+});
 test('leaving an activity list invalidates an in-flight response and its authority',async()=>{
   const p=page('admin-activities'); let resolve;
   api.request=()=>new Promise(r=>resolve=r);
@@ -83,27 +95,41 @@ test('leaving an activity list invalidates an in-flight response and its authori
   resolve({items:[activity],page:0,hasMore:false}); await pending;
   assert.equal(p.data.authorized,false); assert.deepEqual(p.data.items,[]);
 });
-
-test('admin-activities cannot invalidate an active write by refreshing or reaching the next page', async () => {
-  const p = page('admin-activities');
-  p.data.authorized = true; p._session = current; p.data.hasMore = true;
-  const row = { ...activity, status: 'PUBLISHED' };
-  p.data.items = [row];
-  await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-  let finish, reads = 0;
-  api.request = async (url, method = 'GET') => {
-    if (method === 'POST') return new Promise(resolve => { finish = resolve; });
-    reads++; return { items: [], page: 0, hasMore: false };
-  };
-  const pending = p.confirmChange();
-  await new Promise(resolve => setImmediate(resolve));
-  const epoch = p._epoch;
-  await p.load(false); await p.load(true);
-  assert.equal(reads, 0); assert.equal(p._epoch, epoch); assert.equal(p.data.busyId, row.id);
-  finish({ ...row, status: 'CANCELLED', version: row.version + 1 });
-  await pending;
-  assert.equal(p.data.busyId, '');
+test('cancelling recipient reveal keeps private information hidden',async()=>{
+  const p=page('admin-orders'); p.data.authorized=true; p._session=1; nextModal=async()=>({confirm:false});
+  await p.reveal({currentTarget:{dataset:{id:'order-one'}}});
+  assert.equal(p.data.revealedId,'');
 });
+test('known unresolved order reconciliation never opens a ship confirmation',async()=>{
+  const p=page('admin-orders'); p.data.authorized=true; p._session=1;
+  p.data.items=[{id:'order-one',status:'PAID',reconciliationRequired:true}];
+  await p.ship({currentTarget:{dataset:{id:'order-one'}}});
+  assert.equal(p.data.pendingId,''); assert.equal(writes.length,0);
+});
+
+for (const name of ['admin-activities', 'admin-orders']) {
+  test(`${name} cannot invalidate an active write by refreshing or reaching the next page`, async () => {
+    const p = page(name);
+    p.data.authorized = true; p._session = current; p.data.hasMore = true;
+    const row = name === 'admin-activities' ? { ...activity, status: 'PUBLISHED' } : { id: 'order-one', status: 'PAID', version: 1 };
+    p.data.items = [row];
+    if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
+    else await prepareShipment(p, row);
+    let finish, reads = 0;
+    api.request = async (url, method = 'GET') => {
+      if (method === 'POST') return new Promise(resolve => { finish = resolve; });
+      reads++; return { items: [], page: 0, hasMore: false };
+    };
+    const pending = name === 'admin-activities' ? p.confirmChange() : p.confirmShip();
+    await new Promise(resolve => setImmediate(resolve));
+    const epoch = p._epoch;
+    await p.load(false); await p.load(true);
+    assert.equal(reads, 0); assert.equal(p._epoch, epoch); assert.equal(p.data.busyId, row.id);
+    finish({ ...row, status: name === 'admin-activities' ? 'CANCELLED' : 'SHIPPED', version: row.version + 1 });
+    await pending;
+    assert.equal(p.data.busyId, '');
+  });
+}
 
 test('a hidden activity save cannot close another page leave protection or show a success toast', async () => {
   const p = page('admin-editor');
@@ -181,53 +207,72 @@ test('hidden cover upload retains its result and rearms leave protection only wh
   } finally { content.uploadImage = originalUpload; }
 });
 
-test('admin-activities rejects a confirmation whose displayed v3 snapshot was replaced by a delayed v4 page', async () => {
-  const p = page('admin-activities');
-  p.data.authorized = true; p._session = current; p.data.hasMore = true;
-  const row = { ...activity, status: 'PUBLISHED' };
-  p.data.items = [row];
-  await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-  let finish;
-  api.request = async (url, method = 'GET', body) => {
-    if (method === 'POST') { writes.push({ url, body }); return row; }
-    return new Promise(resolve => { finish = resolve; });
-  };
-  const pending = p.load(false); await new Promise(resolve => setImmediate(resolve));
-  finish({ items: [{ ...row, title: 'Changed after opening confirmation', version: 4 }], page: 1, hasMore: false });
-  await pending;
-  assert.equal(p.data.pendingItem.version, 3);
-  assert.equal(p.data.items[0].version, 4);
-  await p.confirmChange();
-  assert.equal(writes.length, 0); assert.equal(p.data.pendingId, '');
-  assert.match(p.data.error, /重新核对/);
+for (const name of ['admin-activities', 'admin-orders']) {
+  test(`${name} rejects a confirmation whose displayed v3 snapshot was replaced by a delayed v4 page`, async () => {
+    const p = page(name);
+    p.data.authorized = true; p._session = current; p.data.hasMore = true;
+    const row = name === 'admin-activities' ? { ...activity, status: 'PUBLISHED' }
+      : { id: 'order-one', status: 'PAID', version: 3, phone: '13800000000', totalCents: 100 };
+    p.data.items = [row];
+    if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
+    else await prepareShipment(p, row);
+    let finish;
+    api.request = async (url, method = 'GET', body) => {
+      if (method === 'POST') { writes.push({ url, body }); return row; }
+      return new Promise(resolve => { finish = resolve; });
+    };
+    const pending = p.load(false); await new Promise(resolve => setImmediate(resolve));
+    finish({ items: [{ ...row, title: 'Changed after opening confirmation', version: 4 }], page: 1, hasMore: false });
+    await pending;
+    assert.equal((p.data.pendingItem || p.data.pendingOrder).version, 3);
+    assert.equal(p.data.items[0].version, 4);
+    if (name === 'admin-activities') await p.confirmChange(); else await p.confirmShip();
+    assert.equal(writes.length, 0); assert.equal(p.data.pendingId, '');
+    assert.match(p.data.error, /重新核对/);
+  });
+
+  test(`${name} closes confirmation when the previously displayed row is no longer present`, async () => {
+    const p = page(name); p.data.authorized = true; p._session = current;
+    const row = name === 'admin-activities' ? { ...activity, status: 'PUBLISHED' } : { id: 'order-one', status: 'PAID', version: 3 };
+    p.data.items = [row];
+    if (name === 'admin-activities') await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
+    else await prepareShipment(p, row);
+    p.data.items = [];
+    if (name === 'admin-activities') await p.confirmChange(); else await p.confirmShip();
+    assert.equal(writes.length, 0); assert.equal(p.data.pendingId, ''); assert.match(p.data.error, /重新核对/);
+  });
+}
+
+test('a server refund block preserves its accurate reason instead of suggesting an unrelated stale version', async () => {
+  const p = page('admin-orders'); p.data.authorized = true; p._session = current;
+  p.data.items = [{ id: 'order-one', status: 'PAID', version: 3 }];
+  await prepareShipment(p, p.data.items[0]);
+  api.request = async () => { throw new api.ApiError('退款申请处理中，不能发货', 409, 'REFUND_PENDING'); };
+  await p.confirmShip();
+  assert.equal(p.data.error, '退款申请处理中，不能发货'); assert.equal(p.data.busyId, '');
 });
 
-test('admin-activities closes confirmation when the previously displayed row is no longer present', async () => {
-  const p = page('admin-activities'); p.data.authorized = true; p._session = current;
-  const row = { ...activity, status: 'PUBLISHED' };
-  p.data.items = [row];
-  await p.change({ currentTarget: { dataset: { id: row.id, action: 'cancel' } } });
-  p.data.items = [];
-  await p.confirmChange();
-  assert.equal(writes.length, 0); assert.equal(p.data.pendingId, ''); assert.match(p.data.error, /重新核对/);
-});
+for (const name of ['admin-activities', 'admin-orders']) {
+  const makeRow = () => name === 'admin-activities' ? { ...activity, status:'PUBLISHED' }
+    : { id:'order-one', orderNo:'QA-ORDER-1', status:'PAID', version:3, phone:'13800000000', totalCents:100, items:[] };
+  const choose = async (p,row) => name === 'admin-activities'
+    ? p.change({currentTarget:{dataset:{id:row.id,action:'cancel'}}})
+    : prepareShipment(p,row);
+  const confirm = p => name === 'admin-activities' ? p.confirmChange() : p.confirmShip();
+  const result = p => name === 'admin-activities' ? p.data.resultItem : p.data.resultOrder;
 
-const makeRow = () => ({ ...activity, status:'PUBLISHED' });
-const choose = async (p,row) => p.change({currentTarget:{dataset:{id:row.id,action:'cancel'}}});
-const confirm = p => p.confirmChange();
-const result = p => p.data.resultItem;
-
-test('admin-activities shows completion only for the confirmed server state and clears it on hide',async()=>{
-  const p=page('admin-activities'), row=makeRow(); p.data.authorized=true; p._session=current; p.data.items=[row];
-  await choose(p,row);
-  const completed={...row,status:'CANCELLED',version:4};
-  api.request=async(_url,method='GET')=>method==='POST'?completed:{items:[completed],page:0,hasMore:false};
-  await confirm(p);
-  assert.equal(result(p).status,completed.status); assert.equal(p.data.busyId,'');
-  p.onHide(); assert.equal(result(p),null); assert.equal(p.data.authorized,false);
-});
-test('admin-activities does not announce completion for an unconfirmed response',async()=>{
-  const p=page('admin-activities'),row=makeRow(); p.data.authorized=true;p._session=current;p.data.items=[row];
-  await choose(p,row); api.request=async()=>row; await confirm(p);
-  assert.equal(result(p),null); assert.match(p.data.error,/尚未确认/); assert.equal(p.data.busyId,'');
-});
+  test(`${name} shows completion only for the confirmed server state and clears it on hide`,async()=>{
+    const p=page(name), row=makeRow(); p.data.authorized=true; p._session=current; p.data.items=[row];
+    await choose(p,row);
+    const completed={...row,status:name==='admin-activities'?'CANCELLED':'SHIPPED',version:4};
+    api.request=async(_url,method='GET')=>method==='POST'?completed:{items:[completed],page:0,hasMore:false};
+    await confirm(p);
+    assert.equal(result(p).status,completed.status); assert.equal(p.data.busyId,'');
+    p.onHide(); assert.equal(result(p),null); assert.equal(p.data.authorized,false);
+  });
+  test(`${name} does not announce completion for an unconfirmed response`,async()=>{
+    const p=page(name),row=makeRow(); p.data.authorized=true;p._session=current;p.data.items=[row];
+    await choose(p,row); api.request=async()=>row; await confirm(p);
+    assert.equal(result(p),null); assert.match(p.data.error,/尚未确认/); assert.equal(p.data.busyId,'');
+  });
+}
