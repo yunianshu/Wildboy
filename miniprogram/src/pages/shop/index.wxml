@@ -1,4 +1,7 @@
-<view class="shop-page page-motion {{pageMotionClass}}">
+<view class="tab-page-viewport"
+  bindtouchstart="startTabSwipe" bindtouchmove="moveTabSwipe"
+  bindtouchend="endTabSwipe" bindtouchcancel="cancelTabSwipe">
+  <view class="shop-page page-motion {{pageMotionClass}}">
   <view class="shop-hero">
     <image src="/assets/equipment.jpg" mode="aspectFill" />
     <view class="hero-shade" />
@@ -29,5 +32,7 @@
       </view>
     </view>
     <view wx:if="{{error && items.length}}" class="shop-inline-error"><text>{{error}}</text><button class="secondary ui-button ui-button-small" bindtap="retry">重试</button></view>
-  </view>
 </view>
+</view>
+</view>
+

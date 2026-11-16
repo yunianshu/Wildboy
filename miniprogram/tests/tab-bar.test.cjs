@@ -232,9 +232,9 @@ const touch = (p, type, touches, changedTouches = touches) =>
 test('page swipes enter the adjacent Tab in either direction and stop at the ends', () => {
   const { enterPage } = source('utils/page-motion.ts');
   const { tabSwipeHandlers } = source('utils/tab-swipe.ts');
-  const home = Object.assign(page('pages/home/index'), tabSwipeHandlers);
-  const activities = Object.assign(page('pages/activities/index'), tabSwipeHandlers);
-  const mine = Object.assign(page('pages/mine/index'), tabSwipeHandlers);
+  const tabs = source('utils/tab-bar.ts').TAB_ITEMS.map(item =>
+    Object.assign(page(item.pagePath), tabSwipeHandlers));
+  const [home, activities, shop, mine] = tabs;
   const swipe = (p, from, to) => {
     touch(p, 'startTabSwipe', [point(from, 100)]);
     touch(p, 'moveTabSwipe', [point((from + to) / 2, 104)]);
@@ -247,14 +247,17 @@ test('page swipes enter the adjacent Tab in either direction and stop at the end
   activate(activities); enterPage(activities); activities.component.show();
   assert.match(activities.data.pageMotionClass, /motion-tab-from-right/);
   swipe(activities, 245, 110);
-  assert.equal(calls[1].url, '/pages/mine/index');
+  assert.equal(calls[1].url, '/pages/shop/index');
+  activate(shop); enterPage(shop); shop.component.show();
+  swipe(shop, 245, 110);
+  assert.equal(calls[2].url, '/pages/mine/index');
   activate(mine); enterPage(mine); mine.component.show();
   swipe(mine, 240, 80);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 3);
   swipe(mine, 80, 240);
-  assert.equal(calls[2].url, '/pages/activities/index');
-  activate(activities); enterPage(activities);
-  assert.match(activities.data.pageMotionClass, /motion-tab-from-left/);
+  assert.equal(calls[3].url, '/pages/shop/index');
+  activate(shop); enterPage(shop);
+  assert.match(shop.data.pageMotionClass, /motion-tab-from-left/);
 });
 
 test('vertical, diagonal, short, interrupted and control gestures leave the active page in place', () => {

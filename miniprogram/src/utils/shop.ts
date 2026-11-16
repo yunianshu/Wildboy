@@ -1,9 +1,14 @@
 import { request, sessionVersion, isSessionCurrent, ApiError } from "./api";
 import { Order, OrderStatus, PaymentRequest } from "./models";
+import {
+  checkoutRequestId,
+  finishCheckoutIntent,
+  money,
+  pendingCheckoutRequestId,
+} from "./money";
 
-export function money(cents: number): string {
-  return `¥${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
-}
+// 金额与下单意图辅助函数以 money.ts 为唯一实现，这里 re-export 兼容商城页面既有引用。
+export { checkoutRequestId, finishCheckoutIntent, money, pendingCheckoutRequestId };
 
 export function orderStatusLabel(status: OrderStatus): string {
   return (
@@ -115,48 +120,3 @@ export async function verifyPayment(
   throw new Error("支付结果暂未确认，请稍后刷新");
 }
 
-/** Persist only an opaque request identity, never shipping details or tokens. */
-export function checkoutRequestId(
-  userId: string,
-  productId: string,
-  quantity: number,
-): string {
-  const key = checkoutIntentKey(userId, productId, quantity);
-  const existing = pendingCheckoutRequestId(userId, productId, quantity);
-  if (existing) return existing;
-  const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = Math.floor(Math.random() * 16);
-    return (c === "x" ? r : (r & 3) | 8).toString(16);
-  });
-  wx.setStorageSync(key, id);
-  return id;
-}
-function checkoutIntentKey(
-  userId: string,
-  productId: string,
-  quantity: number,
-): string {
-  return `wildboy-order-intent:${userId}:${productId}:${quantity}`;
-}
-export function finishCheckoutIntent(
-  userId: string,
-  productId: string,
-  quantity: number,
-  requestId: string,
-) {
-  const key = checkoutIntentKey(userId, productId, quantity);
-  if (wx.getStorageSync(key) === requestId) wx.removeStorageSync(key);
-}
-
-export function pendingCheckoutRequestId(
-  userId: string,
-  productId: string,
-  quantity: number,
-): string | undefined {
-  const existing = wx.getStorageSync(
-    checkoutIntentKey(userId, productId, quantity),
-  );
-  return typeof existing === "string" && /^[0-9a-f-]{36}$/.test(existing)
-    ? existing
-    : undefined;
-}

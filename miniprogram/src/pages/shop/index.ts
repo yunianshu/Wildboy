@@ -5,6 +5,7 @@ import { priceText, originalPriceText } from "../../utils/product-prices";
 import { centeredFilterScroll } from "../../utils/filter-scroll";
 import { capsuleHeaderLayout, measureCapsuleHeader } from "../../utils/capsule-header";
 import { syncTabBar } from "../../utils/tab-bar";
+import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 
 /** Server catalog rows; sortOrder keeps the curated order across reloads. */
 type ShopCategory = { id: string; name: string; sortOrder: number; version: number };
@@ -41,6 +42,7 @@ function catalogItems(products: Product[]): CatalogItem[] {
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  ...tabSwipeHandlers,
   data: {
     pageMotionClass: "",
     topInset: 48,
@@ -89,9 +91,11 @@ Page({
     void this.loadCategories();
   },
   onHide() {
+    resetTabSwipe(this);
     this._visible = false;
   },
   onUnload() {
+    resetTabSwipe(this);
     this._visible = false;
     this._unloaded = true;
   },
