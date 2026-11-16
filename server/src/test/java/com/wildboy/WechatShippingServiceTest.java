@@ -146,6 +146,47 @@ class WechatShippingServiceTest {
     wechat.verify();
   }
 
+  @Test
+  void reportsTheUploadOutcomeThroughTheConsumerCallback() {
+    expectAvailableShippingManagement();
+    wechat.expect(requestTo(WECHAT + "/cgi-bin/express/delivery/open_msg/get_delivery_list?access_token=shipping-test-token"))
+        .andRespond(withSuccess(
+            "{\"errcode\":0,\"errmsg\":\"ok\",\"delivery_list\":[{\"delivery_id\":\"SF\",\"delivery_name\":\"顺丰速运\"}]}",
+            MediaType.APPLICATION_JSON));
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/upload_shipping_info?access_token=shipping-test-token"))
+        .andRespond(withSuccess("{\"errcode\":0,\"errmsg\":\"ok\"}", MediaType.APPLICATION_JSON));
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/upload_shipping_info?access_token=shipping-test-token"))
+        .andRespond(withSuccess("{\"errcode\":9400001,\"errmsg\":\"order not found\"}", MediaType.APPLICATION_JSON));
+
+    var accepted = new java.util.concurrent.atomic.AtomicReference<WechatShippingService.UploadResult>();
+    var rejected = new java.util.concurrent.atomic.AtomicReference<WechatShippingService.UploadResult>();
+    TransactionSynchronizationManager.initSynchronization();
+    try {
+      shipping.uploadShopShipment(shopOrder(SHOP_TRANSACTION), "顺丰速运", "323244567777", accepted::set);
+      shipping.uploadActivityFulfillment(activityOrder(), ACTIVITY_TRANSACTION, rejected::set);
+      TransactionSynchronizationUtils.triggerAfterCommit();
+    } finally {
+      TransactionSynchronizationManager.clearSynchronization();
+    }
+
+    var ok = accepted.get();
+    assert ok != null && ok.attempted() && ok.errcode() == 0;
+    var failed = rejected.get();
+    assert failed != null && failed.attempted() && failed.errcode() == 9400001;
+    wechat.verify();
+  }
+
+  @Test
+  void skippedOrdersNeverCallWechatAndCarryASkipReason() {
+    var skipped = new java.util.concurrent.atomic.AtomicReference<WechatShippingService.UploadResult>();
+    shipping.uploadShopShipment(shopOrder(null), "顺丰速运", "323244567777", skipped::set);
+
+    var result = skipped.get();
+    assert result != null && !result.attempted() && "missing_transaction".equals(result.error());
+    verifyNoInteractions(auth);
+    wechat.verify();
+  }
+
   private void expectAvailableShippingManagement() {
     expectAccessToken();
     expectTradeManagementProbe("{\"errcode\":0,\"errmsg\":\"ok\",\"is_trade_managed\":true}");

@@ -13,6 +13,7 @@ type Dashboard = {
   };
   orders: { paid_orders: number; gross_cents: number; refunded_cents: number };
   pendingShipping: number;
+  shippingReportFailures?: number;
   lowStock: { id: string; name: string; stock: number }[];
   trend: {
     day: string;
@@ -221,9 +222,14 @@ import UiState from "../components/UiState.vue";
           <article>
             <span>待发货</span><strong>{{ data.pendingShipping }}</strong>
           </article>
+          <article>
+            <span>发货上报待处理</span
+            ><strong>{{ data.shippingReportFailures ?? 0 }}</strong>
+          </article>
         </div>
         <p class="muted">
-          订单按付款时间统计，净额扣除已确认退款；待发货不含售后处理中订单。
+          订单按付款时间统计，净额扣除已确认退款；待发货不含售后处理中订单；
+          发货上报待处理含失败与待上报记录，可在<a href="#/shipping-reports">发货上报</a>页补报。
         </p>
         <div class="overview-panels">
           <section>

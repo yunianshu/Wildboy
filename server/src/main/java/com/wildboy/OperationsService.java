@@ -23,6 +23,7 @@ public class OperationsService {
         """));
     result.put("orders",db.queryForMap("SELECT COUNT(*) FILTER (WHERE status IN ('PAID','SHIPPED','REFUNDED')) AS paid_orders,COALESCE(SUM(total_cents) FILTER (WHERE status IN ('PAID','SHIPPED','REFUNDED')),0) AS gross_cents,COALESCE(SUM(total_cents) FILTER (WHERE status='REFUNDED'),0) AS refunded_cents FROM shop_order WHERE paid_at>=CURRENT_TIMESTAMP-(? * INTERVAL '1 day')",days));
     result.put("pendingShipping",db.queryForObject("SELECT COUNT(*) FROM shop_order WHERE status IN ('PAID','CONFIRMED_FREE') AND NOT EXISTS(SELECT 1 FROM refund_request r WHERE r.order_id=shop_order.id AND r.status IN ('REQUESTED','PROCESSING','UNKNOWN','ABNORMAL'))",Long.class));
+    result.put("shippingReportFailures",db.queryForObject("SELECT COUNT(*) FROM shipping_report WHERE status IN ('PENDING','FAILED')",Long.class));
     result.put("lowStock",db.queryForList("SELECT id,name,stock FROM product WHERE status='ON_SALE' AND stock<=5 ORDER BY stock,id LIMIT 20"));
     result.put("trend",db.queryForList("SELECT to_char(paid_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD') AS day,COUNT(*) AS orders,COALESCE(SUM(total_cents),0) AS gross_cents,COALESCE(SUM(total_cents) FILTER(WHERE status='REFUNDED'),0) AS refunded_cents FROM shop_order WHERE paid_at>=CURRENT_TIMESTAMP-(? * INTERVAL '1 day') AND status IN ('PAID','SHIPPED','REFUNDED') GROUP BY 1 ORDER BY 1",days));
     return result;

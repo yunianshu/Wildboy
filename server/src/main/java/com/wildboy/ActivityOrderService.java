@@ -25,9 +25,10 @@ public class ActivityOrderService {
   private final ObjectMapper json;
   private final TransactionTemplate tx;
   private final WechatShippingService shipping;
+  private final ShippingReportService shippingReports;
   public ActivityOrderService(JdbcTemplate db, ActivityService activities, WechatPayService pay,
-      ObjectMapper json, PlatformTransactionManager tm, MembershipService memberships, LegalService legal, IdentityProtection identity, WechatShippingService shipping) {
-    this.legal=legal;this.identity=identity;this.memberships=memberships;this.db=db;this.activities=activities;this.pay=pay;this.json=json;this.tx=new TransactionTemplate(tm);this.shipping=shipping;
+      ObjectMapper json, PlatformTransactionManager tm, MembershipService memberships, LegalService legal, IdentityProtection identity, WechatShippingService shipping, ShippingReportService shippingReports) {
+    this.legal=legal;this.identity=identity;this.memberships=memberships;this.db=db;this.activities=activities;this.pay=pay;this.json=json;this.tx=new TransactionTemplate(tm);this.shipping=shipping;this.shippingReports=shippingReports;
   }
   public Order get(String id,String user) {
     return db.query("SELECT * FROM activity_order WHERE id=?"+(user==null?"":" AND user_id=?"),(r,n)-> {
@@ -250,8 +251,9 @@ public class ActivityOrderService {
       if(!o.status().equals("PENDING_PAYMENT"))throw ApiException.conflict("PAYMENT_CONFLICT","订单状态异常，需要核对");
       db.update("UPDATE activity_order SET status='PAID',payment_transaction_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",t.getTransactionId(),o.id());
       activities.audit(o.userId(),o.id(),"ACTIVITY_ORDER_PAID");
-      // 付费报名确认后上报虚拟发货，使用本次已核验的微信交易单号。
-      shipping.uploadActivityFulfillment(o,t.getTransactionId());
+      // 付费报名确认后上报虚拟发货，使用本次已核验的微信交易单号；结果落库供补报。
+      String reportId=shippingReports.register("activity",o.id(),o.orderNo(),3);
+      shipping.uploadActivityFulfillment(o,t.getTransactionId(),r->shippingReports.complete(reportId,r));
     });
   }
   public Order cancel(String id,String user) {

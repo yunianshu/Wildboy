@@ -18,6 +18,7 @@ const pageTitles: Record<string, string> = {
   "/templates": "活动模板",
   "/refunds": "退款售后",
   "/notifications": "消息管理",
+  "/shipping-reports": "发货上报",
   "/shop": "商城管理",
   "/legal": "协议管理",
 };
@@ -46,6 +47,7 @@ const navigation = [
       { path: "/shop", title: "商城管理", icon: "bag" },
       { path: "/shop/categories", title: "商品分类", icon: "template" },
       { path: "/refunds", title: "退款售后", icon: "refund" },
+      { path: "/shipping-reports", title: "发货上报", icon: "order" },
     ],
   },
   {
@@ -77,6 +79,7 @@ const moduleBySection: Record<string, string> = {
   "/shop": "shop",
   "/shop/categories": "shop",
   "/refunds": "shop",
+  "/shipping-reports": "shop",
   "/users": "user",
   "/memberships": "user",
   "/articles": "content",

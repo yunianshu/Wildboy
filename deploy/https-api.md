@@ -54,6 +54,10 @@ curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health
 | 活动支付 | `/api/v1/payments/wechat/activity-notify` |
 | 活动退款 | `/api/v1/payments/wechat/activity-refund-notify` |
 
+### 发货信息管理上报
+
+微信要求交易类小程序在发货后向「发货信息管理」上报履约信息（`upload_shipping_info`）。在服务器 `.env` 设置 `WILDBOY_SHIPPING_ENABLED=true` 开启；未开启时订单照常成交，只是不上报。商城实物单在后台发货时上报快递信息，活动订单支付成功后自动上报虚拟履约；上报状态落库于 `shipping_report`，失败按退避自动补报，后台「发货上报」页可查询并手动补报。需在公众平台确认小程序已开通发货信息管理服务。
+
 ## 外网验收
 
 从服务器外执行以下命令，使用系统信任链与真实域名解析。

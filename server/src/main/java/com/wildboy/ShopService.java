@@ -28,6 +28,7 @@ public class ShopService {
   private final TransactionTemplate transactions;
   private final MembershipService memberships;
   private final WechatShippingService shipping;
+  private final ShippingReportService shippingReports;
 
   public ShopService(
       JdbcTemplate db,
@@ -38,7 +39,8 @@ public class ShopService {
       ShopCategoryService categories,
       PlatformTransactionManager transactionManager,
       MembershipService memberships,
-      WechatShippingService shipping) {
+      WechatShippingService shipping,
+      ShippingReportService shippingReports) {
     this.db = db;
     this.memberships = memberships;
     this.legal = legal;
@@ -48,6 +50,7 @@ public class ShopService {
     this.categories = categories;
     this.transactions = new TransactionTemplate(transactionManager);
     this.shipping = shipping;
+    this.shippingReports = shippingReports;
   }
 
   // The category name is resolved at read time so renaming a category updates every product
@@ -578,12 +581,19 @@ public class ShopService {
         && (company == null || company.isBlank() || trackingNo == null || trackingNo.isBlank()))
       throw new ApiException(400, "SHIPPING_DETAILS_REQUIRED", "微信支付订单发货需填写物流公司和运单号");
     db.update(
-        "UPDATE shop_order SET status='SHIPPED',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE shop_order SET status='SHIPPED',shipping_company=?,shipping_tracking_no=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        company == null ? "" : company.strip(),
+        trackingNo == null ? "" : trackingNo.strip(),
         id);
     activities.audit(actor, id, "ORDER_SHIP");
     var updated = order(id, null, true);
-    // 微信支付订单向「发货信息管理」上报物流；免支付单无微信交易记录，服务内部会跳过
-    shipping.uploadShopShipment(withItems(updated), company, trackingNo);
+    // 微信支付订单向「发货信息管理」上报物流；免支付单无微信交易记录，服务内部会跳过并落库为 SKIPPED
+    String reportId = shippingReports.register("shop", updated.id(), updated.orderNo(), 1);
+    shipping.uploadShopShipment(
+        withItems(updated),
+        company,
+        trackingNo,
+        result -> shippingReports.complete(reportId, result));
     return updated;
   }
 }

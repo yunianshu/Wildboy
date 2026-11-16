@@ -161,7 +161,7 @@ class ActivityOrderIntegrationTest {
     verifyNoInteractions(shipping);
     transaction.getAmount().setTotal(600);orders.completePayment(transaction);orders.completePayment(transaction);
     var fulfillmentOrder = ArgumentCaptor.forClass(Order.class);
-    verify(shipping).uploadActivityFulfillment(fulfillmentOrder.capture(), eq(transaction.getTransactionId()));
+    verify(shipping).uploadActivityFulfillment(fulfillmentOrder.capture(), eq(transaction.getTransactionId()), any());
     assertThat(fulfillmentOrder.getValue().id()).isEqualTo(o.id());
     assertThatThrownBy(()->orders.get(o.id(),user().id())).isInstanceOf(ApiException.class);
     var r=orders.refund(o.id(),u.id(),"QA cancel");

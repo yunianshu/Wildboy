@@ -18,6 +18,7 @@ import ArticleEditorView from "./views/ArticleEditorView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import MembershipsView from "./views/MembershipsView.vue";
 import ActivityOrdersView from "./views/ActivityOrdersView.vue";
+import ShippingReportsView from "./views/ShippingReportsView.vue";
 export const router = createRouter({
   history: createWebHashHistory(),
   routes: [
@@ -33,6 +34,7 @@ export const router = createRouter({
     { path: "/waitlist", redirect: "/operations" },
     { path: "/operations", component: OperationsView },
     { path: "/refunds", component: RefundsView },
+    { path: "/shipping-reports", component: ShippingReportsView },
     { path: "/notifications", component: NotificationsView },
     { path: "/legal", component: LegalView },
     { path: "/articles", component: ArticlesView },

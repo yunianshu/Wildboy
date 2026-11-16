@@ -9,6 +9,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +24,8 @@ import org.springframework.web.client.RestClient;
  * 微信「发货信息管理」上报：交易类小程序按运营规范必须在发货后上报物流/履约信息，
  * 未按规范接入可能导致公众平台限制小程序支付权限。
  * 商城实物单发货后上报实体物流；活动订单确认报名后上报虚拟发货。
- * 上报走小程序 access_token（与支付 APIv3 凭证无关），失败不阻断业务主流程，
- * 只记 WARN 日志（含微信 errcode），运营可在平台侧补录。
+ * 上报走小程序 access_token（与支付 APIv3 凭证无关），失败不阻断业务主流程；
+ * 结果通过回调交给 {@link ShippingReportService} 落库，失败由重试任务与后台补报兜底。
  */
 @Service
 public class WechatShippingService {
@@ -35,6 +36,13 @@ public class WechatShippingService {
   private final RestClient client;
   private final boolean enabled; // 生产开启；测试环境保持关闭，避免外呼微信
   private boolean tradeManaged; // 只缓存确认已开通的结果
+
+  /** 一次上报的结果：attempted=false 表示本次未外呼（如免支付单、非微信用户），errcode=0 表示微信已受理。 */
+  public record UploadResult(boolean attempted, int errcode, String error) {
+    static UploadResult skipped(String reason) { return new UploadResult(false, 0, reason); }
+    static UploadResult ok() { return new UploadResult(true, 0, ""); }
+    static UploadResult failed(int errcode, String error) { return new UploadResult(true, errcode, error); }
+  }
 
   public WechatShippingService(
       WechatNotificationGateway gateway,
@@ -51,9 +59,15 @@ public class WechatShippingService {
 
   /** 商城实物订单发货上报（logistics_type=1 实体物流）；非微信支付订单（免支付）无交易记录，跳过。 */
   public void uploadShopShipment(ShopModels.Order order, String company, String trackingNo) {
+    uploadShopShipment(order, company, trackingNo, r -> {});
+  }
+
+  public void uploadShopShipment(
+      ShopModels.Order order, String company, String trackingNo, Consumer<UploadResult> onResult) {
     afterCommit(
-        () -> upload(order.orderNo(), order.paymentTransactionId(), order.userId(), 1,
-            () -> courierShipping(order, company, trackingNo), "shop"));
+        () -> onResult.accept(
+            upload(order.orderNo(), order.paymentTransactionId(), order.userId(), 1,
+                () -> courierShipping(order, company, trackingNo))));
   }
 
   private Map<String, Object> courierShipping(ShopModels.Order order, String company, String trackingNo) {
@@ -85,27 +99,37 @@ public class WechatShippingService {
 
   /** 活动订单确认报名后上报虚拟发货（logistics_type=3）。 */
   public void uploadActivityFulfillment(ActivityOrderModels.Order order, String transactionId) {
-    afterCommit(
-        () -> upload(order.orderNo(), transactionId, order.userId(), 3,
-            () -> Map.of("item_desc", itemDesc(List.of(order.activityTitle() + "×" + order.partySize()))),
-            "activity"));
+    uploadActivityFulfillment(order, transactionId, r -> {});
   }
 
-  private void upload(
+  public void uploadActivityFulfillment(
+      ActivityOrderModels.Order order, String transactionId, Consumer<UploadResult> onResult) {
+    afterCommit(
+        () -> onResult.accept(
+            upload(order.orderNo(), transactionId, order.userId(), 3,
+                () -> Map.of("item_desc", itemDesc(List.of(order.activityTitle() + "×" + order.partySize()))))));
+  }
+
+  /** 单次上报外呼；跳过与失败都不抛异常，结果交给调用方落库。 */
+  UploadResult upload(
       String orderNo, String transactionId, String userId, int logisticsType,
-      Supplier<Map<String, Object>> shippingInfo, String source) {
-    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank()
-        || transactionId == null || transactionId.isBlank()) return;
+      Supplier<Map<String, Object>> shippingInfo) {
+    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank()) {
+      log.warn("发货信息上报未启用或缺少小程序配置 order={}", orderNo);
+      return UploadResult.skipped("disabled");
+    }
+    if (transactionId == null || transactionId.isBlank())
+      return UploadResult.skipped("missing_transaction"); // 免支付订单没有微信交易记录，无需上报
     String openid;
     try {
       openid = auth.wechatOpenid(userId);
     } catch (RuntimeException e) {
-      return; // 非微信身份用户没有可上报的收货方
+      return UploadResult.skipped("no_wechat_identity"); // 非微信身份用户没有可上报的收货方
     }
-    if (!tradeManaged()) return;
+    if (!tradeManaged()) return UploadResult.skipped("not_trade_managed");
     try {
       var shipping = shippingInfo.get();
-      if (shipping == null) return;
+      if (shipping == null) return UploadResult.skipped("shipping_payload_unavailable");
       var body = new LinkedHashMap<String, Object>();
       body.put("order_key", Map.of("order_number_type", 2, "transaction_id", transactionId));
       body.put("logistics_type", logisticsType);
@@ -126,12 +150,17 @@ public class WechatShippingService {
               .retrieve()
               .body(JsonNode.class);
       int code = errorCode(r);
-      if (code == 0) log.info("发货信息已上报({}) order={}", source, orderNo);
-      else log.warn("发货信息上报未成功({}) order={} errcode={}", source, orderNo, code);
+      if (code == 0) log.info("发货信息已上报 order={}", orderNo);
+      else log.warn("发货信息上报未成功 order={} errcode={}", orderNo, code);
+      return code == 0 ? UploadResult.ok() : UploadResult.failed(code, "upload_shipping_info");
     } catch (RuntimeException e) {
-      log.warn("发货信息上报异常({}) order={} error={}", source, orderNo, e.getClass().getSimpleName());
+      log.warn("发货信息上报异常 order={} error={}", orderNo, e.getClass().getSimpleName());
+      return UploadResult.failed(-1, e.getClass().getSimpleName());
     }
   }
+
+  /** 重试任务与后台补报需要据此判断是否可以外呼。 */
+  boolean shippingEnabled() { return enabled; }
 
   private synchronized boolean tradeManaged() {
     if (tradeManaged) return true;
