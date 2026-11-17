@@ -50,7 +50,7 @@ web
 
 ## Evidence on Hand
 
-- 探索页基线：`design/explore-baseline.json`，原生完整截图：`design/assets/explore-reference.png`。
+- 探索页基线：文件哈希见 `docs/ui-refactor/verification.md` §4；设计参考稿为 `design/设计图文件.pen` 内「探索页 / 保留原样参考」（Q78i6）。
 - 既有 API、PostgreSQL、自动化测试、微信模拟器及网页浏览器验收记录。
 - 示例活动、商品及配图用于本地演示，不代表真实出团、真实库存或真实交易。
 - 用户/角色、联系人及商品分类/双价格增量已通过后端完整 `mvn verify` 172/172（0 失败/错误/跳过）；来源验证的正向测试使用隔离库的 provider 成功边界合成身份。Web 全量 131/131 和构建/格式、小程序完整构建及 418/418 已通过；同库升级与真实浏览器、官方微信 SDK 流程已完成。手机真实微信授权和商户资金流转未在本批验收。契约见 [后端](docs/backend.md) 与 [管理后台](docs/admin.md)。

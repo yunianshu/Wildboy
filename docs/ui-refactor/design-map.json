@@ -1,69 +1,9 @@
 {
- "generatedAt": "2026-11-16",
+ "generatedAt": "2026-11-17",
  "sourceFile": "design/设计图文件.pen",
  "penVersion": "2.22",
- "designDigest": "sha256:ae7f591b4e80dfe5（前 16 位，锚定本次读取的文件版本）",
- "artboardTotal": 148,
- "variables": [
-  "wb-bg",
-  "wb-surface",
-  "wb-primary",
-  "wb-ink",
-  "wb-muted",
-  "wb-line",
-  "wb-soft",
-  "wb-danger",
-  "wb-font",
-  "wb-gap",
-  "wb-acc-ops-strong",
-  "wb-acc-ops-soft",
-  "wb-acc-ops-border",
-  "wb-acc-ops-onDark",
-  "wb-acc-activity-strong",
-  "wb-acc-activity-soft",
-  "wb-acc-activity-border",
-  "wb-acc-activity-onDark",
-  "wb-acc-shop-strong",
-  "wb-acc-shop-soft",
-  "wb-acc-shop-border",
-  "wb-acc-shop-onDark",
-  "wb-acc-user-strong",
-  "wb-acc-user-soft",
-  "wb-acc-user-border",
-  "wb-acc-user-onDark",
-  "wb-acc-content-strong",
-  "wb-acc-content-soft",
-  "wb-acc-content-border",
-  "wb-acc-content-onDark",
-  "wb-tone-success-bg",
-  "wb-tone-success-text",
-  "wb-tone-warning-bg",
-  "wb-tone-warning-text",
-  "wb-tone-danger-bg",
-  "wb-tone-danger-text",
-  "wb-tone-info-bg",
-  "wb-tone-info-text",
-  "wb-tone-neutral-bg",
-  "wb-tone-neutral-text",
-  "wb-tone-user-bg",
-  "wb-tone-user-text",
-  "wb-sidebar",
-  "wb-sidebar-active",
-  "wb-brand-text",
-  "wb-accent",
-  "wb-th",
-  "wb-tag",
-  "wb-acc-ops",
-  "wb-acc-activity",
-  "wb-acc-shop",
-  "wb-acc-user",
-  "wb-acc-content",
-  "wb-dot-ops",
-  "wb-dot-activity",
-  "wb-dot-shop",
-  "wb-dot-user",
-  "wb-dot-content"
- ],
+ "designDigest": "sha256:245525147b648e1b（前 16 位；2026-11-17 已删除第一代「后台 /」43 张与浏览器预览节点，仅存现行代）",
+ "artboardTotal": 103,
  "pages": {
   "web": [
    {
@@ -80,24 +20,13 @@
       "route": "/login",
       "nodes": 19,
       "texts": 9,
-      "icons": 0,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#101613",
-       "#1F2937",
-       "#6B7280",
-       "#74857B",
-       "#F6F7F9",
-       "#FFFFFF"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "野小子运营后台",
        "管理员登录",
-       "账号",
-       "请输入管理员账号"
+       "账号"
       ]
      }
     ],
@@ -118,25 +47,13 @@
       "route": "/operations",
       "nodes": 163,
       "texts": 63,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#74857B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -147,25 +64,13 @@
       "route": "/operations",
       "nodes": 92,
       "texts": 34,
-      "icons": 18,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#74857B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -186,25 +91,13 @@
       "route": "/activities",
       "nodes": 166,
       "texts": 60,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -215,25 +108,13 @@
       "route": "/activities",
       "nodes": 69,
       "texts": 30,
-      "icons": 1,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#6B7280",
-       "#74857B",
-       "#C4CDC7",
-       "#E5E7EB"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "活动管理 · 窄屏",
        "工作后台",
-       "管理员",
-       "退出登录"
+       "管理员"
       ]
      }
     ],
@@ -254,25 +135,13 @@
       "route": "/activities/new",
       "nodes": 133,
       "texts": 49,
-      "icons": 17,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -283,25 +152,13 @@
       "route": "/activities/:id/edit",
       "nodes": 133,
       "texts": 49,
-      "icons": 17,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -312,107 +169,13 @@
       "route": "/activities",
       "nodes": 84,
       "texts": 30,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "AypoA",
-      "name": "后台 / 活动取消确认 / cancel-confirm",
-      "w": 1440,
-      "h": 900,
-      "route": "/activities/:id/edit",
-      "state": "edit-schedule",
-      "nodes": 88,
-      "texts": 26,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7E8E2",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     }
-    ],
-    "数据来源": "/api/v1/admin/**（管理鉴权）",
-    "验证方式": "vitest + npm run build + 人工对照"
-   },
-   {
-    "端": "web",
-    "模块": "活动说明与图文",
-    "路由": "/activities/:id/edit（图文分栏）",
-    "实现文件": "admin/src/views/EditorView.vue",
-    "画板": [
-     {
-      "id": "b5wac",
-      "name": "后台 / 活动说明与图文 / activity-details",
-      "w": 1440,
-      "h": 900,
-      "route": "/activities/:id/edit",
-      "state": "activity-details",
-      "nodes": 64,
-      "texts": 20,
-      "icons": 12,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -433,25 +196,13 @@
       "route": "/activities/:id/registrations",
       "nodes": 124,
       "texts": 44,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#74857B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -462,25 +213,13 @@
       "route": "/activities/:id/registrations",
       "nodes": 84,
       "texts": 30,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -501,95 +240,13 @@
       "route": "/templates",
       "nodes": 133,
       "texts": 47,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "AG35F",
-      "name": "后台 / 生成活动草稿 / template-generate",
-      "w": 1440,
-      "h": 900,
-      "route": "/templates",
-      "state": "template-generate",
-      "nodes": 71,
-      "texts": 24,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     },
-     {
-      "id": "dg1pU",
-      "name": "后台 / 保存活动模板 / template-create",
-      "w": 1440,
-      "h": 900,
-      "route": "/templates",
-      "state": "template-create",
-      "nodes": 62,
-      "texts": 20,
-      "icons": 13,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -610,25 +267,13 @@
       "route": "/activity-orders",
       "nodes": 237,
       "texts": 84,
-      "icons": 17,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1D4ED8",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -639,25 +284,13 @@
       "route": "/activity-orders",
       "nodes": 275,
       "texts": 100,
-      "icons": 20,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#11182766",
-       "#1D4ED8",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -668,25 +301,13 @@
       "route": "/activity-orders",
       "nodes": 287,
       "texts": 108,
-      "icons": 20,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#11182766",
-       "#1D4ED8",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -697,25 +318,13 @@
       "route": "/activity-orders",
       "nodes": 72,
       "texts": 32,
-      "icons": 3,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#374151",
-       "#6B7280",
-       "#74857B",
-       "#92400E"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "活动订单",
        "工作后台",
-       "管理员",
-       "退出登录"
+       "管理员"
       ]
      }
     ],
@@ -736,25 +345,13 @@
       "route": "/shop",
       "nodes": 158,
       "texts": 58,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -765,97 +362,13 @@
       "route": "/shop",
       "nodes": 98,
       "texts": 37,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "VrBZD",
-      "name": "后台 / 发货确认 / ship-confirm",
-      "w": 1440,
-      "h": 900,
-      "route": "/shop",
-      "state": "orders",
-      "nodes": 189,
-      "texts": 76,
-      "icons": 13,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     },
-     {
-      "id": "irybD",
-      "name": "后台 / 商品保存确认 / product-save-confirm",
-      "w": 1440,
-      "h": 900,
-      "route": "/shop",
-      "state": "product-edit",
-      "nodes": 100,
-      "texts": 32,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -876,60 +389,13 @@
       "route": "/shop/categories",
       "nodes": 129,
       "texts": 45,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "ie3cy",
-      "name": "后台 / 商品分类 / 创建与编辑",
-      "w": 1440,
-      "h": 900,
-      "route": "/shop/categories",
-      "nodes": 66,
-      "texts": 21,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -950,25 +416,13 @@
       "route": "/refunds",
       "nodes": 130,
       "texts": 46,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#74857B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -979,62 +433,13 @@
       "route": "/refunds",
       "nodes": 100,
       "texts": 37,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "SLpMS",
-      "name": "后台 / 拒绝退款 / refund-reject",
-      "w": 1440,
-      "h": 900,
-      "route": "/refunds",
-      "state": "refund-list",
-      "nodes": 167,
-      "texts": 68,
-      "icons": 12,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7E8E2",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -1055,25 +460,13 @@
       "route": "/shipping-reports",
       "nodes": 189,
       "texts": 75,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151",
-       "#60A5FA"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1082,28 +475,15 @@
       "w": 1280,
       "h": 800,
       "route": "/shipping-reports",
-      "state": "retry-confirm",
       "nodes": 87,
       "texts": 31,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#00000033",
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1117,143 +497,20 @@
     "实现文件": "admin/src/views/UsersView.vue",
     "画板": [
      {
-      "id": "Nwr2l",
-      "name": "后台 / 用户管理 / 列表",
-      "w": 1440,
-      "h": 900,
+      "id": "udj84",
+      "name": "Web / 用户管理",
+      "w": 1280,
+      "h": 800,
       "route": "/users",
-      "nodes": 133,
-      "texts": 54,
-      "icons": 12,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
+      "nodes": 134,
+      "texts": 48,
+      "vars": [],
       "textSamples": [
        "WILDBOY",
+       "OUTDOOR CLUB",
+       "运营",
        "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     },
-     {
-      "id": "a35E2",
-      "name": "后台 / 用户管理 / 资料与权限",
-      "w": 1440,
-      "h": 900,
-      "route": "/users",
-      "nodes": 75,
-      "texts": 27,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-line",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     },
-     {
-      "id": "z7k8T",
-      "name": "后台 / 用户管理 / 报名历史",
-      "w": 1440,
-      "h": 900,
-      "route": "/users",
-      "nodes": 95,
-      "texts": 32,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
-      ]
-     },
-     {
-      "id": "wqrUO",
-      "name": "后台 / 用户管理 / 授予权限确认",
-      "w": 1440,
-      "h": 900,
-      "route": "/users",
-      "nodes": 60,
-      "texts": 20,
-      "icons": 14,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#11291F80",
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -1274,25 +531,13 @@
       "route": "/memberships",
       "nodes": 147,
       "texts": 54,
-      "icons": 17,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151",
-       "#60A5FA"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1303,25 +548,13 @@
       "route": "/memberships",
       "nodes": 188,
       "texts": 69,
-      "icons": 18,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1332,25 +565,13 @@
       "route": "/memberships",
       "nodes": 208,
       "texts": 77,
-      "icons": 25,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#11182766",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1361,25 +582,13 @@
       "route": "/memberships",
       "nodes": 215,
       "texts": 79,
-      "icons": 22,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#11182766",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1400,25 +609,13 @@
       "route": "/articles",
       "nodes": 140,
       "texts": 49,
-      "icons": 18,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#374151",
-       "#60A5FA"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1439,25 +636,13 @@
       "route": "/articles",
       "nodes": 155,
       "texts": 47,
-      "icons": 32,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#0F766E",
-       "#101613",
-       "#111827",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1468,25 +653,13 @@
       "route": "/articles",
       "nodes": 155,
       "texts": 48,
-      "icons": 33,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#0F766E",
-       "#101613",
-       "#111827",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1497,25 +670,13 @@
       "route": "/articles",
       "nodes": 114,
       "texts": 38,
-      "icons": 17,
       "vars": [],
-      "hexTop": [
-       "#00000000",
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1526,25 +687,13 @@
       "route": "/activities/:id/edit",
       "nodes": 52,
       "texts": 20,
-      "icons": 3,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#6B7280",
-       "#74857B",
-       "#C4CDC7",
-       "#C7CCD4",
-       "#E5E7EB"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "文章管理",
        "工作后台",
-       "管理员",
-       "退出登录"
+       "管理员"
       ]
      },
      {
@@ -1555,25 +704,13 @@
       "route": "/articles",
       "nodes": 167,
       "texts": 52,
-      "icons": 34,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#0F766E",
-       "#101613",
-       "#111827",
-       "#11182766",
-       "#1F2937",
-       "#22332B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1594,61 +731,13 @@
       "route": "/legal",
       "nodes": 105,
       "texts": 38,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
-      ]
-     },
-     {
-      "id": "y49HRk",
-      "name": "后台 / 协议管理 / legal-draft",
-      "w": 1440,
-      "h": 900,
-      "route": "/legal",
-      "state": "legal-draft",
-      "nodes": 75,
-      "texts": 24,
-      "icons": 12,
-      "vars": [
-       "$wb-bg",
-       "$wb-ink",
-       "$wb-line",
-       "$wb-muted",
-       "$wb-primary",
-       "$wb-soft",
-       "$wb-surface"
-      ],
-      "hexTop": [
-       "#193F34",
-       "#315B48",
-       "#BBCDBD",
-       "#D9E4CF",
-       "#F7F8EE",
-       "#FFFFFF"
-      ],
-      "textSamples": [
-       "WILDBOY",
-       "运营工作台",
-       "活动管理",
-       "用户管理",
-       "商品与库存",
-       "订单与发货"
+       "消息管理"
       ]
      }
     ],
@@ -1669,25 +758,13 @@
       "route": "/notifications",
       "nodes": 130,
       "texts": 46,
-      "icons": 16,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#74857B"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1698,25 +775,13 @@
       "route": "/notifications",
       "nodes": 90,
       "texts": 33,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1737,25 +802,13 @@
       "route": "/settings",
       "nodes": 135,
       "texts": 47,
-      "icons": 28,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1766,25 +819,13 @@
       "route": "/settings",
       "nodes": 143,
       "texts": 51,
-      "icons": 28,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1795,25 +836,13 @@
       "route": "/settings",
       "nodes": 138,
       "texts": 48,
-      "icons": 29,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280",
-       "#6D4B18"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1824,25 +853,13 @@
       "route": "/settings",
       "nodes": 77,
       "texts": 28,
-      "icons": 14,
       "vars": [],
-      "hexTop": [
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#6B7280",
-       "#74857B",
-       "#C4CDC7",
-       "#E5E7EB",
-       "#F6F7F9"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "基础配置",
        "工作后台",
-       "管理员",
-       "退出登录"
+       "管理员"
       ]
      }
     ],
@@ -1863,25 +880,13 @@
       "route": "/settings/admin-account",
       "nodes": 87,
       "texts": 32,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      },
      {
@@ -1892,25 +897,13 @@
       "route": "/settings/admin-account",
       "nodes": 102,
       "texts": 38,
-      "icons": 15,
       "vars": [],
-      "hexTop": [
-       "#047857",
-       "#065F46",
-       "#101613",
-       "#1F2937",
-       "#22332B",
-       "#2DD4BF",
-       "#60A5FA",
-       "#6B7280"
-      ],
       "textSamples": [
        "WILDBOY",
        "OUTDOOR CLUB",
        "运营",
        "运营工作台",
-       "消息管理",
-       "活动"
+       "消息管理"
       ]
      }
     ],
@@ -1933,9 +926,7 @@
       "route": "pages/home/index",
       "nodes": 1,
       "texts": 0,
-      "icons": 0,
       "vars": [],
-      "hexTop": [],
       "textSamples": []
      }
     ],
@@ -1956,7 +947,6 @@
       "route": "pages/activities/index",
       "nodes": 68,
       "texts": 25,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -1966,16 +956,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "活动",
        "选一条路，走进山野。",
        "全部",
-       "本周活动",
-       "国内游行"
+       "本周活动"
       ]
      }
     ],
@@ -1996,7 +982,6 @@
       "route": "pages/detail/index",
       "nodes": 44,
       "texts": 12,
-      "icons": 10,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2006,14 +991,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "活动详情",
        "本周活动 · 免费参加",
        "【演示】周末山野徒步",
-       "沿山间小路出发，在林间停留，和同行的人一起感",
-       "11 月 7 日 周六 · 09:00 出发"
+       "沿山间小路出发，在林间停留，和同行的人一"
       ]
      },
      {
@@ -2024,7 +1007,6 @@
       "route": "pages/detail/index",
       "nodes": 52,
       "texts": 17,
-      "icons": 12,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2034,14 +1016,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "活动详情",
        "已报名 · 2 位参与人",
        "【演示】周末山野徒步",
-       "11 月 7 日 09:00 · 示例目的地",
-       "出发前，再核对一次"
+       "11 月 7 日 09:00 · 示例目"
       ]
      }
     ],
@@ -2062,7 +1042,6 @@
       "route": "pages/register/index",
       "nodes": 50,
       "texts": 15,
-      "icons": 8,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2072,14 +1051,62 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "填写报名",
        "免费活动 · 还可报名 8 人",
        "【演示】周末山野徒步",
-       "11 月 7 日 09:00 · 示例集合点",
-       "参与人 · 1 位"
+       "11 月 7 日 09:00 · 示例集"
+      ]
+     },
+     {
+      "id": "JLFre",
+      "name": "状态稿 / 活动与报名 · 状态",
+      "w": 390,
+      "h": 1209,
+      "route": "pages/detail/index",
+      "nodes": 37,
+      "texts": 14,
+      "vars": [
+       "$wb-bg",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "textSamples": [
+       "活动与报名 · 状态",
+       "以下为独立状态示例，不同时显示。",
+       "名额已满",
+       "本活动暂时没有可报名名额。你仍可查看活动",
+       "本次报名已截止"
+      ]
+     },
+     {
+      "id": "hlmk3",
+      "name": "状态稿 / 参与人与协议 · 恢复",
+      "w": 390,
+      "h": 1138,
+      "route": "pages/register/index",
+      "nodes": 42,
+      "texts": 16,
+      "vars": [
+       "$wb-bg",
+       "$wb-danger",
+       "$wb-ink",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "textSamples": [
+       "参与人与协议 · 恢复",
+       "以下为独立状态示例，不同时显示。",
+       "添加参与人",
+       "姓名",
+       "手机号"
       ]
      }
     ],
@@ -2100,7 +1127,6 @@
       "route": "pages/signup-success/index",
       "nodes": 39,
       "texts": 10,
-      "icons": 11,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2110,14 +1136,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "报名结果",
        "报名已确认",
-       "1 位参与人已成功加入活动。\n出发前，请再次",
-       "【演示】周末山野徒步",
-       "11 月 7 日 09:00 出发"
+       "1 位参与人已成功加入活动。\n出发前，请",
+       "【演示】周末山野徒步"
       ]
      }
     ],
@@ -2138,7 +1162,6 @@
       "route": "pages/registrations/index",
       "nodes": 46,
       "texts": 16,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2148,16 +1171,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "我的报名",
        "查看参与记录，管理接下来的出行。",
        "全部",
-       "已确认",
-       "已取消"
+       "已确认"
       ]
      }
     ],
@@ -2178,7 +1197,6 @@
       "route": "pages/notifications/index",
       "nodes": 45,
       "texts": 16,
-      "icons": 10,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2188,14 +1206,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "活动消息",
        "接收活动提醒",
-       "本页可查看已有消息。微信提醒需你主动授权，每",
-       "微信提醒已发送",
-       "活动变更通知"
+       "本页可查看已有消息。微信提醒需你主动授权",
+       "微信提醒已发送"
       ]
      }
     ],
@@ -2216,7 +1232,6 @@
       "route": "pages/activity-orders/index",
       "nodes": 65,
       "texts": 29,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2230,16 +1245,12 @@
        "$wb-tone-warning-bg",
        "$wb-tone-warning-text"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "我的活动订单",
-       "登录后展示本人全部收费活动订单；待付款单提供",
+       "登录后展示本人全部收费活动订单；待付款单",
        "龙门山周末徒步",
-       "待支付",
-       "2 人 · 合计 ¥200.00"
+       "待支付"
       ]
      },
      {
@@ -2250,7 +1261,6 @@
       "route": "pages/orders/index",
       "nodes": 33,
       "texts": 14,
-      "icons": 4,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2260,14 +1270,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "订单售后 · 申请与核对",
        "以下为独立状态示例，不同时显示。",
        "申请整单退款",
        "申请金额 ¥199",
-       "仅适用于已支付、尚未发货的订单。提交后由运营",
-       "退款原因"
+       "仅适用于已支付、尚未发货的订单。提交后由"
       ]
      }
     ],
@@ -2288,7 +1296,6 @@
       "route": "pages/shop/index",
       "nodes": 67,
       "texts": 25,
-      "icons": 5,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2298,16 +1305,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "商城",
        "把需要的装备带上。",
        "3 件商品",
-       "全部",
-       "徒步装备"
+       "全部"
       ]
      },
      {
@@ -2318,7 +1321,6 @@
       "route": "pages/shop/index",
       "nodes": 31,
       "texts": 12,
-      "icons": 5,
       "vars": [
        "$wb-bg",
        "$wb-line",
@@ -2327,14 +1329,36 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "商城 · 加载与刷新",
        "以下为独立状态示例，不同时显示。",
        "正在加载商品…",
        "还没有在售商品",
-       "稍后再来看看，或下拉刷新。",
-       "商品暂时加载失败"
+       "稍后再来看看，或下拉刷新。"
+      ]
+     },
+     {
+      "id": "FKrkZ",
+      "name": "状态稿 / 列表与商品 · 边界",
+      "w": 390,
+      "h": 870,
+      "route": "pages/product/index",
+      "nodes": 32,
+      "texts": 13,
+      "vars": [
+       "$wb-bg",
+       "$wb-line",
+       "$wb-muted",
+       "$wb-primary",
+       "$wb-soft",
+       "$wb-surface"
+      ],
+      "textSamples": [
+       "列表与商品 · 边界",
+       "以下为独立状态示例，不同时显示。",
+       "当前筛选下没有记录",
+       "试试其他筛选，或返回查看全部记录。",
+       "正在加载更多…"
       ]
      }
     ],
@@ -2355,7 +1379,6 @@
       "route": "pages/product/index",
       "nodes": 44,
       "texts": 14,
-      "icons": 9,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2365,14 +1388,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "商品详情",
        "¥199.00",
        "有货",
-       "原价 ¥249.00",
-       "徒步装备"
+       "原价 ¥249.00"
       ]
      }
     ],
@@ -2393,7 +1414,6 @@
       "route": "pages/checkout/index",
       "nodes": 49,
       "texts": 13,
-      "icons": 9,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2403,14 +1423,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "确认订单",
        "林小野  138 0000 8000",
        "上海市示例区 山野路 18 号 2 室",
-       "点击更换，订单提交后保存本次地址快照。",
-       "【演示】轻量徒步背包"
+       "点击更换，订单提交后保存本次地址快照。"
       ]
      },
      {
@@ -2421,7 +1439,6 @@
       "route": "pages/checkout/index",
       "nodes": 32,
       "texts": 12,
-      "icons": 5,
       "vars": [
        "$wb-bg",
        "$wb-muted",
@@ -2429,14 +1446,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "结算与支付 · 恢复",
        "以下为独立状态示例，不同时显示。",
        "协议暂时加载失败",
-       "商品与收货地址已保留。重新加载后，请再次阅读",
-       "购买数量超出范围",
-       "每单最多 99 件，并以当前库存为限。请返回"
+       "商品与收货地址已保留。重新加载后，请再次",
+       "购买数量超出范围"
       ]
      }
     ],
@@ -2457,7 +1472,6 @@
       "route": "pages/orders/index",
       "nodes": 59,
       "texts": 19,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2467,16 +1481,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "我的订单",
        "全部",
        "待支付",
-       "待发货",
-       "已发货"
+       "待发货"
       ]
      },
      {
@@ -2487,7 +1497,6 @@
       "route": "pages/orders/index",
       "nodes": 33,
       "texts": 12,
-      "icons": 4,
       "vars": [
        "$wb-bg",
        "$wb-muted",
@@ -2495,16 +1504,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#F7E8E3"
-      ],
       "textSamples": [
        "订单取消与退款结果",
        "以下为独立状态示例，不同时显示。",
        "取消这笔订单？",
-       "服务端关单成功后会释放库存；已支付订单不能直",
-       "退款申请已拒绝",
-       "申请原因：行程调整。\n审核说明：退款原因需进"
+       "服务端关单成功后会释放库存；已支付订单不",
+       "退款申请已拒绝"
       ]
      }
     ],
@@ -2525,7 +1530,6 @@
       "route": "pages/addresses/index",
       "nodes": 46,
       "texts": 9,
-      "icons": 9,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2535,14 +1539,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "收货地址",
        "轻触地址即可选择并返回结算。",
        "林小野  138 0000 8000",
-       "上海市示例区 山野路 18 号 2 室",
-       "默认地址"
+       "上海市示例区 山野路 18 号 2 室"
       ]
      },
      {
@@ -2553,7 +1555,6 @@
       "route": "pages/addresses/index",
       "nodes": 35,
       "texts": 14,
-      "icons": 1,
       "vars": [
        "$wb-bg",
        "$wb-danger",
@@ -2564,16 +1565,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#F7E8E3"
-      ],
       "textSamples": [
        "收货地址 · 编辑与空态",
        "以下为独立状态示例，不同时显示。",
        "新增收货地址",
        "收件人姓名",
-       "手机号",
-       "请输入 11 位中国大陆手机号"
+       "手机号"
       ]
      }
     ],
@@ -2594,7 +1591,6 @@
       "route": "pages/mine/index",
       "nodes": 69,
       "texts": 17,
-      "icons": 20,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2604,14 +1600,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "我的山野",
        "山野同行者",
        "微信用户",
-       "我的报名",
-       "我的订单"
+       "我的报名"
       ]
      },
      {
@@ -2622,7 +1616,6 @@
       "route": "pages/mine/index",
       "nodes": 36,
       "texts": 13,
-      "icons": 3,
       "vars": [
        "$wb-bg",
        "$wb-muted",
@@ -2630,14 +1623,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "我的 · 身份与独立恢复",
        "以下为独立状态示例，不同时显示。",
        "一起走进山野",
-       "报名、订单与个人消息需要登录，公开内容仍可浏",
-       "暂时无法核对协议版本",
-       "当前账号和已有记录仍保留，报名与订单入口可继"
+       "报名、订单与个人消息需要登录，公开内容仍",
+       "暂时无法核对协议版本"
       ]
      }
     ],
@@ -2658,7 +1649,6 @@
       "route": "pages/profile/index",
       "nodes": 22,
       "texts": 8,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2667,14 +1657,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "活动联系人",
        "参加活动前，完善本人联系资料",
        "林小野 · 示例",
-       "本人姓名：林小野",
-       "联系手机号：13800000000"
+       "本人姓名：林小野"
       ]
      },
      {
@@ -2685,7 +1673,6 @@
       "route": "pages/profile/index",
       "nodes": 45,
       "texts": 15,
-      "icons": 8,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2694,17 +1681,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#11291F80",
-       "#D9DED3"
-      ],
       "textSamples": [
        "9:41",
        "活动联系人",
        "参加活动前，完善本人联系资料",
        "林小野 · 示例",
-       "本人姓名：林小野",
-       "联系手机号：13800000000"
+       "本人姓名：林小野"
       ]
      }
     ],
@@ -2725,7 +1707,6 @@
       "route": "pages/login/index",
       "nodes": 34,
       "texts": 8,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2735,14 +1716,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "微信登录",
        "下一程，\n和同频的人一起出发。",
-       "登录后可报名活动、管理订单和查看活动消息。公",
-       "由你阅读，由你选择",
-       "请先打开两份当前版本文件。阅读完成后，再勾选"
+       "登录后可报名活动、管理订单和查看活动消息",
+       "由你阅读，由你选择"
       ]
      },
      {
@@ -2753,7 +1732,6 @@
       "route": "pages/login/index",
       "nodes": 34,
       "texts": 12,
-      "icons": 3,
       "vars": [
        "$wb-bg",
        "$wb-line",
@@ -2762,14 +1740,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "登录与协议 · 恢复",
        "以下为独立状态示例，不同时显示。",
        "暂时无法登录",
-       "当前协议尚未就绪，请稍后重试。你仍可先浏览公",
-       "登录暂未完成",
-       "请检查网络后重试，只有服务确认身份后才会进入"
+       "当前协议尚未就绪，请稍后重试。你仍可先浏",
+       "登录暂未完成"
       ]
      }
     ],
@@ -2790,28 +1766,18 @@
       "route": "pages/privacy/index",
       "nodes": 36,
       "texts": 10,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
        "$wb-line",
        "$wb-primary"
       ],
-      "hexTop": [
-       "#193E33",
-       "#203E34",
-       "#68776C",
-       "#7A8476",
-       "#D7DED5",
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "野小子 · 文章",
        "开发演示 · 已发布文章",
        "初冬徒步装备清单",
-       "从保暖分层到头灯，出发前逐项检查，再确认集合",
-       "出发前的装备原则"
+       "从保暖分层到头灯，出发前逐项检查，再确认"
       ]
      }
     ],
@@ -2832,7 +1798,6 @@
       "route": "pages/privacy/index",
       "nodes": 29,
       "texts": 8,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2842,14 +1807,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "隐私政策",
        "开发演示 · 当前版本",
        "【开发演示】隐私政策",
-       "版本 1 · 以服务端发布版本为准",
-       "仅供开发环境流程演示，非正式法律条款。请勿作"
+       "版本 1 · 以服务端发布版本为准"
       ]
      }
     ],
@@ -2870,7 +1833,6 @@
       "route": "pages/admin-login/index",
       "nodes": 26,
       "texts": 7,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2879,14 +1841,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "管理员身份验证",
        "进入运营工作区",
-       "使用已在网页后台配置的管理员账号。登录不会改",
-       "管理员账号",
-       "密码"
+       "使用已在网页后台配置的管理员账号。登录不",
+       "管理员账号"
       ]
      },
      {
@@ -2897,7 +1857,6 @@
       "route": "pages/admin-login/index",
       "nodes": 22,
       "texts": 5,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2906,12 +1865,11 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "管理员身份验证",
        "暂时无法核对入口状态",
-       "请检查网络后重试。核对完成前，账号和密码输入",
+       "请检查网络后重试。核对完成前，账号和密码",
        "网络恢复后可重新核对，无需修改后台账号。"
       ]
      },
@@ -2923,7 +1881,6 @@
       "route": "pages/admin-login/index",
       "nodes": 21,
       "texts": 5,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2932,13 +1889,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "管理员身份验证",
        "管理员登录尚未启用",
-       "请先在网页后台配置管理员账号。配置完成后，小",
-       "已在网页后台完成设置？返回后重新打开此页即可"
+       "请先在网页后台配置管理员账号。配置完成后",
+       "已在网页后台完成设置？返回后重新打开此页"
       ]
      }
     ],
@@ -2959,7 +1915,6 @@
       "route": "pages/admin-activities/index",
       "nodes": 52,
       "texts": 15,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -2968,17 +1923,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#F7E8E2",
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "活动管理",
        "全部",
        "已发布",
-       "草稿",
-       "已取消"
+       "草稿"
       ]
      }
     ],
@@ -2999,7 +1949,6 @@
       "route": "pages/admin-editor/index",
       "nodes": 47,
       "texts": 13,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3008,16 +1957,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "编辑活动",
        "基本信息",
        "报名设置",
-       "详情内容",
-       "活动名称"
+       "详情内容"
       ]
      },
      {
@@ -3028,7 +1973,6 @@
       "route": "pages/admin-editor/index",
       "nodes": 48,
       "texts": 14,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3038,16 +1982,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "报名设置",
        "基本信息",
        "报名设置",
-       "详情内容",
-       "活动名额"
+       "详情内容"
       ]
      },
      {
@@ -3058,7 +1998,6 @@
       "route": "pages/admin-editor/index",
       "nodes": 34,
       "texts": 9,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3067,16 +2006,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "详情内容",
        "基本信息",
        "报名设置",
-       "详情内容",
-       "活动简介"
+       "详情内容"
       ]
      },
      {
@@ -3087,7 +2022,6 @@
       "route": "pages/admin-activities/index",
       "nodes": 28,
       "texts": 8,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-danger",
@@ -3097,14 +2031,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "取消活动",
        "确认取消这个活动？",
        "【演示】周末山野徒步",
-       "11月6日 09:00—15:00\n演示目的",
-       "已发布"
+       "11月6日 09:00—15:00\n演示"
       ]
      },
      {
@@ -3115,7 +2047,6 @@
       "route": "pages/admin-activities/index",
       "nodes": 28,
       "texts": 7,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3124,14 +2055,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "活动已取消",
        "活动已取消",
        "【演示】周末山野徒步",
-       "11月6日 09:00—15:00\n此处为成",
-       "已取消"
+       "11月6日 09:00—15:00\n此处"
       ]
      }
     ],
@@ -3152,7 +2081,6 @@
       "route": "pages/admin-roster/index",
       "nodes": 34,
       "texts": 12,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3161,16 +2089,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "报名名单",
        "【演示】周末山野徒步",
        "11月6日 09:00 · 按报名组查看",
-       "有效报名",
-       "取消历史"
+       "有效报名"
       ]
      }
     ],
@@ -3191,7 +2115,6 @@
       "route": "pages/admin-legal/index",
       "nodes": 34,
       "texts": 9,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3200,16 +2123,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "协议管理",
        "隐私政策",
        "用户协议",
-       "已发布 v2 · 草稿修订 4",
-       "标题"
+       "已发布 v2 · 草稿修订 4"
       ]
      },
      {
@@ -3220,7 +2139,6 @@
       "route": "pages/admin-legal/index",
       "nodes": 36,
       "texts": 10,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3229,14 +2147,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "已发布历史",
        "已发布版本保持只读",
        "演示隐私政策",
-       "版本 v2 · 历史记录",
-       "当前版本"
+       "版本 v2 · 历史记录"
       ]
      },
      {
@@ -3247,7 +2163,6 @@
       "route": "pages/admin-activities/index",
       "nodes": 30,
       "texts": 9,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3256,14 +2171,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "确认发布活动",
        "向用户发布这个活动？",
        "【演示】周末山野徒步",
-       "11月6日 09:00—15:00\n示例目的",
-       "草稿"
+       "11月6日 09:00—15:00\n示例"
       ]
      }
     ],
@@ -3284,7 +2197,6 @@
       "route": "pages/admin-shop/index",
       "nodes": 40,
       "texts": 10,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3293,14 +2205,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "商品管理",
        "商品与库存",
        "【演示】轻量徒步背包",
-       "¥199.00 · 可售12件",
-       "上架中"
+       "¥199.00 · 可售12件"
       ]
      }
     ],
@@ -3321,7 +2231,6 @@
       "route": "pages/admin-product/index",
       "nodes": 53,
       "texts": 13,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3330,14 +2239,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "编辑商品",
        "商品名称",
        "商品分类",
-       "徒步装备",
-       "原价（元）"
+       "徒步装备"
       ]
      },
      {
@@ -3348,7 +2255,6 @@
       "route": "pages/admin-product/index",
       "nodes": 75,
       "texts": 20,
-      "icons": 8,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3357,14 +2263,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "编辑商品",
        "商品名称",
        "商品分类",
-       "徒步装备",
-       "原价（元）"
+       "徒步装备"
       ]
      }
     ],
@@ -3385,7 +2289,6 @@
       "route": "pages/admin-orders/index",
       "nodes": 36,
       "texts": 13,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3394,17 +2297,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#596A60",
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "订单管理",
        "待发货",
        "已发货",
-       "全部",
-       "演示装备订单"
+       "全部"
       ]
      },
      {
@@ -3415,7 +2313,6 @@
       "route": "pages/admin-orders/index",
       "nodes": 29,
       "texts": 9,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3424,14 +2321,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "确认发货",
        "商品已实际交付发出？",
        "演示订单号 WB202611060001",
-       "【演示】轻量徒步背包",
-       "数量 1 · 合计 ¥199.00"
+       "【演示】轻量徒步背包"
       ]
      },
      {
@@ -3442,7 +2337,6 @@
       "route": "pages/admin-orders/index",
       "nodes": 28,
       "texts": 8,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3451,14 +2345,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "发货完成",
        "订单已标记为发货",
        "演示订单号 WB202611060001",
-       "【演示】轻量徒步背包",
-       "数量 1 · 此处为成功结果设计示例"
+       "【演示】轻量徒步背包"
       ]
      }
     ],
@@ -3479,7 +2371,6 @@
       "route": "pages/admin-content/index",
       "nodes": 37,
       "texts": 6,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3488,17 +2379,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#E2E7DD",
-       "#F7E8E2"
-      ],
       "textSamples": [
        "9:41",
        "图文详情",
-       "修改尚未保存。确认当前内容块后，再保存整篇图",
+       "修改尚未保存。确认当前内容块后，再保存整",
        "文字 · 活动介绍",
-       "此处为演示说明，实际路线与装备要求由组织者填",
-       "图片 · 场景示例"
+       "此处为演示说明，实际路线与装备要求由组织"
       ]
      },
      {
@@ -3509,7 +2395,6 @@
       "route": "pages/admin-content/index",
       "nodes": 38,
       "texts": 6,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-danger",
@@ -3519,17 +2404,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [
-       "#E2E7DD",
-       "#F7E8E2"
-      ],
       "textSamples": [
        "9:41",
        "图文详情",
-       "图文已被其他管理员更新。本地修改已保留，请先",
+       "图文已被其他管理员更新。本地修改已保留，",
        "文字 · 活动介绍",
-       "此处为演示说明，实际路线与装备要求由组织者填",
-       "图片 · 场景示例"
+       "此处为演示说明，实际路线与装备要求由组织"
       ]
      },
      {
@@ -3540,7 +2420,6 @@
       "route": "pages/admin-content/index",
       "nodes": 20,
       "texts": 5,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3549,13 +2428,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "重新加载图文",
        "放弃本地修改并重新加载？",
-       "重新加载会替换本地内容块与尚未确认的输入，请",
-       "返回检查会保留当前输入和内容块，不发送重新加"
+       "重新加载会替换本地内容块与尚未确认的输入",
+       "返回检查会保留当前输入和内容块，不发送重"
       ]
      }
     ],
@@ -3576,7 +2454,6 @@
       "route": "pages/admin-users/index",
       "nodes": 33,
       "texts": 13,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3585,14 +2462,12 @@
        "$wb-soft",
        "$wb-surface"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "用户管理",
        "用户资料与权限",
-       "姓名、手机号与证件默认脱敏。正式管理员可为已",
-       "林小野 · 示例",
-       "微信账号 · 普通用户"
+       "姓名、手机号与证件默认脱敏。正式管理员可",
+       "林小野 · 示例"
       ]
      },
      {
@@ -3603,7 +2478,6 @@
       "route": "pages/admin-users/index",
       "nodes": 28,
       "texts": 9,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3611,14 +2485,12 @@
        "$wb-primary",
        "$wb-soft"
       ],
-      "hexTop": [],
       "textSamples": [
        "9:41",
        "用户详情",
        "林小野 · 示例",
        "账号来源",
-       "已验证微信账号",
-       "当前角色：普通用户"
+       "已验证微信账号"
       ]
      }
     ],
@@ -3639,7 +2511,6 @@
       "route": "pages/admin-activity-orders/index",
       "nodes": 73,
       "texts": 32,
-      "icons": 7,
       "vars": [
        "$wb-bg",
        "$wb-danger",
@@ -3655,16 +2526,12 @@
        "$wb-tone-warning-bg",
        "$wb-tone-warning-text"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "活动订单与退款管理",
-       "已验证管理员 · 仅显示当前收费活动的订单",
+       "已验证管理员 · 仅显示当前收费活动的订",
        "龙门山周末徒步",
-       "待支付",
-       "订单号 A404a66a09a7a4447"
+       "待支付"
       ]
      }
     ],
@@ -3685,7 +2552,6 @@
       "route": "pages/admin-memberships/index",
       "nodes": 96,
       "texts": 36,
-      "icons": 6,
       "vars": [
        "$wb-bg",
        "$wb-ink",
@@ -3697,16 +2563,12 @@
        "$wb-tone-user-bg",
        "$wb-tone-user-text"
       ],
-      "hexTop": [
-       "#FFFFFF"
-      ],
       "textSamples": [
        "9:41",
        "会员管理",
        "会员等级",
        "用户身份",
-       "活动、商品优惠分别设置，未开启优惠按原价。",
-       "＋新等级"
+       "活动、商品优惠分别设置，未开启优惠按原价"
       ]
      }
     ],

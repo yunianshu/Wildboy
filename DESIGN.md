@@ -1,6 +1,6 @@
 # 野小子界面规范
 
-本轮全端重设计以 design/mobile-user-manifest.json、design/mobile-admin-manifest.json、design/admin-manifest.json 和 docs/redesign/design-review.md 的实际验收稿为依据。探索页保持确认过的基线：首页布局、miniprogram/src/app.wxss 与两张装备/平台素材不因其他页面重设计而改动。
+本轮全端重设计以 design/设计图文件.pen（现行代画板，页面索引见 docs/ui-refactor/design-map.json）和 docs/redesign/design-review.md 的实际验收稿为依据。探索页保持确认过的基线：首页布局、miniprogram/src/app.wxss 与两张装备/平台素材不因其他页面重设计而改动。
 
 其余小程序页面分别通过 styles/user-flow.wxss 与 styles/admin-flow.wxss 的页面作用域实现新稿；网页后台使用自己的共享 CSS 和 Vue 组件。旧全局样式只作为探索页与基础兼容层，不能用旧规范推翻已验收的新稿。最终实现效果以浏览器、微信截图和业务行为证据为准，验证结果单独记录在 docs/redesign/verification.md。
 
@@ -76,7 +76,7 @@
 
 ## 网页后台（已验收 Pen 设计）
 
-既有网页重设计基线使用 design/admin-manifest.json 的 36 张设计稿（含通知条件恢复补充稿）。2026-10-31 已按用户要求删除候补页面、状态稿、导航和关联文案；该阶段小程序用户稿为 14 张主屏及 11 张状态/变体，普通活动通知保留。删除专项及阶段证据见 docs/waitlist-removal-2026-10-31.md；历史静态验收见 docs/redesign/design-review.md。新增用户/分类/双价按上一节单独核对，不把旧截图当作本次增量验收。所有运行数据来自 API，设计示例不进入业务界面。
+既有网页重设计基线使用第一代 36 张设计稿（含通知条件恢复补充稿；该代画板与清单已于 2026-11-17 设计精简移除，git 存档）。2026-10-31 已按用户要求删除候补页面、状态稿、导航和关联文案；该阶段小程序用户稿为 14 张主屏及 11 张状态/变体，普通活动通知保留。删除专项及阶段证据见 docs/waitlist-removal-2026-10-31.md；历史静态验收见 docs/redesign/design-review.md。新增用户/分类/双价按上一节单独核对，不把旧截图当作本次增量验收。所有运行数据来自 API，设计示例不进入业务界面。
 
 - 共享规范在 admin/src/style.css：纸色 #f6f4ed、白色内容底、森林绿 #193f34、正文 #203e34、辅助文字 #596a60、次按钮 #e8eedf、危险文字 #923b31。
 - 2026-11-14 配色扩展（依据用户"颜色太单调"反馈，规范见 docs/redesign/web-admin-color-expansion-2026-11-14.md）：v1 模块色方案上线后按用户反馈整体换肤为**清爽浅色 SaaS 风（v2，当前生效）**——中性冷灰 chrome（背景 #f6f7f9、卡片白、描边 #e5e8ec、正文灰阶）、墨绿近黑侧栏 #101613、翡翠绿品牌 #047857（主按钮/选中/焦点）、五个高饱和模块色（运营蓝 #2563eb、活动橙 #c2410c、商城金 #b45309、用户紫 #7c3aed、内容青 #0f766e，仅用于页题标记、卡片分类与侧栏分组点色）、高饱和语义状态色（success #047857、warning #92400e、danger #b91c1c、info #1d4ed8、neutral #374151 各配浅底与描边）。表头统一中性 #f9fafb。`design/设计图文件.pen` Web 画板全部使用字面量 v2 色值；共享 `$wb-*` 变量已于 2026-11-15 恢复为小程序 v1 色板（v2 换肤脚本曾误改全局变量，导致小程序与旧版画板变色，恢复时经核实对 Web 画板零影响）。

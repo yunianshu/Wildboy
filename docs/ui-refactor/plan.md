@@ -11,7 +11,7 @@
 | 小程序 (miniprogram/) | 微信原生小程序 + TypeScript | 全局 `app.wxss` + 页面 wxss + `styles/motion.wxss`；自定义 TabBar | `npm test`（build + tsc + node --test 524 用例）、`npm run typecheck` |
 | 设计 (design/) | Pen 源文件（JSON 节点树） | `$wb-*` 颜色/字体变量；Web 画板用 recolor-v2 色板（与 `--admin-*` 一一对应） | 结构校验脚本 + JSON 回读 |
 
-Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON，仓库既有工作流即「脚本直接编辑 .pen + 先备份 + 结构校验」（见 `design/scripts/pen-web-admin-recolor-v2-2026-11-14.py`）。本次沿用该约定。
+Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON，仓库既有工作流即「脚本直接编辑 .pen + 先备份 + 结构校验」（历史脚本已随 2026-11-17 design 目录精简移除，见 git 历史）。本次沿用该约定。
 
 ## 2. 小程序主页面（保护对象）识别与基线
 
@@ -38,25 +38,25 @@ Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON�
 | 登录 | 管理员登录 | /login | LoginView.vue | PoJPW | 已设计/已实现，验证 |
 | 运营 | 运营工作台（概览/异常/历史） | /operations | OperationsView.vue | jooRk（+mS4Tg 列表态） | 已设计/已实现；**需补「发货上报待处理」指标卡画板** |
 | 活动 | 活动管理列表 | /activities | ActivitiesView.vue | dxs6Q | 已设计/已实现，验证 |
-| 活动 | 新建/编辑活动（含图文） | /activities/new, /activities/:id/edit | EditorView.vue | CCqVo、afpqo、b5wac | 已设计/已实现，验证 |
+| 活动 | 新建/编辑活动（含图文） | /activities/new, /activities/:id/edit | EditorView.vue | CCqVo、afpqo、jlF19(发布确认) | 已设计/已实现，验证 |
 | 活动 | 报名名单（脱敏/揭示） | /activities/:id/registrations | RosterView.vue | A7gFGK、tSb5v（查看资料确认） | 已设计/已实现，验证 |
 | 活动 | 活动模板 | /templates | TemplatesView.vue | VZIjm | 已设计/已实现，验证 |
 | 活动 | 活动订单/退款 | /activity-orders | ActivityOrdersView.vue | xHqTA、XErK6、othlP、D02kiL | 已设计/已实现，验证 |
-| 商城 | 商城管理（商品+订单发货） | /shop | ShopView.vue | jv8du、jLyLI、VrBZD(发货确认) | 已设计/已实现（上任务恢复后体系一致），验证 |
-| 商城 | 商品分类 | /shop/categories | ProductCategoriesView.vue | Z4snv、ie3cy | 已设计/已实现，验证 |
+| 商城 | 商城管理（商品+订单发货） | /shop | ShopView.vue | jv8du、jLyLI(装备订单/发货) | 已设计/已实现（上任务恢复后体系一致），验证 |
+| 商城 | 商品分类 | /shop/categories | ProductCategoriesView.vue | Z4snv | 已设计/已实现，验证 |
 | 商城 | 退款售后 | /refunds | RefundsView.vue | kc418、pKPcb | 已设计/已实现，验证 |
 | 商城 | **发货上报（新页面）** | /shipping-reports | ShippingReportsView.vue | **缺失 → 本次新增** | 待设计→实现→验证 |
-| 用户 | 用户管理 | /users | UsersView.vue | Nwr2l、a35E2、z7k8T、wqrUO | 已设计/已实现，验证 |
+| 用户 | 用户管理 | /users | UsersView.vue | udj84 | 已设计/已实现，验证 |
 | 用户 | 会员管理 | /memberships | MembershipsView.vue | x9gG8s、V6uBE、vruDl、Asyql | 已设计/已实现，验证 |
 | 内容 | 文章列表 | /articles | ArticlesView.vue | hSL6j | 已设计/已实现，验证 |
 | 内容 | 文章编辑（双栏/窄屏/官方介绍确认） | /articles/new, /articles/:id/edit | ArticleEditorView.vue | Rkx83、MYBYC、LzCfb、TNona、P6RC06 | 已设计/已实现，验证 |
-| 内容 | 协议管理 | /legal | LegalView.vue | Pr4cO、y49HRk | 已设计/已实现，验证 |
+| 内容 | 协议管理 | /legal | LegalView.vue | Pr4cO | 已设计/已实现，验证 |
 | 内容 | 消息管理（恢复通知） | /notifications | NotificationsView.vue | vMuxZ、Sfyhp | 已设计/已实现，验证 |
 | 设置 | 基础配置（四入口/弹窗/冲突恢复） | /settings | SettingsView.vue | DbJts、xNcp5、k0nVX、yJl1Q | 已设计/已实现，验证 |
 | 设置 | 管理员账号 | /settings/admin-account | AdminAccountView.vue | UHolL、jwaEj | 已设计/已实现，验证 |
 | 废弃 | 候补名单（WaitlistView.vue） | —（/waitlist 重定向 /operations） | — | — | 废弃代码，不纳入 |
 
-附属界面（弹窗/状态）已有对应画板：发布确认 jlF19、取消确认 AypoA、发货确认 VrBZD、退款拒绝 SLpMS、模板生成 AG35F、模板保存 dg1pU、商品保存确认 irybD、协议发布确认 i6B60V、共享状态与恢复 C5AQRs、表单反馈 IIzNy、窄屏 UFr8b/YcrPD 等。
+附属界面（弹窗/状态）现行代画板：发布确认 jlF19、查看资料确认 tSb5v、退款申请审核 pKPcb、恢复通知 Sfyhp、版本冲突恢复 k0nVX、设为官方介绍确认 P6RC06、窄屏 UFr8b/YcrPD/D02kiL/TNona/yJl1Q 等；第一代「后台 /」确认弹窗稿已随 2026-11-17 设计精简移除（页面级均有现行代覆盖）。
 
 ## 4. 小程序页面清单（除首页全部重构范围）
 
@@ -93,7 +93,7 @@ Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON�
 | 管理 | **活动订单与退款** | pages/admin-activity-orders/index | **缺失** | **待设计→重构→验证** |
 | 管理 | **会员管理** | pages/admin-memberships/index | **缺失** | **待设计→重构→验证** |
 
-状态稿（加载/空/失败/恢复，多页复用）：JLFre、hlmk3、mGkPt、vaPck、kx38q、MJO4e、tZwlR、KGIQF、FKrkZ、C5AQRs（Web）、IIzNy（Web）。
+状态稿（加载/空/失败/恢复，多页复用）：JLFre、hlmk3、mGkPt、vaPck、kx38q、MJO4e、tZwlR、KGIQF、FKrkZ。
 
 ## 5. 双端页面关系与业务流程（要点）
 
