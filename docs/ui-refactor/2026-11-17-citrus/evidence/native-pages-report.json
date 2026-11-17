@@ -1,0 +1,395 @@
+{
+  "results": [
+    {
+      "route": "pages/home/index",
+      "query": "",
+      "file": "native-home.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 2242
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/activities/index",
+      "query": "",
+      "file": "native-activities.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1585
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/shop/index",
+      "query": "",
+      "file": "native-shop.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1081
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/mine/index",
+      "query": "",
+      "file": "native-mine.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 991
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/detail/index",
+      "query": "?id=ea98a796-2c91-4ae8-ae61-f0c6551411c1",
+      "file": "native-detail.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1522
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/product/index",
+      "query": "?id=843a28cb-e936-4131-bad6-57b2a6c715b4",
+      "file": "native-product.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/checkout/index",
+      "query": "?id=843a28cb-e936-4131-bad6-57b2a6c715b4&quantity=1",
+      "file": "native-checkout.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/orders/index",
+      "query": "",
+      "file": "native-orders.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1628
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/register/index",
+      "query": "?id=ea98a796-2c91-4ae8-ae61-f0c6551411c1",
+      "file": "native-register.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 842
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/registrations/index",
+      "query": "",
+      "file": "native-registrations.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1338
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/signup-success/index",
+      "query": "?id=51120397-601a-4953-a801-41dbfa91762b&registrationId=98b017c7-cd5f-43bf-8095-3057b1dc6a81",
+      "file": "native-signup-success.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 908
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/addresses/index",
+      "query": "",
+      "file": "native-addresses.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/notifications/index",
+      "query": "",
+      "file": "native-notifications.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/profile/index",
+      "query": "",
+      "file": "native-profile.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/activity-orders/index",
+      "query": "",
+      "file": "native-activity-orders.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1384
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/privacy/index",
+      "query": "?kind=PRIVACY",
+      "file": "native-privacy.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/article/index",
+      "query": "?official=1",
+      "file": "native-article.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/login/index",
+      "query": "",
+      "file": "native-login.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "USER"
+    },
+    {
+      "route": "pages/admin-login/index",
+      "query": "",
+      "file": "native-admin-login.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-activities/index",
+      "query": "",
+      "file": "native-admin-activities.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 4626
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-editor/index",
+      "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0",
+      "file": "native-admin-editor.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1116
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-roster/index",
+      "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0",
+      "file": "native-admin-roster.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 964
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-legal/index",
+      "query": "",
+      "file": "native-admin-legal.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 923
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-shop/index",
+      "query": "",
+      "file": "native-admin-shop.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1825
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-product/index",
+      "query": "?id=f794f809-62dc-48ba-bced-80cfd9fd2007",
+      "file": "native-admin-product.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1334
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-orders/index",
+      "query": "",
+      "file": "native-admin-orders.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1630
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-users/index",
+      "query": "",
+      "file": "native-admin-users.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1286
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-content/index",
+      "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0&kind=activity",
+      "file": "native-admin-content.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 753
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-memberships/index",
+      "query": "",
+      "file": "native-admin-memberships.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1004
+      },
+      "error": "",
+      "role": "ADMIN"
+    },
+    {
+      "route": "pages/admin-activity-orders/index",
+      "query": "",
+      "file": "native-admin-activity-orders.png",
+      "rendered": true,
+      "dataValidated": true,
+      "size": {
+        "width": 390,
+        "height": 1049
+      },
+      "error": "",
+      "role": "ADMIN"
+    }
+  ],
+  "exceptions": []
+}

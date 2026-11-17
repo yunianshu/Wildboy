@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createMemoryHistory } from "vue-router";
@@ -172,7 +173,7 @@ describe("legal management", () => {
   });
   it("blocks switching away from unsaved draft when declined", async () => {
     const { wrapper } = await render();
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.spyOn(confirmation, "askConfirm").mockResolvedValue(false);
     await wrapper.get("input").setValue("还没保存的新标题");
     await button(wrapper, "用户协议").trigger("click");
     expect((wrapper.get("input").element as HTMLInputElement).value).toBe(

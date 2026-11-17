@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { request, currentUser, ApiError } from "../api";
@@ -109,14 +110,15 @@ async function load() {
 async function reload() {
   if (
     (dirty.value || conflict.value) &&
-    !window.confirm("重新加载会丢弃当前未保存输入，是否继续？")
+    !(await askConfirm("重新加载会丢弃当前未保存输入，是否继续？"))
   )
     return;
   await load();
 }
 async function changeKind(value: Kind) {
   if (value === kind.value || busy.value || loading.value) return;
-  if (dirty.value && !window.confirm("当前修改未保存，确定切换协议？")) return;
+  if (dirty.value && !(await askConfirm("当前修改未保存，确定切换协议？")))
+    return;
   clear();
   kind.value = value;
   preview.value = false;
@@ -204,10 +206,10 @@ function beforeUnload(e: BeforeUnloadEvent) {
   }
 }
 onBeforeRouteLeave(
-  (to) =>
+  async (to) =>
     to.path === "/login" ||
     !dirty.value ||
-    window.confirm("协议修改尚未保存，确定离开？"),
+    (await askConfirm("协议修改尚未保存，确定离开？")),
 );
 onMounted(() => {
   void load();
@@ -401,7 +403,7 @@ onUnmounted(() => {
   resize: vertical;
 }
 .legal-preview {
-  border-top: 1px solid #d7ddcf;
+  border-top: 1px solid var(--rf-line);
   padding: 20px 0;
   overflow-wrap: anywhere;
 }
@@ -410,8 +412,8 @@ onUnmounted(() => {
   line-height: 1.9;
 }
 .legal-alert {
-  background: #fff0e8;
-  color: #873b25;
+  background: var(--rf-bg);
+  color: var(--rf-danger);
   padding: 16px;
   border-radius: 8px;
 }

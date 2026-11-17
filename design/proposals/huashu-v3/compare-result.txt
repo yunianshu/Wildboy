@@ -1,0 +1,16 @@
+2026-11-17, huashu-design v3.3.0, default design_lint.py compare
+
+dir-1: white #FFFFFF / Noto Sans SC
+dir-2: light tinted #FFFAFB / Noto Sans SC
+dir-3: white #FFFFFF / Noto Sans SC
+
+A / B: palette distance 0.028, skeleton correlation 0.23
+A / C: palette distance 0.004, skeleton correlation 0.51
+B / C: palette distance 0.029, skeleton correlation 0.13
+
+Default script exit code: 1. It flags similar palette distribution for all pairs and the shared white background / heading font for A and C.
+This is not recorded as a passed default compare. All versions deliberately retain a light administration surface, the same Chinese font, original logo and same photos; the complete screenshots and the structural correlations are reviewed separately. Each individual page's readability, contrast, broken image and runtime checks are separate from this palette heuristic.
+
+ledger check: empty local appearance ledger. No accepted design has been recorded. User selection is pending.
+
+Manual review and independent review: keep all three proposals. The script's structural alarm threshold is correlation > 0.55; none of the three pairs reaches it. The palette threshold < 0.06 independently returns an alarm; a matching background class, serif attribute and heading font can independently do the same. Screenshot palette quantization is area-weighted, so the shared light surfaces dominate. The real page structures have been visually reviewed: full navigation sidebar plus photo table, top navigation plus two-column photo cards, and top navigation plus category panel plus capacity list. The default warning remains visible in this record; the script and designs were not altered to suppress it.

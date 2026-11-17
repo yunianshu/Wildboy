@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 /* 会员管理 · 对照 Pen 画板「小程序管理 / 会员管理」(aoeMz) */
 .admin-memberships-page .title { margin-bottom: 8rpx; }
 .toolbar { display: flex; gap: 16rpx; margin-top: 20rpx; }
@@ -5,23 +6,23 @@
 .intro { margin-top: 20rpx; }
 
 .tabs { display: flex; gap: 12rpx; margin: 24rpx 0 4rpx; }
-.tab { flex: 1; min-height: 80rpx; margin: 0; border-radius: 14rpx; background: #e8ecdf; color: #596a60; font-size: 27rpx; line-height: 1.4; }
-.tab.active { background: #193f34; color: #fffdf4; font-weight: 600; }
+.tab { flex: 1; min-height: 80rpx; margin: 0; border-radius: 14rpx; background: var(--rf-soft); color: var(--rf-muted); font-size: 27rpx; line-height: 1.4; }
+.tab.active { background: var(--rf-primary); color: var(--rf-on-primary); font-weight: 600; }
 
 .tier-list { display: flex; flex-wrap: wrap; gap: 12rpx; margin: 24rpx 0; }
-.tier-chip { min-height: 64rpx; margin: 0; padding: 0 28rpx; border-radius: 40rpx; background: #fffdf7; border: 1rpx solid #d8decf; color: #203e34; font-size: 24rpx; line-height: 1.4; }
-.tier-chip.active { background: #193f34; border-color: #193f34; color: #fffdf4; font-weight: 600; }
-.tier-chip.off { color: #8a8f83; }
-.new-tier { border-style: dashed; color: #193f34; font-weight: 600; }
+.tier-chip { min-height: 64rpx; margin: 0; padding: 0 28rpx; border-radius: 40rpx; background: #FFFFFF; border: 1rpx solid var(--rf-line); color: var(--rf-primary-text); font-size: 24rpx; line-height: 1.4; }
+.tier-chip.active { background: var(--rf-primary); border-color: var(--rf-primary-text); color: var(--rf-on-primary); font-weight: 600; }
+.tier-chip.off { color: var(--rf-muted); }
+.new-tier { border-style: dashed; color: var(--rf-primary-text); font-weight: 600; }
 
-.card { background: #fffdf7; padding: 28rpx; border-radius: 16rpx; margin: 24rpx 0; }
+.card { background: #FFFFFF; padding: 28rpx; border-radius: 16rpx; margin: 24rpx 0; }
 .panel-title { font-size: 30rpx; font-weight: 600; margin-bottom: 8rpx; }
-.card input, .card .select { padding: 20rpx; background: #f4f5ef; border-radius: 12rpx; margin: 16rpx 0; }
+.card input, .card .select { padding: 20rpx; background: var(--rf-bg); border-radius: 12rpx; margin: 16rpx 0; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; margin: 20rpx 0; }
 .row input { flex: 1; min-width: 0; }
-.unit { flex-shrink: 0; color: #596a60; font-size: 24rpx; }
+.unit { flex-shrink: 0; color: var(--rf-muted); font-size: 24rpx; }
 
-.rule { border-top: 1rpx solid #e0e4d9; margin-top: 20rpx; padding-top: 6rpx; }
+.rule { border-top: 1rpx solid var(--rf-soft); margin-top: 20rpx; padding-top: 6rpx; }
 .rule-head { font-weight: 600; font-size: 27rpx; }
 .rule-body { margin-top: 4rpx; }
 .rule-body .select { margin: 12rpx 0; }
@@ -38,8 +39,10 @@
 
 .user-head { display: flex; align-items: center; justify-content: space-between; gap: 12rpx; }
 .user-name { font-size: 30rpx; font-weight: 600; }
-.user-badge { background: #f0eaf7; color: #6c4e8c; border-radius: 6rpx; padding: 7rpx 12rpx; font-size: 20rpx; }
-.user-id { display: block; word-break: break-all; font-size: 24rpx; margin: 12rpx 0; color: #8a8f83; }
+.user-badge { background: var(--rf-bg); color: var(--rf-muted); border-radius: 6rpx; padding: 7rpx 12rpx; font-size: 20rpx; }
+.user-id { display: block; word-break: break-all; font-size: 24rpx; margin: 12rpx 0; color: var(--rf-muted); }
 .user-pickers .select { margin: 12rpx 0; }
 .card button { margin-top: 8rpx; }
 .admin-memberships-page .more { margin-top: 24rpx; }
+
+@import "../../styles/slate-components.wxss";

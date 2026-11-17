@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRouter } from "vue-router";
 import {
@@ -58,11 +59,11 @@ function openEditor() {
   conflict.value = false;
   editing.value = true;
 }
-function closeEditor() {
+async function closeEditor() {
   if (busy.value) return;
   if (
     dirty.value &&
-    !window.confirm("账号修改尚未保存，确定放弃本次修改并关闭吗？")
+    !(await askConfirm("账号修改尚未保存，确定放弃本次修改并关闭吗？"))
   )
     return;
   clearPasswords();
@@ -96,10 +97,10 @@ async function load() {
     if (n === epoch) loading.value = false;
   }
 }
-function reload() {
+async function reload() {
   if (
     !dirty.value ||
-    window.confirm("重新读取会清空当前未保存的账号和密码输入，是否继续？")
+    (await askConfirm("重新读取会清空当前未保存的账号和密码输入，是否继续？"))
   )
     void load();
 }
@@ -190,10 +191,10 @@ function beforeUnload(e: BeforeUnloadEvent) {
   }
 }
 onBeforeRouteLeave(
-  (to) =>
+  async (to) =>
     to.path === "/login" ||
     !dirty.value ||
-    window.confirm("账号修改尚未保存，确定离开？"),
+    (await askConfirm("账号修改尚未保存，确定离开？")),
 );
 onMounted(() => {
   void load();
@@ -269,8 +270,12 @@ onUnmounted(() => {
       </p>
     </template>
     <button v-else-if="!loading && !error" @click="load">重新加载</button>
-    <FormModal v-if="editing && settings?.canConfigure" @close="closeEditor">
-      <h2>修改管理员账号</h2>
+    <FormModal
+      :busy="busy"
+      v-if="editing && settings?.canConfigure"
+      @close="closeEditor"
+      ><template #title><h2>修改管理员账号</h2></template>
+
       <form
         id="admin-account-form"
         class="form-section account-form"

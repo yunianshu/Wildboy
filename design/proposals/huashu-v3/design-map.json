@@ -1,0 +1,363 @@
+{
+  "version": 1,
+  "status": "proposals-awaiting-user-selection",
+  "selectedDirection": null,
+  "penSave": {
+    "modifiedAt": "2026-11-17T15:00:52.130676+08:00",
+    "size": 5064358,
+    "verification": "saved-root-evidence.json"
+  },
+  "scope": "Three alternatives for one admin homepage and matching components/dialogs",
+  "thumbnailArtboard": "m1HOo",
+  "pages": [
+    {
+      "platform": "web",
+      "route": "/activities",
+      "direction": "A",
+      "name": "晨光绿白",
+      "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
+      "artboards": [
+        "n2cQ6B",
+        "O79Ql"
+      ],
+      "components": [
+        "AYzxR",
+        "gHFFL",
+        "uimmZ",
+        "ZJcSD",
+        "LxzCX",
+        "SK9Fl",
+        "n5dATU",
+        "lBpug",
+        "GCIUe"
+      ],
+      "variables": {
+        "hd-a-primary": {
+          "type": "color",
+          "value": "#247A52"
+        },
+        "hd-a-soft": {
+          "type": "color",
+          "value": "#EAF4E7"
+        },
+        "hd-a-ink": {
+          "type": "color",
+          "value": "#20372C"
+        },
+        "hd-a-muted": {
+          "type": "color",
+          "value": "#5D7064"
+        },
+        "hd-a-line": {
+          "type": "color",
+          "value": "#E2E9E1"
+        },
+        "hd-a-field": {
+          "type": "color",
+          "value": "#7B8D80"
+        },
+        "hd-a-surface": {
+          "type": "color",
+          "value": "#FFFFFF"
+        },
+        "hd-a-background": {
+          "type": "color",
+          "value": "#F6F8F3"
+        },
+        "hd-a-published": {
+          "type": "color",
+          "value": "#4C5F28"
+        },
+        "hd-a-published-bg": {
+          "type": "color",
+          "value": "#F1F4DE"
+        },
+        "hd-a-draft": {
+          "type": "color",
+          "value": "#74603C"
+        },
+        "hd-a-draft-bg": {
+          "type": "color",
+          "value": "#F6F0E3"
+        },
+        "hd-a-cancelled": {
+          "type": "color",
+          "value": "#9F4C46"
+        },
+        "hd-a-cancelled-bg": {
+          "type": "color",
+          "value": "#FAECE9"
+        },
+        "hd-a-font": {
+          "type": "string",
+          "value": "Noto Sans SC"
+        },
+        "hd-a-radius": {
+          "type": "number",
+          "value": 8
+        },
+        "hd-a-control-height": {
+          "type": "number",
+          "value": 44
+        }
+      },
+      "readbackFile": "design-readback-A.json",
+      "readbackSha256": "d3002a3854edcf04ddb9ed495c9a7ec830d00fb7f2733460a846b0fe5b2fdbfd",
+      "readAfterSave": "2026-11-17T15:00:52.130676+08:00",
+      "previewFile": "design-demos/dir-1.html",
+      "implementationTarget": [
+        "admin/src/views/ActivitiesView.vue",
+        "admin/src/App.vue",
+        "admin/src/components/ConfirmDialog.vue"
+      ],
+      "productionImplemented": false,
+      "dataSource": {
+        "production": "GET /admin/activities?page&size=8&category&status&title",
+        "preview": "sample-data.json (design-only)"
+      },
+      "interactions": [
+        "title search",
+        "category/status filter",
+        "reset and empty result",
+        "navigation group/drawer preview",
+        "paid orders versus free roster",
+        "editor publish confirmation preview"
+      ],
+      "responsiveNote": "1440x900 Pen layout; smaller widths follow each HTML preview and its verification notes. Mobile HTML is not a mini-program runtime.",
+      "previewSha256": "807a6072d7f7c39ee69736155dda03431f368700ba2aaa420a169e7c4100b26b"
+    },
+    {
+      "platform": "web",
+      "route": "/activities",
+      "direction": "B",
+      "name": "莓果晴天",
+      "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
+      "artboards": [
+        "H3X2a",
+        "HyvJK"
+      ],
+      "components": [
+        "iLJFv",
+        "G36zmt",
+        "CG8d0",
+        "fsh8n",
+        "I8Qyzu",
+        "M0fAx",
+        "LhnkF"
+      ],
+      "variables": {
+        "hd-b-primary": {
+          "type": "color",
+          "value": "#B93858"
+        },
+        "hd-b-primary-hover": {
+          "type": "color",
+          "value": "#9E2845"
+        },
+        "hd-b-soft": {
+          "type": "color",
+          "value": "#FDEEF1"
+        },
+        "hd-b-bg": {
+          "type": "color",
+          "value": "#FFFAFB"
+        },
+        "hd-b-surface": {
+          "type": "color",
+          "value": "#FFFFFF"
+        },
+        "hd-b-ink": {
+          "type": "color",
+          "value": "#33242A"
+        },
+        "hd-b-muted": {
+          "type": "color",
+          "value": "#755E67"
+        },
+        "hd-b-line": {
+          "type": "color",
+          "value": "#E8DCE0"
+        },
+        "hd-b-field": {
+          "type": "color",
+          "value": "#A98D97"
+        },
+        "hd-b-success": {
+          "type": "color",
+          "value": "#286747"
+        },
+        "hd-b-success-bg": {
+          "type": "color",
+          "value": "#EAF5EE"
+        },
+        "hd-b-warning": {
+          "type": "color",
+          "value": "#7D5A1B"
+        },
+        "hd-b-warning-bg": {
+          "type": "color",
+          "value": "#FFF5DF"
+        },
+        "hd-b-neutral": {
+          "type": "color",
+          "value": "#665B60"
+        },
+        "hd-b-neutral-bg": {
+          "type": "color",
+          "value": "#F1ECEE"
+        },
+        "hd-b-font": {
+          "type": "string",
+          "value": "Noto Sans SC"
+        },
+        "hd-b-control-height": {
+          "type": "number",
+          "value": 44
+        },
+        "hd-b-radius": {
+          "type": "number",
+          "value": 10
+        }
+      },
+      "readbackFile": "design-readback-B.json",
+      "readbackSha256": "851ea2445a7beac55edc740e98326131935f01e04a6e5039a9a5e9f27e9022e1",
+      "readAfterSave": "2026-11-17T15:00:52.130676+08:00",
+      "previewFile": "design-demos/dir-2.html",
+      "implementationTarget": [
+        "admin/src/views/ActivitiesView.vue",
+        "admin/src/App.vue",
+        "admin/src/components/ConfirmDialog.vue"
+      ],
+      "productionImplemented": false,
+      "dataSource": {
+        "production": "GET /admin/activities?page&size=8&category&status&title",
+        "preview": "sample-data.json (design-only)"
+      },
+      "interactions": [
+        "title search",
+        "category/status filter",
+        "reset and empty result",
+        "navigation group/drawer preview",
+        "paid orders versus free roster",
+        "editor publish confirmation preview"
+      ],
+      "responsiveNote": "1440x900 Pen layout; smaller widths follow each HTML preview and its verification notes. Mobile HTML is not a mini-program runtime.",
+      "previewSha256": "3ac3f0dfe94140d76ed7d3e3386d0879f511b28169b21dfb5ba2cb5de9485a5f"
+    },
+    {
+      "platform": "web",
+      "route": "/activities",
+      "direction": "C",
+      "name": "杏黄留白",
+      "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
+      "artboards": [
+        "M894N",
+        "Nu5Gj"
+      ],
+      "components": [
+        "SSYgy",
+        "R7IaYI",
+        "oiKfb",
+        "gejtk",
+        "yN8KC",
+        "REFyz",
+        "OKILy",
+        "asRCP",
+        "lemCo",
+        "o0TzXY",
+        "q3sOy"
+      ],
+      "variables": {
+        "hd-c-bg": {
+          "type": "color",
+          "value": "#FFFFFF"
+        },
+        "hd-c-ink": {
+          "type": "color",
+          "value": "#302D23"
+        },
+        "hd-c-muted": {
+          "type": "color",
+          "value": "#696557"
+        },
+        "hd-c-line": {
+          "type": "color",
+          "value": "#E3E0D7"
+        },
+        "hd-c-field": {
+          "type": "color",
+          "value": "#918976"
+        },
+        "hd-c-primary": {
+          "type": "color",
+          "value": "#F1CC56"
+        },
+        "hd-c-soft": {
+          "type": "color",
+          "value": "#FFF5CE"
+        },
+        "hd-c-neutral": {
+          "type": "color",
+          "value": "#F5F4EF"
+        },
+        "hd-c-font": {
+          "type": "string",
+          "value": "Noto Sans SC"
+        },
+        "hd-c-radius": {
+          "type": "number",
+          "value": 4
+        },
+        "hd-c-control": {
+          "type": "number",
+          "value": 44
+        },
+        "hd-c-success": {
+          "type": "color",
+          "value": "#2E6041"
+        },
+        "hd-c-success-bg": {
+          "type": "color",
+          "value": "#EDF5EE"
+        },
+        "hd-c-danger": {
+          "type": "color",
+          "value": "#9F4032"
+        },
+        "hd-c-danger-bg": {
+          "type": "color",
+          "value": "#FAEBE7"
+        }
+      },
+      "readbackFile": "design-readback-C.json",
+      "readbackSha256": "d4c8333aacadf379e4b94cb790da134552f20f01d2b590e001a1b088b9d2ca0d",
+      "readAfterSave": "2026-11-17T15:00:52.130676+08:00",
+      "previewFile": "design-demos/dir-3.html",
+      "implementationTarget": [
+        "admin/src/views/ActivitiesView.vue",
+        "admin/src/App.vue",
+        "admin/src/components/ConfirmDialog.vue"
+      ],
+      "productionImplemented": false,
+      "dataSource": {
+        "production": "GET /admin/activities?page&size=8&category&status&title",
+        "preview": "sample-data.json (design-only)"
+      },
+      "interactions": [
+        "title search",
+        "category/status filter",
+        "reset and empty result",
+        "navigation group/drawer preview",
+        "paid orders versus free roster",
+        "editor publish confirmation preview"
+      ],
+      "responsiveNote": "1440x900 Pen layout; smaller widths follow each HTML preview and its verification notes. Mobile HTML is not a mini-program runtime.",
+      "previewSha256": "4ee0b141486755ddc62edb451181a47d3ad497b25fb2fbbca3de9ebaf25eeddc"
+    }
+  ],
+  "protectedMiniHome": {
+    "route": "pages/home/index",
+    "status": "preserved; source verification only in this proposal stage",
+    "evidence": "home-protection.json"
+  }
+}

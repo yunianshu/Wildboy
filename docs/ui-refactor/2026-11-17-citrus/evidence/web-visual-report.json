@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+      "width": 1440,
+      "height": 900,
+      "bounds": {
+        "x": 240,
+        "y": 282.296875,
+        "width": 960,
+        "height": 335.390625
+      },
+      "passed": true
+    },
+    {
+      "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+      "width": 390,
+      "height": 844,
+      "bounds": {
+        "x": 16,
+        "y": 226.90625,
+        "width": 358,
+        "height": 390.1875
+      },
+      "passed": true
+    },
+    {
+      "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+      "width": 320,
+      "height": 700,
+      "bounds": {
+        "x": 16,
+        "y": 144.5,
+        "width": 288,
+        "height": 410.984375
+      },
+      "passed": true
+    },
+    {
+      "name": "article editor uses the concise copy from the Pen readback",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

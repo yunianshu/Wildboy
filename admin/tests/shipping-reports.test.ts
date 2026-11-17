@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { mount, flushPromises } from "@vue/test-utils";
 import { afterEach, beforeEach, it, expect, vi } from "vitest";
 import ShippingReportsView from "../src/views/ShippingReportsView.vue";
@@ -41,20 +42,28 @@ beforeEach(() => {
   currentUser.value = { id: "admin", nickname: "管理员", role: "ADMIN" };
   fetcher = vi.fn(async (url: string, options: any = {}) => {
     if (options.method === "POST")
-      return { ok: true, status: 200, json: async () => ({ ...failed, status: "REPORTED" }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ ...failed, status: "REPORTED" }),
+      };
     const wanted = new URL(url, "https://x").searchParams.get("status") || "";
     const items = [failed, reported, skipped].filter(
       (r) => !wanted || r.status === wanted,
     );
-    return { ok: true, status: 200, json: async () => ({ items, hasMore: false }) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ items, hasMore: false }),
+    };
   });
   vi.stubGlobal("fetch", fetcher);
-  confirm = vi.fn(() => true);
-  vi.stubGlobal("confirm", confirm);
+  confirm = vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
 });
 afterEach(() => {
   clearSession();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 const button = (w: any, text: string) =>
   w.findAll("button").find((b: any) => b.text() === text)!;
@@ -71,7 +80,9 @@ it("labels each report row by source, logistics type and outcome", async () => {
   expect(text).toContain("已上报");
   expect(text).toContain("errcode 9400001");
   expect(text).toContain("非微信支付订单，无交易记录");
-  expect(w.findAll("button").filter((b: any) => b.text() === "补报").length).toBe(2);
+  expect(
+    w.findAll("button").filter((b: any) => b.text() === "补报").length,
+  ).toBe(2);
   w.unmount();
 });
 
@@ -104,8 +115,7 @@ it("retry needs explicit confirmation and posts to the retry endpoint", async ()
 });
 
 it("declining the confirmation never contacts the gateway", async () => {
-  confirm = vi.fn(() => false);
-  vi.stubGlobal("confirm", confirm);
+  confirm.mockResolvedValue(false);
   const w = mount(ShippingReportsView);
   await flushPromises();
   await button(w, "补报").trigger("click");

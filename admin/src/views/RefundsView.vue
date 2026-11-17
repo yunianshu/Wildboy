@@ -197,16 +197,19 @@ onUnmounted(() => {
         下一页
       </button>
     </nav>
-    <FormModal v-if="selected" @close="close">
-      <h2 class="modal-heading">
-        {{
-          action === "reject"
-            ? "拒绝退款"
-            : action === "verify"
-              ? "核对退款结果"
-              : "确认全额退款"
-        }}
-      </h2>
+    <FormModal :busy="busy" v-if="selected" @close="close"
+      ><template #title
+        ><h2 class="modal-heading">
+          {{
+            action === "reject"
+              ? "拒绝退款"
+              : action === "verify"
+                ? "核对退款结果"
+                : "确认全额退款"
+          }}
+        </h2></template
+      >
+
       <p class="refund-summary">
         {{ selected.orderNo }} · ¥{{ (selected.amountCents / 100).toFixed(2) }}
       </p>

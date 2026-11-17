@@ -70,6 +70,9 @@ const viewportCases = [
   ["/users", /用户管理/, "/admin/users"],
   ["/memberships", /会员管理/, "/admin/membership/tiers"],
   ["/articles", /文章管理/, "/admin/articles"],
+  ["/articles/new", null, null],
+  ["/articles/:articleId/edit", null, "/admin/articles/:articleId"],
+  ["/shipping-reports", /发货上报/, "/admin/shipping-reports"],
   ["/legal", /协议管理/, "/admin/legal/PRIVACY"],
   ["/settings", /基础配置|首页配置/, "/admin/home/shortcuts"],
   ["/settings/admin-account", /管理员账号/, "/admin/settings/admin-account"],
@@ -270,6 +273,9 @@ async function init() {
     "the Vite proxy and fixture API must share the same isolated database",
   );
   fixture.admin = qaAdmin.token;
+  const articles = await admin("GET", "/admin/articles?size=1");
+  fixture.routeArticle = articles.items[0]?.id;
+  assert.ok(fixture.routeArticle, "isolated API must have an article for its editor route");
   const activities = await admin("GET", "/admin/activities?size=8");
   fixture.routeActivity = activities.items.find(
     (item) =>
@@ -321,8 +327,9 @@ async function layouts(browser) {
       });
       await login(page);
       for (const [key, name, endpoint] of viewportCases) {
-        const destination = key.replace(":id", fixture.routeActivity);
-        const requestPath = endpoint?.replace(":id", fixture.routeActivity);
+        if (process.env.WILDBOY_E2E_ROUTE_FILTER && !key.includes(process.env.WILDBOY_E2E_ROUTE_FILTER)) continue;
+        const destination = key.replace(":id", fixture.routeActivity).replace(":articleId", fixture.routeArticle);
+        const requestPath = endpoint?.replace(":id", fixture.routeActivity).replace(":articleId", fixture.routeArticle);
         await check(`${key} ${width}×${height}`, page, async () => {
           if (key === "/shop?tab=orders")
             await route(page, "/activities", /活动管理/);
@@ -333,6 +340,7 @@ async function layouts(browser) {
           )
             await navigateAndRead(page, destination, name, requestPath);
           else await route(page, destination, name);
+          if (key.startsWith('/articles/')) await page.getByLabel('文章标题', {exact:true}).waitFor({state:'visible'});
           const dimensions = await layout(page);
           report.screens.push({ route: key, width, height, ...dimensions });
           assert.ok(
@@ -716,7 +724,25 @@ async function fillEventually(page, label, value, section) {
     const trigger = button(page, section).first();
     if (await trigger.isVisible()) await trigger.click();
   }
-  await control.fill(value);
+  if ((await control.getAttribute('type')) === 'date' && await control.getAttribute('readonly') !== null) {
+    const id = await control.getAttribute('id');
+    await control.click();
+    const date = value.slice(0, 10);
+    for (let month = 0; month < 18; month++) {
+      const day = page.getByRole('button', {name: date, exact: true});
+      if (await day.count()) { await day.click(); break; }
+      await page.getByRole('button', {name: '下个月', exact: true}).click();
+    }
+    assert.equal(await control.inputValue(), date, 'calendar chooses the requested day');
+    await page.locator(`#${id}-time`).click();
+    const picker = page.getByRole('dialog');
+    await picker.getByLabel('选择小时').selectOption(value.slice(11, 13));
+    // The native control offers quarter-hour choices; use a deterministic slot.
+    await picker.getByLabel('选择分钟').selectOption('00');
+    await picker.getByRole('button', {name: /^确定 /}).click();
+  } else {
+    await control.fill(value);
+  }
 }
 
 const uploadPng = {
@@ -943,7 +969,7 @@ async function editProduct(page, product) {
   await button(editor, /保存商品|确认并保存|下一步/).click();
   const confirmation = dialog(page, /确认保存商品/);
   await visible(confirmation.getByText(/20\.30/));
-  await button(confirmation, /返回检查|取消/).click();
+  await button(confirmation, /返回检查|返回|取消/).click();
   assert.equal(
     (await http("GET", `/shop/products/${product.id}`)).priceCents,
     1950,
@@ -993,7 +1019,7 @@ async function orderShipping(page, product) {
   );
   await button(card, /确认发货/).click();
   const confirmation = dialog(page, /确认订单已发货|确认发货/);
-  await button(confirmation, /返回检查|取消/).click();
+  await button(confirmation, /返回检查|返回|取消/).click();
   assert.equal(
     (await owner("GET", `/orders/${order.id}`)).status,
     "CONFIRMED_FREE",
@@ -1021,10 +1047,11 @@ async function useConfirmation(page, trigger, title, accept, observe) {
     await nativeConfirmation;
     return;
   }
-  const confirm = dialog(page, title).last();
+  const named = dialog(page, title).last();
+  const confirm = await named.isVisible() ? named : page.locator('.dialog[role="dialog"]').last();
   assert.ok(await confirm.isVisible(), "敏感操作应先显示确认用途或影响");
   if (observe) await observe(confirm);
-  await button(confirm, accept ? /确认|继续/ : /返回检查|取消/)
+  await button(confirm, accept ? /确认|继续|放弃修改|批准退款/ : /返回检查|取消/)
     .last()
     .click();
 }
@@ -1107,12 +1134,10 @@ async function freeActivityOrder(page, activity) {
       reveals++;
   };
   page.on("request", countReveal);
-  page.once("dialog", (prompt) => prompt.dismiss());
-  await button(editor, /查看姓名电话/).click();
+  await useConfirmation(page, button(editor, /查看姓名电话/), /确认查看/, false);
   assert.equal(reveals, 0);
-  page.once("dialog", (prompt) => prompt.accept());
   await write(page, `${endpoint}/participants/reveal`, "POST", () =>
-    button(editor, /查看姓名电话/).click(),
+    useConfirmation(page, button(editor, /查看姓名电话/), /确认查看/, true),
   );
   page.off("request", countReveal);
   await visible(editor.getByText(participantPhone, { exact: false }));
@@ -1127,9 +1152,8 @@ async function freeActivityOrder(page, activity) {
       .length,
     1,
   );
-  page.once("dialog", (prompt) => prompt.accept());
   await write(page, `${endpoint}/cancel`, "POST", () =>
-    button(editor, /取消免费报名/).click(),
+    useConfirmation(page, button(editor, /取消免费报名/), /确认取消/, true),
   );
   assert.equal(
     (await owner("GET", `/activity-orders/${order.id}`)).status,

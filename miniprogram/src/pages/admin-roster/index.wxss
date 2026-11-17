@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .tabs {
   display: flex;
   gap: 12rpx;
@@ -14,15 +15,15 @@
   min-height: 80rpx;
   padding: 0 12rpx;
   border-radius: 12rpx;
-  background: #e8ecdf;
-  color: #193f34;
+  background: var(--rf-soft);
+  color: var(--rf-primary-text);
   font-size: 28rpx;
   line-height: 1.4;
   white-space: nowrap;
 }
 .tab.active {
-  background: #193f34;
-  color: #fffdf4;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
   font-weight: 600;
 }
 .activity-title {
@@ -34,8 +35,8 @@
 .summary {
   display: flex;
   gap: 40rpx;
-  background: #193f34;
-  color: #fffdf7;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
   padding: 30rpx;
   border-radius: 16rpx;
   margin-top: 30rpx;
@@ -45,7 +46,7 @@
 }
 .summary text {
   font-size: 23rpx;
-  color: #d9e1d1;
+  color: var(--rf-soft);
 }
 .summary > view > view {
   font-size: 40rpx;
@@ -53,7 +54,7 @@
   margin-top: 12rpx;
 }
 .member {
-  background: #fffdf7;
+  background: #FFFFFF;
   padding: 26rpx 22rpx;
   border-radius: 18rpx;
   margin-bottom: 22rpx;
@@ -69,14 +70,14 @@
   align-items: flex-start;
   gap: 20rpx;
   padding: 18rpx 0;
-  border-top: 1rpx solid #e4e8de;
+  border-top: 1rpx solid var(--rf-soft);
 }
 .avatar {
   width: 68rpx;
   height: 68rpx;
   line-height: 68rpx;
   text-align: center;
-  background: #e8ecdf;
+  background: var(--rf-soft);
   border-radius: 50%;
   flex-shrink: 0;
   font-weight: 650;
@@ -97,7 +98,7 @@
   margin: 0;
   line-height: 1.5;
   font-size: 23rpx;
-  color: #63775e;
+  color: var(--rf-muted);
 }
 .badge {
   white-space: nowrap;
@@ -115,7 +116,9 @@
   height: 56rpx;
   line-height: 56rpx;
   font-size: 24rpx;
-  color: #173f35;
-  background: #e8efe8;
+  color: var(--rf-ink);
+  background: var(--rf-bg);
   border-radius: 28rpx;
 }
+
+@import "../../styles/slate-components.wxss";

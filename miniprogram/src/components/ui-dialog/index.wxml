@@ -1,0 +1,7 @@
+<view class="ui-dialog-mask" catchtap="maskTap" catchtouchmove="stopEvent">
+  <view class="ui-dialog-panel motion-dialog-enter" catchtap="stopEvent" aria-role="dialog" aria-modal="true" aria-label="{{title}}">
+    <view class="ui-dialog-heading"><view class="ui-dialog-title">{{title}}</view><button class="ui-dialog-close" bindtap="close" disabled="{{busy}}" aria-label="关闭弹窗"><image src="/assets/icons-slate/close.svg" mode="aspectFit" aria-hidden="true" /></button></view>
+    <view class="ui-dialog-content"><slot /></view>
+    <view class="ui-dialog-footer"><slot name="footer" /></view>
+  </view>
+</view>

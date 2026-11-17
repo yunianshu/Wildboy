@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { ref, watch, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { request, currentUser, errorMessage } from "../api";
@@ -104,12 +105,13 @@ async function save() {
     if (n === generation) busy.value = false;
   }
 }
-function canLeave() {
-  return !dirty.value || window.confirm("图文尚未保存，确定离开吗？");
+async function canLeave() {
+  return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
 defineExpose({ canLeave, dirty, busy, loaded });
 onBeforeRouteLeave(
-  (to) => props.managedNavigation || to.path === "/login" || canLeave(),
+  async (to) =>
+    props.managedNavigation || to.path === "/login" || (await canLeave()),
 );
 </script>
 <template>
@@ -216,7 +218,7 @@ onBeforeRouteLeave(
 .rich-block {
   margin: 20px 0;
   padding: 16px;
-  border: 1px solid #dce2d8;
+  border: 1px solid var(--rf-soft);
   border-radius: 12px;
 }
 .rich-tools {

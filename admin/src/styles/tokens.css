@@ -1,0 +1,37 @@
+/* Source: Pen rf-* variables; regenerate with scripts/ui-refresh-tokens.py. */
+:root {
+  --rf-bg: #fff8ee;
+  --rf-surface: #ffffff;
+  --rf-primary: #ff8a2c;
+  --rf-ink: #332c24;
+  --rf-muted: #756657;
+  --rf-line: #e7dccb;
+  --rf-soft: #fff0d6;
+  --rf-danger: #b63d31;
+  --rf-success: #426b37;
+  --rf-success-bg: #edf5e6;
+  --rf-warning: #855800;
+  --rf-warning-bg: #fff1c7;
+  --rf-danger-bg: #fff0ec;
+  --rf-info: #62602f;
+  --rf-info-bg: #f5f3de;
+  --rf-neutral: #756657;
+  --rf-neutral-bg: #f3eee6;
+  --rf-sidebar: #ffffff;
+  --rf-sidebar-active: #fff0d6;
+  --rf-accent: #ffd163;
+  --rf-font: "Noto Sans SC";
+  --rf-gap: 16px;
+  --rf-radius: 12px;
+  --rf-control-radius: 10px;
+  --rf-on-primary: #33251c;
+  --rf-primary-text: #9a430c;
+  --rf-primary-hover: #f47a20;
+  --rf-field-line: #a48d73;
+  --rf-overlay: #33251c66;
+  --rf-modal-radius: 16px;
+  --rf-web-control-height: 40px;
+  --rf-mini-control-height: 48px;
+  --rf-modal-padding: 24px;
+  --rf-dialog-gap: 16px;
+}

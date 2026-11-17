@@ -1,0 +1,244 @@
+{
+  "direction": "A 晨光绿白",
+  "readbackSHA256": "d3002a3854edcf04ddb9ed495c9a7ec830d00fb7f2733460a846b0fe5b2fdbfd",
+  "htmlSHA256": "807a6072d7f7c39ee69736155dda03431f368700ba2aaa420a169e7c4100b26b",
+  "sourceRoots": [
+    "n2cQ6B",
+    "O79Ql"
+  ],
+  "output": "D:\\AiProject\\Wildboy\\design\\proposals\\huashu-v3\\design-demos\\dir-1.html",
+  "framework": "Standalone semantic HTML/CSS/JavaScript preview; production Vue untouched",
+  "variables": [
+    "hd-a-primary",
+    "hd-a-soft",
+    "hd-a-ink",
+    "hd-a-muted",
+    "hd-a-line",
+    "hd-a-field",
+    "hd-a-surface",
+    "hd-a-background",
+    "hd-a-published",
+    "hd-a-published-bg",
+    "hd-a-draft",
+    "hd-a-draft-bg",
+    "hd-a-cancelled",
+    "hd-a-cancelled-bg",
+    "hd-a-font",
+    "hd-a-radius",
+    "hd-a-control-height"
+  ],
+  "navigation": [
+    {
+      "id": "IQmbF",
+      "label": "运营工作台",
+      "route": "/operations",
+      "icon": "layout-dashboard"
+    },
+    {
+      "id": "gZ1hw",
+      "label": "消息管理",
+      "route": "/notifications",
+      "icon": "bell"
+    },
+    {
+      "id": "M7RxSM",
+      "label": "活动管理",
+      "route": "/activities",
+      "icon": "mountain"
+    },
+    {
+      "id": "RvqHX",
+      "label": "活动模板",
+      "route": "/templates",
+      "icon": "panels-top-left"
+    },
+    {
+      "id": "NF1HO",
+      "label": "活动订单",
+      "route": "/activity-orders",
+      "icon": "ticket"
+    },
+    {
+      "id": "LAhwX",
+      "label": "商城管理",
+      "route": "/shop",
+      "icon": "store"
+    },
+    {
+      "id": "vOgQp",
+      "label": "商品分类",
+      "route": "/shop/categories",
+      "icon": "tags"
+    },
+    {
+      "id": "b8wfbO",
+      "label": "退款售后",
+      "route": "/refunds",
+      "icon": "rotate-ccw"
+    },
+    {
+      "id": "Jb1w0",
+      "label": "发货上报",
+      "route": "/shipping-reports",
+      "icon": "truck"
+    },
+    {
+      "id": "l81yOY",
+      "label": "用户管理",
+      "route": "/users",
+      "icon": "users"
+    },
+    {
+      "id": "rBcOx",
+      "label": "会员管理",
+      "route": "/memberships",
+      "icon": "badge-check"
+    },
+    {
+      "id": "lcKgE",
+      "label": "文章管理",
+      "route": "/articles",
+      "icon": "file-text"
+    },
+    {
+      "id": "RKOyx",
+      "label": "协议管理",
+      "route": "/legal",
+      "icon": "files"
+    },
+    {
+      "id": "hb3Cs",
+      "label": "基础配置",
+      "route": "/settings",
+      "icon": "settings-2"
+    },
+    {
+      "id": "XXiqG",
+      "label": "管理员账号",
+      "route": "/settings/admin-account",
+      "icon": "user-round-cog"
+    }
+  ],
+  "rows": [
+    {
+      "id": "s3rGr7",
+      "type": "activity-row",
+      "title": "周末山脊徒步",
+      "category": "本周活动",
+      "location": "山脊步道",
+      "startAt": "2026-11-21 08:00",
+      "priceCents": 6800,
+      "registeredCount": 12,
+      "capacity": 20,
+      "pendingPaymentCount": 2,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "NbxyP",
+      "type": "activity-row",
+      "title": "溪谷自然观察",
+      "category": "休闲活动",
+      "location": "溪谷",
+      "startAt": "2026-11-22 09:30",
+      "priceCents": 0,
+      "registeredCount": 6,
+      "capacity": 16,
+      "pendingPaymentCount": 0,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "vsRpI",
+      "type": "activity-row",
+      "title": "冬季露营入门",
+      "category": "假期活动",
+      "location": "山野营地",
+      "startAt": "2026-11-28 10:00",
+      "priceCents": 15800,
+      "registeredCount": 0,
+      "capacity": 12,
+      "pendingPaymentCount": 0,
+      "status": "DRAFT"
+    },
+    {
+      "id": "C19rSj",
+      "type": "activity-row",
+      "title": "城市绿道轻徒步",
+      "category": "休闲活动",
+      "location": "城市绿道",
+      "startAt": "2026-11-29 08:30",
+      "priceCents": 0,
+      "registeredCount": 8,
+      "capacity": 20,
+      "pendingPaymentCount": 0,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "m4W0g",
+      "type": "activity-row",
+      "title": "山野日落摄影",
+      "category": "本周活动",
+      "location": "观景山坡",
+      "startAt": "2026-12-05 14:00",
+      "priceCents": 9800,
+      "registeredCount": 10,
+      "capacity": 10,
+      "pendingPaymentCount": 0,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "F79Ef",
+      "type": "activity-row",
+      "title": "高山杜鹃两日行",
+      "category": "国内游行",
+      "location": "高山步道",
+      "startAt": "2026-12-06 07:00",
+      "priceCents": 36800,
+      "registeredCount": 3,
+      "capacity": 16,
+      "pendingPaymentCount": 1,
+      "status": "PUBLISHED"
+    },
+    {
+      "id": "aomwA",
+      "type": "activity-row",
+      "title": "亲子森林探索",
+      "category": "假期活动",
+      "location": "森林公园",
+      "startAt": "2026-12-12 09:00",
+      "priceCents": 12800,
+      "registeredCount": 0,
+      "capacity": 16,
+      "pendingPaymentCount": 0,
+      "status": "DRAFT"
+    },
+    {
+      "id": "w6TJcd",
+      "type": "activity-row",
+      "title": "海岸线日出徒步",
+      "category": "国内游行",
+      "location": "海岸步道",
+      "startAt": "2026-12-13 06:00",
+      "priceCents": 16800,
+      "registeredCount": 0,
+      "capacity": 18,
+      "pendingPaymentCount": 0,
+      "status": "CANCELLED"
+    }
+  ],
+  "mapping": {
+    "cSgya": ".sidebar",
+    "L2MKvv": ".workspace",
+    "hyUXL": ".page-header",
+    "KZzrz": ".filters",
+    "JnD9P": ".activity-table",
+    "GlzVc": ".pager",
+    "GCIUe": "#feedbackDialog (publish mode)",
+    "lBpug": "#emptyState",
+    "AYzxR": ".btn.primary",
+    "gHFFL": ".btn",
+    "uimmZ": ".search-field",
+    "ZJcSD": ".select-field"
+  },
+  "responsive": "At <=1199px, sidebar becomes a drawer and table records become a responsive data grid; 375px uses one column.",
+  "assets": "Logo, route covers, subset Noto Sans SC and Lucide icons are embedded; no runtime network required."
+}

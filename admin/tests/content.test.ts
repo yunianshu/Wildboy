@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -133,7 +134,9 @@ describe("markdown article content editor", () => {
   });
 
   it("disables editing while the article is locked and guards unsaved leaving", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const confirmSpy = vi
+      .spyOn(confirmation, "askConfirm")
+      .mockResolvedValue(false);
     const fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -145,7 +148,7 @@ describe("markdown article content editor", () => {
     instances[0].value = "改了一半";
     instances[0].fireInput();
     expect(dirtyOf(w)).toBe(true);
-    expect(w.vm.canLeave()).toBe(false);
+    expect(await w.vm.canLeave()).toBe(false);
     expect(confirmSpy).toHaveBeenCalledTimes(1);
     w.unmount();
   });

@@ -23,11 +23,11 @@
   </block>
 </view>
 
-<view wx:if="{{refundOrderId}}" class="refund-overlay" catchtap="closeRefund" catchtouchmove="stopRefundEvent">
- <view class="refund-dialog motion-dialog-enter" catchtap="stopRefundEvent">
-  <view class="title">退款 / 售后</view>
-  <block wx:if="{{refundRecord}}"><view class="badge">{{refundStatusText}}{{refundAmountText ? " · " + refundAmountText : ""}}</view><view class="notice">{{refundRecord.reason}}</view><view>{{refundRecord.decisionNote || refundRecord.lastError}}</view></block>
-  <block wx:else><view class="notice">仅支持已付款未发货订单全额退款，提交后等待审核。</view><textarea placeholder="退款原因" maxlength="200" value="{{refundReason}}" bindinput="refundInput" disabled="{{busyId}}" /><button class="primary" bindtap="requestRefund" disabled="{{busyId}}" loading="{{busyId}}">提交申请</button></block>
-  <view wx:if="{{refundError}}" class="error">{{refundError}}</view><button class="secondary" bindtap="closeRefund" disabled="{{busyId}}">关闭</button>
- </view>
-</view>
+<ui-dialog wx:if="{{refundOrderId}}" title="退款 / 售后" busy="{{!!busyId}}" bindclose="closeRefund">
+  <scroll-view scroll-y class="ui-refund-body">
+    <block wx:if="{{refundRecord}}"><view class="badge">{{refundStatusText}}{{refundAmountText ? " · " + refundAmountText : ""}}</view><view class="notice">{{refundRecord.reason}}</view><view>{{refundRecord.decisionNote || refundRecord.lastError}}</view></block>
+    <block wx:else><view class="notice">已付款、未发货订单可申请整单退款。</view><view class="field"><text class="label">退款原因</text><textarea placeholder="请简要说明退款原因" maxlength="200" value="{{refundReason}}" bindinput="refundInput" disabled="{{busyId}}" /></view></block>
+    <view wx:if="{{refundError}}" class="error" aria-role="alert">{{refundError}}</view>
+  </scroll-view>
+  <view slot="footer" class="dialog-actions"><button class="secondary" bindtap="closeRefund" disabled="{{busyId}}">关闭</button><button wx:if="{{!refundRecord}}" class="primary" bindtap="requestRefund" disabled="{{busyId}}" loading="{{busyId}}">提交申请</button></view>
+</ui-dialog>

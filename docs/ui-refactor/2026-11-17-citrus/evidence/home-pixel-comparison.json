@@ -1,0 +1,50 @@
+{
+  "before": "design/assets/home-native-before-2026-11-17.png",
+  "after": "test-results/ui-citrus-2026-11-17/native-home.png",
+  "size": [
+    363,
+    785
+  ],
+  "excludedRegions": [
+    [
+      13,
+      274,
+      350,
+      347
+    ],
+    [
+      13,
+      415,
+      350,
+      521
+    ],
+    [
+      13,
+      624,
+      350,
+      708
+    ],
+    [
+      0,
+      0,
+      363,
+      40
+    ],
+    [
+      0,
+      0,
+      1,
+      785
+    ],
+    [
+      361,
+      0,
+      363,
+      785
+    ]
+  ],
+  "rawDifferentPixels": 13304,
+  "differentPixelsOutsideExcludedRegions": 0,
+  "differenceBounds": null,
+  "note": "Mask excludes status clock, photo decode regions, and simulator edge; unmasked differences are reported, never assumed zero."
+}

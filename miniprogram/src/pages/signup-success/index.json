@@ -1,1 +1,9 @@
-{"navigationBarTitleText":"报名结果"}
+{
+  "navigationBarTitleText": "报名结果",
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index"
+  }
+}

@@ -1,8 +1,9 @@
+@import "../../styles/slate-theme.wxss";
 .legal-page {
   padding: 40rpx 36rpx 70rpx;
-  background: #f6f4ed;
+  background: var(--rf-bg);
   min-height: 100vh;
-  color: #173f35;
+  color: var(--rf-ink);
 }
 .title {
   font-size: 52rpx;
@@ -11,7 +12,7 @@
 }
 .intro {
   font-size: 25rpx;
-  color: #7c8878;
+  color: var(--rf-muted);
   line-height: 1.8;
   margin: 20rpx 0;
 }
@@ -36,17 +37,17 @@
   min-height: 76rpx;
   padding: 12rpx 16rpx;
   line-height: 1.4;
-  background: #e8edde;
-  color: #173f35;
+  background: var(--rf-soft);
+  color: var(--rf-ink);
 }
 .tabs .active,
 .primary {
-  background: #173f35;
-  color: #fff;
+  background: var(--rf-ink);
+  color: #FFFFFF;
 }
 .secondary {
-  background: #e8edde;
-  color: #173f35;
+  background: var(--rf-soft);
+  color: var(--rf-ink);
 }
 .version {
   font-size: 26rpx;
@@ -56,7 +57,7 @@
 .note,
 .notice {
   padding: 24rpx;
-  background: #e8edde;
+  background: var(--rf-soft);
   line-height: 1.8;
   font-size: 25rpx;
   border-radius: 16rpx;
@@ -68,8 +69,8 @@
 }
 .input,
 .content {
-  background: #fffefa;
-  border: 1rpx solid #d7dece;
+  background: #FFFFFF;
+  border: 1rpx solid var(--rf-line);
   border-radius: 14rpx;
   padding: 22rpx;
   box-sizing: border-box;
@@ -85,12 +86,12 @@
 }
 .count {
   font-size: 23rpx;
-  color: #82907a;
+  color: var(--rf-muted);
   margin: 16rpx 0;
 }
 .error {
-  background: #fff0e6;
-  color: #8b3d24;
+  background: var(--rf-danger-bg);
+  color: var(--rf-danger);
   padding: 24rpx;
   line-height: 1.8;
   font-size: 26rpx;
@@ -98,7 +99,7 @@
 }
 .state {
   padding: 28rpx 0;
-  color: #7c8878;
+  color: var(--rf-muted);
   font-size: 26rpx;
   line-height: 1.8;
 }
@@ -109,7 +110,7 @@
 }
 .preview {
   padding: 24rpx;
-  background: #fffefa;
+  background: #FFFFFF;
   border-radius: 18rpx;
   word-break: break-all;
 }
@@ -126,8 +127,8 @@
   min-height: 76rpx;
   word-break: break-all;
   text-align: left;
-  background: #e8edde;
-  color: #173f35;
+  background: var(--rf-soft);
+  color: var(--rf-ink);
   font-size: 25rpx;
   margin: 16rpx 0;
   white-space: normal;
@@ -137,3 +138,5 @@
 button[disabled] {
   opacity: 0.45;
 }
+
+@import "../../styles/slate-components.wxss";

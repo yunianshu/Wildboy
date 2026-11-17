@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "name": "profile shared dialog, busy close lock and cancelled draft",
+      "passed": true,
+      "bounds": {
+        "width": 358,
+        "height": 524
+      }
+    },
+    {
+      "name": "participant validation preserves records and close cancels isolated draft",
+      "passed": true
+    },
+    {
+      "name": "refund dialog validates an empty reason and clears the cancelled draft",
+      "passed": true,
+      "fixture": "UI-only refund state; validation stops before a request, no refund submitted"
+    },
+    {
+      "name": "admin user filters use shared shell and close correctly",
+      "passed": true
+    },
+    {
+      "name": "admin detail and registration history render in shared dialog",
+      "passed": true
+    },
+    {
+      "name": "publication confirmation backdrop does not discard a pending decision",
+      "passed": true,
+      "fixture": "UI-only confirmation state; no publish performed"
+    },
+    {
+      "name": "activity cancellation keeps the selected snapshot and close abandons the action",
+      "passed": true,
+      "fixture": "Real selected QA activity; confirmation cancelled, no cancellation submitted"
+    },
+    {
+      "name": "activity order confirmation uses the common shell and closes without executing",
+      "passed": true,
+      "fixture": "UI-only confirmation state; no order action submitted"
+    }
+  ]
+}

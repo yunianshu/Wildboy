@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createRouter, createMemoryHistory } from "vue-router";
@@ -87,7 +88,9 @@ describe("sensitive navigation", () => {
         json: async () => activity,
       }),
     );
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const confirm = vi
+      .spyOn(confirmation, "askConfirm")
+      .mockResolvedValue(false);
     const { wrapper, router } = await render();
     await wrapper.get('input[placeholder="活动名称"]').setValue("未保存的标题");
     await wrapper

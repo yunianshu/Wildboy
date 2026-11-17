@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
 .addresses-page .title {
   margin-bottom: 32rpx;
@@ -20,7 +21,7 @@
   line-height: 1.4;
   font-size: 14px;
   background: transparent;
-  color: #193f34;
+  color: var(--rf-primary-text);
 }
 .location-error {
   margin-top: 8px;
@@ -30,16 +31,16 @@
   width: 100%;
   height: 168rpx;
   padding: 20rpx;
-  border: 1rpx solid #dce1d5;
+  border: 1rpx solid var(--rf-soft);
   border-radius: 10rpx;
-  background: #fffdf7;
-  color: #193e33;
+  background: #FFFFFF;
+  color: var(--rf-primary-text);
   font-size: 30rpx;
   line-height: 1.5;
   text-align: left;
 }
 .address-card {
-  background: #fff;
+  background: #FFFFFF;
   padding: 28rpx;
   border-radius: 20rpx;
   margin-bottom: 24rpx;
@@ -52,7 +53,7 @@
   margin-left: 16rpx;
 }
 .address-name .default-tag {
-  color: #486b45;
+  color: var(--rf-muted);
   font-size: 22rpx;
 }
 .address-detail {
@@ -80,7 +81,7 @@
 }
 .address-actions .select-address {
   margin-left: auto;
-  background: #193f34;
+  background: var(--rf-primary);
   color: white;
 }
 .default-row {
@@ -91,3 +92,5 @@
 .addresses-page .secondary {
   margin-top: 16rpx;
 }
+
+@import "../../styles/slate-components.wxss";

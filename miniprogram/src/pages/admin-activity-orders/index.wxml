@@ -64,14 +64,9 @@
       </block>
     </view>
   </block>
-  <view wx:if="{{confirmation}}" class="confirm-mask">
-    <view class="confirm-card">
-      <view class="section-title">{{confirmation.title}}</view>
-      <view class="confirm-body">{{confirmation.content}}</view>
-      <view class="order-actions">
+  <ui-dialog wx:if="{{confirmation}}" title="{{confirmation.title}}" bindclose="cancelConfirmation" busy="{{busy}}" mask-closable="{{false}}"><scroll-view scroll-y class="ui-confirm-body"><view class="confirm-body">{{confirmation.content}}</view></scroll-view><view slot="footer" class="dialog-actions">
         <button class="secondary small-button" bindtap="cancelConfirmation" disabled="{{busy}}">返回检查</button>
         <button class="primary small-button" bindtap="confirmAction" disabled="{{busy}}">确认执行</button>
       </view>
-    </view>
-  </view>
+</ui-dialog>
 </view>

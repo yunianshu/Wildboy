@@ -94,8 +94,9 @@ test("submitting and success block participant mutation and modal blocks submit"
 });
 test("markup connects modal buttons and uses isolated draft inputs", () => {
   const html = fs.readFileSync(path.join(__dirname, "../src/pages/register/index.wxml"), "utf8");
-  assert.match(html, /wx:if="{{participantModalOpen}}"[^>]+catchtap="cancelParticipant"/);
-  assert.match(html, /class="participant-dialog motion-dialog-enter"[^>]+catchtap="stopModalEvent"/);
+  assert.match(html, /<ui-dialog wx:if="{{participantModalOpen}}"[^>]+bindclose="cancelParticipant"/);
+  const shell = fs.readFileSync(path.join(__dirname, "../src/components/ui-dialog/index.wxml"), "utf8");
+  assert.match(shell, /class="ui-dialog-panel motion-dialog-enter"[^>]+catchtap="stopEvent"/);
   assert.match(html, /bindtap="confirmParticipant">确认添加/);
   assert.match(html, /participantDraft\.participantName/);
   assert.match(html, /participantDraft\.phone/);

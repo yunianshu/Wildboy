@@ -510,9 +510,9 @@ function dateTime(value: string | null) {
       </div>
     </nav>
 
-    <FormModal v-if="filterOpen" @close="filterOpen = false">
+    <FormModal v-if="filterOpen" @close="filterOpen = false"
+      ><template #title><h2>筛选用户</h2></template>
       <form class="form-section" @submit.prevent="applyFilters">
-        <h2>筛选用户</h2>
         <label
           >昵称、姓名、用户编号或完整手机号<input
             v-model="queryDraft"
@@ -554,9 +554,9 @@ function dateTime(value: string | null) {
       </form>
     </FormModal>
 
-    <FormModal v-if="detailId" size="lg" @close="closeUser">
+    <FormModal v-if="detailId" size="lg" @close="closeUser"
+      ><template #title><h2>用户详情</h2></template>
       <div aria-label="用户详情">
-        <h2>用户详情</h2>
         <p class="record-id">
           {{ detail?.user.nickname || "正在读取用户" }} · 用户编号：{{
             detailId

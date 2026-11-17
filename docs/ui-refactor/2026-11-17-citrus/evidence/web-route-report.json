@@ -1,0 +1,2133 @@
+{
+  "stamp": "1794893334167-29142",
+  "web": "http://127.0.0.1:15176",
+  "api": "http://127.0.0.1:19082/api/v1",
+  "mutations": true,
+  "screens": [
+    {
+      "route": "/login",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/login",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/new",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/activity-orders",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/operations",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/templates",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shop/categories",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/refunds",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/notifications",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/users",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/memberships",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/new",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/articles/:articleId/edit",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/legal",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": []
+    }
+  ],
+  "checks": [
+    {
+      "name": "登录界面 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/activities 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/operations 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/templates 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/shop 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/refunds 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/notifications 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/users 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/memberships 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/articles 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/legal 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/settings 1440×900",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 1440×900",
+      "passed": true
+    },
+    {
+      "name": "登录界面 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/activities 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/operations 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/templates 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/shop 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/refunds 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/notifications 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/users 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/memberships 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/articles 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/legal 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/settings 1280×800",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 1280×800",
+      "passed": true
+    },
+    {
+      "name": "登录界面 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/activities 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/operations 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/templates 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/shop 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/refunds 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/notifications 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/users 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/memberships 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/articles 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/legal 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/settings 1024×768",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 1024×768",
+      "passed": true
+    },
+    {
+      "name": "登录界面 721×820",
+      "passed": true
+    },
+    {
+      "name": "/activities 721×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 721×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 721×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 721×820",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 721×820",
+      "passed": true
+    },
+    {
+      "name": "/operations 721×820",
+      "passed": true
+    },
+    {
+      "name": "/templates 721×820",
+      "passed": true
+    },
+    {
+      "name": "/shop 721×820",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 721×820",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 721×820",
+      "passed": true
+    },
+    {
+      "name": "/refunds 721×820",
+      "passed": true
+    },
+    {
+      "name": "/notifications 721×820",
+      "passed": true
+    },
+    {
+      "name": "/users 721×820",
+      "passed": true
+    },
+    {
+      "name": "/memberships 721×820",
+      "passed": true
+    },
+    {
+      "name": "/articles 721×820",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 721×820",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 721×820",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 721×820",
+      "passed": true
+    },
+    {
+      "name": "/legal 721×820",
+      "passed": true
+    },
+    {
+      "name": "/settings 721×820",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 721×820",
+      "passed": true
+    },
+    {
+      "name": "登录界面 720×820",
+      "passed": true
+    },
+    {
+      "name": "/activities 720×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 720×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 720×820",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 720×820",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 720×820",
+      "passed": true
+    },
+    {
+      "name": "/operations 720×820",
+      "passed": true
+    },
+    {
+      "name": "/templates 720×820",
+      "passed": true
+    },
+    {
+      "name": "/shop 720×820",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 720×820",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 720×820",
+      "passed": true
+    },
+    {
+      "name": "/refunds 720×820",
+      "passed": true
+    },
+    {
+      "name": "/notifications 720×820",
+      "passed": true
+    },
+    {
+      "name": "/users 720×820",
+      "passed": true
+    },
+    {
+      "name": "/memberships 720×820",
+      "passed": true
+    },
+    {
+      "name": "/articles 720×820",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 720×820",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 720×820",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 720×820",
+      "passed": true
+    },
+    {
+      "name": "/legal 720×820",
+      "passed": true
+    },
+    {
+      "name": "/settings 720×820",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 720×820",
+      "passed": true
+    },
+    {
+      "name": "登录界面 390×844",
+      "passed": true
+    },
+    {
+      "name": "/activities 390×844",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 390×844",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 390×844",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 390×844",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 390×844",
+      "passed": true
+    },
+    {
+      "name": "/operations 390×844",
+      "passed": true
+    },
+    {
+      "name": "/templates 390×844",
+      "passed": true
+    },
+    {
+      "name": "/shop 390×844",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 390×844",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 390×844",
+      "passed": true
+    },
+    {
+      "name": "/refunds 390×844",
+      "passed": true
+    },
+    {
+      "name": "/notifications 390×844",
+      "passed": true
+    },
+    {
+      "name": "/users 390×844",
+      "passed": true
+    },
+    {
+      "name": "/memberships 390×844",
+      "passed": true
+    },
+    {
+      "name": "/articles 390×844",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 390×844",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 390×844",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 390×844",
+      "passed": true
+    },
+    {
+      "name": "/legal 390×844",
+      "passed": true
+    },
+    {
+      "name": "/settings 390×844",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 390×844",
+      "passed": true
+    },
+    {
+      "name": "登录界面 320×700",
+      "passed": true
+    },
+    {
+      "name": "/activities 320×700",
+      "passed": true
+    },
+    {
+      "name": "/activities/new 320×700",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/edit 320×700",
+      "passed": true
+    },
+    {
+      "name": "/activities/:id/registrations 320×700",
+      "passed": true
+    },
+    {
+      "name": "/activity-orders 320×700",
+      "passed": true
+    },
+    {
+      "name": "/operations 320×700",
+      "passed": true
+    },
+    {
+      "name": "/templates 320×700",
+      "passed": true
+    },
+    {
+      "name": "/shop 320×700",
+      "passed": true
+    },
+    {
+      "name": "/shop?tab=orders 320×700",
+      "passed": true
+    },
+    {
+      "name": "/shop/categories 320×700",
+      "passed": true
+    },
+    {
+      "name": "/refunds 320×700",
+      "passed": true
+    },
+    {
+      "name": "/notifications 320×700",
+      "passed": true
+    },
+    {
+      "name": "/users 320×700",
+      "passed": true
+    },
+    {
+      "name": "/memberships 320×700",
+      "passed": true
+    },
+    {
+      "name": "/articles 320×700",
+      "passed": true
+    },
+    {
+      "name": "/articles/new 320×700",
+      "passed": true
+    },
+    {
+      "name": "/articles/:articleId/edit 320×700",
+      "passed": true
+    },
+    {
+      "name": "/shipping-reports 320×700",
+      "passed": true
+    },
+    {
+      "name": "/legal 320×700",
+      "passed": true
+    },
+    {
+      "name": "/settings 320×700",
+      "passed": true
+    },
+    {
+      "name": "/settings/admin-account 320×700",
+      "passed": true
+    },
+    {
+      "name": "通知加载、模拟失败与真实重试",
+      "passed": true
+    },
+    {
+      "name": "通知配置及重新授权后的原通知重排（合成响应）",
+      "passed": true
+    },
+    {
+      "name": "同版本退款申请替换后的重新读取与确认（合成响应）",
+      "passed": false,
+      "message": "敏感操作应先显示确认用途或影响"
+    },
+    {
+      "name": "运营范围、待办错误恢复与审计筛选",
+      "passed": true
+    },
+    {
+      "name": "管理员账号演示身份只读及公开能力状态一致",
+      "passed": true
+    },
+    {
+      "name": "管理员真实密码登录、错误重验证及取消设置",
+      "passed": false,
+      "message": "敏感操作应先显示确认用途或影响"
+    },
+    {
+      "name": "未经授权和退出后的活动订单深链",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建活动草稿并由 API 读取",
+      "passed": true
+    },
+    {
+      "name": "390px 草稿定价控件可用",
+      "passed": true
+    },
+    {
+      "name": "收费活动显式发布",
+      "passed": true
+    },
+    {
+      "name": "活动名称全局查询并返回对应编辑页",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双业务优惠并分配会员",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建商品分类",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双价商品并核对公开数据",
+      "passed": true
+    },
+    {
+      "name": "商品商业字段变更撤回及确认保存",
+      "passed": true
+    },
+    {
+      "name": "免支付商城订单获取与发货确认/取消",
+      "passed": true
+    },
+    {
+      "name": "商城收货资料确认、隐藏及离页清除",
+      "passed": true
+    },
+    {
+      "name": "收费活动免支付报名、隐私揭示和取消释放名额",
+      "passed": true
+    },
+    {
+      "name": "用户脱敏报名历史可定位本笔收费活动订单",
+      "passed": true
+    },
+    {
+      "name": "活动模板保存及生成两条继承价格的草稿",
+      "passed": true
+    },
+    {
+      "name": "文章草稿、图文、取消发布与真实公开发布",
+      "passed": true
+    },
+    {
+      "name": "首页入口关联公开文章并验证小程序公开 API",
+      "passed": true
+    },
+    {
+      "name": "保存并预览协议草稿，不发布且可读历史",
+      "passed": true
+    },
+    {
+      "name": "普通报名名单两位参与者、确认揭示与隐藏",
+      "passed": true
+    },
+    {
+      "name": "清理合成活动、下架商品、恢复配置与用户身份",
+      "passed": true
+    }
+  ],
+  "skipped": [],
+  "fixtures": {
+    "activity": "ce62c70f-34de-4634-bac8-1a7c849e1d35",
+    "tier": "8857ad31-ae45-49ae-8b54-5e254057c37a",
+    "category": "4851926a-cc71-4ddf-9ce2-3da21972144b",
+    "product": "7a3af47f-9763-47b5-85a0-f0341f62d0dc",
+    "shopOrder": "b0d15513-e414-46f2-baa0-cd4305e969a4",
+    "activityOrder": "e13c3bdc-ee66-4108-8cdb-c4b734685690",
+    "template": "1ce80c12-bad5-4246-bf90-d4dd55586ef0",
+    "generatedActivities": [
+      "647148d8-d6f2-41e5-a9c5-e99fa7037114",
+      "6cb2b65d-c059-44a1-87a7-e620ee39e6e5"
+    ],
+    "article": "143695a5-6706-49e3-a539-701eecb9a406",
+    "privacyDraftRestored": true
+  },
+  "browserErrors": [],
+  "engine": "157.0.4341.60",
+  "passed": false
+}

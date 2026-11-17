@@ -1,0 +1,253 @@
+{
+  "url": "file:///D:/AiProject/Wildboy/design/proposals/huashu-v3/design-demos/dir-1.html",
+  "checks": [
+    {
+      "name": "desktop 8 rows",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "15 actual navigation entries",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "2 paid pending labels only",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "no pending zero",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "6 paid orders and 2 free lists",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "currency has cents",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "all visible images loaded",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "Noto Sans SC loaded",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "desktop no horizontal overflow",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "desktop primary control height 44",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "search is title-only",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "empty reset restores 8 and focus",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "title search returns expected row",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "category filter 2 rows",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "combined filters expected row",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "draft filter 2 rows",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "paid action opens honest order preview",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "row dialog Escape restores focus",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "free action opens honest list preview",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /operations",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /notifications",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /activities",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /templates",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /activity-orders",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /shop",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /shop/categories",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /refunds",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /shipping-reports",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /users",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /memberships",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /articles",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /legal",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /settings",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "navigation /settings/admin-account",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "new activity no false creation",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "publish dialog matches Pen",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "publish initial focus cancel",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "publish Escape and focus restored",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "publish confirmation is honest preview",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "component dialog Escape returns focus",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "logout no actual session mutation",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile no horizontal overflow",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile all rows retained",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile navigation opens",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile navigation focus wraps",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile navigation Escape returns focus",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile dialog fits",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "mobile publish Escape returns focus",
+      "pass": true,
+      "details": null
+    },
+    {
+      "name": "no JS or console errors",
+      "pass": true,
+      "details": []
+    }
+  ],
+  "passed": 49,
+  "failed": 0,
+  "errors": []
+}

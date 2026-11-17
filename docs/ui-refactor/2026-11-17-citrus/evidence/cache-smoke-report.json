@@ -1,0 +1,12 @@
+{
+  "checks": [
+    {
+      "name": "rebuilt checkout loads and address selector keeps its arrow in one row",
+      "passed": true
+    },
+    {
+      "name": "protected home reloads with real data after compilation and network caches were cleared",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,2394 @@
+{
+  "generatedAt": "2026-11-17T05:53:48.370966+00:00",
+  "designReadbackSha256": "a9b39f9ecaf940b53ca765e104db4caad68fe7686bf2f08db21cb47109cf1abd",
+  "webRouteMatrix": [
+    {
+      "route": "/login",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-1440.png"
+    },
+    {
+      "route": "/activities",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-1440.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-1440.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-1440.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-1440.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-1440.png"
+    },
+    {
+      "route": "/operations",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-1440.png"
+    },
+    {
+      "route": "/templates",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-1440.png"
+    },
+    {
+      "route": "/shop",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-1440.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-1440.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-1440.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-1440.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-1440.png"
+    },
+    {
+      "route": "/users",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-1440.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-1440.png"
+    },
+    {
+      "route": "/articles",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-1440.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-1440.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-1440.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-1440.png"
+    },
+    {
+      "route": "/legal",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-1440.png"
+    },
+    {
+      "route": "/settings",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-1440.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1440,
+      "height": 900,
+      "documentWidth": 1440,
+      "innerWidth": 1440,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-1440.png"
+    },
+    {
+      "route": "/login",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-1280.png"
+    },
+    {
+      "route": "/activities",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-1280.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-1280.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-1280.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-1280.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-1280.png"
+    },
+    {
+      "route": "/operations",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-1280.png"
+    },
+    {
+      "route": "/templates",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-1280.png"
+    },
+    {
+      "route": "/shop",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-1280.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-1280.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-1280.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-1280.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-1280.png"
+    },
+    {
+      "route": "/users",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-1280.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-1280.png"
+    },
+    {
+      "route": "/articles",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-1280.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-1280.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-1280.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-1280.png"
+    },
+    {
+      "route": "/legal",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-1280.png"
+    },
+    {
+      "route": "/settings",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-1280.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1280,
+      "height": 800,
+      "documentWidth": 1280,
+      "innerWidth": 1280,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-1280.png"
+    },
+    {
+      "route": "/login",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-1024.png"
+    },
+    {
+      "route": "/activities",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-1024.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-1024.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-1024.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-1024.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-1024.png"
+    },
+    {
+      "route": "/operations",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-1024.png"
+    },
+    {
+      "route": "/templates",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-1024.png"
+    },
+    {
+      "route": "/shop",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-1024.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-1024.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-1024.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-1024.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-1024.png"
+    },
+    {
+      "route": "/users",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-1024.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-1024.png"
+    },
+    {
+      "route": "/articles",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-1024.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-1024.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-1024.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-1024.png"
+    },
+    {
+      "route": "/legal",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-1024.png"
+    },
+    {
+      "route": "/settings",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-1024.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 1024,
+      "height": 768,
+      "documentWidth": 1024,
+      "innerWidth": 1024,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-1024.png"
+    },
+    {
+      "route": "/login",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-721.png"
+    },
+    {
+      "route": "/activities",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-721.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-721.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-721.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-721.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-721.png"
+    },
+    {
+      "route": "/operations",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-721.png"
+    },
+    {
+      "route": "/templates",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-721.png"
+    },
+    {
+      "route": "/shop",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-721.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-721.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-721.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-721.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-721.png"
+    },
+    {
+      "route": "/users",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-721.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-721.png"
+    },
+    {
+      "route": "/articles",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-721.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-721.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-721.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-721.png"
+    },
+    {
+      "route": "/legal",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-721.png"
+    },
+    {
+      "route": "/settings",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-721.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 721,
+      "height": 820,
+      "documentWidth": 721,
+      "innerWidth": 721,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-721.png"
+    },
+    {
+      "route": "/login",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-720.png"
+    },
+    {
+      "route": "/activities",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-720.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-720.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-720.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-720.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-720.png"
+    },
+    {
+      "route": "/operations",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-720.png"
+    },
+    {
+      "route": "/templates",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-720.png"
+    },
+    {
+      "route": "/shop",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-720.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-720.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-720.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-720.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-720.png"
+    },
+    {
+      "route": "/users",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-720.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-720.png"
+    },
+    {
+      "route": "/articles",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-720.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-720.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-720.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-720.png"
+    },
+    {
+      "route": "/legal",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-720.png"
+    },
+    {
+      "route": "/settings",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-720.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 720,
+      "height": 820,
+      "documentWidth": 720,
+      "innerWidth": 720,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-720.png"
+    },
+    {
+      "route": "/login",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-390.png"
+    },
+    {
+      "route": "/activities",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-390.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-390.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-390.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-390.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-390.png"
+    },
+    {
+      "route": "/operations",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-390.png"
+    },
+    {
+      "route": "/templates",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-390.png"
+    },
+    {
+      "route": "/shop",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-390.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-390.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-390.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-390.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-390.png"
+    },
+    {
+      "route": "/users",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-390.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-390.png"
+    },
+    {
+      "route": "/articles",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-390.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-390.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-390.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-390.png"
+    },
+    {
+      "route": "/legal",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-390.png"
+    },
+    {
+      "route": "/settings",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-390.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 390,
+      "height": 844,
+      "documentWidth": 390,
+      "innerWidth": 390,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-390.png"
+    },
+    {
+      "route": "/login",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/login-320.png"
+    },
+    {
+      "route": "/activities",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-320.png"
+    },
+    {
+      "route": "/activities/new",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-new-320.png"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-edit-320.png"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activities-id-registrations-320.png"
+    },
+    {
+      "route": "/activity-orders",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/activity-orders-320.png"
+    },
+    {
+      "route": "/operations",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/operations-320.png"
+    },
+    {
+      "route": "/templates",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/templates-320.png"
+    },
+    {
+      "route": "/shop",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-320.png"
+    },
+    {
+      "route": "/shop?tab=orders",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-tab-orders-320.png"
+    },
+    {
+      "route": "/shop/categories",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shop-categories-320.png"
+    },
+    {
+      "route": "/refunds",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/refunds-320.png"
+    },
+    {
+      "route": "/notifications",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/notifications-320.png"
+    },
+    {
+      "route": "/users",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/users-320.png"
+    },
+    {
+      "route": "/memberships",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/memberships-320.png"
+    },
+    {
+      "route": "/articles",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-320.png"
+    },
+    {
+      "route": "/articles/new",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-new-320.png"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/articles-article-d-edit-320.png"
+    },
+    {
+      "route": "/shipping-reports",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/shipping-reports-320.png"
+    },
+    {
+      "route": "/legal",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/legal-320.png"
+    },
+    {
+      "route": "/settings",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-320.png"
+    },
+    {
+      "route": "/settings/admin-account",
+      "width": 320,
+      "height": 700,
+      "documentWidth": 320,
+      "innerWidth": 320,
+      "horizontalOverflow": 0,
+      "overflowing": [],
+      "report": "test-results/admin-redesign-browser/1794893334167-29142/report.json",
+      "screenshot": "test-results/admin-redesign-browser/1794893334167-29142/settings-admin-account-320.png"
+    }
+  ],
+  "webBusiness": [
+    {
+      "name": "通知加载、模拟失败与真实重试",
+      "passed": true
+    },
+    {
+      "name": "通知配置及重新授权后的原通知重排（合成响应）",
+      "passed": true
+    },
+    {
+      "name": "同版本退款申请替换后的重新读取与确认（合成响应）",
+      "passed": true
+    },
+    {
+      "name": "运营范围、待办错误恢复与审计筛选",
+      "passed": true
+    },
+    {
+      "name": "管理员账号演示身份只读及公开能力状态一致",
+      "passed": true
+    },
+    {
+      "name": "管理员真实密码登录、错误重验证及取消设置",
+      "passed": true
+    },
+    {
+      "name": "未经授权和退出后的活动订单深链",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建活动草稿并由 API 读取",
+      "passed": true
+    },
+    {
+      "name": "390px 草稿定价控件可用",
+      "passed": true
+    },
+    {
+      "name": "收费活动显式发布",
+      "passed": true
+    },
+    {
+      "name": "活动名称全局查询并返回对应编辑页",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双业务优惠并分配会员",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建商品分类",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双价商品并核对公开数据",
+      "passed": true
+    },
+    {
+      "name": "商品商业字段变更撤回及确认保存",
+      "passed": true
+    },
+    {
+      "name": "免支付商城订单获取与发货确认/取消",
+      "passed": true
+    },
+    {
+      "name": "商城收货资料确认、隐藏及离页清除",
+      "passed": true
+    },
+    {
+      "name": "收费活动免支付报名、隐私揭示和取消释放名额",
+      "passed": true
+    },
+    {
+      "name": "用户脱敏报名历史可定位本笔收费活动订单",
+      "passed": true
+    },
+    {
+      "name": "活动模板保存及生成两条继承价格的草稿",
+      "passed": true
+    },
+    {
+      "name": "文章草稿、图文、取消发布与真实公开发布",
+      "passed": true
+    },
+    {
+      "name": "首页入口关联公开文章并验证小程序公开 API",
+      "passed": true
+    },
+    {
+      "name": "保存并预览协议草稿，不发布且可读历史",
+      "passed": true
+    },
+    {
+      "name": "普通报名名单两位参与者、确认揭示与隐藏",
+      "passed": true
+    },
+    {
+      "name": "清理合成活动、下架商品、恢复配置与用户身份",
+      "passed": true
+    }
+  ],
+  "webVisual": {
+    "checks": [
+      {
+        "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+        "width": 1440,
+        "height": 900,
+        "bounds": {
+          "x": 240,
+          "y": 282.296875,
+          "width": 960,
+          "height": 335.390625
+        },
+        "passed": true
+      },
+      {
+        "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+        "width": 390,
+        "height": 844,
+        "bounds": {
+          "x": 16,
+          "y": 226.90625,
+          "width": 358,
+          "height": 390.1875
+        },
+        "passed": true
+      },
+      {
+        "name": "membership dialog viewport, scrolling, Escape and focus restoration",
+        "width": 320,
+        "height": 700,
+        "bounds": {
+          "x": 16,
+          "y": 144.5,
+          "width": 288,
+          "height": 410.984375
+        },
+        "passed": true
+      },
+      {
+        "name": "article editor uses the concise copy from the Pen readback",
+        "passed": true
+      }
+    ],
+    "errors": []
+  },
+  "nativeRoutes": {
+    "results": [
+      {
+        "route": "pages/home/index",
+        "query": "",
+        "file": "native-home.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 2242
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/activities/index",
+        "query": "",
+        "file": "native-activities.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1585
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/shop/index",
+        "query": "",
+        "file": "native-shop.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1081
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/mine/index",
+        "query": "",
+        "file": "native-mine.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 991
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/detail/index",
+        "query": "?id=ea98a796-2c91-4ae8-ae61-f0c6551411c1",
+        "file": "native-detail.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1522
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/product/index",
+        "query": "?id=843a28cb-e936-4131-bad6-57b2a6c715b4",
+        "file": "native-product.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/checkout/index",
+        "query": "?id=843a28cb-e936-4131-bad6-57b2a6c715b4&quantity=1",
+        "file": "native-checkout.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/orders/index",
+        "query": "",
+        "file": "native-orders.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1628
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/register/index",
+        "query": "?id=ea98a796-2c91-4ae8-ae61-f0c6551411c1",
+        "file": "native-register.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 842
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/registrations/index",
+        "query": "",
+        "file": "native-registrations.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1338
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/signup-success/index",
+        "query": "?id=51120397-601a-4953-a801-41dbfa91762b&registrationId=98b017c7-cd5f-43bf-8095-3057b1dc6a81",
+        "file": "native-signup-success.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 908
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/addresses/index",
+        "query": "",
+        "file": "native-addresses.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/notifications/index",
+        "query": "",
+        "file": "native-notifications.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/profile/index",
+        "query": "",
+        "file": "native-profile.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/activity-orders/index",
+        "query": "",
+        "file": "native-activity-orders.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1384
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/privacy/index",
+        "query": "?kind=PRIVACY",
+        "file": "native-privacy.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/article/index",
+        "query": "?official=1",
+        "file": "native-article.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/login/index",
+        "query": "",
+        "file": "native-login.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "USER"
+      },
+      {
+        "route": "pages/admin-login/index",
+        "query": "",
+        "file": "native-admin-login.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-activities/index",
+        "query": "",
+        "file": "native-admin-activities.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 4626
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-editor/index",
+        "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0",
+        "file": "native-admin-editor.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1116
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-roster/index",
+        "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0",
+        "file": "native-admin-roster.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 964
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-legal/index",
+        "query": "",
+        "file": "native-admin-legal.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 923
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-shop/index",
+        "query": "",
+        "file": "native-admin-shop.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1825
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-product/index",
+        "query": "?id=f794f809-62dc-48ba-bced-80cfd9fd2007",
+        "file": "native-admin-product.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1334
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-orders/index",
+        "query": "",
+        "file": "native-admin-orders.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1630
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-users/index",
+        "query": "",
+        "file": "native-admin-users.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1286
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-content/index",
+        "query": "?id=783ed848-33bf-4091-9e10-4fb45e4644a0&kind=activity",
+        "file": "native-admin-content.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 753
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-memberships/index",
+        "query": "",
+        "file": "native-admin-memberships.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1004
+        },
+        "error": "",
+        "role": "ADMIN"
+      },
+      {
+        "route": "pages/admin-activity-orders/index",
+        "query": "",
+        "file": "native-admin-activity-orders.png",
+        "rendered": true,
+        "dataValidated": true,
+        "size": {
+          "width": 390,
+          "height": 1049
+        },
+        "error": "",
+        "role": "ADMIN"
+      }
+    ],
+    "exceptions": []
+  },
+  "nativeDialogs": {
+    "results": [
+      {
+        "name": "profile shared dialog, busy close lock and cancelled draft",
+        "passed": true,
+        "bounds": {
+          "width": 358,
+          "height": 524
+        }
+      },
+      {
+        "name": "participant validation preserves records and close cancels isolated draft",
+        "passed": true
+      },
+      {
+        "name": "refund dialog validates an empty reason and clears the cancelled draft",
+        "passed": true,
+        "fixture": "UI-only refund state; validation stops before a request, no refund submitted"
+      },
+      {
+        "name": "admin user filters use shared shell and close correctly",
+        "passed": true
+      },
+      {
+        "name": "admin detail and registration history render in shared dialog",
+        "passed": true
+      },
+      {
+        "name": "publication confirmation backdrop does not discard a pending decision",
+        "passed": true,
+        "fixture": "UI-only confirmation state; no publish performed"
+      },
+      {
+        "name": "activity cancellation keeps the selected snapshot and close abandons the action",
+        "passed": true,
+        "fixture": "Real selected QA activity; confirmation cancelled, no cancellation submitted"
+      },
+      {
+        "name": "activity order confirmation uses the common shell and closes without executing",
+        "passed": true,
+        "fixture": "UI-only confirmation state; no order action submitted"
+      }
+    ]
+  },
+  "homeFlows": {
+    "checks": [
+      "Native homepage reads updated administrator configuration from the real public API",
+      "Homepage article entry preserves id and renders real published Markdown content",
+      "Protected homepage popup opens, displays server text and closes with the original handler",
+      "Homepage category entry reaches redesigned activity list with WEEKLY context",
+      "Homepage equipment and activity entries keep tab/detail navigation and return behavior"
+    ],
+    "exceptions": [],
+    "configurationRestored": true,
+    "scope": "Disposable loopback API and native WeChat DevTools only"
+  },
+  "homeProtection": {
+    "route": "pages/home/index",
+    "checkedAt": "2026-11-17T05:53:48.320374+00:00",
+    "fileCount": 81,
+    "changedFiles": [],
+    "baselineWasReset": false
+  },
+  "homePixels": {
+    "before": "design/assets/home-native-before-2026-11-17.png",
+    "after": "test-results/ui-citrus-2026-11-17/native-home.png",
+    "size": [
+      363,
+      785
+    ],
+    "excludedRegions": [
+      [
+        13,
+        274,
+        350,
+        347
+      ],
+      [
+        13,
+        415,
+        350,
+        521
+      ],
+      [
+        13,
+        624,
+        350,
+        708
+      ],
+      [
+        0,
+        0,
+        363,
+        40
+      ],
+      [
+        0,
+        0,
+        1,
+        785
+      ],
+      [
+        361,
+        0,
+        363,
+        785
+      ]
+    ],
+    "rawDifferentPixels": 13304,
+    "differentPixelsOutsideExcludedRegions": 0,
+    "differenceBounds": null,
+    "note": "Mask excludes status clock, photo decode regions, and simulator edge; unmasked differences are reported, never assumed zero."
+  },
+  "tests": {
+    "web": 201,
+    "mini": 526,
+    "articleAfterCopySimplification": 10,
+    "checkoutAfterFinalVisualFix": 60
+  },
+  "postCacheSmoke": {
+    "checks": [
+      {
+        "name": "rebuilt checkout loads and address selector keeps its arrow in one row",
+        "passed": true
+      },
+      {
+        "name": "protected home reloads with real data after compilation and network caches were cleared",
+        "passed": true
+      }
+    ]
+  },
+  "builds": {
+    "web": "passed; existing >500 kB chunk warning",
+    "mini": "passed; local dist configured for isolated API only"
+  },
+  "cache": {
+    "web": "Vite optimize --force rebuilt vditor, vue and vue-router; browser verification uses a fresh context",
+    "mini": "CLI cache --clean compile and --clean network succeeded; project rebuilt and relaunched",
+    "scope": "Project compilation/network caches; user storage and authentication not cleared"
+  },
+  "initialFailures": [
+    "Two browser assertions expected native confirmation titles; updated to shared dialog and all 25 workflows passed",
+    "Native tool stale compilation/duplicate-port crash resolved by restarting the project",
+    "Native user filters lost ancestor selectors; fixed after Pen update and rechecked",
+    "Final article copy assertion updated; 10 article tests passed",
+    "Visual review initially required an editable published article; corrected to inspect its visible read-only editor"
+  ],
+  "limits": [
+    "No physical iOS/Android device verification",
+    "No real payment, refund, subscribed message delivery, shipment integration or production deployment",
+    "Some fault/confirmation states use explicitly labeled synthetic or UI-only fixtures"
+  ]
+}

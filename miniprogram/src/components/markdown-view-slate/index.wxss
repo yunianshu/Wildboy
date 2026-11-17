@@ -1,0 +1,135 @@
+/* 文章 Markdown 渲染样式：原生组件 + 页面类样式 */
+.md {
+  font-size: 30rpx;
+  line-height: 1.8;
+  color: var(--rf-ink);
+  word-break: break-all;
+}
+.md-span {
+  font-size: inherit;
+}
+.md-bold {
+  font-weight: 700;
+}
+.md-italic {
+  font-style: italic;
+}
+.md-code {
+  font-family: Menlo, Consolas, monospace;
+  font-size: 26rpx;
+  background: var(--rf-bg);
+  border-radius: 6rpx;
+  padding: 2rpx 8rpx;
+}
+.md-link {
+  color: var(--rf-primary-text);
+  text-decoration: underline;
+}
+.md-h {
+  font-weight: 700;
+  margin: 28rpx 0 12rpx;
+  line-height: 1.4;
+}
+.md-h1 {
+  font-size: 40rpx;
+}
+.md-h2 {
+  font-size: 36rpx;
+}
+.md-h3,
+.md-h4,
+.md-h5,
+.md-h6 {
+  font-size: 32rpx;
+}
+.md-p {
+  margin: 16rpx 0;
+}
+.md-figure {
+  margin: 20rpx 0;
+}
+.md-img {
+  width: 100%;
+  border-radius: 12rpx;
+}
+.md-caption {
+  display: block;
+  margin-top: 8rpx;
+  font-size: 24rpx;
+  color: var(--rf-muted);
+  text-align: center;
+}
+.md-list {
+  margin: 16rpx 0 16rpx 8rpx;
+}
+.md-list-nested {
+  margin-left: 40rpx;
+}
+.md-li {
+  display: flex;
+  flex-direction: row;
+  gap: 10rpx;
+  margin: 8rpx 0;
+}
+.md-marker {
+  color: var(--rf-primary-text);
+  font-weight: 700;
+}
+.md-li-text {
+  flex: 1;
+}
+.md-quote-block {
+  border-left: 6rpx solid var(--rf-line);
+  background: var(--rf-bg);
+  border-radius: 0 12rpx 12rpx 0;
+  padding: 16rpx 20rpx;
+  margin: 16rpx 0;
+}
+.md-code-block {
+  font-family: Menlo, Consolas, monospace;
+  font-size: 26rpx;
+  background: var(--rf-bg);
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin: 16rpx 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.md-table-wrap {
+  margin: 20rpx 0;
+}
+.md-table-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+.md-table {
+  display: inline-flex;
+  flex-direction: column;
+  border: 1rpx solid var(--rf-soft);
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+.md-tr {
+  display: flex;
+  flex-direction: row;
+}
+.md-tr-head {
+  background: var(--rf-soft);
+}
+.md-th,
+.md-td {
+  padding: 12rpx 20rpx;
+  border-right: 1rpx solid var(--rf-soft);
+  min-width: 140rpx;
+  max-width: 480rpx;
+}
+.md-th {
+  font-weight: 700;
+}
+.md-tr:not(.md-tr-head) {
+  border-top: 1rpx solid var(--rf-soft);
+}
+.md-hr {
+  border-top: 1rpx solid var(--rf-soft);
+  margin: 28rpx 0;
+}

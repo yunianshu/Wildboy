@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .create {
   margin: 32rpx 0;
 }
@@ -10,16 +11,16 @@
   flex: 1;
   text-align: center;
   padding: 16rpx 4rpx;
-  background: #e8ecdf;
+  background: var(--rf-soft);
   border-radius: 40rpx;
   font-size: 24rpx;
 }
 .active {
-  background: #193f34;
+  background: var(--rf-primary);
   color: white;
 }
 .activity {
-  background: #fffdf7;
+  background: #FFFFFF;
   border-radius: 20rpx;
   padding: 26rpx;
   margin-bottom: 26rpx;
@@ -70,8 +71,8 @@
   font-size: 24rpx;
 }
 .danger {
-  background: #f3e8df;
-  color: #a05037;
+  background: var(--rf-danger-bg);
+  color: var(--rf-danger);
 }
 .confirm-mask {
   position: fixed;
@@ -81,14 +82,14 @@
   align-items: center;
   justify-content: center;
   padding: 32rpx;
-  background: rgba(15, 35, 27, .48);
+  background: rgba(32, 45, 58, .48);
 }
 .confirm-card {
   width: 100%;
   max-width: 620rpx;
   padding: 34rpx;
   border-radius: 18rpx;
-  background: #fffdf7;
+  background: #FFFFFF;
 }
 .confirm-card .muted {
   display: block;
@@ -104,3 +105,5 @@
   min-width: 0;
   margin: 0;
 }
+
+@import "../../styles/slate-components.wxss";

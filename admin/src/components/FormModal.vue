@@ -9,10 +9,19 @@ import {
   useId,
 } from "vue";
 
-withDefaults(defineProps<{ size?: "md" | "lg" | "xl"; label?: string }>(), {
-  size: "md",
-  label: "对话框",
-});
+const props = withDefaults(
+  defineProps<{
+    size?: "sm" | "md" | "lg" | "xl";
+    label?: string;
+    busy?: boolean;
+    confirmation?: boolean;
+    title?: string;
+  }>(),
+  {
+    size: "md",
+    label: "对话框",
+  },
+);
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLElement>();
 const headingId = ref<string>();
@@ -47,7 +56,13 @@ function topDialog() {
     .at(-1);
 }
 function isTopmost() {
-  return !!dialog.value && topDialog() === dialog.value;
+  return (
+    !!dialog.value &&
+    (topDialog() === dialog.value || !dialog.value.isConnected)
+  );
+}
+function close() {
+  if (!props.busy) emit("close");
 }
 function focusableElements() {
   return Array.from(
@@ -66,7 +81,7 @@ function keydown(event: KeyboardEvent) {
   if (event.key === "Escape") {
     event.preventDefault();
     event.stopPropagation();
-    emit("close");
+    close();
   } else if (event.key === "Tab") {
     const elements = focusableElements();
     const first = elements[0],
@@ -122,26 +137,41 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <div class="form-modal-backdrop" @click.self="emit('close')">
+  <div
+    class="form-modal-backdrop"
+    :class="{ 'dialog-overlay': confirmation }"
+    @click.self="close"
+  >
     <section
       ref="dialog"
       class="form-modal"
-      :class="size === 'md' ? undefined : size"
+      :class="[size === 'md' ? undefined : size, { dialog: confirmation }]"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="headingId"
       :aria-label="headingId ? undefined : label"
       tabindex="-1"
     >
-      <button
-        class="form-modal-close"
-        type="button"
-        aria-label="关闭弹窗"
-        @click="emit('close')"
-      >
-        <AppIcon name="close" :size="16" />
-      </button>
-      <slot />
+      <header class="form-modal-header">
+        <div v-if="$slots.title || title" class="form-modal-title">
+          <slot name="title"
+            ><h2>{{ title }}</h2></slot
+          >
+        </div>
+        <button
+          class="form-modal-close"
+          type="button"
+          aria-label="关闭弹窗"
+          :disabled="busy"
+          @click="close"
+        >
+          <AppIcon name="close" :size="16" />
+        </button>
+      </header>
+      <div class="form-modal-body"><slot /></div>
+      <footer v-if="$slots.footer" class="form-modal-footer">
+        <slot name="footer" />
+      </footer>
     </section>
   </div>
 </template>

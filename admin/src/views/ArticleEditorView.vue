@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -239,7 +240,10 @@ async function save() {
 }
 async function reload() {
   if (!id.value || saving.value || rich.value?.busy) return;
-  if (dirty.value && !window.confirm("重新加载会丢弃未保存的修改，是否继续？"))
+  if (
+    dirty.value &&
+    !(await askConfirm("重新加载会丢弃未保存的修改，是否继续？"))
+  )
     return;
   await load();
 }
@@ -318,7 +322,7 @@ async function confirmAction() {
 async function unpublish() {
   const target = current.value;
   if (saving.value || !target) return;
-  if (!window.confirm("确认下架文章？小程序将不再展示此文。")) return;
+  if (!(await askConfirm("确认下架文章？小程序将不再展示此文。"))) return;
   const n = epoch,
     actor = currentUser.value;
   saving.value = true;
@@ -338,13 +342,13 @@ async function unpublish() {
     if (alive) saving.value = false;
   }
 }
-function canLeave() {
+async function canLeave() {
   return (
-    (!dirty.value || window.confirm("文章信息尚未保存，确定离开吗？")) &&
-    (!rich.value || rich.value.canLeave())
+    (!dirty.value || (await askConfirm("文章信息尚未保存，确定离开吗？"))) &&
+    (!rich.value || (await rich.value.canLeave()))
   );
 }
-onBeforeRouteLeave((to) => to.path === "/login" || canLeave());
+onBeforeRouteLeave(async (to) => to.path === "/login" || (await canLeave()));
 function beforeUnload(event: BeforeUnloadEvent) {
   if (dirty.value || rich.value?.dirty) {
     event.preventDefault();
@@ -578,19 +582,13 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
                 :disabled="locked || saving"
                 @input="autosize"
               ></textarea>
-              <p v-if="!id" class="doc-body-empty">
-                保存草稿后，就可以在这里写图文正文（Markdown）。
-              </p>
+              <p v-if="!id" class="doc-body-empty">先保存草稿，再编辑正文。</p>
             </template>
             <div
               class="article-editor-host article-editor-host--workbench"
             ></div>
             <template v-if="layout === 'workbench'">
-              <p class="doc-foot">
-                Markdown 已就绪<span class="doc-foot-sep">·</span
-                >图片上传至野小子图床<span class="doc-foot-sep">·</span
-                >正文由系统渲染为小程序页面
-              </p>
+              <p class="doc-foot">支持 Markdown 与图片上传</p>
             </template>
           </div>
         </section>
@@ -709,17 +707,11 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
             </button>
             <span v-if="coverBusy" class="doc-cover-busy">封面上传中…</span>
           </div>
-          <p v-if="!id" class="doc-body-empty">
-            保存草稿后，就可以在这里写图文正文（Markdown）。
-          </p>
+          <p v-if="!id" class="doc-body-empty">先保存草稿，再编辑正文。</p>
         </template>
         <div class="article-editor-host article-editor-host--canvas"></div>
         <template v-if="layout === 'canvas'">
-          <p class="doc-foot">
-            Markdown 已就绪<span class="doc-foot-sep">·</span
-            >图片上传至野小子图床<span class="doc-foot-sep">·</span
-            >正文由系统渲染为小程序页面
-          </p>
+          <p class="doc-foot">支持 Markdown 与图片上传</p>
         </template>
       </div>
       <!-- 共享的封面上传入口：两种布局的「上传 / 更换」按钮都触发它 -->
@@ -761,7 +753,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
       :description="
         dialog === 'publish'
           ? `「${current.title}」发布后将在小程序探索页公开展示。`
-          : `探索页「野小子」入口将打开「${current.title}」，替换原官方介绍。原官方介绍仍是已发布文章，会回到探索页文章轮播。`
+          : `「野小子」入口将改为「${current.title}」。原介绍保留在文章轮播。`
       "
       :confirm-label="dialog === 'publish' ? '确认发布' : '确认设为官方介绍'"
       @confirm="confirmAction"
@@ -814,7 +806,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 }
 .article-publish {
   background: var(--admin-tint);
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
 }
 .doc-canvas {
   max-width: 720px;
@@ -904,7 +896,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 }
 .doc-title::placeholder,
 .doc-summary::placeholder {
-  color: #c7ccd4;
+  color: var(--rf-line);
 }
 .doc-summary {
   display: block;
@@ -970,7 +962,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
   box-shadow: none;
 }
 .doc-cover.is-empty .doc-cover-swap:hover {
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
   border-color: var(--admin-primary);
 }
 .doc-cover-clear {
@@ -1004,7 +996,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 .doc-foot {
   margin: 18px 0 0;
   font-size: 11.5px;
-  color: #c7ccd4;
+  color: var(--rf-line);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1033,7 +1025,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 }
 .layout-switch button[aria-pressed="true"] {
   background: var(--admin-tint);
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
   font-weight: 650;
 }
 /* ---------- 工作台模式（Linear 式） ---------- */
@@ -1087,7 +1079,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
   font-size: 12.5px;
 }
 .wb-cover-upload:hover:not(:disabled) {
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
   border-color: var(--admin-primary);
 }
 .wb-cover-actions {
@@ -1140,7 +1132,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
   margin: 2px 0 18px;
 }
 .wb-title::placeholder {
-  color: #c7ccd4;
+  color: var(--rf-line);
 }
 .workbench-main {
   min-width: 0;

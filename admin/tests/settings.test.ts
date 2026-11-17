@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { beforeEach, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -25,7 +26,7 @@ beforeEach(() => {
     token: "test",
     user: { id: "admin", nickname: "管理员", role: "ADMIN" },
   });
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
   fetcher = vi.fn(async (url: string, opts: any = {}) => ({
     ok: true,
     status: 200,
@@ -214,7 +215,7 @@ it("reload cancellation preserves edits after a failed upload", async () => {
   expect(fetcher.mock.calls.filter((c) => c[1]?.method === "PUT")).toHaveLength(
     0,
   );
-  vi.mocked(window.confirm).mockReturnValue(false);
+  vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
   const count = fetcher.mock.calls.filter(
     (c) => !c[0].includes("/admin/media"),
   ).length;

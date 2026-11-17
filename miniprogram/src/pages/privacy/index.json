@@ -1,3 +1,9 @@
 {
-  "navigationBarTitleText": "信息使用说明"
+  "navigationBarTitleText": "信息使用说明",
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index"
+  }
 }

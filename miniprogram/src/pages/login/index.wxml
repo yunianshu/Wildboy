@@ -1,16 +1,5 @@
 <view class="welcome page-motion {{pageMotionClass}}">
-  <view class="picture">
-    <image src="/assets/hero-hiking.jpg" mode="aspectFill" />
-    <view class="shade" />
-    <view class="brand">
-      wildboy.
-      <text>野一点，自由一点</text>
-    </view>
-    <view class="slogan">
-      把日常留在身后
-      <text>下一程，和同频的人一起出发。</text>
-    </view>
-  </view>
+  <view class="login-brand">WILDBOY<text>野小子户外俱乐部</text></view>
   <view class="panel">
     <view class="title">
       {{mode === 'consent' ? '协议已更新' : '欢迎加入 Wildboy'}}
@@ -23,7 +12,7 @@
             value="yes"
             checked="{{agreed}}"
             disabled="{{busy}}"
-            color="#173F35"
+            color="#9A430C"
             aria-label="我已阅读并同意当前版本隐私政策和用户协议"
           />
           <view class="agreement-copy">我已阅读并同意当前版本<text class="legal-link" catchtap="readPrivacy" aria-role="link" aria-label="隐私政策，版本 {{current.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="readTerms" aria-role="link" aria-label="用户协议，版本 {{current.terms.version}}">《用户协议》</text></view>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
 import {
   useRoute,
@@ -302,15 +303,18 @@ async function confirmAction() {
     if (alive) saving.value = false;
   }
 }
-function reload() {
-  if (!dirty.value || window.confirm("重新加载会丢弃未保存的修改，是否继续？"))
+async function reload() {
+  if (
+    !dirty.value ||
+    (await askConfirm("重新加载会丢弃未保存的修改，是否继续？"))
+  )
     void load();
 }
 function closeEditor() {
   void router.push("/activities");
 }
-function closeContent() {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+async function closeContent() {
+  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   contentOpen.value = false;
 }
 function beforeUnload(event: BeforeUnloadEvent) {
@@ -320,13 +324,14 @@ function beforeUnload(event: BeforeUnloadEvent) {
   }
 }
 onBeforeRouteLeave(
-  (to) =>
+  async (to) =>
     to.path === "/login" ||
     (!saving.value &&
-      (!dirty.value || window.confirm("修改尚未保存，确定离开吗？"))),
+      (!dirty.value || (await askConfirm("修改尚未保存，确定离开吗？")))),
 );
 onBeforeRouteUpdate(
-  () => !dirty.value || window.confirm("修改尚未保存，确定切换活动吗？"),
+  async () =>
+    !dirty.value || (await askConfirm("修改尚未保存，确定切换活动吗？")),
 );
 onMounted(() => {
   void load();
@@ -691,7 +696,12 @@ onUnmounted(() => {
       </div>
     </form>
   </main>
-  <FormModal v-if="id && contentOpen" size="lg" @close="closeContent">
+  <FormModal
+    :busy="saving"
+    v-if="id && contentOpen"
+    size="lg"
+    @close="closeContent"
+  >
     <RichContentEditor
       ref="contentEditor"
       :path="`/admin/activities/${id}/content`"

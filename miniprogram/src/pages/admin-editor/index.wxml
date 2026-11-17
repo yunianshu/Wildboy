@@ -50,7 +50,7 @@
           bindtap="coverPreset"
         />
       </scroll-view>
-      <view class="field"><text>核验身份证（仅必要时开启，并在活动说明中写明用途）</text><switch checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
+      <view class="field"><text>核验身份证（仅必要时开启，并在活动说明中写明用途）</text><switch color="#9A430C" checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
       <view class="field">
         <text class="label">活动价格（元 / 人，0 为免费）</text>
         <input type="digit" value="{{price}}" bindinput="priceInput" disabled="{{busy || status !== 'DRAFT' || registeredCount > 0}}" />
@@ -270,14 +270,9 @@
       </button>
     </view>
   </block>
-  <view wx:if="{{confirming}}" class="confirm-mask">
-    <view class="confirm-card">
-      <view class="section-title">保存并发布活动？</view>
-      <view class="muted">发布后开放浏览和报名。请核对日期、集合点和名额。</view>
-      <view class="confirm-actions">
-        <button class="secondary" bindtap="cancelPublish">返回检查</button>
-        <button class="primary" bindtap="confirmPublish">确认发布</button>
+  <ui-dialog wx:if="{{confirming}}" title="保存并发布活动？" bindclose="cancelPublish" busy="{{busy}}" mask-closable="{{false}}"><scroll-view scroll-y class="ui-confirm-body"><view class="muted">发布后开放浏览和报名。请核对日期、集合点和名额。</view></scroll-view><view slot="footer" class="dialog-actions">
+        <button disabled="{{busy}}" class="secondary" bindtap="cancelPublish">返回检查</button>
+        <button disabled="{{busy}}" class="primary" bindtap="confirmPublish">确认发布</button>
       </view>
-    </view>
-  </view>
+</ui-dialog>
 </view>

@@ -1,89 +1,17 @@
+@import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
-.picture {
-  height: 760rpx;
-  position: relative;
-  color: #fff;
-}
-.picture image,
-.shade {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-}
-.shade {
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.2),
-    transparent,
-    rgba(0, 0, 0, 0.5)
-  );
-}
-.brand {
-  position: absolute;
-  top: 90rpx;
-  left: 42rpx;
-  font-weight: 800;
-  font-size: 76rpx;
-}
-.brand text,
-.slogan text {
-  display: block;
-  font-weight: 400;
-  font-size: 25rpx;
-  margin-top: 12rpx;
-}
-.slogan {
-  position: absolute;
-  bottom: 100rpx;
-  left: 42rpx;
-  font-size: 46rpx;
-  font-weight: 700;
-}
-.panel {
-  position: relative;
-  margin-top: -44rpx;
-  padding: 48rpx 36rpx 70rpx;
-  border-radius: 40rpx 40rpx 0 0;
-  background: #f6f4ed;
-}
-.agreement {
-  display: flex;
-  align-items: flex-start;
-  font-size: 24rpx;
-  line-height: 1.7;
-  margin: 24rpx 0;
-}
-.primary {
-  margin: 20rpx 0 8rpx;
-}
-.text-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 72rpx;
-  padding: 10rpx 20rpx;
-  line-height: 1.4;
-  text-align: center;
-  margin-top: 8rpx;
-  background: transparent;
-  color: #173f35;
-}
-.admin-link {
-  text-align: center;
-  font-size: 23rpx;
-  color: #6c766c;
-  margin-top: 12rpx;
-}
-.error {
-  margin: 20rpx 0;
-}
-.agreement checkbox {
-  flex-shrink: 0;
-  width: 56rpx;
-  transform: scale(0.8);
-  transform-origin: left top;
-}
-.agreement-copy {
-  flex: 1;
-  min-width: 0;
-}
+.welcome { padding: 32px 16px calc(32px + env(safe-area-inset-bottom)); }
+.login-brand { margin: 24px 0 32px; font-size: 24px; font-weight: 800; color: var(--rf-primary-text); }
+.login-brand text { display: block; margin-top: 8px; color: var(--rf-muted); font-size: 13px; font-weight: 400; }
+.panel { padding: 24px 16px; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: 12px; }
+.panel .title { margin: 0 0 24px; }
+.agreement { display: flex; align-items: flex-start; gap: 8px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: var(--rf-muted); }
+.agreement checkbox { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; }
+.agreement-copy { flex: 1; min-width: 0; padding-top: 6px; }
+.legal-link { color: var(--rf-primary-text); }
+.panel .primary { margin: 20px 0 8px; }
+.text-button { display: flex; justify-content: center; align-items: center; min-height: 44px; padding: 8px 12px; margin-top: 8px; line-height: 1.4; background: transparent; color: var(--rf-primary-text); }
+.admin-link { min-height: 44px; padding: 12px 0; text-align: center; font-size: 13px; color: var(--rf-muted); }
+.error { margin: 16px 0; }
+
+@import "../../styles/slate-components.wxss";

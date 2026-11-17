@@ -1,0 +1,10 @@
+[
+  {"title":"周末山脊徒步","category":"WEEKLY","categoryLabel":"本周活动","location":"山脊步道","startAt":"2026-11-21 08:00","priceCents":6800,"registeredCount":12,"capacity":20,"pendingPaymentCount":2,"status":"PUBLISHED","statusLabel":"已发布","image":"category-weekly.jpg"},
+  {"title":"溪谷自然观察","category":"LEISURE","categoryLabel":"休闲活动","location":"溪谷","startAt":"2026-11-22 09:30","priceCents":0,"registeredCount":6,"capacity":16,"pendingPaymentCount":0,"status":"PUBLISHED","statusLabel":"已发布","image":"category-leisure.jpg"},
+  {"title":"冬季露营入门","category":"HOLIDAY","categoryLabel":"假期活动","location":"山野营地","startAt":"2026-11-28 10:00","priceCents":15800,"registeredCount":0,"capacity":12,"pendingPaymentCount":0,"status":"DRAFT","statusLabel":"草稿","image":"category-holiday.jpg"},
+  {"title":"城市绿道轻徒步","category":"LEISURE","categoryLabel":"休闲活动","location":"城市绿道","startAt":"2026-11-29 08:30","priceCents":0,"registeredCount":8,"capacity":20,"pendingPaymentCount":0,"status":"PUBLISHED","statusLabel":"已发布","image":"hero-hiking.jpg"},
+  {"title":"山野日落摄影","category":"WEEKLY","categoryLabel":"本周活动","location":"观景山坡","startAt":"2026-12-05 14:00","priceCents":9800,"registeredCount":10,"capacity":10,"pendingPaymentCount":0,"status":"PUBLISHED","statusLabel":"已发布","image":"category-weekly.jpg"},
+  {"title":"高山杜鹃两日行","category":"DOMESTIC","categoryLabel":"国内游行","location":"高山步道","startAt":"2026-12-06 07:00","priceCents":36800,"registeredCount":3,"capacity":16,"pendingPaymentCount":1,"status":"PUBLISHED","statusLabel":"已发布","image":"category-domestic.jpg"},
+  {"title":"亲子森林探索","category":"HOLIDAY","categoryLabel":"假期活动","location":"森林公园","startAt":"2026-12-12 09:00","priceCents":12800,"registeredCount":0,"capacity":16,"pendingPaymentCount":0,"status":"DRAFT","statusLabel":"草稿","image":"hero-hiking.jpg"},
+  {"title":"海岸线日出徒步","category":"DOMESTIC","categoryLabel":"国内游行","location":"海岸步道","startAt":"2026-12-13 06:00","priceCents":16800,"registeredCount":0,"capacity":18,"pendingPaymentCount":0,"status":"CANCELLED","statusLabel":"已取消","image":"category-leisure.jpg"}
+]

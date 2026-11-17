@@ -1,0 +1,9 @@
+.ui-dialog-mask { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; box-sizing: border-box; padding: 16px; background: var(--rf-overlay); }
+.ui-dialog-panel { box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 440px; max-height: calc(100vh - 48px - env(safe-area-inset-bottom)); padding: 20px; border-radius: 16px; background: var(--rf-surface); color: var(--rf-ink); font-size: 14px; line-height: 1.5; overflow: hidden; }
+.ui-dialog-heading { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.ui-dialog-title { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
+button.ui-dialog-close { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 10px; background: transparent; border: 0; border-radius: 10px; }
+.ui-dialog-close::after { border: 0; }
+.ui-dialog-close image { width: 20px; height: 20px; }
+.ui-dialog-content { min-height: 0; overflow: hidden; }
+.ui-dialog-footer { flex-shrink: 0; }

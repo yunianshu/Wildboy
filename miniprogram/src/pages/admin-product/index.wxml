@@ -1,23 +1,26 @@
-<view class="page page-motion {{pageMotionClass}}"><view class="section-title">{{id ? '编辑商品' : '新增商品'}}</view>
+<view class="page product-editor page-motion {{pageMotionClass}}"><view class="section-title">{{id ? '编辑商品' : '新增商品'}}</view>
  <view wx:if="{{loading}}" class="state">加载中…</view><view wx:if="{{error}}" class="state error">{{error}}<button wx:if="{{!saving}}" bindtap="retryLoad">重试</button></view>
  <button wx:if="{{!authorized && !loading}}" bindtap="login">管理员身份验证</button>
  <view wx:if="{{uncertainCreate}}" class="state"><view>创建结果尚未核对，请先返回列表核对，不要重复创建。</view><button bindtap="backToProducts">返回列表核对</button></view>
  <view wx:if="{{categoriesError}}" class="state error">{{categoriesError}}<button bindtap="loadCategories">重新加载分类</button></view>
  <view wx:if="{{authorized && !uncertainCreate}}" class="form">
- <label>商品名称<input value="{{form.name}}" maxlength="120" data-field="name" bindinput="input" disabled="{{saving}}"/></label>
- <label>商品说明<textarea value="{{form.description}}" maxlength="20000" data-field="description" bindinput="input" disabled="{{saving}}"/></label>
- <label>封面图片 HTTPS 地址<input value="{{form.imageUrl}}" maxlength="2048" data-field="imageUrl" bindinput="input" disabled="{{saving}}"/></label>
- <image wx:if="{{coverPreview}}" src="{{coverPreview}}" mode="aspectFill" class="cover-preview"/>
- <button class="secondary" bindtap="uploadCover" disabled="{{saving}}">上传封面</button><button wx:if="{{id}}" class="secondary" bindtap="editContent" disabled="{{saving}}">编辑图文详情</button><view class="presets"><image wx:for="{{presets}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="preset"/></view>
- <label>售价（元）<input value="{{form.price}}" type="digit" data-field="price" bindinput="input" disabled="{{saving}}"/></label>
- <label>原价（元，选填）<input value="{{form.originalPrice}}" type="digit" data-field="originalPrice" bindinput="input" disabled="{{saving}}"/></label>
- <view class="muted">原价仅用于划线展示，须不低于现价；留空则按现价展示。</view>
- <label>可售库存<input value="{{form.stock}}" type="number" data-field="stock" bindinput="input" disabled="{{saving}}"/></label>
- <view class="muted">可售库存不含待付款订单占用数量。</view>
- <view class="field"><text class="label">上架状态</text><view class="segments"><button size="mini" class="{{statusIndex===0?'primary':'secondary'}}" data-index="0" bindtap="chooseStatus" disabled="{{saving}}">下架</button><button size="mini" class="{{statusIndex===1?'primary':'secondary'}}" data-index="1" bindtap="chooseStatus" disabled="{{saving}}">上架</button></view></view>
+<label>商品名称<input value="{{form.name}}" maxlength="120" data-field="name" bindinput="input" disabled="{{saving}}"/></label>
  <view class="field"><text class="label">商品分类</text>
  <picker range="{{categories}}" range-key="name" bindchange="chooseCategory" disabled="{{saving || !!categoriesError}}"><view class="picker">{{categoryName || '选择分类'}} ›</view></picker>
  </view>
+
+ <view wx:if="{{!categoryManagerOpen}}" class="actions"><button class="secondary" bindtap="editCategory" disabled="{{saving || categorySaving || !categories.length}}">编辑当前分类</button><button class="secondary" bindtap="newCategory" disabled="{{saving || categorySaving}}">新建分类</button></view>
+
+<view class="field-grid"><label>原价（元，选填）<input value="{{form.originalPrice}}" type="digit" data-field="originalPrice" bindinput="input" disabled="{{saving}}"/></label><label>售价（元）<input value="{{form.price}}" type="digit" data-field="price" bindinput="input" disabled="{{saving}}"/></label></view>
+<view class="muted">原价不低于现价；可留空。</view>
+<label>可售库存<input value="{{form.stock}}" type="number" data-field="stock" bindinput="input" disabled="{{saving}}"/></label>
+<view class="muted">可售库存不含待付款订单占用数量。</view>
+<view class="cover-row"><image wx:if="{{coverPreview}}" src="{{coverPreview}}" mode="aspectFill" class="cover-preview"/><view class="cover-controls"><button class="secondary" bindtap="uploadCover" disabled="{{saving}}">上传封面</button></view></view>
+<label>封面图片 HTTPS 地址<input value="{{form.imageUrl}}" maxlength="2048" data-field="imageUrl" bindinput="input" disabled="{{saving}}"/></label>
+<view class="presets"><image wx:for="{{presets}}" wx:key="*this" src="{{item}}" mode="aspectFill" data-url="{{item}}" bindtap="preset"/></view>
+<label>商品说明<textarea value="{{form.description}}" maxlength="20000" data-field="description" bindinput="input" disabled="{{saving}}"/></label>
+<view class="field"><text class="label">上架状态</text><view class="segments"><button size="mini" class="{{statusIndex===0?'primary':'secondary'}}" data-index="0" bindtap="chooseStatus" disabled="{{saving}}">下架</button><button size="mini" class="{{statusIndex===1?'primary':'secondary'}}" data-index="1" bindtap="chooseStatus" disabled="{{saving}}">上架</button></view></view>
+<button wx:if="{{id}}" class="secondary" bindtap="editContent" disabled="{{saving}}">编辑图文详情</button>
  <view class="category-panel" wx:if="{{categoryManagerOpen}}">
   <view class="section-title">{{categoryMode==='edit'?'编辑分类':'新建分类'}}</view>
   <view wx:if="{{categoryMode==='edit'}}" class="field"><text class="label">正在编辑的分类</text><picker range="{{categories}}" range-key="name" value="{{managedCategoryIndex}}" bindchange="chooseManagedCategory" disabled="{{saving || categorySaving || categoryUncertain}}"><view class="picker">{{managedCategoryName}} ›</view></picker></view>
@@ -26,7 +29,7 @@
   <view wx:if="{{categoryError}}" class="error">{{categoryError}}</view>
   <view class="actions"><button class="primary" bindtap="saveCategory" loading="{{categorySaving}}" disabled="{{saving || categorySaving || categoryConflict || categoryUncertain}}">保存分类</button><button wx:if="{{categoryMode==='edit'}}" class="secondary" bindtap="newCategory" disabled="{{saving || categorySaving || categoryUncertain}}">新建分类</button><button wx:else class="secondary" bindtap="editCategory" disabled="{{saving || categorySaving || categoryUncertain || !categories.length}}">编辑已有分类</button><button class="secondary" bindtap="reloadCategory" disabled="{{saving || categorySaving}}">重新加载分类</button><button class="secondary" bindtap="toggleCategoryManager" disabled="{{saving || categorySaving || categoryUncertain}}">收起</button></view>
  </view>
- <view wx:if="{{!categoryManagerOpen}}" class="actions"><button class="secondary" bindtap="editCategory" disabled="{{saving || categorySaving || !categories.length}}">编辑当前分类</button><button class="secondary" bindtap="newCategory" disabled="{{saving || categorySaving}}">新建分类</button></view>
- <view wx:if="{{pendingSave}}" class="confirmation"><view>确认保存商品？{{form.status === 'ON_SALE' ? '商品将上架供用户购买。' : '商品保持下架。'}}价格 ¥{{form.price}}，库存 {{form.stock}}。</view><button bindtap="confirmSave" disabled="{{saving}}">确认保存</button><button class="secondary" bindtap="cancelSave" disabled="{{saving}}">取消</button></view>
- <button wx:if="{{!pendingSave}}" loading="{{saving}}" disabled="{{saving || loading || categorySaving}}" bindtap="save">确认并保存</button>
+
+ <view wx:if="{{pendingSave}}" class="confirmation"><view>确认保存商品？{{form.status === 'ON_SALE' ? '商品将上架供用户购买。' : '商品保持下架。'}}价格 ¥{{form.price}}，库存 {{form.stock}}。</view><button class="primary" bindtap="confirmSave" disabled="{{saving}}">确认保存</button><button class="secondary" bindtap="cancelSave" disabled="{{saving}}">取消</button></view>
+ <button class="primary" wx:if="{{!pendingSave}}" loading="{{saving}}" disabled="{{saving || loading || categorySaving}}" bindtap="save">确认并保存</button>
  <button class="secondary" disabled="{{saving}}" bindtap="reload">重新加载</button><view wx:if="{{dirty || categoryDirty}}" class="muted">有未保存修改</view></view></view>

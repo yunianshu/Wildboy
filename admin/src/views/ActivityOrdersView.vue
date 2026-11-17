@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -200,23 +201,23 @@ async function open(o: Order) {
 function hasDraft() {
   return Boolean(note.value || reason.value || requestConfirmed.value);
 }
-function canLeave() {
+async function canLeave() {
   return (
     !busy.value &&
-    (!hasDraft() || window.confirm("退款填写内容未保存，确定放弃吗？"))
+    (!hasDraft() || (await askConfirm("退款填写内容未保存，确定放弃吗？")))
   );
 }
-function close() {
-  if (!canLeave()) return;
+async function close() {
+  if (!(await canLeave())) return;
   clearDetail();
   error.value = "";
 }
-onBeforeRouteLeave((to) => to.path === "/login" || canLeave());
+onBeforeRouteLeave(async (to) => to.path === "/login" || (await canLeave()));
 onBeforeRouteUpdate(
-  (to, from) =>
+  async (to, from) =>
     (to.query.activityId === from.query.activityId &&
       to.query.orderId === from.query.orderId) ||
-    canLeave(),
+    (await canLeave()),
 );
 async function action(
   kind:
@@ -285,25 +286,25 @@ async function action(
   }
   if (
     kind === "approve" &&
-    !window.confirm(
+    !(await askConfirm(
       `确认批准订单 ${o.orderNo} 全额退款 ${money(snapshot?.amount_cents ?? o.totalCents)}？以微信实际回执为准。`,
-    )
+    ))
   )
     return;
   if (
     kind === "cancel" &&
-    !window.confirm(
+    !(await askConfirm(
       o.status === "CONFIRMED_FREE"
         ? "确认取消这笔免费报名并释放名额？"
         : "确认关闭这笔未支付订单？服务端会先核对微信状态，结果不确定时继续保留名额。",
-    )
+    ))
   )
     return;
   if (
     kind === "retry" &&
-    !window.confirm(
+    !(await askConfirm(
       "使用原退款单号重试全额退款？请先核对结果，仍以微信回执为准。",
-    )
+    ))
   )
     return;
   if (
@@ -409,7 +410,7 @@ async function reload() {
   if (
     !o ||
     busy.value ||
-    (hasDraft() && !window.confirm("重新加载会放弃退款填写内容，继续吗？"))
+    (hasDraft() && !(await askConfirm("重新加载会放弃退款填写内容，继续吗？")))
   )
     return;
   await open(o);
@@ -426,7 +427,9 @@ async function togglePrivate(kind: "user" | "participants") {
   const n = epoch;
   if (!o || actor?.role !== "ADMIN" || busy.value) return;
   const subject = kind === "user" ? "用户标识" : "参加者姓名和电话";
-  if (!window.confirm(`确认仅为活动履约查看订单 ${o.orderNo} 的${subject}？`))
+  if (
+    !(await askConfirm(`确认仅为活动履约查看订单 ${o.orderNo} 的${subject}？`))
+  )
     return;
   if (n !== epoch || actor !== currentUser.value || selected.value?.id !== o.id)
     return;
@@ -553,12 +556,13 @@ onMounted(() => void load(0));
       金额为下单时的成交快照。待支付订单尚未确认报名。
     </p>
     <FormModal
+      :busy="busy"
       v-if="selected"
       class="activity-order-detail"
       size="lg"
       @close="close"
-    >
-      <h2>订单详情</h2>
+      ><template #title><h2>订单详情</h2></template>
+
       <section class="activity-order-summary">
         <div class="activity-order-line">
           <h3>{{ selected.activityTitle }}</h3>

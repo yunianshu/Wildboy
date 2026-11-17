@@ -1,0 +1,128 @@
+{
+  "stamp": "1794894176044-3c6d6",
+  "web": "http://127.0.0.1:15176",
+  "api": "http://127.0.0.1:19082/api/v1",
+  "mutations": true,
+  "screens": [],
+  "checks": [
+    {
+      "name": "通知加载、模拟失败与真实重试",
+      "passed": true
+    },
+    {
+      "name": "通知配置及重新授权后的原通知重排（合成响应）",
+      "passed": true
+    },
+    {
+      "name": "同版本退款申请替换后的重新读取与确认（合成响应）",
+      "passed": true
+    },
+    {
+      "name": "运营范围、待办错误恢复与审计筛选",
+      "passed": true
+    },
+    {
+      "name": "管理员账号演示身份只读及公开能力状态一致",
+      "passed": true
+    },
+    {
+      "name": "管理员真实密码登录、错误重验证及取消设置",
+      "passed": true
+    },
+    {
+      "name": "未经授权和退出后的活动订单深链",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建活动草稿并由 API 读取",
+      "passed": true
+    },
+    {
+      "name": "390px 草稿定价控件可用",
+      "passed": true
+    },
+    {
+      "name": "收费活动显式发布",
+      "passed": true
+    },
+    {
+      "name": "活动名称全局查询并返回对应编辑页",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双业务优惠并分配会员",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建商品分类",
+      "passed": true
+    },
+    {
+      "name": "浏览器创建双价商品并核对公开数据",
+      "passed": true
+    },
+    {
+      "name": "商品商业字段变更撤回及确认保存",
+      "passed": true
+    },
+    {
+      "name": "免支付商城订单获取与发货确认/取消",
+      "passed": true
+    },
+    {
+      "name": "商城收货资料确认、隐藏及离页清除",
+      "passed": true
+    },
+    {
+      "name": "收费活动免支付报名、隐私揭示和取消释放名额",
+      "passed": true
+    },
+    {
+      "name": "用户脱敏报名历史可定位本笔收费活动订单",
+      "passed": true
+    },
+    {
+      "name": "活动模板保存及生成两条继承价格的草稿",
+      "passed": true
+    },
+    {
+      "name": "文章草稿、图文、取消发布与真实公开发布",
+      "passed": true
+    },
+    {
+      "name": "首页入口关联公开文章并验证小程序公开 API",
+      "passed": true
+    },
+    {
+      "name": "保存并预览协议草稿，不发布且可读历史",
+      "passed": true
+    },
+    {
+      "name": "普通报名名单两位参与者、确认揭示与隐藏",
+      "passed": true
+    },
+    {
+      "name": "清理合成活动、下架商品、恢复配置与用户身份",
+      "passed": true
+    }
+  ],
+  "skipped": [],
+  "fixtures": {
+    "activity": "64621118-9064-4b8c-9484-5573bf4c613a",
+    "tier": "615c5a3a-43ea-46ef-9290-6069d66ef593",
+    "category": "25a7db30-b3ec-4203-9258-db17ca8b7f43",
+    "product": "d1929682-957d-4c10-904e-f3aaf395fbe4",
+    "shopOrder": "3a286837-e1d8-40e0-9bef-64e2e70bb75f",
+    "activityOrder": "124e886b-dabb-4266-bad1-d4c1d449e3c9",
+    "template": "17d06a67-b4d8-44b1-ae05-58aacee6b47a",
+    "generatedActivities": [
+      "a25e89f6-0786-44e0-9b8b-ced52130bc8f",
+      "6d0e6127-4e82-46e9-99dd-4617cfc252f0"
+    ],
+    "article": "27b6e302-8025-42cc-95be-8989485ba7a8",
+    "privacyDraftRestored": true
+  },
+  "browserErrors": [],
+  "engine": "157.0.4341.60",
+  "passed": true
+}

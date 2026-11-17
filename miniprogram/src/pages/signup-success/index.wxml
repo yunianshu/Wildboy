@@ -5,7 +5,7 @@
     ><button class="secondary ui-button ui-button-block" bindtap="registrations">我的报名</button></ui-state
   >
   <block wx:elif="{{confirmed && activity && registration}}">
-    <view class="success-mark"><image class="status-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view
+    <view class="success-mark"><image class="status-icon" src="/assets/icons-slate/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view
     ><text class="eyebrow">SEE YOU OUTSIDE</text
     ><view class="title">山野见！</view
     ><view class="muted">已确认你的报名 · 免费，无需支付</view>

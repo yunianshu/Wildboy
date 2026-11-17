@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
 .filters {
   display: flex;
@@ -9,15 +10,15 @@
   text-align: center;
   border-radius: 36rpx;
   padding: 16rpx 24rpx;
-  background: #e7ecdf;
-  color: #71806a;
+  background: var(--rf-soft);
+  color: var(--rf-muted);
 }
 .filter.active {
-  background: #193f34;
-  color: #fffdf7;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
 }
 .record {
-  background: #fffdf7;
+  background: #FFFFFF;
   padding: 30rpx;
   border-radius: 18rpx;
   margin: 24rpx 0;
@@ -37,9 +38,11 @@
   margin-top: 28rpx;
 }
 .cancelled {
-  background: #e7e7df;
-  color: #7d8175;
+  background: var(--rf-soft);
+  color: var(--rf-muted);
 }
 .notice {
   margin-top: 24rpx;
 }
+
+@import "../../styles/slate-components.wxss";

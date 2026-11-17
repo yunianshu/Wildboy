@@ -1,0 +1,1 @@
+{"passed": 49, "failed": 0, "output": "D:\\AiProject\\Wildboy\\design\\proposals\\huashu-v3\\design-demos\\qa-A"}

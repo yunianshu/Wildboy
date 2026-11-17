@@ -1,230 +1,27 @@
+@import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
-.my-hero {
-  height: 420rpx;
-  position: relative;
-  overflow: hidden;
-  background: #23483b;
-}
-.my-hero > image,
-.hero-shade {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-.hero-shade {
-  background: linear-gradient(180deg, rgba(10, 35, 26, .3), rgba(10, 35, 26, .76));
-}
-.brand {
-  position: absolute;
-  left: 32rpx;
-  display: flex;
-  flex-direction: column;
-  color: #fff;
-}
-.brand-name {
-  font-size: 42rpx;
-  font-weight: 800;
-  letter-spacing: -2rpx;
-}
-.brand-caption {
-  margin-top: 4rpx;
-  font-size: 15rpx;
-  letter-spacing: 3rpx;
-  opacity: .82;
-}
-.hero-copy {
-  position: absolute;
-  left: 32rpx;
-  right: 32rpx;
-  bottom: 46rpx;
-  color: #fff;
-}
-.hero-kicker {
-  font-size: 16rpx;
-  letter-spacing: 3rpx;
-  opacity: .76;
-}
-.hero-title {
-  margin-top: 10rpx;
-  font-size: 54rpx;
-  font-weight: 700;
-  letter-spacing: -2rpx;
-}
-.hero-subtitle {
-  margin-top: 8rpx;
-  font-size: 23rpx;
-  opacity: .86;
-}
-.my-content {
-  position: relative;
-  padding-top: 0;
-  padding-bottom: calc(70px + env(safe-area-inset-bottom));
-}
-.profile {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 22rpx;
-  min-height: 132rpx;
-  padding: 28rpx;
-  margin-top: -22rpx;
-  background: #fffdf7;
-  border-radius: 18rpx;
-  box-shadow: 0 12rpx 36rpx rgba(25, 63, 52, .08);
-}
-button.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 76rpx;
-  height: 76rpx;
-  min-width: 44px;
-  min-height: 44px;
-  flex-shrink: 0;
-  margin: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: #dbe6c8;
-}
-button.avatar-pressed {
-  background: #cbdab5;
-}
-.avatar-icon {
-  width: 40rpx;
-  height: 40rpx;
-}
-.profile-main {
-  flex: 1;
-  min-width: 0;
-}
-.profile-name {
-  font-size: 32rpx;
-  font-weight: 650;
-}
-.profile-note {
-  margin-top: 8rpx;
-  color: #7c8178;
-  font-size: 23rpx;
-  line-height: 1.6;
-}
-.role {
-  display: inline-block;
-  margin-top: 8rpx;
-  padding: 3rpx 14rpx;
-  border-radius: 24rpx;
-  background: #e3ead7;
-  color: #52654b;
-  font-size: 19rpx;
-}
-.guest {
-  flex-wrap: wrap;
-}
-.guest .login-button {
-  flex: 0 0 100%;
-}
-.login-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 84rpx;
-  padding: 14rpx 24rpx;
-  line-height: 1.4;
-  text-align: center;
-  margin-top: 8rpx;
-  background: #193f34;
-  color: #fffdf4;
-}
-.my-content .section-head {
-  margin: 44rpx 0 22rpx;
-}
-.menu-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18rpx;
-  margin-bottom: 24rpx;
-}
-.menu {
-  min-height: 172rpx;
-  padding: 24rpx;
-  border-radius: 16rpx;
-  background: #e8ecdf;
-}
-.menu:nth-child(2) {
-  background: #eee9dc;
-}
-.menu-icon {
-  display: block;
-  width: 44rpx;
-  height: 44rpx;
-  margin-bottom: 20rpx;
-}
-.menu-title {
-  font-size: 29rpx;
-  font-weight: 650;
-  line-height: 1.5;
-}
-.menu .muted {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 21rpx;
-}
-.menu-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-  padding: 26rpx 24rpx;
-  margin-bottom: 14rpx;
-  border-radius: 14rpx;
-  background: #fffdf7;
-}
-.menu-row .muted {
-  display: block;
-  margin-top: 6rpx;
-  font-size: 22rpx;
-}
-.menu-title .badge {
-  margin-left: 12rpx;
-}
-.links {
-  margin-top: 36rpx;
-}
-.links view {
-  padding: 24rpx 4rpx;
-  border-bottom: 1rpx solid #dce1d5;
-}
-.links text {
-  float: right;
-}
-.links image {
-  float: right;
-}
-.row-chevron {
-  width: 28rpx;
-  height: 28rpx;
-  flex-shrink: 0;
-}
-.admin-auth image {
-  width: 26rpx;
-  height: 26rpx;
-  vertical-align: middle;
-  margin-left: 6rpx;
-}
-.admin-auth {
-  padding: 28rpx 20rpx 12rpx;
-  text-align: center;
-  color: #5c6d60;
-  font-size: 23rpx;
-}
-.notice {
-  margin-top: 24rpx;
-}
-.app-version {
-  margin-top: 32rpx;
-  color: #596a60;
-  font-size: 24rpx;
-  line-height: 1.5;
-  text-align: center;
-}
+.profile { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: 12px; }
+button.avatar { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; flex-shrink: 0; margin: 0; padding: 0; border-radius: 50%; background: var(--rf-soft); }
+button.avatar-pressed { background: var(--rf-line); }
+.avatar-icon { width: 28px; height: 28px; }
+.profile-main { flex: 1; min-width: 0; }
+.profile-name { font-size: 18px; font-weight: 600; overflow-wrap: break-word; }
+.role { display: inline-block; margin-top: 6px; color: var(--rf-muted); font-size: 12px; }
+.guest { flex-wrap: wrap; }
+.guest .login-button { flex: 0 0 100%; }
+.login-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; line-height: 1.4; margin: 0; color: var(--rf-on-primary); background: var(--rf-primary); border-radius: 8px; }
+.my-content .section-head { margin: 24px 0 12px; }
+.menu-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-bottom: 16px; }
+.menu { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; border: 1px solid var(--rf-line); background: var(--rf-surface); }
+.menu-icon { width: 24px; height: 24px; }
+.menu-title { font-size: 15px; font-weight: 500; line-height: 1.5; }
+.menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 16px; margin-bottom: 8px; border-radius: 12px; background: var(--rf-surface); }
+.links { margin-top: 24px; }
+.links view { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 0; border-bottom: 1px solid var(--rf-line); }
+.row-chevron { width: 18px; height: 18px; flex-shrink: 0; }
+.admin-auth { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 16px; color: var(--rf-muted); font-size: 13px; }
+.admin-auth image { width: 16px; height: 16px; }
+.notice { margin-top: 16px; }
+.app-version { margin-top: 24px; text-align: center; color: var(--rf-muted); font-size: 12px; }
+
+@import "../../styles/slate-components.wxss";

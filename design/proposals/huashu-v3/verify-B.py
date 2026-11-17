@@ -1,0 +1,92 @@
+from pathlib import Path
+import json, sys
+from playwright.sync_api import sync_playwright
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+BASE = Path(__file__).resolve().parent
+round_name = sys.argv[1] if len(sys.argv)>1 else 'round-1'
+OUT = BASE / 'design-demos' / 'B-html' / round_name
+OUT.mkdir(parents=True, exist_ok=True)
+HTML = BASE / 'design-demos' / 'dir-2.html'
+report = {'checks':[], 'errors':[], 'screenshots':[]}
+
+def check(name, condition, detail=None):
+    report['checks'].append({'name':name, 'passed':bool(condition), 'detail':detail})
+
+with sync_playwright() as p:
+    browser = p.chromium.launch()
+    for width,height in [(1440,900),(375,812)]:
+        page = browser.new_page(viewport={'width':width,'height':height},device_scale_factor=1)
+        page.on('pageerror',lambda e:report['errors'].append(str(e)))
+        page.on('console',lambda m:report['errors'].append(m.text) if m.type=='error' else None)
+        page.goto(HTML.as_uri(),wait_until='networkidle')
+        page.evaluate('document.fonts.ready')
+        page.screenshot(path=str(OUT/f'home-{width}x{height}.png'))
+        page.screenshot(path=str(OUT/f'home-{width}x{height}-full.png'),full_page=True)
+        report['screenshots'].append(str(OUT/f'home-{width}x{height}.png'))
+        check(f'{width} initial cards',page.locator('.activity-card').count()==8)
+        check(f'{width} image loading',page.evaluate('Array.from(document.images).every(i=>i.complete&&i.naturalWidth>0)'))
+        check(f'{width} self contained images',page.evaluate('Array.from(document.images).every(i=>i.src.startsWith("data:"))'))
+        overflow=page.evaluate('({scroll:document.documentElement.scrollWidth, viewport:innerWidth, elements:Array.from(document.querySelectorAll("body *")).filter(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&s.display!=="none"&&s.position!=="fixed"&&(r.right>innerWidth+1||r.left< -1)}).map(e=>({tag:e.tagName,cls:e.className,text:e.textContent.slice(0,25)}))})')
+        check(f'{width} no horizontal overflow',overflow['scroll']<=width and not overflow['elements'],overflow)
+        check(f'{width} Noto Sans SC',page.evaluate('document.fonts.check("16px \\\"Noto Sans SC\\\"")'))
+        controls=page.evaluate('Array.from(document.querySelectorAll("button,input,select")).filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0}).filter(e=>e.getBoundingClientRect().height<44).map(e=>({text:e.textContent,h:e.getBoundingClientRect().height}))')
+        check(f'{width} controls at least44',len(controls)==0,controls)
+        if width==1440:
+            check('desktop eight cards in viewport',page.locator('.activity-card').last.bounding_box()['y']+page.locator('.activity-card').last.bounding_box()['height']<=900)
+            check('desktop 144 card heights',page.locator('.activity-card').evaluate_all('(xs)=>xs.every(x=>x.getBoundingClientRect().height===144)'))
+            check('readback source SHA',page.evaluate('window.hdBPreview.sourceSHA')=='851ea2445a7beac55edc740e98326131935f01e04a6e5039a9a5e9f27e9022e1')
+        page.get_by_label('搜索活动名称',exact=True).fill('山脊')
+        page.get_by_role('button',name='查询',exact=True).click()
+        check(f'{width} title search',page.locator('.activity-card').count()==1 and '周末山脊徒步' in page.locator('.activity-card').inner_text())
+        page.get_by_label('搜索活动名称',exact=True).fill('山脊步道')
+        page.get_by_role('button',name='查询',exact=True).click()
+        check(f'{width} title only no location search',page.locator('.activity-card').count()==0 and page.get_by_text('没有找到活动').is_visible())
+        page.screenshot(path=str(OUT/f'empty-{width}.png'))
+        page.get_by_role('button',name='重置筛选',exact=True).click()
+        page.wait_for_timeout(20)
+        check(f'{width} reset empty',page.locator('.activity-card').count()==8)
+        page.get_by_label('活动分类',exact=True).select_option('HOLIDAY')
+        check(f'{width} category auto filter',page.locator('.activity-card').count()==2)
+        page.get_by_label('活动状态',exact=True).select_option('PUBLISHED')
+        check(f'{width} combined filters empty',page.locator('.activity-card').count()==0)
+        page.get_by_role('button',name='重置',exact=True).click()
+        page.wait_for_timeout(20)
+        page.get_by_label('活动状态',exact=True).select_option('CANCELLED')
+        check(f'{width} status auto filter',page.locator('.activity-card').count()==1 and '海岸线日出徒步' in page.locator('.activity-card').inner_text())
+        page.get_by_role('button',name='重置',exact=True).click()
+        page.wait_for_timeout(20)
+        check(f'{width} pending only paid nonzero',page.locator('.pending').count()==2)
+        check(f'{width} paid/free actions',page.get_by_role('button',name='免费名单',exact=True).count()==2 and page.get_by_role('button',name='收费订单',exact=True).count()==6)
+        page.get_by_role('button',name='免费名单',exact=True).first.click()
+        check(f'{width} free roster honest feedback','免费名单入口预览，未连接后台数据。' in page.locator('#toast').inner_text())
+        page.get_by_role('button',name='收费订单',exact=True).first.click()
+        check(f'{width} paid order honest feedback','收费订单入口预览，未连接后台数据。' in page.locator('#toast').inner_text())
+        page.locator('.nav-button').last.click()
+        check(f'{width} 15 navigation links',page.locator('.nav-menu a').count()==15)
+        page.screenshot(path=str(OUT/f'menu-{width}.png'))
+        page.get_by_role('link',name='管理员账号',exact=True).click()
+        check(f'{width} navigation honest feedback','/settings/admin-account' in page.locator('#toast').inner_text())
+        page.locator('#preview-trigger').click()
+        check(f'{width} publish dialog opened',page.locator('#publish-dialog').is_visible())
+        check(f'{width} cancel initial focus',page.evaluate('document.activeElement.id')=='dialog-cancel')
+        page.evaluate('document.getElementById("toast").hidden=true')
+        page.screenshot(path=str(OUT/f'dialog-{width}.png'))
+        page.keyboard.press('Shift+Tab')
+        page.keyboard.press('Shift+Tab')
+        check(f'{width} modal focus trap',page.evaluate('document.getElementById("publish-dialog").contains(document.activeElement)'))
+        page.keyboard.press('Escape')
+        check(f'{width} Esc closes',not page.locator('#publish-dialog').is_visible())
+        check(f'{width} Esc restores trigger focus',page.evaluate('document.activeElement.id')=='preview-trigger')
+        page.locator('#preview-trigger').click()
+        page.locator('#dialog-confirm').click()
+        check(f'{width} preview publish remains honest','样例活动未发布' in page.locator('#toast').inner_text())
+        check(f'{width} confirmation restores focus',page.evaluate('document.activeElement.id')=='preview-trigger')
+        check(f'{width} data unchanged after preview',page.locator('.activity-card').count()==8 and page.locator('.status.draft').count()==2)
+        page.close()
+    browser.close()
+report['passed']=all(c['passed'] for c in report['checks']) and not report['errors']
+(OUT/'validation.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+print(json.dumps({'passed':report['passed'],'checks':len(report['checks']),'failures':[c for c in report['checks'] if not c['passed']],'errors':report['errors'],'output':str(OUT)},ensure_ascii=False))
+sys.exit(0 if report['passed'] else 1)

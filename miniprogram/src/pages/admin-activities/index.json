@@ -1,1 +1,11 @@
-{ "navigationBarTitleText": "活动管理", "enablePullDownRefresh": false }
+{
+  "navigationBarTitleText": "活动管理",
+  "enablePullDownRefresh": false,
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index",
+    "ui-dialog": "../../components/ui-dialog/index"
+  }
+}

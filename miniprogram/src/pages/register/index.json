@@ -1,3 +1,10 @@
 {
-  "navigationBarTitleText": "确认报名"
+  "navigationBarTitleText": "确认报名",
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index",
+    "ui-dialog": "../../components/ui-dialog/index"
+  }
 }

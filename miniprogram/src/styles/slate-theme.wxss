@@ -1,0 +1,37 @@
+/* Page-local theme. Never import from app.wxss or the protected home page. */
+@import "slate-tokens.wxss";
+page {
+  --color-page: var(--rf-bg);
+  --color-surface: var(--rf-surface);
+  --color-primary: var(--rf-primary);
+  --color-on-primary: var(--rf-on-primary);
+  --color-text: var(--rf-ink);
+  --color-muted: var(--rf-muted);
+  --color-border: var(--rf-line);
+  --color-secondary: var(--rf-soft);
+  --color-danger: var(--rf-danger);
+  --color-error: var(--rf-danger);
+  background: var(--rf-bg);
+  color: var(--rf-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.page { padding: 16px 16px calc(24px + env(safe-area-inset-bottom)); }
+.title { font-size: 24px; line-height: 1.5; letter-spacing: 0; color: var(--rf-ink); }
+.section-title { font-size: 18px; line-height: 1.5; letter-spacing: 0; color: var(--rf-ink); }
+.muted, .eyebrow, .loading-line, .section-link { color: var(--rf-muted); }
+.primary { min-height: 44px; border-radius: 8px; background: var(--rf-primary); color: var(--rf-on-primary); }
+.secondary { min-height: 44px; border-radius: 8px; background: var(--rf-soft); color: var(--rf-primary-text); }
+.primary[disabled], button.primary[disabled], .ui-button-disabled { background: var(--rf-line); color: var(--rf-muted); }
+.secondary[disabled], button.secondary[disabled] { color: var(--rf-muted); background: var(--rf-neutral-bg); }
+.text-button { color: var(--rf-primary-text); min-height: 44px; }
+.error { color: var(--rf-danger); }
+.notice { background: var(--rf-soft); color: var(--rf-muted); border-radius: 12px; }
+.badge, .pill { background: var(--rf-soft); color: var(--rf-primary-text); border-color: var(--rf-line); }
+input, textarea, .picker-value { color: var(--rf-ink); background: var(--rf-surface); border-color: var(--rf-line); border-radius: 8px; font-size: 14px; }
+input { height: 48px; }
+.divider { background: var(--rf-line); }
+.sticky-action { background: var(--rf-surface); border-top-color: var(--rf-line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+.slate-tab-header { padding-left: 16px; padding-right: 16px; padding-bottom: 20px; }
+.slate-tab-header .uf-title { color: var(--rf-ink); font-size: 24px; }
+.slate-tab-content { padding-top: 0; padding-bottom: calc(74px + env(safe-area-inset-bottom)); }

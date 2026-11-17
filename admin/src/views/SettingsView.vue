@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -96,10 +97,14 @@ watch(currentUser, (u, old) => {
   }
 });
 onUnmounted(reset);
-function canLeave() {
-  return !dirty.value || window.confirm("首页配置尚未保存，确定放弃修改吗？");
+async function canLeave() {
+  return (
+    !dirty.value || (await askConfirm("首页配置尚未保存，确定放弃修改吗？"))
+  );
 }
-onBeforeRouteLeave((to) => to.path === "/login" || (!busy.value && canLeave()));
+onBeforeRouteLeave(
+  async (to) => to.path === "/login" || (!busy.value && (await canLeave())),
+);
 function fill(value: Settings) {
   config.value = value;
   if (!value.items.some((entry) => entry.slot === activeSlot.value)) {
@@ -111,7 +116,7 @@ function fill(value: Settings) {
   conflict.value = false;
 }
 async function load() {
-  if (busy.value || !currentUser.value || !canLeave()) return;
+  if (busy.value || !currentUser.value || !(await canLeave())) return;
   const n = ++epoch,
     actor = currentUser.value;
   loading.value = true;
@@ -458,7 +463,7 @@ h2 {
   padding: 6px 9px;
   text-align: left;
   background: var(--admin-surface);
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
 }
 .shortcut-option:hover,
 .shortcut-option[aria-pressed="true"] {

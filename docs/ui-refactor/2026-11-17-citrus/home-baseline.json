@@ -1,0 +1,334 @@
+{
+  "route": "pages/home/index",
+  "evidence": [
+    "app.json pages[0]",
+    "app.json tabBar.list 探索",
+    "utils/tab-bar.ts 与首页跳转实现"
+  ],
+  "files": [
+    {
+      "file": "miniprogram/src/app.json",
+      "sha256": "4840682927f215cd66971a0288bcfb9a28bd7c19eee31a60e0ba7de65a1aa94a"
+    },
+    {
+      "file": "miniprogram/src/app.ts",
+      "sha256": "1ab645c73bcea61604f9cc4805a752ab9ba8fb66813d8c57cad34328c0ce4109"
+    },
+    {
+      "file": "miniprogram/src/app.wxss",
+      "sha256": "331f8d3b427f5ea2b4195f1c86028d0415cd91ee48ff3ec412d4925240967226"
+    },
+    {
+      "file": "miniprogram/src/build-version.d.ts",
+      "sha256": "6c985f1c1670ce6d3aa13cec726c6b208ab0b65d2499fb8a236426ccb2f29e79"
+    },
+    {
+      "file": "miniprogram/src/config.ts",
+      "sha256": "7b2542a959992860140190060b2ab10a5f8d737de4dfda68cdd30e5e62ba8e7a"
+    },
+    {
+      "file": "miniprogram/src/sitemap.json",
+      "sha256": "88cb3007157dce249d2f53567954ea27f980a1a6e2d29f00912a271b99b0e586"
+    },
+    {
+      "file": "miniprogram/src/assets/category-domestic.jpg",
+      "sha256": "2f1c413f4bc76d0812bf1445f6f6b864e5649c1ee4bc9e170b74ef83eb74ef03"
+    },
+    {
+      "file": "miniprogram/src/assets/category-holiday.jpg",
+      "sha256": "88d76b0c9798ce4ea988c1fd38e2b8313e9ea93a05ec602b1103f83f4a3dc6de"
+    },
+    {
+      "file": "miniprogram/src/assets/category-leisure.jpg",
+      "sha256": "777a413c35ecea62e9701100122960d7f8eef1af08483906107da523109ae1b4"
+    },
+    {
+      "file": "miniprogram/src/assets/category-weekly.jpg",
+      "sha256": "1427ee78ecb55bd2c5d8946bc56bcde81e00af3d2f9f966966c4e0459217fcbd"
+    },
+    {
+      "file": "miniprogram/src/assets/equipment-banner.jpg",
+      "sha256": "4e916619389a65b13812ff7c7baa0e35dabebefc2effe99bfc8623ef5d223f4c"
+    },
+    {
+      "file": "miniprogram/src/assets/equipment.jpg",
+      "sha256": "82d22e52b5d1c7ba6b8143d02d8011129d6ff5a66ef1927a9b3e046a64db5615"
+    },
+    {
+      "file": "miniprogram/src/assets/hero-hiking.jpg",
+      "sha256": "91a2ed0c52bc0954f90521b3421570707be6546a1330ea97070fb30e8fe2804c"
+    },
+    {
+      "file": "miniprogram/src/assets/platform-brand-original-transparent.png",
+      "sha256": "b0a99794546c6a0c15fe42882d7ddbd6c2fbc96ac5c60b0178816a3a9b47b407"
+    },
+    {
+      "file": "miniprogram/src/assets/platform-brand-transparent.png",
+      "sha256": "9dbb25f72bd6167d3c99ed5f4443e4a6a976eb7397c460d74417f186f0fa9147"
+    },
+    {
+      "file": "miniprogram/src/assets/platform-brand.jpg",
+      "sha256": "ab5c1b40d39cdd37628f22cdded8316d30868320348fe6663dbd7a4210f6fe21"
+    },
+    {
+      "file": "miniprogram/src/custom-tab-bar/index.json",
+      "sha256": "8d7520a0c2b604d4fe0197e9f82e3c1cc9f4b96e0712724e71a8d3cd863f51f2"
+    },
+    {
+      "file": "miniprogram/src/custom-tab-bar/index.ts",
+      "sha256": "6adbbd6f9b6fee93bcc709e7d6205c065b371636d2920a950c14047570a177b1"
+    },
+    {
+      "file": "miniprogram/src/custom-tab-bar/index.wxml",
+      "sha256": "96845d0aadfb7493ea941bfb175496e492bb2d95863c83e3b1edafcdb2fc7273"
+    },
+    {
+      "file": "miniprogram/src/custom-tab-bar/index.wxss",
+      "sha256": "01f1b9ae96b53d71186a7bdba9a61f84b56697c7731abe9210bd54b734bcdbe3"
+    },
+    {
+      "file": "miniprogram/src/styles/motion.wxss",
+      "sha256": "0923a418054de3afda2ebcf1da1e0ca83ee0760c01581a547614d6207557c120"
+    },
+    {
+      "file": "miniprogram/src/utils/activity-orders.ts",
+      "sha256": "b0df74d89e61a56f4c51c41a69bf57250c4683920b58b8435879116e66d6f65e"
+    },
+    {
+      "file": "miniprogram/src/utils/addresses.ts",
+      "sha256": "ba21f35854e0dabd027a86f4986400cb5c5c1e5779740769d4b551f62c3ef8ad"
+    },
+    {
+      "file": "miniprogram/src/utils/admin-capability.ts",
+      "sha256": "3bedaac407c288196162f04af3e6db7196d4bae23c8f7047b0ae8f084edc0249"
+    },
+    {
+      "file": "miniprogram/src/utils/admin-shop.ts",
+      "sha256": "c9f6cb969339dbae0816377ac1b240b940d1c244a9e85e49d1710848e0250d20"
+    },
+    {
+      "file": "miniprogram/src/utils/api.ts",
+      "sha256": "98d640e0f6cf1be3fcd448117e995a5965fe3684abc70a3b7bef7facb4347b6a"
+    },
+    {
+      "file": "miniprogram/src/utils/articles.ts",
+      "sha256": "3f6ce37f1bf794460870e6402f1bf9c7c26886b1e53f5f8372271794d3917dcd"
+    },
+    {
+      "file": "miniprogram/src/utils/capsule-header.ts",
+      "sha256": "52d5cd27f92651dafc26e35d4e2d15109cb71fb41b64b53df8f8f5eb836f1686"
+    },
+    {
+      "file": "miniprogram/src/utils/content.ts",
+      "sha256": "61f92bebd79b97ed34c7c7bb723e4c94ebcf96ad77ffe42ead78827ec7e9dfab"
+    },
+    {
+      "file": "miniprogram/src/utils/domain.ts",
+      "sha256": "953d78544912476c1df78ece4f8325af383b1c3a2913587ac32b083941d46aa5"
+    },
+    {
+      "file": "miniprogram/src/utils/filter-scroll.ts",
+      "sha256": "765e9d2b7e244ede09c0a1186aa3a0ec88fedcb0ecef94553841c14202062b55"
+    },
+    {
+      "file": "miniprogram/src/utils/home-shortcuts.ts",
+      "sha256": "097f7ce04313ba6095edc44915d6abf553dff4c61f80a144fcc35d1350d79f4c"
+    },
+    {
+      "file": "miniprogram/src/utils/home.ts",
+      "sha256": "b16c442b3f3a58d25add1d5266ed60c6e153e3cc48875941d5cf4ae222c7ea3a"
+    },
+    {
+      "file": "miniprogram/src/utils/legal.ts",
+      "sha256": "39b52086b72442881100d0fec104aec14c5f26d40515f703090435b3c9edf137"
+    },
+    {
+      "file": "miniprogram/src/utils/membership.ts",
+      "sha256": "23a786253d944ac3ab280e640005f7963a892a639e456e99ee22d7ebfa26afcf"
+    },
+    {
+      "file": "miniprogram/src/utils/models.ts",
+      "sha256": "308ffd65b211445f25eda99624078858a0a1321691357914285f864d090db5eb"
+    },
+    {
+      "file": "miniprogram/src/utils/money.ts",
+      "sha256": "ed11ac90495d2e47eb637b6d6b17c2329fdfa651c980b987a6df50fb9470cda7"
+    },
+    {
+      "file": "miniprogram/src/utils/notifications.ts",
+      "sha256": "6c9db8365db3006915a285c0d4f9aded92a1893f7a34e057768287ac5780783e"
+    },
+    {
+      "file": "miniprogram/src/utils/page-motion.ts",
+      "sha256": "68ec4a17076192997f0a8766881f22c29d100e41ed75755ff6e7c1c7e2c6006f"
+    },
+    {
+      "file": "miniprogram/src/utils/product-prices.ts",
+      "sha256": "bb100f9a58a7c103d5ca5061fcaf5882115675f0f1e791dc1bd70e6662ef1d0f"
+    },
+    {
+      "file": "miniprogram/src/utils/shop.ts",
+      "sha256": "a6f012131dade6d6b30e8afa752cd7e33dd038b32f6b1f6d1557958af0304319"
+    },
+    {
+      "file": "miniprogram/src/utils/tab-bar.ts",
+      "sha256": "20c64dfdf9905570d680b18833ccab987669018f09111bd8385f1e1f3e078926"
+    },
+    {
+      "file": "miniprogram/src/utils/tab-swipe.ts",
+      "sha256": "cb86e7f9152492f3791f1209f48b7c12ed6cbdf5f940f0b594c9ae63858b97d6"
+    },
+    {
+      "file": "miniprogram/src/utils/user-profile.ts",
+      "sha256": "eafd8df93b53cd3680174107e584d65832b77091fb54574457fed0d2453105ee"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/activity.svg",
+      "sha256": "00b4649d59e58fee7e24b1c32af163ac3e32b58955a26c6c76f39d1dbed8fb36"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/back.svg",
+      "sha256": "347f28f9802f448762ae888225f37f272effb1da6839b35a334a27f453ef5fdb"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/bag.svg",
+      "sha256": "1d0261807cd5881758af44bf8149fdcc0372a36a351477d185caf922210ff224"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/check.svg",
+      "sha256": "e20b06476b0d6ec3eae70532b430cb468d0816686b87ed3889cfd09b0cebae86"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/chevron-right-light.svg",
+      "sha256": "b0d8242873777f19d686356e056f21cd1ce9d043f59f39859a1dc445b22f3f55"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/chevron-right.svg",
+      "sha256": "f1ee3c90c2da3d2601a9b2f48973111fdb75ca2cb6fd26bfdd93f293e4145a8b"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/close.svg",
+      "sha256": "5df3b389bed231ed2fa05590d86c51a1d147ac8cdf7e3cf5641bfe277617bee9"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/empty.svg",
+      "sha256": "20002a6f29dc173b5735141c7a3933cf0c7824c821ea4ab12a067a451eb04095"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/error.svg",
+      "sha256": "2287dba6bc08b8544bfdfec0e37cf700a1bb524e7a6e882a604897d5d9d8e866"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/info.svg",
+      "sha256": "f4e8d5a7f4703490d73787633c7a6af7996bee551b3db9571e006164332a6252"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/location.svg",
+      "sha256": "4be01189b607cf24022f279b89b56141b6025d7b0ffa34c1c0e4b2012b68a34a"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/logout.svg",
+      "sha256": "da9196c60edb3fe9d0388775137389eadeac73b57f2aaf91e99fa8b9f0954fef"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/minus.svg",
+      "sha256": "a0ec086c7cf544d6df4fa874a6039aa870abdeaa7d33c82890706e497d0538c3"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/mountain.svg",
+      "sha256": "43e79cb6fbe8a7e23a667c031d9b050df80afbe8bef0994f909d791b02ad27fd"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/order.svg",
+      "sha256": "5f79ffe950fedd34bd3b4910eed39cd80953b5586aae0da68c027dbd7dc42d88"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/plus-light.svg",
+      "sha256": "7360e8f376ea2c077d13dbcb72d9d5009f6778b7d37dea41145c14f693a4cebc"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/plus.svg",
+      "sha256": "9f2ac2172b8821f7ae23e870324933c7919fc3685addb102aef72e7a78b7596f"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/refresh.svg",
+      "sha256": "531a7fef0ec6708cf53023feb41f6ae0a0105e789c4c948ba547710f84dc1c72"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/settings.svg",
+      "sha256": "39a8161cae8555c2f4970ad9a0e5e354bac2c19a4042e0148586ada4761057c3"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/share.svg",
+      "sha256": "e71453d44665c0483594f5a1d375e0ed988255310667572e04059beb38d5bd45"
+    },
+    {
+      "file": "miniprogram/src/assets/icons/user.svg",
+      "sha256": "86bf88020f5fe72534d8c85a601a89da36e315d8d7b7361417e2f3a5ae7e4b06"
+    },
+    {
+      "file": "miniprogram/src/components/content-view/index.json",
+      "sha256": "9a504a4ce1972a0bf790abd7d1fc6398fbee8a06028379be7d73b07b6bb98b3a"
+    },
+    {
+      "file": "miniprogram/src/components/content-view/index.ts",
+      "sha256": "fbaef65a03f94583f1806206204a1a9e02260bdc5043167eb6ef354fd7c02dee"
+    },
+    {
+      "file": "miniprogram/src/components/content-view/index.wxml",
+      "sha256": "bba031f60cdc166b698b2e2eb557b11425a25338f3d4483bce25728ac9b91f37"
+    },
+    {
+      "file": "miniprogram/src/components/content-view/index.wxss",
+      "sha256": "f1d24f8b697ab2e22f688041d5fec68c6aae9d6b655aae35dc389089cd7c5b6b"
+    },
+    {
+      "file": "miniprogram/src/components/markdown-view/index.json",
+      "sha256": "035503c1a56d8b4b9227ce8bb9145fbd1ef8ec7dce59e55f9d5d55fb5eb7d566"
+    },
+    {
+      "file": "miniprogram/src/components/markdown-view/index.ts",
+      "sha256": "e411bd0b0d050c07439fe1937461c915be5f8c41c9205159c2c6c584d36c8080"
+    },
+    {
+      "file": "miniprogram/src/components/markdown-view/index.wxml",
+      "sha256": "672fc37c59ca4dfc7162e544c0244f281d62a163567cc90d97854853fd9eb8fd"
+    },
+    {
+      "file": "miniprogram/src/components/markdown-view/index.wxss",
+      "sha256": "4b3646e9e3b2aaa38722224d0fd5417faf6e7591335aa9e6907686a9b04f944b"
+    },
+    {
+      "file": "miniprogram/src/components/ui-state/index.json",
+      "sha256": "8d7520a0c2b604d4fe0197e9f82e3c1cc9f4b96e0712724e71a8d3cd863f51f2"
+    },
+    {
+      "file": "miniprogram/src/components/ui-state/index.ts",
+      "sha256": "ab12e6c61da22d222690dc51a57a85062fc093320a389a63065c50458769b045"
+    },
+    {
+      "file": "miniprogram/src/components/ui-state/index.wxml",
+      "sha256": "40098eedc266dee558062a21c59cf1a19d4f8f9cd2afd5984f0dbf9826231754"
+    },
+    {
+      "file": "miniprogram/src/components/ui-state/index.wxss",
+      "sha256": "d7076bab657a334e05481d715297e1bb81bbdf2284d966542a5483a3e47fdec0"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.json",
+      "sha256": "41667721fa88e8a3419805eb5eb21f73afdab559df78b2dfbffd97c5994fec9b"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.ts",
+      "sha256": "323d90b19e7864677eafa074209a4685d0c73dad2fb1557ac315ea9787dc3a8e"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.wxml",
+      "sha256": "c5c74e263cf3081f34ae8864794e3af0bd36fce890abaa161227a6523c9517a8"
+    },
+    {
+      "file": "miniprogram/src/pages/home/index.wxss",
+      "sha256": "0560e12310bb88f70290299c8679788e1ee5e1dac053a94b5195d8d6ba37a2d8"
+    }
+  ]
+}

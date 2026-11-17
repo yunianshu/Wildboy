@@ -1,1 +1,10 @@
-{"navigationBarTitleText":"图文详情","usingComponents":{"content-view":"../../components/content-view/index"}}
+{
+  "navigationBarTitleText": "图文详情",
+  "usingComponents": {
+    "content-view": "../../components/content-view-slate/index",
+    "ui-state": "/components/ui-state-slate/index"
+  },
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black"
+}

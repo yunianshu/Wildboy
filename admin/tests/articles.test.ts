@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Vditor 在 jsdom 中无法初始化，用可控替身验证组件协作。
@@ -86,7 +87,7 @@ beforeEach(() => {
   article = { ...base };
   markdownText = "回顾正文";
   vditorInstances.length = 0;
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
   fetcher = vi.fn(async (url: string, options: any = {}) => {
     const body = options.body ? JSON.parse(options.body) : null;
     let data: any;
@@ -134,7 +135,10 @@ async function view(path: string) {
   const w = mount(
     { template: "<RouterView />" },
     {
-      global: { plugins: [router], stubs: { ConfirmDialog: ConfirmDialogStub } },
+      global: {
+        plugins: [router],
+        stubs: { ConfirmDialog: ConfirmDialogStub },
+      },
       // Teleport 目标按 selector 解析，需挂载到 document 才能找到
       attachTo: document.body,
     },
@@ -232,7 +236,7 @@ describe("article editor page", () => {
     const w = await view("/articles/article-1/edit");
     await loadRich(w);
     await button(w, "设为官方介绍").trigger("click");
-    expect(w.text()).toContain("替换原官方介绍");
+    expect(w.text()).toContain("原介绍保留在文章轮播");
     expect(w.text()).toContain(article.title);
     await button(w, "返回检查").trigger("click");
     expect(writes()).toHaveLength(0);
@@ -248,12 +252,12 @@ describe("article editor page", () => {
     await loadRich(w);
     await typeContent(w, "尚未保存的图文");
     const router = (w.vm as any).$router;
-    vi.mocked(window.confirm).mockClear();
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(confirmation.askConfirm).mockClear();
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
     await router.push("/other");
-    expect(window.confirm).toHaveBeenCalledTimes(1);
+    expect(confirmation.askConfirm).toHaveBeenCalledTimes(1);
     expect(router.currentRoute.value.path).toBe("/articles/article-1/edit");
-    vi.mocked(window.confirm).mockReturnValue(true);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(true);
     await router.push("/other");
     expect(router.currentRoute.value.path).toBe("/other");
     w.unmount();

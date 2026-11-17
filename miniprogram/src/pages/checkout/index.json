@@ -1,1 +1,9 @@
-{"navigationBarTitleText":"确认订单"}
+{
+  "navigationBarTitleText": "确认订单",
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index"
+  }
+}

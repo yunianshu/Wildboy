@@ -2,13 +2,13 @@
   <ui-state wx:if="{{loading}}" kind="loading">正在读取活动…</ui-state>
   <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
   <block wx:elif="{{activity}}">
+    <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" />
     <view class="article-head">
       <view class="article-title">{{activity.title}}</view>
       <view class="article-meta">Wildboy 户外俱乐部 · {{activity.dateText}} 出发</view>
       <view class="article-meta">{{activity.categoryName}} · {{activity.location}}</view>
-      <button open-type="share" class="share">分享活动<image class="share-icon" src="/assets/icons/share.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
+      <button open-type="share" class="share">分享活动<image class="share-icon" src="/assets/icons-slate/share.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
-    <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" />
     <view class="article-intro">{{activity.summary}}</view>
     <view class="article-gallery" wx:if="{{activity.galleryUrls.length}}">
       <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load />

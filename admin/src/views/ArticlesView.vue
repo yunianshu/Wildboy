@@ -194,7 +194,7 @@ onMounted(() => void load());
   cursor: pointer;
 }
 .article-row:hover .article-title {
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
 }
 .article-hint {
   margin: 10px 0 0;

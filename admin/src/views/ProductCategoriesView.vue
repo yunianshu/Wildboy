@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -89,10 +90,10 @@ async function load() {
     if (started === identity && n === listEpoch) loading.value = false;
   }
 }
-function canLeave() {
+async function canLeave() {
   return (
     !dirty.value ||
-    window.confirm("分类修改尚未保存，确定放弃本次修改并离开吗？")
+    (await askConfirm("分类修改尚未保存，确定放弃本次修改并离开吗？"))
   );
 }
 function adopt(category?: ProductCategory) {
@@ -106,18 +107,18 @@ function adopt(category?: ProductCategory) {
   conflict.value = uncertain.value = false;
   editing.value = true;
 }
-function open(category?: ProductCategory) {
+async function open(category?: ProductCategory) {
   if (
     busy.value ||
     loading.value ||
     currentUser.value?.role !== "ADMIN" ||
-    !canLeave()
+    !(await canLeave())
   )
     return;
   adopt(category);
 }
-function close() {
-  if (busy.value || !canLeave()) return;
+async function close() {
+  if (busy.value || !(await canLeave())) return;
   const review = uncertain.value;
   editing.value = reloadConfirmation.value = false;
   form.value = emptyForm();
@@ -247,7 +248,7 @@ function beforeUnload(event: BeforeUnloadEvent) {
     event.returnValue = "";
   }
 }
-onBeforeRouteLeave((to) => to.path === "/login" || canLeave());
+onBeforeRouteLeave(async (to) => to.path === "/login" || (await canLeave()));
 onMounted(() => {
   void load();
   window.addEventListener("beforeunload", beforeUnload);
@@ -347,12 +348,14 @@ onUnmounted(() => {
         </button>
       </div>
     </nav>
-    <FormModal v-if="editing" @close="close">
+    <FormModal :busy="busy" v-if="editing" @close="close"
+      ><template #title
+        ><h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2></template
+      >
       <form class="form-section" @submit.prevent="save">
-        <h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2>
         <p v-if="error" class="error-box" role="alert">{{ error }}</p>
         <p v-if="editingId === 'uncategorized'" class="privacy-note">
-          这是默认分类。修改名称后仍承接未指定分类的历史商品，不删除商品。
+          此分类用于未指定分类的商品。
         </p>
         <label
           >分类名称 *<input

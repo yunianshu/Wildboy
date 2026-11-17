@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -47,7 +48,7 @@ beforeEach(() => {
     token: "test",
     user: { id: "admin", nickname: "管理员", role: "ADMIN" },
   });
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
   tier = structuredClone(baseTier);
   user = { ...baseUser };
   fetcher = vi.fn(async (url: string, options: any = {}) => {
@@ -332,7 +333,7 @@ describe("membership administration", () => {
     const { w, router } = await view();
     await button(w, "编辑等级").trigger("click");
     await w.get('[aria-label="等级名称"]').setValue("未保存");
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
     await button(w, "关闭").trigger("click");
     expect(w.find('[role="dialog"]').exists()).toBe(true);
     await router.push("/other");
@@ -340,7 +341,7 @@ describe("membership administration", () => {
     const event = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
-    vi.mocked(window.confirm).mockReturnValue(true);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(true);
     await router.push("/other");
     expect(router.currentRoute.value.path).toBe("/other");
   });

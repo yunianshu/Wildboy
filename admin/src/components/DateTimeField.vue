@@ -294,11 +294,11 @@ function selectTime(value: string) {
 .datetime-inputs input {
   min-height: 44px;
   margin: 0;
-  background: #fff;
+  background: #ffffff;
   cursor: pointer;
 }
 .datetime-inputs input:hover {
-  border-color: #a9c8b7;
+  border-color: var(--rf-line);
 }
 .datetime-date,
 .datetime-time {
@@ -325,20 +325,20 @@ function selectTime(value: string) {
   border: 1px solid var(--admin-line);
   border-radius: 8px;
   color: var(--admin-muted);
-  background: #fff;
+  background: #ffffff;
   box-shadow: none;
   font-size: 11px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 .time-preset:hover:not(:disabled) {
-  color: var(--admin-primary);
-  border-color: #a9c8b7;
+  color: var(--rf-primary-text);
+  border-color: var(--rf-line);
   background: var(--admin-tint);
 }
 .time-preset.is-active {
-  color: var(--admin-primary);
-  border-color: #a9c8b7;
+  color: var(--rf-primary-text);
+  border-color: var(--rf-line);
   background: var(--admin-tint);
   font-weight: 650;
 }
@@ -400,17 +400,17 @@ function selectTime(value: string) {
   box-shadow: none;
 }
 .calendar-day:hover {
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
   background: var(--admin-tint);
 }
 .calendar-day.is-outside {
-  color: #b0bab4;
+  color: var(--rf-line);
 }
 .calendar-day.is-today {
-  box-shadow: inset 0 0 0 1px #9bc4ad;
+  box-shadow: inset 0 0 0 1px var(--rf-muted);
 }
 .calendar-day.is-selected {
-  color: #fff;
+  color: #ffffff;
   background: var(--admin-primary);
   box-shadow: none;
 }
@@ -442,15 +442,15 @@ function selectTime(value: string) {
   min-height: 52px;
   border: 1px solid var(--admin-line);
   color: var(--admin-ink);
-  background: #fff;
+  background: #ffffff;
   box-shadow: none;
   font-size: 17px;
   font-variant-numeric: tabular-nums;
 }
 .time-choice:hover,
 .time-choice.is-active {
-  color: var(--admin-primary);
-  border-color: #9bc4ad;
+  color: var(--rf-primary-text);
+  border-color: var(--rf-muted);
   background: var(--admin-tint);
 }
 .custom-time {

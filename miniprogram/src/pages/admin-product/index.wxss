@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .page {
   padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
@@ -7,7 +8,7 @@
   margin: 20rpx 0;
 }
 .muted {
-  color: #777;
+  color: var(--rf-muted);
   font-size: 24rpx;
   margin: 12rpx 0;
 }
@@ -35,7 +36,7 @@
 .card {
   display: flex;
   gap: 20rpx;
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 20rpx;
   padding: 24rpx;
   margin: 20rpx 0;
@@ -63,7 +64,7 @@
 .form textarea,
 .picker {
   box-sizing: border-box;
-  background: #fff;
+  background: #FFFFFF;
   padding: 20rpx;
   border-radius: 12rpx;
   margin-top: 12rpx;
@@ -88,7 +89,23 @@
   margin-top: 24rpx;
 }
 .error {
-  color: #a33;
+  color: var(--rf-danger);
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+@import "../../styles/slate-components.wxss";
+
+.product-editor .form label { margin: 16px 0; }
+.product-editor .field-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; }
+.product-editor .field-grid label { min-width: 0; margin-bottom: 0; }
+.product-editor .field { margin: 16px 0; }
+.product-editor .picker { min-height: 48px; display: flex; align-items: center; padding: 0 12px; }
+.product-editor .cover-row { display: flex; gap: 12px; align-items: center; margin: 20px 0 12px; }
+.product-editor .cover-preview { flex: 0 0 88px; width: 88px; height: 88px; border-radius: 12px; background: var(--rf-soft); }
+.product-editor .cover-controls { flex: 1; min-width: 0; }
+.product-editor .cover-controls button { margin: 0; width: 100%; }
+.product-editor .segments { display: flex; gap: 12px; }
+.product-editor .segments button { flex: 1; min-width: 0; margin: 0; min-height: 44px; padding: 8px 12px; }
+.product-editor .form > button { width: 100%; }
+.product-editor .confirmation button { width: 100%; }

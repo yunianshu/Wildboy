@@ -1,0 +1,464 @@
+/* Layout rules read from the 2026-11-17 Pen artboards. Business components
+   continue to use the existing semantic classes and event handlers. */
+:root {
+  --admin-sidebar: 216px;
+  --admin-inset: 28px;
+  --admin-radius: var(--rf-control-radius);
+}
+body {
+  min-width: 320px;
+  -webkit-font-smoothing: antialiased;
+}
+button,
+.button {
+  min-height: 40px;
+  padding: 8px 14px;
+}
+input:not([type="checkbox"], [type="radio"], [type="file"]),
+select {
+  min-height: 40px;
+}
+input,
+textarea,
+select {
+  border-radius: var(--rf-control-radius);
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--rf-muted);
+}
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: 1px;
+}
+.sidebar {
+  padding: 24px 16px;
+  background: var(--rf-surface);
+  border-right: 1px solid var(--rf-line);
+  color: var(--rf-ink);
+}
+.sidebar > .brand {
+  display: block;
+  margin: 0 12px 28px;
+  color: var(--rf-primary-text);
+  font-size: 23px;
+}
+.sidebar .brand span {
+  color: var(--rf-muted);
+  font-size: 10px;
+}
+.nav-label,
+.nav-group[data-group] .nav-label {
+  color: var(--rf-muted);
+  font-size: 11px;
+  margin: 0 12px 6px;
+  letter-spacing: 0;
+}
+.nav-group + .nav-group {
+  margin-top: 18px;
+}
+.nav-link {
+  min-height: 34px;
+  padding: 6px 12px;
+  border-radius: var(--rf-control-radius);
+  color: var(--rf-muted);
+}
+.nav-link:hover {
+  background: var(--rf-bg);
+  color: var(--rf-primary-text);
+}
+.nav-link.is-active {
+  color: var(--rf-primary-text);
+  background: var(--rf-soft);
+  font-weight: 600;
+  box-shadow: none;
+}
+.nav-link .app-icon,
+.nav-link.is-active .app-icon {
+  color: currentColor;
+  width: 17px;
+  height: 17px;
+}
+.sidebar-bottom {
+  border-top: 1px solid var(--rf-line);
+  color: var(--rf-muted);
+}
+.sidebar-bottom p {
+  color: var(--rf-muted);
+}
+.topbar {
+  min-height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--rf-surface);
+  border-bottom: 1px solid var(--rf-line);
+}
+.topbar-title,
+.topbar strong {
+  color: var(--rf-muted);
+}
+.workspace {
+  max-width: 1500px;
+  padding: 24px var(--admin-inset) 40px;
+}
+.page-heading {
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.page-heading h1 {
+  padding-left: 0;
+  color: var(--rf-ink);
+  font-size: 26px;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+.page-heading h1::before {
+  display: none;
+}
+.page-heading p {
+  margin-top: 6px;
+}
+.filterbar {
+  padding: 16px;
+  margin-bottom: 20px;
+  gap: 12px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+}
+.filterbar .search-label {
+  min-width: 180px;
+}
+.table-scroll {
+  border-radius: 12px;
+}
+table {
+  font-size: 13px;
+}
+th {
+  padding: 12px 16px;
+  font-size: 12px;
+  color: var(--rf-muted);
+  background: var(--rf-bg);
+}
+td {
+  padding: 14px 16px;
+}
+tbody tr:hover {
+  background: var(--rf-bg);
+}
+.table-action {
+  min-height: 32px;
+  padding: 4px 6px;
+}
+.form-section,
+.preview-card,
+.editor-tip {
+  border-radius: 12px;
+}
+.form-section {
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.section-title {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rf-line);
+  margin-bottom: 20px;
+}
+.section-title h2 {
+  font-size: 18px;
+}
+.editor-grid {
+  gap: 20px;
+}
+.editor-actions {
+  padding: 16px;
+  background: var(--rf-surface);
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+}
+.task-tabs {
+  gap: 8px;
+}
+
+.login-layout {
+  grid-template-columns: minmax(320px, 38.28125%) minmax(0, 1fr);
+}
+.login-story {
+  justify-content: center;
+  gap: 28px;
+  padding: 56px;
+  color: var(--rf-on-primary);
+  background: var(--rf-primary);
+}
+.login-story .brand {
+  color: var(--rf-on-primary);
+  font-size: 23px;
+}
+.login-story .brand span {
+  color: var(--rf-on-primary);
+}
+.login-story h1 {
+  font-size: 31px;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.login-panel {
+  padding: 32px;
+  background: var(--rf-bg);
+}
+.login-form {
+  width: 100%;
+  max-width: 360px;
+  padding: 24px;
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-surface);
+}
+.login-form h2 {
+  font-size: 24px;
+  margin: 0 0 24px;
+}
+.login-form .primary {
+  min-height: 40px;
+}
+.login-note {
+  line-height: 1.6;
+}
+@media (max-width: 1150px) {
+  :root {
+    --admin-inset: 24px;
+  }
+  .filterbar {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 820px) {
+  .editor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .login-story {
+    padding: 32px;
+  }
+}
+@media (max-width: 720px) {
+  :root {
+    --admin-inset: 16px;
+  }
+  .sidebar {
+    padding: 12px 16px;
+  }
+  .sidebar > .brand {
+    margin: 0;
+    font-size: 19px;
+  }
+  .mobile-nav select {
+    color: var(--rf-ink);
+    background: var(--rf-surface);
+    border-color: var(--rf-line);
+  }
+  .topbar {
+    min-height: 54px;
+  }
+  .page-heading h1 {
+    font-size: 24px;
+  }
+  .filterbar {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .filterbar .search-label {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .filterbar select {
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+  .form-section {
+    padding: 16px;
+  }
+  .editor-actions {
+    position: static;
+  }
+  .login-layout {
+    display: block;
+  }
+  .login-story {
+    padding: 24px;
+    gap: 16px;
+  }
+  .login-story h1 {
+    font-size: 24px;
+  }
+  .login-panel {
+    padding: 24px 16px;
+  }
+}
+
+/* Shared primitives and dialog shell: Pen VI3Sz / rhqa8. */
+::selection {
+  background: var(--rf-soft);
+  color: var(--rf-ink);
+}
+* {
+  scrollbar-color: var(--rf-field-line) var(--rf-bg);
+  scrollbar-width: thin;
+}
+input,
+textarea {
+  caret-color: var(--rf-primary-text);
+}
+input,
+textarea,
+select {
+  border-color: var(--rf-field-line);
+}
+td,
+.price {
+  font-variant-numeric: tabular-nums;
+}
+button:disabled {
+  opacity: 1;
+  color: var(--rf-muted);
+  background: var(--rf-neutral-bg);
+}
+.form-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--rf-overlay);
+}
+.form-modal-backdrop.dialog-overlay {
+  z-index: 110;
+}
+.form-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100dvh - 48px);
+  margin: auto;
+  padding: 24px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  border-radius: var(--rf-modal-radius);
+  background: var(--rf-surface);
+  box-shadow: 0 20px 64px #33251c24;
+}
+.form-modal.sm {
+  max-width: 440px;
+}
+.form-modal.lg {
+  max-width: 760px;
+}
+.form-modal.xl {
+  max-width: 960px;
+}
+.form-modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.form-modal-title {
+  flex: 1;
+  min-width: 0;
+}
+.form-modal-title h2,
+.form-modal .modal-heading {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.form-modal-close {
+  position: static;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--rf-muted);
+}
+.form-modal-close:hover:enabled {
+  background: var(--rf-soft);
+}
+.form-modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px;
+}
+.form-modal-body > .form-section,
+.form-modal-body > .rich-editor {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.form-modal-body > :first-child {
+  margin-top: 0;
+}
+.form-modal-body > :last-child {
+  margin-bottom: 0;
+}
+.form-modal-footer {
+  flex-shrink: 0;
+}
+.dialog-description {
+  margin: 0;
+  color: var(--rf-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+.form-modal-footer .dialog-actions {
+  margin-top: 0;
+}
+.form-modal-body :is(.dialog-actions, .form-actions, .actions) {
+  position: sticky;
+  bottom: -2px;
+  z-index: 2;
+  padding: 12px 0 0;
+  background: var(--rf-surface);
+}
+@media (max-width: 720px) {
+  .form-modal-backdrop {
+    padding: 16px;
+  }
+  .form-modal {
+    max-height: calc(100dvh - 32px);
+    padding: 20px;
+  }
+  .form-modal :is(button, .button) {
+    min-height: 44px;
+    white-space: normal;
+  }
+  .form-modal .dialog-actions > button {
+    flex: 1;
+  }
+}

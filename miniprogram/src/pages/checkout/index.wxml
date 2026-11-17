@@ -4,7 +4,7 @@
     <view wx:if="{{recoveredOrder}}" class="notice">已找回原订单，未重复下单。付款前请核对收货信息。</view>
     <view class="result-card {{(order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'CONFIRMED_FREE') ? 'paid' : ''}}">
       <view class="result-mark">
-        <image wx:if="{{order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'CONFIRMED_FREE'}}" class="result-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" />
+        <image wx:if="{{order.status === 'PAID' || order.status === 'SHIPPED' || order.status === 'CONFIRMED_FREE'}}" class="result-icon" src="/assets/icons-slate/check.svg" mode="aspectFit" aria-hidden="{{true}}" />
         <text wx:else>…</text>
       </view>
       <view class="title">{{order.status === 'PENDING_PAYMENT' && awaitingConfirmation ? '支付结果确认中' : orderStatusText}}</view>
@@ -35,10 +35,10 @@
     <ui-state wx:if="{{addressLoading}}" kind="loading" compact="{{true}}">正在加载地址…</ui-state>
     <view wx:elif="{{addressError}}" class="error">{{addressError}}<button class="secondary" bindtap="retryAddress">重试</button></view>
     <view class="shipping-card" bindtap="chooseAddress" aria-role="button" aria-label="选择收货地址">
-      <block wx:if="{{selectedAddressId}}"><view class="shipping-name">{{recipientName}} · {{phone}}</view><view class="shipping-detail">{{address}}</view><view class="shipping-change">更换地址<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view></block>
-      <view wx:else>选择收货地址<image class="row-chevron" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <block wx:if="{{selectedAddressId}}"><view class="shipping-name">{{recipientName}} · {{phone}}</view><view class="shipping-detail">{{address}}</view><view class="shipping-change">更换地址<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view></block>
+      <view wx:else class="shipping-select">选择收货地址<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     </view>
-    <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#193F34" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
+    <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#9A430C" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
     <view class="notice">价格与库存以下单确认为准。取消支付后，可在“我的订单”继续付款。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
     <view wx:if="{{recoveryError || recoveringOrder}}" class="notice" aria-role="status">

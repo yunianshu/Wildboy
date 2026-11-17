@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
 .success-page {
   text-align: center;
@@ -8,13 +9,13 @@
   height: 108rpx;
   line-height: 108rpx;
   border-radius: 50%;
-  background: #e0e8d2;
-  color: #193f34;
+  background: var(--rf-soft);
+  color: var(--rf-primary-text);
   font-size: 58rpx;
   margin: 0 auto 32rpx;
 }
 .trip {
-  background: #fffdf7;
+  background: #FFFFFF;
   border-radius: 18rpx;
   overflow: hidden;
   text-align: left;
@@ -34,14 +35,14 @@
   margin-bottom: 16rpx;
 }
 .trip-row {
-  border-bottom: 1rpx solid #e5e8de;
+  border-bottom: 1rpx solid var(--rf-soft);
   padding: 20rpx 0;
   line-height: 1.6;
   display: flex;
   gap: 28rpx;
 }
 .trip-row text {
-  color: #7f8679;
+  color: var(--rf-muted);
   flex-shrink: 0;
 }
 .trip-row view {
@@ -57,3 +58,5 @@ button {
 
 .status-icon { width: 64rpx; height: 64rpx; }
 .success-mark { display: flex; align-items: center; justify-content: center; }
+
+@import "../../styles/slate-components.wxss";

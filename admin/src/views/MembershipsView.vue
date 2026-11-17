@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -218,18 +219,22 @@ function openUser(u: Member) {
   error.value = "";
   success.value = "";
 }
-function canLeave() {
-  return !dirty.value || window.confirm("会员管理有未保存修改，确定放弃吗？");
+async function canLeave() {
+  return (
+    !dirty.value || (await askConfirm("会员管理有未保存修改，确定放弃吗？"))
+  );
 }
-function close() {
-  if (busy.value || !canLeave()) return;
+async function close() {
+  if (busy.value || !(await canLeave())) return;
   opened.value = null;
   selectedUser.value = null;
   selectedTier.value = null;
   conflict.value = false;
   error.value = "";
 }
-onBeforeRouteLeave((to) => to.path === "/login" || (!busy.value && canLeave()));
+onBeforeRouteLeave(
+  async (to) => to.path === "/login" || (!busy.value && (await canLeave())),
+);
 function beforeUnload(e: BeforeUnloadEvent) {
   if (dirty.value || busy.value) {
     e.preventDefault();
@@ -245,7 +250,7 @@ onUnmounted(() => {
   reset();
 });
 async function reloadEditor() {
-  if (busy.value || !currentUser.value || !canLeave()) return;
+  if (busy.value || !currentUser.value || !(await canLeave())) return;
   const n = epoch,
     actor = currentUser.value;
   busy.value = true;
@@ -567,18 +572,21 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
       </nav>
     </section>
     <FormModal
+      :busy="busy"
       v-if="opened"
-      :size="opened === 'tier' ? 'lg' : 'md'"
+      :size="opened === 'tier' ? 'xl' : 'md'"
       @close="close"
-      ><h2 class="modal-heading">
-        {{
-          opened === "tier"
-            ? selectedTier
-              ? "编辑会员等级"
-              : "新建会员等级"
-            : "编辑用户身份"
-        }}
-      </h2>
+      ><template #title
+        ><h2 class="modal-heading">
+          {{
+            opened === "tier"
+              ? selectedTier
+                ? "编辑会员等级"
+                : "新建会员等级"
+              : "编辑用户身份"
+          }}
+        </h2></template
+      >
       <p v-if="error" class="error-box" role="alert">{{ error }}</p>
       <p v-if="success" role="status">{{ success }}</p>
       <button
@@ -805,7 +813,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
   padding: 3px 8px;
   border-radius: 6px;
   background: var(--admin-tint);
-  color: var(--admin-primary);
+  color: var(--rf-primary-text);
   font-size: 12px;
   font-weight: 600;
 }

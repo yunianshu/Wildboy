@@ -1,0 +1,293 @@
+{
+  "checks": [
+    {
+      "name": "1440 initial cards",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 image loading",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 self contained images",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 no horizontal overflow",
+      "passed": true,
+      "detail": {
+        "scroll": 1440,
+        "viewport": 1440,
+        "elements": []
+      }
+    },
+    {
+      "name": "1440 Noto Sans SC",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 controls at least44",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "desktop eight cards in viewport",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "desktop 144 card heights",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "readback source SHA",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 title search",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 title only no location search",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 reset empty",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 category auto filter",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 combined filters empty",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 status auto filter",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 pending only paid nonzero",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 paid/free actions",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 free roster honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 paid order honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 15 navigation links",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 navigation honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 publish dialog opened",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 cancel initial focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 modal focus trap",
+      "passed": false,
+      "detail": null
+    },
+    {
+      "name": "1440 Esc closes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 Esc restores trigger focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 preview publish remains honest",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 confirmation restores focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "1440 data unchanged after preview",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 initial cards",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 image loading",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 self contained images",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 no horizontal overflow",
+      "passed": true,
+      "detail": {
+        "scroll": 375,
+        "viewport": 375,
+        "elements": []
+      }
+    },
+    {
+      "name": "375 Noto Sans SC",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 controls at least44",
+      "passed": true,
+      "detail": []
+    },
+    {
+      "name": "375 title search",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 title only no location search",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 reset empty",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 category auto filter",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 combined filters empty",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 status auto filter",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 pending only paid nonzero",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 paid/free actions",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 free roster honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 paid order honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 15 navigation links",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 navigation honest feedback",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 publish dialog opened",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 cancel initial focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 modal focus trap",
+      "passed": false,
+      "detail": null
+    },
+    {
+      "name": "375 Esc closes",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 Esc restores trigger focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 preview publish remains honest",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 confirmation restores focus",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "name": "375 data unchanged after preview",
+      "passed": true,
+      "detail": null
+    }
+  ],
+  "errors": [],
+  "screenshots": [
+    "D:\\AiProject\\Wildboy\\design\\proposals\\huashu-v3\\design-demos\\B-html\\round-2\\home-1440x900.png",
+    "D:\\AiProject\\Wildboy\\design\\proposals\\huashu-v3\\design-demos\\B-html\\round-2\\home-375x812.png"
+  ],
+  "passed": false
+}

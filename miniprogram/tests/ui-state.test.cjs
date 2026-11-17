@@ -47,14 +47,15 @@ test("user icon controls share assets and retain their accessible actions", () =
   for (const route of routes) {
     const markup = read(route + ".wxml");
     assert.doesNotMatch(markup, /[↗›▣✓＋−→]|>W<|>×</, route);
-    for (const match of markup.matchAll(/src="(\/assets\/icons\/[^"{}]+\.svg)"/g))
+    for (const match of markup.matchAll(/src="(\/assets\/icons(?:-slate)?\/[^"{}]+\.svg)"/g))
       assert.ok(fs.existsSync(path.join(root, match[1])), match[1]);
   }
   const product = read("pages/product/index.wxml");
   assert.match(product, /data-delta="-1"[\s\S]*?aria-label="减少购买数量"/);
   assert.match(product, /data-delta="1"[\s\S]*?aria-label="增加购买数量"/);
-  assert.match(product, /icons\/minus\.svg/);
-  assert.match(product, /icons\/plus\.svg/);
-  for (const [route, panel] of [["register", "participant-dialog"], ["orders", "refund-dialog"]])
-    assert.match(read(`pages/${route}/index.wxml`), new RegExp(`class="${panel} motion-dialog-enter"`));
+  assert.match(product, /icons-slate\/minus\.svg/);
+  assert.match(product, /icons-slate\/plus\.svg/);
+  for (const route of ["register", "orders"])
+    assert.match(read(`pages/${route}/index.wxml`), /<ui-dialog /);
+  assert.match(read("components/ui-dialog/index.wxml"), /class="ui-dialog-panel motion-dialog-enter"/);
 });

@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .section-head {
   gap: 16rpx;
   margin: 28rpx 0 24rpx;
@@ -24,14 +25,14 @@
   min-height: 76rpx;
   padding: 12rpx 8rpx;
   border-radius: 10rpx;
-  background: #e8ecdf;
+  background: var(--rf-soft);
   font-size: 25rpx;
   line-height: 1.4;
   text-align: center;
 }
 .tab.active {
-  background: #193f34;
-  color: #fffdf4;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
   font-weight: 600;
 }
 .cover {
@@ -53,11 +54,11 @@
   border-radius: 8rpx;
 }
 .selected {
-  border-color: #193f34;
+  border-color: var(--rf-primary-text);
 }
 .picker {
-  background: #fffdf7;
-  border: 1rpx solid #dce1d5;
+  background: #FFFFFF;
+  border: 1rpx solid var(--rf-soft);
   border-radius: 10rpx;
   padding: 28rpx 24rpx;
   min-height: 94rpx;
@@ -78,8 +79,8 @@
 textarea {
   box-sizing: border-box;
   width: 100%;
-  background: #fffdf7;
-  border: 1rpx solid #dce1d5;
+  background: #FFFFFF;
+  border: 1rpx solid var(--rf-soft);
   border-radius: 10rpx;
   padding: 24rpx;
   height: 180rpx;
@@ -115,14 +116,14 @@ textarea {
   align-items: center;
   justify-content: center;
   padding: 32rpx;
-  background: rgba(15, 35, 27, .48);
+  background: rgba(32, 45, 58, .48);
 }
 .confirm-card {
   width: 100%;
   max-width: 620rpx;
   padding: 34rpx;
   border-radius: 18rpx;
-  background: #fffdf7;
+  background: #FFFFFF;
 }
 .confirm-card .muted {
   display: block;
@@ -138,3 +139,5 @@ textarea {
   min-width: 0;
   margin: 0;
 }
+
+@import "../../styles/slate-components.wxss";

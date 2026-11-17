@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -221,7 +222,7 @@ describe("persistent admin account settings", () => {
     const f = vi.fn(async () => response(dto));
     const { w, router } = await render(f);
     await fill(w);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.spyOn(confirmation, "askConfirm").mockResolvedValue(false);
     await router.push("/activities");
     expect(router.currentRoute.value.path).toBe("/settings/admin-account");
     expect(

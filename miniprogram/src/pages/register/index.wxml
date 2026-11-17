@@ -1,6 +1,6 @@
 <view class="page page-motion {{pageMotionClass}}">
   <view wx:if="{{success}}" class="success">
-    <view class="success-symbol"><image class="status-icon" src="/assets/icons/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+    <view class="success-symbol"><image class="status-icon" src="/assets/icons-slate/check.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     <view class="title">{{recoveredRegistration ? '已找到有效报名' : '山野见！'}}</view>
     <view class="muted">
       你已成功报名「{{activity.title}}」
@@ -113,7 +113,7 @@
           <checkbox
             value="yes"
             checked="{{consent}}"
-            color="#193F34"
+            color="#9A430C"
             aria-label="同意当前协议及参与人信息使用"
             disabled="{{submitting || recoveryNeeded}}"
           />
@@ -145,12 +145,8 @@
   </block>
 </view>
 
-<view wx:if="{{participantModalOpen}}" class="participant-overlay" catchtap="cancelParticipant" catchtouchmove="stopModalEvent">
-  <view class="participant-dialog motion-dialog-enter" catchtap="stopModalEvent" aria-role="dialog" aria-modal="true" aria-label="新增报名人">
-    <view class="dialog-head">
-      <view class="section-title">新增报名人</view>
-      <button class="dialog-close" bindtap="cancelParticipant" aria-label="关闭新增报名人"><image class="dialog-close-icon" src="/assets/icons/close.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
-    </view>
+<ui-dialog wx:if="{{participantModalOpen}}" title="新增报名人" bindclose="cancelParticipant">
+
     <scroll-view scroll-y class="dialog-body {{activity.identityRequired ? 'dialog-body-identity' : ''}}">
       <view class="field">
         <text class="label">姓名</text>
@@ -166,9 +162,9 @@
       </view>
       <view wx:if="{{participantError}}" class="error dialog-error">{{participantError}}</view>
     </scroll-view>
-    <view class="dialog-actions">
+
+  <view slot="footer" class="dialog-actions">
       <button class="secondary" bindtap="cancelParticipant">取消</button>
       <button class="primary" bindtap="confirmParticipant">确认添加</button>
     </view>
-  </view>
-</view>
+</ui-dialog>

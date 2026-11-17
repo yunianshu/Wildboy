@@ -1,4 +1,9 @@
 {
   "navigationStyle": "custom",
-  "backgroundColor": "#F6F4ED"
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index"
+  }
 }

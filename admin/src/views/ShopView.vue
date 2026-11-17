@@ -213,8 +213,8 @@ function clearFilter() {
   categoryFilterDraft.value = "";
   filterOpen.value = false;
 }
-function openNew() {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+async function openNew() {
+  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   formError.value = "";
   contentOpen.value = false;
   editingId.value = "";
@@ -232,8 +232,8 @@ function openNew() {
   baseline.value = { categoryId: "", priceCents: 0, originalPriceCents: 0 };
   formOpen.value = true;
 }
-function edit(product: Product) {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+async function edit(product: Product) {
+  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   formError.value = "";
   contentOpen.value = false;
   editingId.value = product.id;
@@ -257,8 +257,8 @@ function edit(product: Product) {
   };
   formOpen.value = true;
 }
-function reset() {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+async function reset() {
+  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   formError.value = "";
   contentOpen.value = false;
   editingId.value = "";
@@ -277,8 +277,8 @@ function reset() {
     status: "ON_SALE",
   };
 }
-function closeContent() {
-  if (contentEditor.value && !contentEditor.value.canLeave()) return;
+async function closeContent() {
+  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   contentOpen.value = false;
 }
 function parseYuan(value: string) {
@@ -666,53 +666,59 @@ onUnmounted(clear);
       @cancel="revealTarget = null"
       @confirm="confirmReveal"
     />
-    <div v-if="shipping" class="dialog-overlay" @click.self="closeShipping">
-      <div class="dialog" role="dialog" aria-modal="true">
-        <h2>确认订单已发货？</h2>
-        <p>
-          请在实际交给物流后确认发货。系统会为微信支付订单上报物流信息，
-          可在微信「发货信息管理」中核对结果。
-        </p>
-        <p v-if="shippingError" role="alert" class="error-box">{{ shippingError }}</p>
-        <label
-          >物流公司<input
-            v-model="shipCompany"
-            maxlength="64"
-            :disabled="busy"
-            placeholder="名称或编码，如顺丰速运 / SF"
-        /></label>
-        <label
-          >运单号<input
-            v-model="shipTracking"
-            maxlength="64"
-            :disabled="busy"
-            :placeholder="shipping.status === 'PAID' ? '微信支付订单必填' : '选填'"
-        /></label>
-        <div class="dialog-actions">
-          <button
-            type="button"
-            class="secondary"
-            :disabled="busy"
-            @click="closeShipping"
-          >
-            返回
-          </button>
-          <button
-            type="button"
-            class="primary"
-            :disabled="
-              busy ||
-              shippingConflictId === shipping.id ||
-              (shipping.status === 'PAID' &&
-                (!shipCompany.trim() || !shipTracking.trim()))
-            "
-            @click="ship"
-          >
-            确认发货
-          </button>
-        </div>
+    <FormModal
+      :busy="busy"
+      v-if="shipping"
+      label="确认订单已发货"
+      @close="closeShipping"
+      ><template #title
+        ><h2 id="shipping-dialog-title">确认订单已发货？</h2></template
+      >
+
+      <p>请确认商品已交给物流。</p>
+      <p v-if="shippingError" role="alert" class="error-box">
+        {{ shippingError }}
+      </p>
+      <label
+        >物流公司<input
+          v-model="shipCompany"
+          maxlength="64"
+          :disabled="busy"
+          placeholder="名称或编码，如顺丰速运 / SF"
+      /></label>
+      <label
+        >运单号<input
+          v-model="shipTracking"
+          maxlength="64"
+          :disabled="busy"
+          :placeholder="
+            shipping.status === 'PAID' ? '微信支付订单必填' : '选填'
+          "
+      /></label>
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="secondary"
+          :disabled="busy"
+          @click="closeShipping"
+        >
+          返回
+        </button>
+        <button
+          type="button"
+          class="primary"
+          :disabled="
+            busy ||
+            shippingConflictId === shipping.id ||
+            (shipping.status === 'PAID' &&
+              (!shipCompany.trim() || !shipTracking.trim()))
+          "
+          @click="ship"
+        >
+          确认发货
+        </button>
       </div>
-    </div>
+    </FormModal>
     <ConfirmDialog
       v-if="pendingPayload"
       title="确认保存商品？"
@@ -722,9 +728,9 @@ onUnmounted(clear);
       @cancel="cancelSave"
       @confirm="confirmSave"
     />
-    <FormModal v-if="filterOpen" @close="filterOpen = false">
+    <FormModal :busy="busy" v-if="filterOpen" @close="filterOpen = false"
+      ><template #title><h2>筛选商品</h2></template>
       <form class="form-section" @submit.prevent="applyFilter">
-        <h2>筛选商品</h2>
         <label
           >商品分类<select v-model="categoryFilterDraft" name="categoryFilter">
             <option value="">全部分类</option>
@@ -743,10 +749,11 @@ onUnmounted(clear);
         </div>
       </form>
     </FormModal>
-    <FormModal v-if="formOpen" size="lg" @close="reset">
-      <div class="section-heading">
-        <h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2>
-      </div>
+    <FormModal :busy="busy" v-if="formOpen" size="lg" @close="reset"
+      ><template #title
+        ><h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2></template
+      >
+
       <p
         v-if="formError"
         ref="formErrorElement"
@@ -846,7 +853,12 @@ onUnmounted(clear);
         编辑图文详情
       </button>
     </FormModal>
-    <FormModal v-if="editingId && contentOpen" size="lg" @close="closeContent">
+    <FormModal
+      :busy="busy"
+      v-if="editingId && contentOpen"
+      size="lg"
+      @close="closeContent"
+    >
       <RichContentEditor
         ref="contentEditor"
         :path="`/admin/shop/products/${editingId}/content`"
@@ -924,9 +936,9 @@ onUnmounted(clear);
 .order-detail {
   margin: 10px 0;
   padding: 12px 16px;
-  border: 1px dashed var(--admin-line, #e5e8ec);
+  border: 1px dashed var(--admin-line, var(--rf-soft));
   border-radius: 8px;
-  background: #fafafa;
+  background: #ffffff;
 }
 .order-detail p {
   margin: 4px 0;

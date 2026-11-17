@@ -1,0 +1,87 @@
+{
+  "direction": "C 杏黄留白",
+  "readbackSha256": "d4c8333aacadf379e4b94cb790da134552f20f01d2b590e001a1b088b9d2ca0d",
+  "sourceSavedAt": "2026-11-17T15:00:52.130676+08:00",
+  "roots": [
+    "M894N",
+    "Nu5Gj"
+  ],
+  "framework": "Vue 3.5.44 (existing repository runtime, embedded)",
+  "fonts": [
+    "Noto Sans SC",
+    "PingFang SC",
+    "Microsoft YaHei",
+    "sans-serif"
+  ],
+  "desktopViewport": "1440x900",
+  "mobileViewport": "375x812",
+  "nodes": {
+    "topbar": "Jn6DW",
+    "secondaryNavigation": "zrpL7",
+    "categoryPanel": "Mnw4g",
+    "main": "mLe3F",
+    "title": "Y88FJD",
+    "search": "dnvn9",
+    "searchSubmit": "OVL6B",
+    "status": "cigHZ",
+    "refresh": "WK090",
+    "list": "QE804",
+    "pagination": "Dv1y5",
+    "fixedPageSize": "BWuPl",
+    "signOut": "BeA2E",
+    "primary": "SSYgy",
+    "secondary": "R7IaYI",
+    "input": "oiKfb",
+    "select": "gejtk",
+    "textButton": "yN8KC",
+    "tags": [
+      "REFyz",
+      "OKILy",
+      "asRCP"
+    ],
+    "empty": "lemCo",
+    "menu": "o0TzXY",
+    "modal": "q3sOy"
+  },
+  "layout": {
+    "header": 72,
+    "subnav": 56,
+    "sidebar": 180,
+    "columnGap": 32,
+    "contentPadding": [
+      24,
+      24,
+      40,
+      24
+    ],
+    "control": 44,
+    "radius": 4,
+    "tableHeader": 36,
+    "row": 60,
+    "capacityTrack": 160,
+    "modal": 520,
+    "modalPadding": 24
+  },
+  "dataChecks": {
+    "rows": 8,
+    "capacityRatios": [
+      0.6,
+      0.375,
+      0,
+      0.4,
+      1,
+      0.1875,
+      0,
+      0
+    ],
+    "pageSize": 8,
+    "query": "title only",
+    "status": [
+      "DRAFT",
+      "PUBLISHED",
+      "CANCELLED"
+    ]
+  },
+  "responsiveAdaptation": "Below 900px: top navigation becomes the same grouped menu; category is a select; activity rows reflow to a two-column list without horizontal scrolling.",
+  "previewOnly": "Preview tools sit outside product actions. Publish confirmation uses the saved Pen wording and only demonstrates the dialog; external navigation and actions display honest preview feedback."
+}

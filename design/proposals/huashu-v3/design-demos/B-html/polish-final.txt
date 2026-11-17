@@ -1,0 +1,12 @@
+第 2 轮截图：D:\AiProject\Wildboy\design\proposals\huashu-v3\design-demos\polish\dir-2\round-2
+桌面 1440x900：全页 900px，共 1 屏
+  桌面-01.png  图形 9  文字 559 字  底色占 26%
+手机 390x844：全页 2360px，共 3 屏
+  手机-01.png  图形 3  文字 167 字  底色占 25%
+  手机-02.png  图形 5  文字 216 字  底色占 27%
+  手机-03.png  图形 3  文字 191 字  底色占 25%
+
+现在逐张打开上面的截图看原图（不要只看这份数字），照 references/polish-loop.md 的问题写下最伤的三处，改完再跑一轮。
+
+⚠ dir-2.html 第 1 轮的「最伤的三处」还是空的。截了图没写下看到什么，等于没看：先回去打开那一轮的截图，把三处和改动补上。
+已在 D:\AiProject\Wildboy\design\proposals\huashu-v3\design-demos\polish-log.md 追加这一轮的记录，把「最伤的三处」和「改了什么」填上。

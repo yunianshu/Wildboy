@@ -1,0 +1,4 @@
+
+■ D:\AiProject\Wildboy\design\proposals\huashu-v3\design-demos\dir-1.html
+  样子：浅·中性白底 #FFFFFF，无衬线标题（Noto Sans SC），正文 ?
+  ✓ 没有红灯，也没有模板装饰

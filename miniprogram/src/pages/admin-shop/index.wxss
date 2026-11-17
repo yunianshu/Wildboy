@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .page {
   padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
@@ -7,7 +8,7 @@
   margin: 20rpx 0;
 }
 .muted {
-  color: #777;
+  color: var(--rf-muted);
   font-size: 24rpx;
   margin: 12rpx 0;
 }
@@ -25,7 +26,7 @@
 .card {
   display: flex;
   gap: 20rpx;
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 20rpx;
   padding: 24rpx;
   margin: 20rpx 0;
@@ -54,7 +55,7 @@
 .form textarea,
 .picker {
   box-sizing: border-box;
-  background: #fff;
+  background: #FFFFFF;
   padding: 20rpx;
   border-radius: 12rpx;
   margin-top: 12rpx;
@@ -79,7 +80,9 @@
   margin-top: 24rpx;
 }
 .error {
-  color: #a33;
+  color: var(--rf-danger);
   white-space: pre-wrap;
   word-break: break-all;
 }
+
+@import "../../styles/slate-components.wxss";

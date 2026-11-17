@@ -1,6 +1,11 @@
 {
   "navigationStyle": "custom",
   "enablePullDownRefresh": true,
-  "backgroundColor": "#F6F4ED",
-  "backgroundTextStyle": "dark"
+  "backgroundColor": "#FFF8EE",
+  "backgroundTextStyle": "dark",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index"
+  }
 }

@@ -32,7 +32,7 @@ test("concise forms retain personal-data purposes and financial uncertainty warn
   assert.match(page("checkout"), /已付款请刷新结果，勿重复下单/);
   assert.match(page("orders"), /已发货订单售后请联系客服/);
   assert.match(page("orders"), /订单地址不可修改/);
-  assert.match(page("orders"), /仅支持已付款未发货订单全额退款/);
+  assert.match(page("orders"), /已付款、未发货订单可申请整单退款/);
   assert.match(page("detail"), /天气、路况可能变化/);
   assert.match(page("privacy"), /document.content/);
 });

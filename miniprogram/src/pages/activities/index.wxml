@@ -2,16 +2,10 @@
   bindtouchstart="startTabSwipe" bindtouchmove="moveTabSwipe"
   bindtouchend="endTabSwipe" bindtouchcancel="cancelTabSwipe">
   <view class="activities-page page-motion {{pageMotionClass}}">
-    <view class="activities-hero">
-      <view class="brand" style="top:{{topInset}}px">
-        <text class="brand-name">wildboy.</text>
-        <text class="brand-caption">OUTDOOR CLUB</text>
-      </view>
-      <view class="activities-heading">
-        <view class="hero-title">活动</view>
-      </view>
+    <view class="slate-tab-header uf-custom-header" style="padding-top:{{headerLayout.top}}px">
+      <view class="uf-capsule-row" style="height:{{headerLayout.height}}px;padding-right:{{headerLayout.rightInset}}px"><view class="uf-title">活动</view></view>
     </view>
-    <view class="page activities-content">
+    <view class="page slate-tab-content activities-content">
       <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
         <view class="filter-track" id="activity-filters-track">
           <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" id="activity-category-all" bindtap="select">全部活动</text>

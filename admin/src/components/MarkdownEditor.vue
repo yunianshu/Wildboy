@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { nextTick, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import Vditor from "vditor";
@@ -189,12 +190,13 @@ async function save() {
     if (n === generation) busy.value = false;
   }
 }
-function canLeave() {
-  return !dirty.value || window.confirm("图文尚未保存，确定离开吗？");
+async function canLeave() {
+  return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
 defineExpose({ canLeave, dirty, busy, loaded, save });
 onBeforeRouteLeave(
-  (to) => props.managedNavigation || to.path === "/login" || canLeave(),
+  async (to) =>
+    props.managedNavigation || to.path === "/login" || (await canLeave()),
 );
 onUnmounted(() => {
   generation++;
@@ -275,7 +277,7 @@ onUnmounted(() => {
   background: rgba(236, 253, 245, 0.6);
   border-radius: 0 8px 8px 0;
   padding: 8px 16px;
-  color: #065f46;
+  color: var(--rf-primary-text);
 }
 .md-editor :deep(.vditor-wysiwyg table) {
   border-collapse: collapse;

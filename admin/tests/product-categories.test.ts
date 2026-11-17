@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -319,7 +320,7 @@ describe("single-level product categories", () => {
       expect(button(wrapper, "保存分类").attributes("disabled")).toBeDefined();
       await wrapper.get("form").trigger("submit");
       expect(writes(fetcher)).toHaveLength(1);
-      vi.spyOn(window, "confirm").mockReturnValue(true);
+      vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
       await button(wrapper, "返回分类列表核对").trigger("click");
       await flushPromises();
       expect(wrapper.find("form").exists()).toBe(false);
@@ -341,7 +342,7 @@ describe("single-level product categories", () => {
     const { wrapper, router } = await render(fetcher);
     await button(wrapper, "新分类").trigger("click");
     await wrapper.get('[name="categoryName"]').setValue("保留草稿");
-    vi.spyOn(window, "confirm").mockReturnValue(false);
+    vi.spyOn(confirmation, "askConfirm").mockResolvedValue(false);
     await router.push("/shop?tab=orders");
     expect(router.currentRoute.value.path).toBe("/shop/categories");
     await wrapper.get("form").trigger("submit");

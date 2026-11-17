@@ -88,14 +88,9 @@
       {{loadingMore?'正在加载…':(hasMore?'上拉加载更多':'已显示全部活动')}}
     </view>
   </view>
-  <view wx:if="{{pendingId}}" class="confirm-mask">
-    <view class="confirm-card">
-      <view class="section-title">{{pendingAction === 'publish' ? '确认发布活动？' : '确认取消活动？'}}</view>
-      <view class="muted">{{pendingAction === 'publish' ? '发布后开放浏览和报名。' : '将取消所有已确认报名并保留记录。不会自动通知，请另行联系参加者。'}}</view>
-      <view class="confirm-actions">
-        <button class="secondary" bindtap="cancelChange">返回检查</button>
-        <button class="primary {{pendingAction === 'cancel' ? 'danger' : ''}}" bindtap="confirmChange">{{pendingAction === 'publish' ? '确认发布' : '取消活动'}}</button>
+  <ui-dialog wx:if="{{pendingId}}" title="{{pendingAction === 'publish' ? '确认发布活动？' : '确认取消活动？'}}" bindclose="cancelChange" busy="{{!!busyId}}" mask-closable="{{false}}"><scroll-view scroll-y class="ui-confirm-body"><view class="muted">{{pendingAction === 'publish' ? '发布后开放浏览和报名。' : '将取消所有已确认报名并保留记录。不会自动通知，请另行联系参加者。'}}</view></scroll-view><view slot="footer" class="dialog-actions">
+        <button disabled="{{!!busyId}}" class="secondary" bindtap="cancelChange">返回检查</button>
+        <button disabled="{{!!busyId}}" class="primary {{pendingAction === 'cancel' ? 'danger' : ''}}" bindtap="confirmChange">{{pendingAction === 'publish' ? '确认发布' : '取消活动'}}</button>
       </view>
-    </view>
-  </view>
+</ui-dialog>
 </view>

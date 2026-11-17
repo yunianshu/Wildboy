@@ -1,0 +1,53 @@
+{
+  "readbackSHA256": "851ea2445a7beac55edc740e98326131935f01e04a6e5039a9a5e9f27e9022e1",
+  "html": "design-demos/dir-2.html",
+  "roots": [
+    "H3X2a",
+    "HyvJK"
+  ],
+  "variables": [
+    "hd-b-primary",
+    "hd-b-primary-hover",
+    "hd-b-soft",
+    "hd-b-bg",
+    "hd-b-surface",
+    "hd-b-ink",
+    "hd-b-muted",
+    "hd-b-line",
+    "hd-b-field",
+    "hd-b-success",
+    "hd-b-success-bg",
+    "hd-b-warning",
+    "hd-b-warning-bg",
+    "hd-b-neutral",
+    "hd-b-neutral-bg",
+    "hd-b-font",
+    "hd-b-control-height",
+    "hd-b-radius"
+  ],
+  "components": {
+    "primary": "iLJFv",
+    "secondary": "G36zmt",
+    "quiet": "CG8d0",
+    "field": "fsh8n",
+    "status": "I8Qyzu",
+    "empty": "M0fAx",
+    "modal": "LhnkF",
+    "menu": "DxRMM"
+  },
+  "cardPenIds": [
+    "iNmId",
+    "K2NrT",
+    "CCU9i",
+    "ET1Sb",
+    "LzUlP",
+    "qFKF1",
+    "nLGJu",
+    "J6KbTH"
+  ],
+  "embeddedImageCount": 6,
+  "embeddedFont": true,
+  "dataContractMatchesSample": true,
+  "navigationCount": 15,
+  "responsiveAdaptation": "375px：五类导航保留、活动子导航换行、单列左图右字段卡片，控件最小44px。"
+}

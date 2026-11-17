@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Native homepage reads updated administrator configuration from the real public API",
+    "Homepage article entry preserves id and renders real published Markdown content",
+    "Protected homepage popup opens, displays server text and closes with the original handler",
+    "Homepage category entry reaches redesigned activity list with WEEKLY context",
+    "Homepage equipment and activity entries keep tab/detail navigation and return behavior"
+  ],
+  "exceptions": [],
+  "configurationRestored": true,
+  "scope": "Disposable loopback API and native WeChat DevTools only"
+}

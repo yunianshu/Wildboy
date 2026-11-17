@@ -67,9 +67,9 @@ test("custom page headers remove old titles and center compact activity tabs", (
     path.join(root, "pages", "activities", "index.wxss"),
     "utf8",
   );
-  assert.match(styles, /\.filter\s*\{[^}]*height:\s*56rpx/s);
+  assert.match(styles, /\.filter\s*\{[^}]*min-height:\s*44px/s);
   assert.match(styles, /\.filter\s*\{[^}]*align-items:\s*center/s);
-  assert.match(styles, /\.filters\s*\{[^}]*height:\s*72rpx/s);
+  assert.match(styles, /\.filters\s*\{[^}]*height:\s*44px/s);
 });
 test("production configuration uses the public HTTPS API and keeps domain validation enabled", () => {
   const config = require("../dist/config.js").config;

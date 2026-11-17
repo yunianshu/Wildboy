@@ -1,35 +1,38 @@
+@import "../../styles/slate-theme.wxss";
 /* 我的活动订单 · 对照 Pen 画板「小程序 / 活动订单」(3yIfJ) */
 .activity-orders-page .title { margin-bottom: 8rpx; }
 .activity-orders-page .page-intro { margin-bottom: 20rpx; }
 .activity-orders-page .refresh { margin-top: 0; }
 
-.order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #fffdf7; }
+.order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #FFFFFF; }
 .order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; margin-bottom: 16rpx; }
 .order-title { flex: 1; min-width: 0; font-size: 32rpx; font-weight: 600; line-height: 1.5; word-break: break-all; }
 
 /* 状态胶囊：与设计 token 一致（warning/success/info/neutral） */
-.activity-orders-page .badge.wait { background: #fbf1d9; color: #8a5a10; }
-.activity-orders-page .badge.ok { background: #e7f2e4; color: #2e6b3f; }
-.activity-orders-page .badge.info { background: #e4eff7; color: #1d5f8a; }
-.activity-orders-page .badge.neutral { background: #eff1eb; color: #596a60; }
+.activity-orders-page .badge.wait { background: var(--rf-warning-bg); color: var(--rf-warning); }
+.activity-orders-page .badge.ok { background: var(--rf-bg); color: var(--rf-primary-text); }
+.activity-orders-page .badge.info { background: var(--rf-bg); color: var(--rf-muted); }
+.activity-orders-page .badge.neutral { background: var(--rf-bg); color: var(--rf-muted); }
 
-.order-meta { margin-bottom: 6rpx; color: #203e34; }
+.order-meta { margin-bottom: 6rpx; color: var(--rf-primary-text); }
 .order-amount { font-size: 32rpx; font-weight: 600; }
 .activity-orders-page .original { text-decoration: line-through; opacity: .8; }
 .price-lines { margin-top: 4rpx; }
-.order-number { margin-top: 12rpx; color: #8a8f83; font-size: 21rpx; word-break: break-all; }
+.order-number { margin-top: 12rpx; color: var(--rf-muted); font-size: 21rpx; word-break: break-all; }
 
 .order-actions { display: flex; gap: 16rpx; margin-top: 22rpx; }
 .sub-actions { flex-wrap: wrap; }
 .small-button { display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; min-height: 72rpx; padding: 10rpx 12rpx; line-height: 1.4; font-size: 25rpx; text-align: center; }
 .inline-error { margin-top: 14rpx; }
 
-.expand-panel, .confirm-panel { margin-top: 18rpx; padding: 18rpx; border-radius: 12rpx; background: #f0f2e8; }
+.expand-panel, .confirm-panel { margin-top: 18rpx; padding: 18rpx; border-radius: 12rpx; background: var(--rf-bg); }
 .panel-title { font-size: 27rpx; font-weight: 600; margin-bottom: 8rpx; }
 .participant-row { display: flex; flex-wrap: wrap; gap: 6rpx 14rpx; padding: 6rpx 0; }
 .participant-name { font-weight: 600; }
-.refund-textarea { width: 100%; box-sizing: border-box; min-height: 128rpx; margin: 14rpx 0; padding: 14rpx; background: #fffdf7; border: 1rpx solid #dce1d5; border-radius: 10rpx; font-size: 26rpx; }
+.refund-textarea { width: 100%; box-sizing: border-box; min-height: 128rpx; margin: 14rpx 0; padding: 14rpx; background: #FFFFFF; border: 1rpx solid var(--rf-soft); border-radius: 10rpx; font-size: 26rpx; }
 .expand-panel button, .confirm-panel button { margin-top: 12rpx; }
 .confirm-panel .order-actions button { margin-top: 0; }
 
 .activity-orders-page .more { margin-top: 26rpx; }
+
+@import "../../styles/slate-components.wxss";

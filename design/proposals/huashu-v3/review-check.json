@@ -1,0 +1,21 @@
+[
+  {
+    "check": "fresh preview response",
+    "status": "passed",
+    "http": 200,
+    "cacheControl": "no-store, max-age=0"
+  },
+  {
+    "check": "A/B/C tabs, arrow keys, Home, End",
+    "status": "passed"
+  },
+  {
+    "check": "three panels images loaded and 375px overflow",
+    "status": "passed"
+  },
+  {
+    "check": "browser runtime errors",
+    "status": "passed",
+    "errors": []
+  }
+]

@@ -2,14 +2,10 @@
   bindtouchstart="startTabSwipe" bindtouchmove="moveTabSwipe"
   bindtouchend="endTabSwipe" bindtouchcancel="cancelTabSwipe">
   <view class="shop-page page-motion {{pageMotionClass}}">
-  <view class="shop-hero">
-    <image src="/assets/equipment.jpg" mode="aspectFill" />
-    <view class="hero-shade" />
-    <view class="brand" style="top:{{topInset}}px"><text class="brand-name">wildboy.</text><text class="brand-caption">FIELD SUPPLY</text></view>
-    <view class="hero-copy"><view class="hero-title">山野装备</view></view>
-  </view>
-  <view class="page shop-content">
-    <view class="shop-intro"><view class="section-title">全部装备</view></view>
+  <view class="slate-tab-header uf-custom-header" style="padding-top:{{headerLayout.top}}px">
+      <view class="uf-capsule-row" style="height:{{headerLayout.height}}px;padding-right:{{headerLayout.rightInset}}px"><view class="uf-title">山野装备</view></view>
+    </view>
+  <view class="page slate-tab-content shop-content">
     <view wx:if="{{categoriesError}}" class="category-retry">
       <text class="category-retry-text">{{categoriesError}}</text>
       <button class="secondary ui-button ui-button-small" bindtap="retryCategories">重试分类</button>
@@ -25,8 +21,8 @@
     <ui-state wx:elif="{{error && !items.length}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
     <ui-state wx:elif="{{!items.length}}" kind="empty">新装备正在准备中</ui-state>
     <view wx:else class="product-grid">
-      <view class="product-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
-        <view class="product-image-wrap"><image src="{{item.imageUrl}}" mode="aspectFill" lazy-load /><text wx:if="{{!item.stock}}" class="sold-out">暂时售罄</text></view>
+      <view class="product-card" aria-label="{{item.name}}" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
+        <view class="product-image-wrap"><image src="{{item.imageUrl}}" mode="aspectFill" lazy-load /></view>
         <view class="product-name">{{item.name}}</view>
         <view class="product-bottom"><view class="price-wrap"><text class="price">{{item.priceText}}</text><text wx:if="{{item.originalPriceText}}" class="original-price">{{item.originalPriceText}}</text></view><text class="stock">{{item.stock ? '有库存' : '补货中'}}</text></view>
       </view>

@@ -1,3 +1,4 @@
+import * as confirmation from "../src/confirm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
@@ -37,7 +38,7 @@ beforeEach(() => {
     token: "t",
     user: { id: "admin", nickname: "管理员", role: "ADMIN" },
   });
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  vi.spyOn(confirmation, "askConfirm").mockResolvedValue(true);
   order = { ...base };
   refund = {
     id: "r1",
@@ -118,7 +119,7 @@ describe("activity order management", () => {
     await open();
     const draft = wrapper.get('[aria-label="退款审核备注"]');
     await draft.setValue("正在核对的审核备注");
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    vi.mocked(confirmation.askConfirm).mockResolvedValueOnce(false);
     await router.push("/?activityId=activity-two");
     expect(router.currentRoute.value.query.activityId).toBe("activity-one");
     expect((draft.element as HTMLTextAreaElement).value).toBe(
@@ -176,10 +177,10 @@ describe("activity order management", () => {
   it("approves only after confirmation, passes refund version and keeps processing distinct from success", async () => {
     await view();
     await open();
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
     await button("批准全额退款").trigger("click");
     expect(writes()).toHaveLength(0);
-    vi.mocked(window.confirm).mockReturnValue(true);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(true);
     await button("批准全额退款").trigger("click");
     await flushPromises();
     expect(writes()[0][0]).toContain(
@@ -326,7 +327,7 @@ describe("activity order management", () => {
     expect(wrapper.text()).toContain("138****5678");
     expect(wrapper.text()).not.toContain("123-4567");
     expect(wrapper.text()).not.toContain("123••••4567");
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
+    vi.mocked(confirmation.askConfirm).mockResolvedValueOnce(false);
     await button("查看姓名电话").trigger("click");
     expect(wrapper.text()).not.toContain("13812345678");
     expect(writes()).toHaveLength(0);
@@ -358,10 +359,10 @@ describe("activity order management", () => {
     order.status = "REFUND_PENDING";
     await view();
     await open();
-    vi.mocked(window.confirm).mockReturnValue(false);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
     await button("重试原退款").trigger("click");
     expect(writes()).toHaveLength(0);
-    vi.mocked(window.confirm).mockReturnValue(true);
+    vi.mocked(confirmation.askConfirm).mockResolvedValue(true);
     fetcher.mockResolvedValueOnce(
       ok({ ...refund, status: "PROCESSING", version: 5 }),
     );

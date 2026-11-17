@@ -1,0 +1,88 @@
+:host {
+  display: block;
+}
+
+.ui-state-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  padding: var(--space-6, 24px) var(--space-4, 16px);
+  color: var(--color-muted, var(--rf-muted));
+  font-size: var(--font-body, 14px);
+  line-height: 1.7;
+  text-align: center;
+}
+
+.ui-state-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.ui-state-icon {
+  display: block;
+  width: 48px;
+  height: 48px;
+}
+
+.ui-state-body {
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-state-body .ui-button {
+  margin-top: var(--space-3, 12px);
+  max-width: 100%;
+}
+
+.ui-state-error {
+  color: var(--color-error, var(--rf-danger));
+}
+
+.ui-state-spinner {
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--color-border, var(--rf-line));
+  border-top-color: var(--color-primary, var(--rf-primary-text));
+  border-radius: 50%;
+  animation: ui-state-spin 800ms linear infinite;
+}
+
+.ui-state-compact {
+  flex-direction: row;
+  justify-content: center;
+  gap: var(--space-2, 8px);
+  padding: var(--space-2, 8px) 0;
+}
+
+.ui-state-compact .ui-state-visual,
+.ui-state-compact .ui-state-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.ui-state-compact .ui-state-spinner {
+  width: 16px;
+  height: 16px;
+}
+
+.ui-state-compact .ui-state-body {
+  width: auto;
+  flex: 0 1 auto;
+}
+
+@keyframes ui-state-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-state-spinner {
+    animation: none;
+  }
+}

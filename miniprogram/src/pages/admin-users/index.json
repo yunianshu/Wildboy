@@ -1,1 +1,11 @@
-{ "navigationBarTitleText": "用户管理", "onReachBottomDistance": 80 }
+{
+  "navigationBarTitleText": "用户管理",
+  "onReachBottomDistance": 80,
+  "backgroundColor": "#FFF8EE",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index",
+    "ui-dialog": "../../components/ui-dialog/index"
+  }
+}

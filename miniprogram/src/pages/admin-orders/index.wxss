@@ -1,3 +1,4 @@
+@import "../../styles/slate-theme.wxss";
 .page {
   padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
@@ -7,7 +8,7 @@
   margin: 20rpx 0;
 }
 .muted {
-  color: #777;
+  color: var(--rf-muted);
   font-size: 24rpx;
   margin: 12rpx 0;
 }
@@ -22,7 +23,7 @@
 .card {
   display: flex;
   gap: 20rpx;
-  background: #fff;
+  background: #FFFFFF;
   border-radius: 20rpx;
   padding: 24rpx;
   margin: 20rpx 0;
@@ -50,7 +51,7 @@
 .form textarea,
 .picker {
   box-sizing: border-box;
-  background: #fff;
+  background: #FFFFFF;
   padding: 20rpx;
   border-radius: 12rpx;
   margin-top: 12rpx;
@@ -75,7 +76,7 @@
   margin-top: 24rpx;
 }
 .error {
-  color: #a33;
+  color: var(--rf-danger);
   white-space: pre-wrap;
   word-break: break-all;
 }
@@ -94,12 +95,12 @@
   font-size: 25rpx;
 }
 .filters .active {
-  background: #193f34;
-  color: #fffdf4;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
   font-weight: 600;
 }
 .order {
-  background: #fff;
+  background: #FFFFFF;
   padding: 24rpx;
   border-radius: 18rpx;
   margin: 20rpx 0;
@@ -107,7 +108,7 @@
 .number {
   font-size: 24rpx;
   word-break: break-all;
-  color: #777;
+  color: var(--rf-muted);
 }
 .line {
   margin: 16rpx 0;
@@ -116,7 +117,7 @@
 .address {
   margin: 18rpx 0;
   padding: 16rpx;
-  background: #f6f4ed;
+  background: var(--rf-bg);
   word-break: break-all;
 }
 .order button {
@@ -135,7 +136,7 @@
   margin-top: 24rpx;
   padding: 20rpx;
   border-radius: 12rpx;
-  background: #f6f4ed;
+  background: var(--rf-bg);
   line-height: 1.6;
   word-break: break-word;
 }
@@ -150,3 +151,5 @@
 }
 .confirm-actions { display: flex; gap: 16rpx; margin-top: 20rpx; }
 .confirm-actions button { flex: 1; width: 0; min-width: 0; margin: 0; padding-left: 12rpx; padding-right: 12rpx; }
+
+@import "../../styles/slate-components.wxss";

@@ -278,10 +278,13 @@ onMounted(() => void load());
         · 编辑</RouterLink
       >
     </div>
-    <FormModal v-if="editor || schedule || copying" @close="close">
-      <h2 class="modal-heading">
-        {{ editor ? "保存模板" : copying ? "复制活动" : "生成草稿" }}
-      </h2>
+    <FormModal :busy="busy" v-if="editor || schedule || copying" @close="close"
+      ><template #title
+        ><h2 class="modal-heading">
+          {{ editor ? "保存模板" : copying ? "复制活动" : "生成草稿" }}
+        </h2></template
+      >
+
       <form @submit.prevent="editor ? save() : generate()">
         <label v-if="editor"
           >模板名称<input v-model="name" maxlength="120" :disabled="busy"

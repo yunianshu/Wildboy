@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { askConfirm } from "../confirm";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Page } from "../types";
@@ -71,7 +72,7 @@ function filter(value: string) {
 }
 async function retry(id: string) {
   if (retrying.value) return;
-  if (!window.confirm("确认向微信重新上报该订单的发货信息？")) return;
+  if (!(await askConfirm("确认向微信重新上报该订单的发货信息？"))) return;
   const actor = currentUser.value,
     n = epoch;
   retrying.value = id;
@@ -132,12 +133,11 @@ import UiState from "../components/UiState.vue";
   <main class="workspace">
     <section class="page-heading">
       <h1>发货上报</h1>
-      <button class="secondary" :disabled="loading" @click="load()">刷新</button>
+      <button class="secondary" :disabled="loading" @click="load()">
+        刷新
+      </button>
     </section>
-    <p class="muted">
-      微信「发货信息管理」要求交易订单发货后上报履约信息。上报失败会自动退避重试，
-      次数耗尽后可在此手动补报；标记“无需上报”的订单（如免支付单）不参与重试。
-    </p>
+    <p class="muted">上报失败的订单可在此补报。</p>
     <nav class="report-filter" aria-label="上报状态筛选">
       <button
         v-for="[value, label] in [
@@ -178,7 +178,11 @@ import UiState from "../components/UiState.vue";
             <td>{{ sourceLabel(r.source) }}</td>
             <td class="mono">{{ r.order_no }}</td>
             <td>{{ logisticsLabel(r.logistics_type) }}</td>
-            <td><span class="pill" :class="pillClass(r.status)">{{ statusLabel(r.status) }}</span></td>
+            <td>
+              <span class="pill" :class="pillClass(r.status)">{{
+                statusLabel(r.status)
+              }}</span>
+            </td>
             <td>{{ r.attempts }}</td>
             <td>
               <template v-if="r.status === 'FAILED'"
@@ -235,19 +239,19 @@ import UiState from "../components/UiState.vue";
   white-space: nowrap;
 }
 .pill-success {
-  background: #ecfdf5;
-  color: #047857;
+  background: #ffffff;
+  color: var(--rf-primary-text);
 }
 .pill-warning {
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--rf-warning-bg);
+  color: var(--rf-danger);
 }
 .pill-danger {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: #ffffff;
+  color: var(--rf-danger);
 }
 .pill-neutral {
-  background: #f3f4f6;
-  color: #374151;
+  background: #ffffff;
+  color: var(--rf-primary-text);
 }
 </style>
