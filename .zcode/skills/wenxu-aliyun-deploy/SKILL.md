@@ -71,12 +71,12 @@ release.sh 的 6 步（0 前置检查 → 1 admin 门禁 typecheck+vitest+build 
 
 ## 第 5 步（条件）：小程序上传
 
-**触发条件**：本次发布区间内的提交改动了 `miniprogram/`，或**服务端公开接口的响应字段发生变化**。
+**触发条件（2026-11-17 用户定版）**：用户说「上线/发布/部署」= **服务器 + 小程序一起**，这是默认预期，
+不再单独询问；只要发布区间内 `git diff --name-only <上次发布commit>..HEAD -- miniprogram/` 有改动，
+或服务端公开接口响应字段变化，就升小程序版本并走完本步。仅当小程序改动为空时才只发服务器。
+
 后一条尤其重要——服务端改了返回格式而小程序不重新上传，线上旧版小程序会因校验新字段失败
 （实际事故：响应 `blocks`→`contentNodes` 切换后，旧版小程序文章详情全部报「文章加载失败」，列表却正常）。
-
-先问用户「本次发布是否动了小程序或接口契约」，用户确认后再执行；也可用
-`git diff --name-only <上次发布commit>..HEAD -- miniprogram/` 自查。
 
 ```sh
 cd "$(git rev-parse --show-toplevel)/miniprogram"

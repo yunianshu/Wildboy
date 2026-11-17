@@ -50,7 +50,7 @@
           bindtap="coverPreset"
         />
       </scroll-view>
-      <view class="field"><text>核验身份证（仅必要时开启，并在活动说明中写明用途）</text><switch color="#9A430C" checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
+      <view class="field"><text>核验身份证（仅必要时开启，并在活动说明中写明用途）</text><switch color="#9E2845" checked="{{form.identityRequired}}" bindchange="identityChange" disabled="{{busy}}" /></view>
       <view class="field">
         <text class="label">活动价格（元 / 人，0 为免费）</text>
         <input type="digit" value="{{price}}" bindinput="priceInput" disabled="{{busy || status !== 'DRAFT' || registeredCount > 0}}" />

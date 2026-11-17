@@ -103,7 +103,11 @@ public final class ShopModels {
       OffsetDateTime expiresAt,
       boolean reconciliationRequired,
       List<OrderItem> items,
-      int originalTotalCents) {}
+      int originalTotalCents,
+      OffsetDateTime shippedAt,
+      OffsetDateTime receiptConfirmedAt,
+      String shippingCompany,
+      String shippingTrackingNo) {}
 
   public record Quote(String productId, int quantity, int originalTotalCents, int totalCents, MembershipModels.Pricing pricing) {}
 

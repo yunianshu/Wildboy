@@ -5,7 +5,7 @@
     "content-view": "../../components/content-view-slate/index",
     "ui-state": "/components/ui-state-slate/index"
   },
-  "backgroundColor": "#FFF8EE",
-  "navigationBarBackgroundColor": "#FFF8EE",
+  "backgroundColor": "#FFFAFB",
+  "navigationBarBackgroundColor": "#FFFAFB",
   "navigationBarTextStyle": "black"
 }

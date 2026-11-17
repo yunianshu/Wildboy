@@ -28,11 +28,11 @@
       <view class="card">
         <view class="panel-title">{{editId ? '编辑等级' : '新增等级'}}</view>
         <input placeholder="等级名称，如银卡" maxlength="40" value="{{form.name}}" data-key="name" bindinput="field" disabled="{{saving || blocked}}"/>
-        <view class="row">启用等级<switch color="#9A430C" checked="{{form.enabled}}" bindchange="enabled" disabled="{{saving || blocked}}"/></view>
+        <view class="row">启用等级<switch color="#9E2845" checked="{{form.enabled}}" bindchange="enabled" disabled="{{saving || blocked}}"/></view>
         <view class="muted small">停用后已有会员保留身份，但不享受该等级优惠。</view>
         <view class="row">排序<input type="number" value="{{form.sortOrder}}" data-key="sortOrder" bindinput="field" disabled="{{saving || blocked}}"/></view>
         <view wx:for="{{form.rules}}" wx:key="scope" class="rule">
-          <view class="row rule-head">{{item.label}}优惠<switch color="#9A430C" checked="{{item.enabled}}" data-index="{{index}}" data-key="enabled" bindchange="rule" disabled="{{saving || blocked}}"/></view>
+          <view class="row rule-head">{{item.label}}优惠<switch color="#9E2845" checked="{{item.enabled}}" data-index="{{index}}" data-key="enabled" bindchange="rule" disabled="{{saving || blocked}}"/></view>
           <view wx:if="{{item.enabled}}" class="rule-body">
             <picker wx:if="{{item.scope === 'ACTIVITY'}}" range="{{participantPolicies}}" value="{{item.participantPolicy}}" data-index="{{index}}" data-key="participantPolicy" bindchange="rule" disabled="{{saving || blocked}}"><view class="select">{{participantPolicies[item.participantPolicy]}} ▾</view></picker>
             <view wx:if="{{item.scope === 'ACTIVITY'}}" class="muted small">按报名账号计算，不核验参加者个人会员身份。请选择后保存。</view>

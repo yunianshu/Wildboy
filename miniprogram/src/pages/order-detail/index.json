@@ -1,0 +1,10 @@
+{
+  "navigationBarTitleText": "订单详情",
+  "backgroundColor": "#FFFAFB",
+  "navigationBarBackgroundColor": "#FFFAFB",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {
+    "ui-state": "/components/ui-state-slate/index",
+    "ui-dialog": "/components/ui-dialog/index"
+  }
+}

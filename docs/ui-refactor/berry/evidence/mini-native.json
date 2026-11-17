@@ -1,0 +1,18 @@
+{
+ "nativePages": {
+  "suite": "tests/e2e/ui-refresh-native-pages.cjs",
+  "result": "30/30 PASS"
+ },
+ "dialogs": {
+  "suite": "tests/e2e/ui-citrus-dialogs.cjs",
+  "result": "8/8 PASS"
+ },
+ "homeArticle": {
+  "suite": "tests/e2e/ui-refresh-home-article.cjs",
+  "result": "5/5 PASS"
+ },
+ "cacheSmoke": {
+  "suite": "tests/e2e/ui-citrus-cache-smoke.cjs",
+  "result": "2/2 PASS"
+ }
+}

@@ -1,0 +1,13 @@
+{
+ "listOrders": 1,
+ "detailButton": true,
+ "deepLink": {
+  "kind": "shop",
+  "status": "PENDING_PAYMENT",
+  "orderNo": "18c195cb623d4d6aa2bdc44940c57916",
+  "canConfirmReceipt": false,
+  "totalText": "¥1.00"
+ },
+ "confirmButtonShownForPending": false,
+ "exceptions": []
+}

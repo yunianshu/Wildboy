@@ -7,7 +7,7 @@
   bottom: 0;
   padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
-  background: #f6f4ed;
+  background: #FFFAFB;
 }
 .tab-bar::before {
   position: absolute;
@@ -34,7 +34,7 @@
   border: 0;
   border-radius: 0;
   background: transparent;
-  color: #85877f;
+  color: #755E67;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -42,5 +42,5 @@
   white-space: nowrap;
 }
 .tab-item::after { border: 0; }
-.tab-item.is-current { color: #173f35; font-weight: 600; }
+.tab-item.is-current { color: #B93858; font-weight: 600; }
 .tab-item-pressed { opacity: .7; }

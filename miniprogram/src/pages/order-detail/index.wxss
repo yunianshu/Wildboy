@@ -1,0 +1,51 @@
+@import "../../styles/slate-theme.wxss";
+
+/* 订单详情：微信电商订单深链落地页，B 莓果语言。 */
+.order-detail-page { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
+.detail-card {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  margin-top: 12px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-surface);
+}
+.status-card { border-left: 4px solid var(--rf-primary); }
+.status-title { font-size: 20px; font-weight: 700; color: var(--rf-ink); }
+.status-sub { font-size: 12px; color: var(--rf-muted); }
+.receipt-hint { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--rf-muted); }
+.receipt-hint::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--rf-success); flex-shrink: 0; }
+
+.card-caption { font-size: 13px; font-weight: 600; color: var(--rf-ink); }
+.product-line { display: flex; align-items: center; gap: 10px; }
+.product-image { width: 64px; height: 64px; border-radius: 8px; background: var(--rf-soft); flex-shrink: 0; }
+.product-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.product-name { font-size: 14px; font-weight: 600; color: var(--rf-ink); overflow-wrap: anywhere; }
+.product-price { font-size: 14px; font-weight: 600; color: var(--rf-ink); white-space: nowrap; }
+
+.meta-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
+.meta-row .muted { color: var(--rf-muted); flex-shrink: 0; }
+.meta-value { color: var(--rf-ink); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.amount { color: var(--rf-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+.recipient { font-size: 14px; font-weight: 600; color: var(--rf-ink); }
+
+.virtual-card {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px;
+  margin-top: 12px;
+  border-radius: 12px;
+  background: var(--rf-soft);
+}
+.virtual-title { font-size: 13px; font-weight: 600; color: var(--rf-primary-text); }
+
+.detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.detail-actions .center { text-align: center; }

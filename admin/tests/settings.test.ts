@@ -277,3 +277,70 @@ it("keeps server-side popup image validation for legacy saves", async () => {
   );
   w.unmount();
 });
+
+it("shows wechat order center status and configures the detail path", async () => {
+  const calls: Array<[string, any?]> = [];
+  const fetchOrderCenter = vi.fn(async (url: string, opts: any = {}) => {
+    calls.push([url, opts]);
+    if (url.includes("/admin/wechat-order-center/status"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          enabled: true,
+          orderDetailPathConfigured: false,
+          orderDetailPath: "",
+          confirmationCompleted: true,
+          pathErrcode: 0,
+          confirmationErrcode: 0,
+        }),
+      };
+    if (url.includes("/articles?"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], hasMore: false }),
+      };
+    if (opts.method === "PUT" && url.includes("order-detail-path"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ attempted: true, errcode: 0 }),
+      };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+    };
+  });
+  vi.stubGlobal("fetch", fetchOrderCenter);
+  const w = await view();
+
+  const card = w.get(".order-center-card");
+  expect(card.text()).toContain("微信电商订单");
+  expect(card.text()).toContain("订单详情路径 · 未配置");
+  expect(card.text()).toContain("交易结算管理确认 · 已完成");
+
+  await card.get("button.primary").trigger("click");
+  const dialog = w.get(".form-modal");
+  const input = dialog.get('input[name="orderPath"]');
+  expect((input.element as HTMLInputElement).value).toBe(
+    "pages/order-detail/index?no=${商品订单号}",
+  );
+  // 去掉占位符提交 → 本地校验拦截，不发 PUT
+  await input.setValue("pages/orders/index");
+  await dialog.get("#order-path-form").trigger("submit");
+  await flushPromises();
+  expect(dialog.text()).toContain("占位符");
+  expect(
+    calls.find(([u, o]) => o?.method === "PUT" && u.includes("order-detail-path")),
+  ).toBeUndefined();
+  // 合法路径提交 → 调用管理端点
+  await input.setValue("pages/order-detail/index?no=${商品订单号}");
+  await dialog.get("#order-path-form").trigger("submit");
+  await flushPromises();
+  const put = calls.find(([u, o]) => o?.method === "PUT" && u.includes("order-detail-path"));
+  expect(put).toBeTruthy();
+  expect(JSON.parse(put![1].body)).toEqual({ path: "pages/order-detail/index?no=${商品订单号}" });
+  w.unmount();
+});

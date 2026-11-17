@@ -31,3 +31,6 @@ _temp/
 .zcode/skills/wechatpay-payment-integration/
 skills-lock.json
 .zcode/plans/
+
+# Pen 设计源本地备份（发布不入库）
+design/backups/

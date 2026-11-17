@@ -75,15 +75,8 @@ onUnmounted(() => {
 </script>
 <template>
   <main class="workspace">
-    <section class="page-heading">
-      <div>
-        <h1>活动管理</h1>
-      </div>
-      <RouterLink class="primary button" to="/activities/new"
-        ><AppIcon name="plus" :size="16" />新建活动</RouterLink
-      >
-    </section>
-    <form class="filterbar" @submit.prevent="applyFilters">
+    <h1 class="sr-only">活动管理</h1>
+    <form class="filterbar activity-filterbar" @submit.prevent="applyFilters">
       <label class="search-label"
         ><span class="sr-only">搜索标题</span
         ><input
@@ -100,16 +93,20 @@ onUnmounted(() => {
         <option v-for="(label, key) in statuses" :key="key" :value="key">
           {{ label }}
         </option></select
-      ><button class="secondary" type="submit" :disabled="busy">筛选</button>
-    </form>
-    <div class="section-caption">
-      <h2>
-        活动目录 <span>{{ result.total }} 场</span>
-      </h2>
-      <button class="text-button" :disabled="busy" @click="load">
-        <AppIcon name="refresh" :size="14" />刷新列表
+      ><button class="secondary" type="submit" :disabled="busy">筛选</button
+      ><button class="secondary" type="button" :disabled="busy" @click="resetFilters">
+        重置
       </button>
-    </div>
+      <span class="filter-count" aria-live="polite">共 {{ result.total }} 场</span>
+      <span class="filterbar-actions">
+        <button class="secondary" type="button" :disabled="busy" @click="load">
+          <AppIcon name="refresh" :size="14" />刷新
+        </button>
+        <RouterLink class="primary button" to="/activities/new"
+          ><AppIcon name="plus" :size="16" />新建活动</RouterLink
+        >
+      </span>
+    </form>
     <UiState v-if="error" kind="error" compact>
       {{ error }} <button class="text-button" @click="load">重新加载</button>
     </UiState>
@@ -124,71 +121,62 @@ onUnmounted(() => {
         清除筛选
       </button>
     </UiState>
-    <div v-else class="table-scroll activity-register">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">活动</th>
-            <th scope="col">开始时间（北京时间）</th>
-            <th scope="col">报名价格</th>
-            <th scope="col">名额</th>
-            <th scope="col">状态</th>
-            <th scope="col">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in result.items" :key="item.id">
-            <td class="activity-name">
-              <RouterLink
-                :to="`/activities/${item.id}/edit`"
-                class="activity-title"
-                >{{ item.title }}</RouterLink
-              >
-              <small
-                >{{ categories[item.category] }} · {{ item.location }}</small
-              >
-            </td>
-            <td class="table-number">{{ displayDate(item.startAt) }}</td>
-            <td class="table-number">
-              {{
+    <ul v-else class="activity-card-grid" aria-label="活动目录">
+      <li v-for="item in result.items" :key="item.id" class="activity-card">
+        <img class="card-cover" :src="item.coverUrl" :alt="item.title" loading="lazy" />
+        <div class="card-fields">
+          <div class="card-title-row">
+            <RouterLink
+              :to="`/activities/${item.id}/edit`"
+              class="card-title"
+              >{{ item.title }}</RouterLink
+            >
+            <span
+              class="status-pill inline"
+              :class="`tone-${activityStatusTone(item.status)}`"
+              >{{ statuses[item.status] }}</span
+            >
+          </div>
+          <p class="card-meta">
+            {{ categories[item.category] }}<span aria-hidden="true"> · </span>{{ item.location }}
+          </p>
+          <p class="card-depart">
+            <AppIcon name="location" :size="14" />{{ displayDate(item.startAt) }}
+            <span
+              class="card-price"
+              :class="{ 'is-free': item.priceCents === 0 }"
+              >{{
                 item.priceCents > 0
                   ? `¥${(item.priceCents / 100).toFixed(2)} / 人`
                   : "免费报名"
-              }}
-            </td>
-            <td class="table-number">
-              {{ item.registeredCount }} / {{ item.capacity }} 人
+              }}</span
+            >
+          </p>
+          <div class="card-action-row">
+            <p class="card-capacity">
+              报名 {{ item.registeredCount }} / {{ item.capacity }} 人
               <small v-if="item.priceCents > 0 && item.pendingPaymentCount"
-                >待支付 {{ item.pendingPaymentCount }}</small
+                >待支付 {{ item.pendingPaymentCount }} 人</small
               >
-            </td>
-            <td>
-              <span
-                class="status-pill inline"
-                :class="`tone-${activityStatusTone(item.status)}`"
-                >{{ statuses[item.status] }}</span
-              >
-            </td>
-            <td>
-              <div class="action-row">
-                <RouterLink
-                  :to="`/activities/${item.id}/edit`"
-                  class="secondary button"
-                  >编辑</RouterLink
-                >
-                <RouterLink :to="rosterLink(item)" class="secondary button">{{
-                  item.priceCents > 0 ? "订单" : "名单"
-                }}</RouterLink>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </p>
+            <RouterLink
+              :to="`/activities/${item.id}/edit`"
+              class="secondary button"
+              >编辑</RouterLink
+            >
+            <RouterLink :to="rosterLink(item)" class="secondary button">{{
+              item.priceCents > 0 ? "订单" : "名单"
+            }}</RouterLink>
+          </div>
+        </div>
+      </li>
+    </ul>
     <nav class="pagination" aria-label="活动分页">
+      <span class="pagination-summary"
+        >第 {{ page + 1 }} 页 · 共 {{ result.total }} 场</span
+      >
       <button class="secondary" :disabled="busy || page === 0" @click="page--">
         上一页</button
-      ><span>第 {{ page + 1 }} 页 · 共 {{ result.total }} 场</span
       ><button
         class="secondary"
         :disabled="busy || !result.hasMore"
@@ -200,55 +188,163 @@ onUnmounted(() => {
   </main>
 </template>
 <style scoped>
-.section-caption {
-  margin: 8px 0;
+.activity-filterbar {
+  align-items: center;
 }
-.activity-register .activity-title {
-  display: block;
+.activity-filterbar .search-label {
+  min-width: 220px;
+  flex: 0 1 auto;
+}
+.filter-count {
+  margin-left: auto;
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.filterbar-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+.activity-card-grid {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.activity-card {
+  display: flex;
+  min-height: 144px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  overflow: hidden;
+}
+.card-cover {
+  width: 176px;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: var(--admin-tint);
+}
+.card-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
+}
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+.card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 18px;
   font-weight: 600;
+  line-height: 1.3;
+  color: var(--admin-ink);
   overflow-wrap: anywhere;
 }
-.activity-register small {
-  display: block;
+.card-title:hover {
+  color: var(--rf-primary-text);
+}
+.card-meta {
+  margin: 0;
+  min-height: 20px;
+  font-size: 14px;
   color: var(--admin-muted);
   overflow-wrap: anywhere;
 }
-.activity-register .action-row {
-  flex-wrap: nowrap;
+.card-depart {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  min-height: 20px;
+  font-size: 14px;
+  color: var(--admin-ink);
+  font-variant-numeric: tabular-nums;
+}
+.card-depart .app-icon {
+  color: var(--admin-muted);
+  flex-shrink: 0;
+}
+.card-price {
+  margin-left: auto;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--admin-primary);
+  white-space: nowrap;
+}
+.card-price.is-free {
+  color: var(--admin-ink);
+}
+.card-action-row {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+.card-capacity {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  color: var(--admin-ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.card-capacity small {
+  margin-left: 8px;
+  color: var(--rf-warning);
+  font-size: 12px;
+}
+.card-action-row .button {
+  flex-shrink: 0;
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pagination-summary {
+  margin-right: auto;
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 980px) {
+  .activity-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 @media (max-width: 720px) {
-  .activity-register {
-    border: 0;
-    background: none;
+  .activity-card {
+    min-height: 0;
   }
-  .activity-register table,
-  .activity-register tbody {
-    display: block;
-    min-width: 0;
+  .card-cover {
+    width: 104px;
   }
-  .activity-register thead {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+  .card-fields {
+    padding: 10px 12px;
   }
-  .activity-register tr {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px 10px;
-    padding: 12px;
-    margin-bottom: 8px;
-    border: 1px solid var(--admin-line);
-    border-radius: var(--admin-radius);
-    background: var(--admin-surface);
+  .card-title {
+    font-size: 15px;
   }
-  .activity-register td {
-    padding: 0;
-    border: 0;
+  .filter-count {
+    display: none;
   }
-  .activity-name {
-    grid-column: 1 / -1;
+  .filterbar-actions {
+    flex: 1;
+    justify-content: flex-end;
   }
 }
 </style>

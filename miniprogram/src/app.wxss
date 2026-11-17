@@ -1,7 +1,7 @@
 @import "styles/motion.wxss";
 page {
-  background: #f6f4ed;
-  color: #193e33;
+  background: #FFFAFB;
+  color: #33242A;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
   font-size: 28rpx;
 }
@@ -33,7 +33,7 @@ image {
 .eyebrow {
   font-size: 19rpx;
   letter-spacing: 5rpx;
-  color: #7a8476;
+  color: #755E67;
   font-weight: 600;
 }
 .title {
@@ -43,7 +43,7 @@ image {
   margin: 12rpx 0 16rpx;
 }
 .muted {
-  color: #7c8178;
+  color: #755E67;
   font-size: 24rpx;
   line-height: 1.8;
 }
@@ -60,7 +60,7 @@ image {
 }
 .section-link {
   font-size: 24rpx;
-  color: #6e7767;
+  color: #755E67;
   padding: 12rpx 0 12rpx 20rpx;
 }
 .primary,
@@ -73,23 +73,23 @@ image {
   line-height: 1.4;
 }
 .primary {
-  background: #193f34;
-  color: #fffdf4;
+  background: #B93858;
+  color: #FFFFFF;
   min-height: 84rpx;
   font-weight: 600;
 }
 .primary[disabled] {
-  background: #bec7bc;
+  background: #E8DCE0;
   color: #fff;
 }
 .secondary {
-  background: #e8ecdf;
-  color: #193f34;
+  background: #FDEEF1;
+  color: #9E2845;
   min-height: 76rpx;
 }
 .pill {
   display: inline-block;
-  border: 1rpx solid #d8decf;
+  border: 1rpx solid #A98D97;
   border-radius: 40rpx;
   padding: 8rpx 18rpx;
   font-size: 21rpx;
@@ -106,11 +106,11 @@ image {
   width: 100%;
   height: 272rpx;
   border-radius: 12rpx;
-  background: #e4e8dd;
+  background: #FDEEF1;
 }
 .card-meta {
   font-size: 19rpx;
-  color: #7b846f;
+  color: #755E67;
   letter-spacing: 2rpx;
   margin: 18rpx 0 10rpx;
 }
@@ -118,7 +118,7 @@ image {
   font-size: 29rpx;
   font-weight: 650;
   line-height: 1.45;
-  color: #173e32;
+  color: #33242A;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -126,7 +126,7 @@ image {
 }
 .card-detail {
   font-size: 22rpx;
-  color: #7d8376;
+  color: #755E67;
   margin-top: 10rpx;
   line-height: 1.6;
 }
@@ -142,7 +142,7 @@ image {
 .state {
   padding: 56rpx 20rpx;
   text-align: center;
-  color: #7d8478;
+  color: #755E67;
   line-height: 1.8;
 }
 .state button {
@@ -153,14 +153,14 @@ image {
   padding: 32rpx;
   text-align: center;
   font-size: 23rpx;
-  color: #8a8d82;
+  color: #755E67;
 }
 .error {
-  color: #a05037;
+  color: #B03A2E;
 }
 .divider {
   height: 1rpx;
-  background: #dde2d4;
+  background: #E8DCE0;
   margin: 32rpx 0;
 }
 .field {
@@ -174,8 +174,8 @@ image {
 }
 input {
   height: 94rpx;
-  background: #fffdf7;
-  border: 1rpx solid #dce1d5;
+  background: #FFFFFF;
+  border: 1rpx solid #A98D97;
   padding: 0 24rpx;
   border-radius: 10rpx;
   font-size: 30rpx;
@@ -186,19 +186,19 @@ input {
 .notice {
   font-size: 23rpx;
   line-height: 1.8;
-  background: #ebeedf;
+  background: #FDEEF1;
   padding: 24rpx;
   border-radius: 10rpx;
-  color: #67755c;
+  color: #755E67;
 }
 .sticky-action {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  background: #f6f4ed;
+  background: #FFFAFB;
   padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
-  border-top: 1rpx solid #dce1d4;
+  border-top: 1rpx solid #E8DCE0;
   z-index: 10;
 }
 .back-space {
@@ -214,17 +214,17 @@ input {
   word-break: break-word;
 }
 .badge {
-  background: #d9e5c5;
-  color: #3f563b;
+  background: #EAF5EE;
+  color: #286747;
   border-radius: 6rpx;
   padding: 7rpx 12rpx;
   font-size: 20rpx;
   display: inline-block;
 }
 .image-empty {
-  background: #dce3d2;
+  background: #F1ECEE;
 }
 .legal-link {
-  color: #173f35;
+  color: #9E2845;
   text-decoration: underline;
 }

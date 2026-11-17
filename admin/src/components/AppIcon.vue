@@ -24,6 +24,7 @@ const paths: Record<string, string[]> = {
   error: ["M12 8v5M12 17h.01", "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"],
   check: ["m5 12 4 4L19 6"],
   logout: ["M9 4H4v16h5M9 12h12M17 8l4 4-4 4"],
+  "chevron-down": ["m6 9 6 6 6-6"],
 };
 </script>
 <template>

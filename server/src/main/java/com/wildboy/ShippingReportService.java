@@ -169,7 +169,7 @@ public class ShippingReportService {
           new ShopModels.Order(
               orderId, (String) o.get("order_no"), (String) o.get("user_id"), 0, "", "",
               (String) o.get("phone"), "", (String) o.get("payment_transaction_id"), false, null, 0,
-              null, null, null, false, items, 0);
+              null, null, null, false, items, 0, null, null, "", "");
       wechat.uploadShopShipment(
           order,
           (String) o.get("shipping_company"),

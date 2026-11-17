@@ -1,7 +1,8 @@
 {
   "version": 1,
-  "status": "proposals-awaiting-user-selection",
-  "selectedDirection": null,
+  "status": "direction-approved-handoff",
+  "selectedDirection": "B",
+  "approvalRecord": "direction-approved.md",
   "penSave": {
     "modifiedAt": "2026-11-17T15:00:52.130676+08:00",
     "size": 5064358,
@@ -15,6 +16,7 @@
       "route": "/activities",
       "direction": "A",
       "name": "晨光绿白",
+      "selected": false,
       "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
       "artboards": [
         "n2cQ6B",
@@ -131,6 +133,7 @@
       "route": "/activities",
       "direction": "B",
       "name": "莓果晴天",
+      "selected": true,
       "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
       "artboards": [
         "H3X2a",
@@ -249,6 +252,7 @@
       "route": "/activities",
       "direction": "C",
       "name": "杏黄留白",
+      "selected": false,
       "designFile": "D:\\AiProject\\Wildboy\\design\\设计图文件.pen",
       "artboards": [
         "M894N",

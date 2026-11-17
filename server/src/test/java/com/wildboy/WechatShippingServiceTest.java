@@ -212,7 +212,7 @@ class WechatShippingServiceTest {
         "18900001234", "测试地址", transactionId, transactionId != null, null, 1,
         null, null, null, false,
         List.of(new ShopModels.OrderItem("item-id", "product-id", "水壶", "", 500, 2, 500, "")),
-        1000);
+        1000, null, null, "", "");
   }
 
   private static ActivityOrderModels.Order activityOrder() {

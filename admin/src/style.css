@@ -12,9 +12,8 @@
   --admin-ink-panel: var(--rf-surface);
   --admin-danger: var(--rf-danger);
   --admin-danger-bg: var(--rf-danger-bg);
-  --admin-sidebar: 200px;
   --admin-inset: 24px;
-  --admin-radius: 8px;
+  --admin-radius: var(--rf-control-radius);
   /* 模块共享柑橘操作色，状态使用独立语义色。 */
   --acc-ops-strong: var(--rf-primary);
   --acc-ops-soft: var(--rf-soft);
@@ -117,8 +116,8 @@ button,
   border: 0;
   cursor: pointer;
   border-radius: var(--admin-radius);
-  min-height: 36px;
-  padding: 6px 14px;
+  min-height: var(--rf-web-control-height);
+  padding: 6px 16px;
   line-height: 1.5;
   font-weight: 600;
   gap: 6px;
@@ -140,7 +139,7 @@ button:disabled {
 }
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--admin-accent);
+  outline: 3px solid var(--admin-primary);
   outline-offset: 2px;
 }
 input,
@@ -163,7 +162,7 @@ select:focus {
 }
 input:not([type="checkbox"], [type="radio"], [type="file"]),
 select {
-  min-height: 36px;
+  min-height: var(--rf-web-control-height);
 }
 textarea {
   resize: vertical;
@@ -259,141 +258,137 @@ fieldset {
   font-weight: 600;
   margin-top: 4px;
 }
-.sidebar {
-  width: var(--admin-sidebar);
-  background: var(--admin-ink-panel);
-  color: var(--rf-soft);
-  position: fixed;
-  inset: 0 auto 0 0;
-  padding: 20px 12px;
+/* B 莓果晴天外壳：顶部横向业务导航（72px）+ 子导航行。 */
+.topnav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-height: 72px;
+  padding: 0 32px;
+  background: var(--rf-nav, var(--rf-surface));
+  border-bottom: 1px solid var(--admin-line);
+}
+.topnav .brand {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 128px;
+  color: inherit;
 }
-.sidebar > .brand {
-  flex-shrink: 0;
-  margin: 0 8px 16px;
+.brand-logo {
+  width: 100px;
+  height: 44px;
+  object-fit: contain;
 }
-.sidebar-nav {
-  min-height: 0;
-  overflow-y: auto;
-  scrollbar-width: thin;
+.brand-label {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.topnav-groups {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.nav-group {
+  position: relative;
+}
+.group-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-ink);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.group-tab:hover:enabled {
+  background: var(--admin-tint);
+  color: var(--rf-primary-text);
+}
+.group-tab.is-active {
+  background: var(--admin-tint);
+  color: var(--admin-primary);
+  font-weight: 600;
+}
+.group-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  min-width: 168px;
+  padding: 6px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  box-shadow: 0 12px 32px var(--rf-overlay);
+}
+.group-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.group-menu-item:hover {
+  background: var(--admin-paper);
+  color: var(--admin-ink);
+}
+.group-menu-item.is-active {
+  background: var(--admin-tint);
+  color: var(--rf-primary-text);
+  font-weight: 600;
+}
+.topnav-admin {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--admin-muted);
+}
+.topnav-admin .app-icon {
+  color: var(--admin-ink);
+}
+.admin-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+  color: var(--admin-ink);
+  font-weight: 600;
+  font-size: 14px;
+}
+.admin-name small {
+  color: var(--admin-muted);
+  font-weight: 400;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.topnav-admin .logout {
+  min-height: 44px;
 }
 .mobile-nav {
   display: none;
 }
-.nav-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--rf-muted);
-  margin: 0 8px 3px;
-}
-/* 分组标识色：墨绿近黑侧栏上的五个高饱和模块点色（与画板一致） */
-.nav-group[data-group="ops"] .nav-label {
-  color: var(--acc-ops-on-dark);
-}
-.nav-group[data-group="activity"] .nav-label {
-  color: var(--acc-activity-on-dark);
-}
-.nav-group[data-group="shop"] .nav-label {
-  color: var(--acc-shop-on-dark);
-}
-.nav-group[data-group="user"] .nav-label {
-  color: var(--acc-user-on-dark);
-}
-.nav-group[data-group="content"] .nav-label {
-  color: var(--acc-content-on-dark);
-}
-.nav-group + .nav-group {
-  margin-top: 10px;
-}
-.nav-link {
-  display: flex;
-  align-items: center;
-  border-radius: 8px;
-  min-height: 32px;
-  padding: 4px 8px;
-  font-size: 13px;
-  color: var(--rf-line);
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
-.nav-link + .nav-link {
-  margin-top: 2px;
-}
-.nav-link:hover {
-  background: var(--rf-ink);
-  color: #ffffff;
-}
-.nav-link.is-active {
-  background: var(--rf-ink);
-  color: #ffffff;
-  font-weight: 600;
-}
-.nav-link .app-icon {
-  width: 16px;
-  flex-shrink: 0;
-  margin-right: 10px;
-  color: var(--rf-muted);
-  text-align: center;
-}
-.sidebar-bottom {
-  margin-top: auto;
-  font-size: 11px;
-  color: var(--rf-muted);
-  line-height: 1.9;
-}
-.sidebar-bottom p {
-  color: var(--rf-muted);
-  font-size: 10px;
-  margin: 12px 0;
-}
-.live-dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  background: var(--rf-muted);
-  border-radius: 50%;
-  margin-right: 5px;
-}
 .main-shell {
-  margin-left: var(--admin-sidebar);
   min-width: 0;
-}
-.topbar {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 0 var(--admin-inset);
-  border-bottom: 1px solid var(--admin-line);
-  font-size: 12px;
-  color: var(--admin-muted);
-  background: var(--admin-surface);
-}
-.topbar strong {
-  color: var(--admin-ink);
-  font-weight: 500;
-}
-.topbar-context {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.topbar-title > span {
-  margin-inline: 3px;
 }
 .admin-version {
   font-size: 12px;
   color: var(--admin-muted);
   font-variant-numeric: tabular-nums;
-}
-.user-tools {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  color: var(--admin-muted);
 }
 .workspace {
   max-width: 1450px;
@@ -406,31 +401,63 @@ fieldset {
     opacity: 0.94;
   }
 }
+/* B 子导航行：页面标题（28px 主色）+ 兄弟页/返回入口；视图内 h1 保留语义但视觉隐藏 */
+.subnav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 20px 32px 0;
+  flex-wrap: wrap;
+}
+.subnav-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--admin-primary);
+}
+.subnav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.subnav-link:hover {
+  color: var(--rf-primary-text);
+}
+.subnav-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--admin-muted);
+  font-size: 14px;
+}
+.subnav-back:hover {
+  color: var(--rf-primary-text);
+}
 .page-heading {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px 16px;
   flex-wrap: wrap;
   margin-bottom: 14px;
 }
 .page-heading h1 {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.33;
-  position: relative;
-  padding-left: 14px;
-}
-.page-heading h1::before {
-  content: "";
   position: absolute;
-  left: 0;
-  top: 7px;
-  bottom: 5px;
-  width: 5px;
-  border-radius: 3px;
-  background: var(--page-accent);
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .page-heading p {
   margin: 4px 0 0;
@@ -492,7 +519,7 @@ fieldset {
   width: 150px;
 }
 .filterbar button {
-  min-height: 36px;
+  min-height: var(--rf-web-control-height);
 }
 .section-caption {
   display: flex;
@@ -975,64 +1002,52 @@ td strong {
   :root {
     --admin-inset: 14px;
   }
-  .sidebar {
-    position: static;
-    width: 100%;
-    padding: 9px var(--admin-inset);
+  .topnav {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 8px 16px;
+  }
+  .topnav .brand {
     flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    gap: 8px;
+    min-width: 0;
   }
-  .sidebar > .brand {
-    margin: 0;
+  .brand-logo {
+    width: 64px;
+    height: 32px;
   }
-  .sidebar-nav {
+  .topnav-groups {
+    display: none;
+  }
+  .topnav-admin {
+    margin-left: auto;
+  }
+  .admin-name {
     display: none;
   }
   .mobile-nav {
     display: block;
-    margin: 0;
+    flex-basis: 100%;
     min-width: 0;
-    max-width: 180px;
-    flex: 1;
   }
   .mobile-nav select {
     margin: 0;
-    padding: 9px 10px;
+    width: 100%;
     font-size: 13px;
   }
-  .sidebar .brand {
-    font-size: 20px;
+  .subnav {
+    padding: 12px 16px 0;
+    gap: 8px;
   }
-  .sidebar .brand span {
-    font-size: 11px;
-  }
-  .nav-label,
-  .sidebar-bottom {
-    display: none;
-  }
-  .nav-link {
-    font-size: 11px;
-    padding: 8px 12px;
-  }
-  .main-shell {
-    margin-left: 0;
-  }
-  .topbar {
-    min-height: 42px;
-  }
-  .user-tools {
-    gap: 6px;
+  .subnav-title {
+    font-size: 22px;
   }
   .workspace {
     padding-bottom: 20px;
   }
   .page-heading {
     align-items: flex-start;
-  }
-  .page-heading h1 {
-    font-size: 22px;
   }
   .page-heading .primary {
     padding: 9px 12px;

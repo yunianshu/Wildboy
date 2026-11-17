@@ -113,7 +113,7 @@
           <checkbox
             value="yes"
             checked="{{consent}}"
-            color="#9A430C"
+            color="#9E2845"
             aria-label="同意当前协议及参与人信息使用"
             disabled="{{submitting || recoveryNeeded}}"
           />

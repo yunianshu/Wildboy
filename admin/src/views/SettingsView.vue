@@ -4,6 +4,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import AppIcon from "../components/AppIcon.vue";
+import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import UiState from "../components/UiState.vue";
 // Match ContentService.safeImage: do not preview an image the API will reject.
@@ -222,6 +223,76 @@ async function save() {
   }
 }
 onMounted(() => void load());
+
+// 微信电商订单（订单中心）：订单数据由微信支付交易自动同步，此处管理订单详情跳转路径。
+type OrderCenterStatus = {
+  enabled: boolean;
+  orderDetailPathConfigured: boolean;
+  orderDetailPath: string;
+  confirmationCompleted: boolean;
+  pathErrcode: number;
+  confirmationErrcode: number;
+};
+const DEFAULT_ORDER_PATH = "pages/order-detail/index?no=${商品订单号}";
+const orderCenter = ref<OrderCenterStatus | null>(null),
+  ocLoading = ref(false),
+  ocError = ref(""),
+  pathDialog = ref(false),
+  pathValue = ref(DEFAULT_ORDER_PATH),
+  pathSaving = ref(false),
+  pathError = ref(""),
+  pathSuccess = ref("");
+async function loadOrderCenter() {
+  ocLoading.value = true;
+  ocError.value = "";
+  try {
+    orderCenter.value = await request<OrderCenterStatus>(
+      "/admin/wechat-order-center/status",
+    );
+  } catch (e) {
+    ocError.value = errorMessage(e);
+  } finally {
+    ocLoading.value = false;
+  }
+}
+function openPathDialog() {
+  pathValue.value =
+    orderCenter.value?.orderDetailPath || DEFAULT_ORDER_PATH;
+  pathError.value = "";
+  pathSuccess.value = "";
+  pathDialog.value = true;
+}
+async function saveOrderPath() {
+  const path = pathValue.value.trim();
+  if (!path.includes("${商品订单号}")) {
+    pathError.value = "路径需包含 ${商品订单号} 占位符，微信跳转时替换为实际订单号。";
+    return;
+  }
+  pathSaving.value = true;
+  pathError.value = "";
+  try {
+    const result = await request<{ attempted: boolean; errcode: number }>(
+      "/admin/wechat-order-center/order-detail-path",
+      { method: "PUT", body: JSON.stringify({ path }) },
+    );
+    if (!result.attempted) {
+      pathError.value = "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      return;
+    }
+    if (result.errcode !== 0) {
+      pathError.value = `微信返回错误码 ${result.errcode}；未签署订单中心授权协议时会返回 10060034。`;
+      return;
+    }
+    pathSuccess.value = "订单详情路径已配置。";
+    pathDialog.value = false;
+    await loadOrderCenter();
+  } catch (e) {
+    pathError.value = errorMessage(e);
+  } finally {
+    pathSaving.value = false;
+  }
+}
+onMounted(() => void loadOrderCenter());
 </script>
 <template>
   <main class="workspace settings-workspace">
@@ -424,9 +495,134 @@ onMounted(() => void load());
         }}
       </p>
     </form>
+    <section class="order-center-card" aria-labelledby="order-center-heading">
+      <h2 id="order-center-heading">微信电商订单</h2>
+      <p class="order-center-note">
+        订单数据由微信支付交易自动同步；配置订单详情路径后，用户可在微信「小程序购物订单」中跳回小程序订单详情页。需先在小程序后台签署订单中心授权协议。
+      </p>
+      <UiState v-if="ocLoading && !orderCenter" kind="loading" compact
+        >正在读取微信订单状态…</UiState
+      >
+      <UiState v-else-if="ocError" kind="error" compact
+        >{{ ocError }}
+        <button class="text-button" @click="loadOrderCenter">重试</button></UiState
+      >
+      <ul v-else-if="orderCenter" class="order-center-status">
+        <li
+          :class="orderCenter.orderDetailPathConfigured ? 'is-ok' : 'is-todo'"
+        >
+          订单详情路径 ·
+          {{ orderCenter.orderDetailPathConfigured ? "已配置" : "未配置" }}
+        </li>
+        <li :class="orderCenter.confirmationCompleted ? 'is-ok' : 'is-todo'">
+          交易结算管理确认 ·
+          {{ orderCenter.confirmationCompleted ? "已完成" : "待确认" }}
+        </li>
+        <li v-if="orderCenter.orderDetailPath" class="is-path">
+          {{ orderCenter.orderDetailPath }}
+        </li>
+      </ul>
+      <div class="order-center-actions">
+        <button
+          class="secondary"
+          type="button"
+          :disabled="ocLoading"
+          @click="loadOrderCenter"
+          ><AppIcon name="refresh" :size="16" />刷新状态</button
+        >
+        <button
+          class="primary"
+          type="button"
+          @click="openPathDialog"
+          >配置订单路径</button
+        >
+      </div>
+    </section>
+    <FormModal v-if="pathDialog" :busy="pathSaving" @close="pathDialog = false"
+      ><template #title><h2>配置订单详情路径</h2></template>
+      <form id="order-path-form" class="form-section" @submit.prevent="saveOrderPath">
+        <p v-if="pathError" class="error-box" role="alert">{{ pathError }}</p>
+        <p v-if="pathSuccess" role="status">{{ pathSuccess }}</p>
+        <label
+          >跳转路径（需包含 ${商品订单号} 占位符）
+          <input
+            v-model="pathValue"
+            name="orderPath"
+            maxlength="256"
+            placeholder="pages/order-detail/index?no=${商品订单号}"
+            required
+        /></label>
+        <p class="order-center-note">
+          提交前请先在小程序后台签署订单中心授权协议，否则微信返回 10060034。
+        </p>
+        <div class="dialog-actions">
+          <button
+            class="secondary"
+            type="button"
+            :disabled="pathSaving"
+            @click="pathDialog = false"
+            >取消</button
+          >
+          <button class="primary" type="submit" :disabled="pathSaving">{{
+            pathSaving ? "保存中…" : "保存"
+          }}</button>
+        </div>
+      </form>
+    </FormModal>
   </main>
 </template>
 <style scoped>
+.order-center-card {
+  margin-top: 20px;
+  padding: 20px 24px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+.order-center-card h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+.order-center-note {
+  margin: 0 0 12px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.order-center-status {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.order-center-status li {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+.order-center-status li.is-ok {
+  background: var(--tone-success-bg);
+  color: var(--tone-success);
+}
+.order-center-status li.is-todo {
+  background: var(--tone-warning-bg);
+  color: var(--tone-warning);
+}
+.order-center-status li.is-path {
+  background: var(--tone-neutral-bg);
+  color: var(--tone-neutral);
+  overflow-wrap: anywhere;
+}
+.order-center-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .settings-actions {
   display: flex;
   flex-wrap: wrap;

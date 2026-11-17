@@ -1,0 +1,1610 @@
+{
+ "version": 1,
+ "status": "berry-implementation",
+ "selectedDirection": "B 莓果晴天",
+ "approvalRecord": "design/proposals/huashu-v3/direction-approved.md",
+ "pen": {
+  "file": "design/设计图文件.pen",
+  "savedSizeBytes": 8548237,
+  "method": "脚本编辑 + 备份 + 结构校验（本会话无 Pen MCP；沿用仓库 plan.md 约定）",
+  "backupGlob": "design/backups/设计图文件.pen.*.bak"
+ },
+ "readback": {
+  "file": "docs/ui-refactor/berry/pen-readback.json",
+  "sha256": "eac503d3afb3fbb15582ec64146ce09172e73f70a27ca305ed14d7df0cf9fdf4",
+  "artboards": 102,
+  "variables": 35
+ },
+ "variables": {
+  "hd-b-primary": "#B93858",
+  "hd-b-primary-hover": "#9E2845",
+  "hd-b-soft": "#FDEEF1",
+  "hd-b-bg": "#FFFAFB",
+  "hd-b-surface": "#FFFFFF",
+  "hd-b-ink": "#33242A",
+  "hd-b-muted": "#755E67",
+  "hd-b-line": "#E8DCE0",
+  "hd-b-field": "#A98D97",
+  "hd-b-success": "#286747",
+  "hd-b-success-bg": "#EAF5EE",
+  "hd-b-warning": "#7D5A1B",
+  "hd-b-warning-bg": "#FFF5DF",
+  "hd-b-neutral": "#665B60",
+  "hd-b-neutral-bg": "#F1ECEE",
+  "hd-b-font": "Noto Sans SC",
+  "hd-b-control-height": 44,
+  "hd-b-radius": 10,
+  "hd-b-danger": "#B03A2E",
+  "hd-b-danger-bg": "#FBEAE6",
+  "hd-b-info": "#6E4A63",
+  "hd-b-info-bg": "#F4EBF2",
+  "hd-b-on-primary": "#FFFFFF",
+  "hd-b-primary-text": "#9E2845",
+  "hd-b-accent": "#E7A5B5",
+  "hd-b-overlay": "#33242A66",
+  "hd-b-nav": "#FFFFFF",
+  "hd-b-nav-active": "#FDEEF1",
+  "hd-b-gap": 16,
+  "hd-b-radius-block": 12,
+  "hd-b-modal-radius": 16,
+  "hd-b-web-control-height": 44,
+  "hd-b-mini-control-height": 48,
+  "hd-b-modal-padding": 24,
+  "hd-b-dialog-gap": 16
+ },
+ "components": {
+  "primary": "iLJFv",
+  "secondary": "G36zmt",
+  "quiet": "CG8d0",
+  "field": "fsh8n",
+  "status": "I8Qyzu",
+  "empty": "M0fAx",
+  "publishConfirm": "LhnkF",
+  "groupMenu": "DxRMM",
+  "webModal": "b7jbp",
+  "miniModal": "bVVTn",
+  "miniPrimaryButton": "bkAPH",
+  "miniInput": "bwLMa"
+ },
+ "pages": [
+  {
+   "platform": "web",
+   "route": "/operations",
+   "sourceArtboard": "jooRk",
+   "artboard": {
+    "id": "bap6t",
+    "name": "B / Web / 运营工作台"
+   },
+   "nodes": 124,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/operations",
+   "sourceArtboard": "mS4Tg",
+   "artboard": {
+    "id": "bTVrb",
+    "name": "B / Web / 运营工作台 · 列表状态"
+   },
+   "nodes": 53,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/notifications",
+   "sourceArtboard": "vMuxZ",
+   "artboard": {
+    "id": "bAfQ3",
+    "name": "B / Web / 消息管理"
+   },
+   "nodes": 91,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/notifications",
+   "sourceArtboard": "Sfyhp",
+   "artboard": {
+    "id": "bxaM9",
+    "name": "B / Web / 消息管理 · 恢复通知"
+   },
+   "nodes": 51,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/templates",
+   "sourceArtboard": "VZIjm",
+   "artboard": {
+    "id": "baDWh",
+    "name": "B / Web / 活动模板"
+   },
+   "nodes": 96,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activity-orders",
+   "sourceArtboard": "xHqTA",
+   "artboard": {
+    "id": "bLMwD",
+    "name": "B / Web / 活动订单 · 全部订单"
+   },
+   "nodes": 200,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activity-orders",
+   "sourceArtboard": "XErK6",
+   "artboard": {
+    "id": "bosNZ",
+    "name": "B / Web / 活动订单 · 待支付详情"
+   },
+   "nodes": 202,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activity-orders",
+   "sourceArtboard": "othlP",
+   "artboard": {
+    "id": "bKVQg",
+    "name": "B / Web / 活动订单 · 退款审核"
+   },
+   "nodes": 202,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities/new",
+   "sourceArtboard": "CCqVo",
+   "artboard": {
+    "id": "b8MJj",
+    "name": "B / Web / 新建活动"
+   },
+   "nodes": 95,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities/:id/edit",
+   "sourceArtboard": "afpqo",
+   "artboard": {
+    "id": "bAQ7C",
+    "name": "B / Web / 编辑活动"
+   },
+   "nodes": 95,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities/:id/registrations",
+   "sourceArtboard": "A7gFGK",
+   "artboard": {
+    "id": "bm9fu",
+    "name": "B / Web / 报名名单"
+   },
+   "nodes": 86,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities/:id/registrations",
+   "sourceArtboard": "tSb5v",
+   "artboard": {
+    "id": "bGMZ4",
+    "name": "B / Web / 报名名单 · 查看资料确认"
+   },
+   "nodes": 39,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/shop",
+   "sourceArtboard": "jv8du",
+   "artboard": {
+    "id": "bzdXn",
+    "name": "B / Web / 商城管理"
+   },
+   "nodes": 123,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/shop",
+   "sourceArtboard": "jLyLI",
+   "artboard": {
+    "id": "bhisd",
+    "name": "B / Web / 商城管理 · 装备订单"
+   },
+   "nodes": 63,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/shop/categories",
+   "sourceArtboard": "Z4snv",
+   "artboard": {
+    "id": "bjrLJ",
+    "name": "B / Web / 商品分类"
+   },
+   "nodes": 94,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/refunds",
+   "sourceArtboard": "kc418",
+   "artboard": {
+    "id": "bTgAE",
+    "name": "B / Web / 退款售后"
+   },
+   "nodes": 95,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/refunds",
+   "sourceArtboard": "pKPcb",
+   "artboard": {
+    "id": "b8JCZ",
+    "name": "B / Web / 退款售后 · 申请审核"
+   },
+   "nodes": 65,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/shipping-reports",
+   "sourceArtboard": "sPQxB",
+   "artboard": {
+    "id": "bmRet",
+    "name": "B / Web / 发货上报"
+   },
+   "nodes": 152,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/shipping-reports",
+   "sourceArtboard": "MuHVO",
+   "artboard": {
+    "id": "bBpsG",
+    "name": "B / Web / 发货上报 · 补报确认"
+   },
+   "nodes": 42,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/users",
+   "sourceArtboard": "udj84",
+   "artboard": {
+    "id": "beNxv",
+    "name": "B / Web / 用户管理"
+   },
+   "nodes": 95,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/memberships",
+   "sourceArtboard": "x9gG8s",
+   "artboard": {
+    "id": "bcGQt",
+    "name": "B / Web / 会员管理 · 等级列表"
+   },
+   "nodes": 108,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/memberships",
+   "sourceArtboard": "V6uBE",
+   "artboard": {
+    "id": "bxgqX",
+    "name": "B / Web / 会员管理 · 用户业务身份"
+   },
+   "nodes": 149,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/memberships",
+   "sourceArtboard": "vruDl",
+   "artboard": {
+    "id": "bTP4c",
+    "name": "B / Web / 会员管理 · 等级编辑"
+   },
+   "nodes": 110,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/memberships",
+   "sourceArtboard": "Asyql",
+   "artboard": {
+    "id": "beQGD",
+    "name": "B / Web / 会员管理 · 分配业务身份"
+   },
+   "nodes": 151,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles",
+   "sourceArtboard": "hSL6j",
+   "artboard": {
+    "id": "bAWtr",
+    "name": "B / Web / 文章管理 · 文章列表"
+   },
+   "nodes": 105,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles/new",
+   "sourceArtboard": "LzCfb",
+   "artboard": {
+    "id": "beDqq",
+    "name": "B / Web / 文章编辑 · 新建草稿"
+   },
+   "nodes": 76,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles/:id/edit",
+   "sourceArtboard": "Rkx83",
+   "artboard": {
+    "id": "bXkza",
+    "name": "B / Web / 文章编辑 · 工作台"
+   },
+   "nodes": 117,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles/:id/edit",
+   "sourceArtboard": "MYBYC",
+   "artboard": {
+    "id": "bo5qZ",
+    "name": "B / Web / 文章编辑 · 文档"
+   },
+   "nodes": 117,
+   "size": [
+    1280,
+    1200
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles/:id/edit",
+   "sourceArtboard": "P6RC06",
+   "artboard": {
+    "id": "bpSjZ",
+    "name": "B / Web / 文章编辑 · 设为官方介绍确认"
+   },
+   "nodes": 119,
+   "size": [
+    1280,
+    1200
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/legal",
+   "sourceArtboard": "Pr4cO",
+   "artboard": {
+    "id": "bw6fQ",
+    "name": "B / Web / 协议管理"
+   },
+   "nodes": 70,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings",
+   "sourceArtboard": "DbJts",
+   "artboard": {
+    "id": "bna4V",
+    "name": "B / Web / 基础配置 · 四入口与目标页"
+   },
+   "nodes": 100,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings",
+   "sourceArtboard": "xNcp5",
+   "artboard": {
+    "id": "bch9U",
+    "name": "B / Web / 基础配置 · 弹窗内容配置"
+   },
+   "nodes": 108,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings",
+   "sourceArtboard": "k0nVX",
+   "artboard": {
+    "id": "bQC3S",
+    "name": "B / Web / 基础配置 · 版本冲突恢复"
+   },
+   "nodes": 103,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings/admin-account",
+   "sourceArtboard": "UHolL",
+   "artboard": {
+    "id": "bEWHv",
+    "name": "B / Web / 管理员账号"
+   },
+   "nodes": 52,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings/admin-account",
+   "sourceArtboard": "jwaEj",
+   "artboard": {
+    "id": "bC7yp",
+    "name": "B / Web / 管理员账号 · 修改"
+   },
+   "nodes": 67,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities",
+   "sourceArtboard": "dxs6Q",
+   "artboard": {
+    "id": "H3X2a",
+    "name": "B / Web / 活动管理"
+   },
+   "nodes": 216,
+   "size": [
+    1440,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/login",
+   "sourceArtboard": "PoJPW",
+   "artboard": {
+    "id": "bBpy7",
+    "name": "B / Web / 管理员登录"
+   },
+   "nodes": 19,
+   "size": [
+    1280,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities",
+   "sourceArtboard": "UFr8b",
+   "artboard": {
+    "id": "bHTR6",
+    "name": "B / Web / 活动管理 · 窄屏"
+   },
+   "nodes": 69,
+   "size": [
+    390,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activities/:id/edit",
+   "sourceArtboard": "YcrPD",
+   "artboard": {
+    "id": "bSsFD",
+    "name": "B / Web / 编辑活动 · 窄屏"
+   },
+   "nodes": 60,
+   "size": [
+    390,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/settings",
+   "sourceArtboard": "yJl1Q",
+   "artboard": {
+    "id": "bQXXY",
+    "name": "B / Web / 基础配置 · 窄屏"
+   },
+   "nodes": 77,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/activity-orders",
+   "sourceArtboard": "D02kiL",
+   "artboard": {
+    "id": "bAoTr",
+    "name": "B / Web / 活动订单 · 窄屏"
+   },
+   "nodes": 72,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "web",
+   "route": "/articles/:id/edit",
+   "sourceArtboard": "TNona",
+   "artboard": {
+    "id": "byDx3",
+    "name": "B / Web / 文章编辑 · 窄屏"
+   },
+   "nodes": 52,
+   "size": [
+    390,
+    900
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/activities/index",
+   "sourceArtboard": "zdkYd",
+   "artboard": {
+    "id": "bSWbb",
+    "name": "B / 小程序 / 活动"
+   },
+   "nodes": 68,
+   "size": [
+    390,
+    923
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/detail/index",
+   "sourceArtboard": "mzsV1",
+   "artboard": {
+    "id": "buhez",
+    "name": "B / 小程序 / 活动详情"
+   },
+   "nodes": 44,
+   "size": [
+    390,
+    978
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/detail/index",
+   "sourceArtboard": "KGp4I",
+   "artboard": {
+    "id": "buBCX",
+    "name": "B / 小程序 / 活动详情 · 已报名"
+   },
+   "nodes": 52,
+   "size": [
+    390,
+    1082
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/register/index",
+   "sourceArtboard": "v2aly",
+   "artboard": {
+    "id": "bLnsQ",
+    "name": "B / 小程序 / 填写报名"
+   },
+   "nodes": 50,
+   "size": [
+    390,
+    986
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/signup-success/index",
+   "sourceArtboard": "ScdDU",
+   "artboard": {
+    "id": "beqcP",
+    "name": "B / 小程序 / 报名结果"
+   },
+   "nodes": 39,
+   "size": [
+    390,
+    818
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/registrations/index",
+   "sourceArtboard": "bVFjG",
+   "artboard": {
+    "id": "bTn3t",
+    "name": "B / 小程序 / 我的报名"
+   },
+   "nodes": 46,
+   "size": [
+    390,
+    811
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/notifications/index",
+   "sourceArtboard": "fhwJH",
+   "artboard": {
+    "id": "bekLY",
+    "name": "B / 小程序 / 活动消息"
+   },
+   "nodes": 45,
+   "size": [
+    390,
+    950
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/activity-orders/index",
+   "sourceArtboard": "3yIfJ",
+   "artboard": {
+    "id": "bvG8b",
+    "name": "B / 小程序 / 活动订单"
+   },
+   "nodes": 65,
+   "size": [
+    390,
+    null
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/shop/index",
+   "sourceArtboard": "E7QA9",
+   "artboard": {
+    "id": "b5hAi",
+    "name": "B / 小程序 / 商城"
+   },
+   "nodes": 67,
+   "size": [
+    390,
+    939
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/product/index",
+   "sourceArtboard": "YbhOC",
+   "artboard": {
+    "id": "b4mjh",
+    "name": "B / 小程序 / 商品详情"
+   },
+   "nodes": 44,
+   "size": [
+    390,
+    938
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/checkout/index",
+   "sourceArtboard": "KgWt0",
+   "artboard": {
+    "id": "bcW7C",
+    "name": "B / 小程序 / 确认订单"
+   },
+   "nodes": 49,
+   "size": [
+    390,
+    823
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/orders/index",
+   "sourceArtboard": "kD4zv",
+   "artboard": {
+    "id": "bNWPD",
+    "name": "B / 小程序 / 我的订单"
+   },
+   "nodes": 59,
+   "size": [
+    390,
+    904
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/addresses/index",
+   "sourceArtboard": "AIEqe",
+   "artboard": {
+    "id": "bcLLS",
+    "name": "B / 小程序 / 收货地址"
+   },
+   "nodes": 46,
+   "size": [
+    390,
+    738
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/mine/index",
+   "sourceArtboard": "asCpo",
+   "artboard": {
+    "id": "bxS9A",
+    "name": "B / 小程序 / 我的山野"
+   },
+   "nodes": 73,
+   "size": [
+    390,
+    null
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/profile/index",
+   "sourceArtboard": "u9yYo",
+   "artboard": {
+    "id": "bdTdv",
+    "name": "B / 小程序 / 活动联系人 / 资料摘要"
+   },
+   "nodes": 22,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/profile/index",
+   "sourceArtboard": "CX7SL",
+   "artboard": {
+    "id": "buVFm",
+    "name": "B / 小程序 / 活动联系人 / 编辑与未同意"
+   },
+   "nodes": 24,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/login/index",
+   "sourceArtboard": "r2Vg3F",
+   "artboard": {
+    "id": "bCXqE",
+    "name": "B / 小程序 / 微信登录"
+   },
+   "nodes": 34,
+   "size": [
+    390,
+    833
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/article/index",
+   "sourceArtboard": "jy5Vc",
+   "artboard": {
+    "id": "bWtRR",
+    "name": "B / 小程序 / 文章 [pages/article/index]"
+   },
+   "nodes": 36,
+   "size": [
+    390,
+    816
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/privacy/index",
+   "sourceArtboard": "r5wRDb",
+   "artboard": {
+    "id": "b8FaW",
+    "name": "B / 小程序 / 隐私政策"
+   },
+   "nodes": 29,
+   "size": [
+    390,
+    816
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-login/index",
+   "sourceArtboard": "Jt0Pi",
+   "artboard": {
+    "id": "bjhFJ",
+    "name": "B / 小程序管理 / 身份验证"
+   },
+   "nodes": 26,
+   "size": [
+    390,
+    553
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-login/index",
+   "sourceArtboard": "r2Js0",
+   "artboard": {
+    "id": "bRyd7",
+    "name": "B / 小程序管理 / 入口状态查询失败"
+   },
+   "nodes": 22,
+   "size": [
+    390,
+    488
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-login/index",
+   "sourceArtboard": "ouWUv",
+   "artboard": {
+    "id": "b2bNr",
+    "name": "B / 小程序管理 / 尚未配置账号"
+   },
+   "nodes": 21,
+   "size": [
+    390,
+    506
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-activities/index",
+   "sourceArtboard": "hRh1p",
+   "artboard": {
+    "id": "bkpv4",
+    "name": "B / 小程序管理 / 活动目录"
+   },
+   "nodes": 52,
+   "size": [
+    390,
+    698
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "yNHlA",
+   "artboard": {
+    "id": "bdgyn",
+    "name": "B / 小程序管理 / 活动编辑 · 基本"
+   },
+   "nodes": 47,
+   "size": [
+    390,
+    911
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "h50occ",
+   "artboard": {
+    "id": "bK2dB",
+    "name": "B / 小程序管理 / 活动编辑 · 报名"
+   },
+   "nodes": 48,
+   "size": [
+    390,
+    770
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "wfShm",
+   "artboard": {
+    "id": "biRuT",
+    "name": "B / 小程序管理 / 活动编辑 · 详情"
+   },
+   "nodes": 34,
+   "size": [
+    390,
+    721
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "NFbtm",
+   "artboard": {
+    "id": "bcRkh",
+    "name": "B / 小程序管理 / 取消活动确认"
+   },
+   "nodes": 13,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "YIDDP",
+   "artboard": {
+    "id": "b2RNA",
+    "name": "B / 小程序管理 / 取消活动结果"
+   },
+   "nodes": 28,
+   "size": [
+    390,
+    499
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-editor/index",
+   "sourceArtboard": "ACw3S",
+   "artboard": {
+    "id": "bwgm3",
+    "name": "B / 小程序管理 / 加载失败保留草稿"
+   },
+   "nodes": 20,
+   "size": [
+    390,
+    465
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-roster/index",
+   "sourceArtboard": "X6euG",
+   "artboard": {
+    "id": "b3XJA",
+    "name": "B / 小程序管理 / 报名名单"
+   },
+   "nodes": 34,
+   "size": [
+    390,
+    675
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-legal/index",
+   "sourceArtboard": "E7GexY",
+   "artboard": {
+    "id": "bBpqP",
+    "name": "B / 小程序管理 / 协议草稿"
+   },
+   "nodes": 34,
+   "size": [
+    390,
+    751
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-legal/index",
+   "sourceArtboard": "oXo8G",
+   "artboard": {
+    "id": "biBtU",
+    "name": "B / 小程序管理 / 协议历史"
+   },
+   "nodes": 36,
+   "size": [
+    390,
+    617
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-legal/index",
+   "sourceArtboard": "vm86H",
+   "artboard": {
+    "id": "bqH6W",
+    "name": "B / 小程序管理 / 发布确认"
+   },
+   "nodes": 13,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-shop/index",
+   "sourceArtboard": "W9vBy",
+   "artboard": {
+    "id": "bvgUG",
+    "name": "B / 小程序管理 / 商品库存"
+   },
+   "nodes": 40,
+   "size": [
+    390,
+    659
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-product/index",
+   "sourceArtboard": "IWwi8",
+   "artboard": {
+    "id": "bZc5g",
+    "name": "B / 小程序管理 / 商品编辑 / 双价与分类"
+   },
+   "nodes": 53,
+   "size": [
+    390,
+    1009
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-product/index",
+   "sourceArtboard": "L50wpo",
+   "artboard": {
+    "id": "bTwms",
+    "name": "B / 小程序管理 / 商品编辑 / 同页分类管理"
+   },
+   "nodes": 75,
+   "size": [
+    390,
+    1551
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-product/index",
+   "sourceArtboard": "yxY9p",
+   "artboard": {
+    "id": "b8rPw",
+    "name": "B / 小程序管理 / 图文版本冲突"
+   },
+   "nodes": 38,
+   "size": [
+    390,
+    839
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-product/index",
+   "sourceArtboard": "FGTf9",
+   "artboard": {
+    "id": "bU6eK",
+    "name": "B / 小程序管理 / 确认重载图文"
+   },
+   "nodes": 20,
+   "size": [
+    390,
+    386
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-product/index",
+   "sourceArtboard": "P9Nefw",
+   "artboard": {
+    "id": "byMEg",
+    "name": "B / 小程序管理 / 分类编辑 / 恢复状态"
+   },
+   "nodes": 20,
+   "size": [
+    390,
+    676
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-orders/index",
+   "sourceArtboard": "R9RNM",
+   "artboard": {
+    "id": "bekWn",
+    "name": "B / 小程序管理 / 订单发货"
+   },
+   "nodes": 36,
+   "size": [
+    390,
+    706
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-orders/index",
+   "sourceArtboard": "p6tHR",
+   "artboard": {
+    "id": "b7B9N",
+    "name": "B / 小程序管理 / 发货前核对"
+   },
+   "nodes": 29,
+   "size": [
+    390,
+    528
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-orders/index",
+   "sourceArtboard": "q9SqVI",
+   "artboard": {
+    "id": "bmwwD",
+    "name": "B / 小程序管理 / 发货完成结果"
+   },
+   "nodes": 28,
+   "size": [
+    390,
+    527
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-content/index",
+   "sourceArtboard": "qF4od",
+   "artboard": {
+    "id": "bgSDR",
+    "name": "B / 小程序管理 / 图文编辑"
+   },
+   "nodes": 37,
+   "size": [
+    390,
+    757
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-users/index",
+   "sourceArtboard": "gbfMY",
+   "artboard": {
+    "id": "bPR8U",
+    "name": "B / 小程序管理 / 用户管理"
+   },
+   "nodes": 33,
+   "size": [
+    390,
+    845
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-users/index",
+   "sourceArtboard": "uHPy2",
+   "artboard": {
+    "id": "bgnEM",
+    "name": "B / 小程序管理 / 用户资料与报名弹窗"
+   },
+   "nodes": 3,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-users/index",
+   "sourceArtboard": "wlpgC",
+   "artboard": {
+    "id": "b3hYN",
+    "name": "B / 小程序管理 / 用户筛选弹窗"
+   },
+   "nodes": 3,
+   "size": [
+    390,
+    844
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-activity-orders/index",
+   "sourceArtboard": "sreFA",
+   "artboard": {
+    "id": "bAR9T",
+    "name": "B / 小程序管理 / 活动订单与退款"
+   },
+   "nodes": 66,
+   "size": [
+    390,
+    null
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/admin-memberships/index",
+   "sourceArtboard": "aoeMz",
+   "artboard": {
+    "id": "bLrbG",
+    "name": "B / 小程序管理 / 会员管理"
+   },
+   "nodes": 96,
+   "size": [
+    390,
+    null
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:activities-register",
+   "sourceArtboard": "JLFre",
+   "artboard": {
+    "id": "bN3ic",
+    "name": "B / 状态稿 / 活动与报名 · 状态"
+   },
+   "nodes": 37,
+   "size": [
+    390,
+    1209
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:participants-legal",
+   "sourceArtboard": "hlmk3",
+   "artboard": {
+    "id": "bgpU6",
+    "name": "B / 状态稿 / 参与人与协议 · 恢复"
+   },
+   "nodes": 29,
+   "size": [
+    390,
+    null
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:shop-loading",
+   "sourceArtboard": "mGkPt",
+   "artboard": {
+    "id": "b6Euq",
+    "name": "B / 状态稿 / 商城 · 加载与刷新"
+   },
+   "nodes": 31,
+   "size": [
+    390,
+    959
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:checkout-pay",
+   "sourceArtboard": "vaPck",
+   "artboard": {
+    "id": "bVR5G",
+    "name": "B / 状态稿 / 结算与支付 · 恢复"
+   },
+   "nodes": 32,
+   "size": [
+    390,
+    1011
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:order-refund",
+   "sourceArtboard": "kx38q",
+   "artboard": {
+    "id": "bWRCw",
+    "name": "B / 状态稿 / 订单售后 · 申请与核对"
+   },
+   "nodes": 22,
+   "size": [
+    390,
+    1084
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:address-edit",
+   "sourceArtboard": "MJO4e",
+   "artboard": {
+    "id": "bjYcp",
+    "name": "B / 状态稿 / 收货地址 · 编辑与空态"
+   },
+   "nodes": 35,
+   "size": [
+    390,
+    1016
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:mine-identity",
+   "sourceArtboard": "tZwlR",
+   "artboard": {
+    "id": "bapi9",
+    "name": "B / 状态稿 / 我的 · 身份与独立恢复"
+   },
+   "nodes": 36,
+   "size": [
+    390,
+    1153
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:login-consent",
+   "sourceArtboard": "KGIQF",
+   "artboard": {
+    "id": "bzbtG",
+    "name": "B / 状态稿 / 登录与协议 · 恢复"
+   },
+   "nodes": 34,
+   "size": [
+    390,
+    1033
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:list-product",
+   "sourceArtboard": "FKrkZ",
+   "artboard": {
+    "id": "b2KYK",
+    "name": "B / 状态稿 / 列表与商品 · 边界"
+   },
+   "nodes": 32,
+   "size": [
+    390,
+    870
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "state:order-result",
+   "sourceArtboard": "Xwjvy",
+   "artboard": {
+    "id": "bRhjN",
+    "name": "B / 状态稿 / 订单取消与退款结果"
+   },
+   "nodes": 33,
+   "size": [
+    390,
+    1155
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/home/index",
+   "sourceArtboard": "Q78i6",
+   "variant": "recolor-only",
+   "artboard": {
+    "id": "bM77V",
+    "name": "B / 小程序 / 首页（保排版 · 换莓果色）"
+   },
+   "nodes": 82,
+   "size": [
+    390,
+    2210
+   ],
+   "status": "designed+read"
+  },
+  {
+   "platform": "miniprogram",
+   "route": "pages/home/index",
+   "sourceArtboard": "Q78i6",
+   "variant": "recolor-only",
+   "artboard": {
+    "id": "bSWCk",
+    "name": "B / 小程序 / 首页 · 入口弹窗态"
+   },
+   "nodes": 6,
+   "size": [
+    390,
+    420
+   ],
+   "status": "designed+read"
+  }
+ ],
+ "notes": [
+  "Web 外壳：B 顶部横向导航（72px，五组业务大类）+ 子导航行（44px，标题 28px 主色 + 兄弟页/返回）。",
+  "列表/表格/表单布局沿用各页真实任务结构，不强制卡片化；/activities 为两列左图右信息卡片（H3X2a）。",
+  "窄屏/登录/小程序画板为整体换色 + 布局保留；小程序首页 Q78i6 不在 B 范围（保护对象）。",
+  "危险/信息语义色为 B 扩展变量（hd-b-danger/info 等 17 项），延续 B 暖莓语系，见 variables。",
+  "2026-11-17 用户追加指令：小程序首页排版不变、颜色换 B。新增首页换色画板（extend-b-home.py），实施仅 4 个 wxss 的颜色值替换（git diff 审计 50 行全为颜色），wxml/ts 零改动。"
+ ]
+}

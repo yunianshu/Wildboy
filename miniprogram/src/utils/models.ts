@@ -161,6 +161,11 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  /** 微信电商订单（订单中心）配套：发货与确认收货信息，旧版本后端可能缺省。 */
+  shippedAt?: string | null;
+  receiptConfirmedAt?: string | null;
+  shippingCompany?: string | null;
+  shippingTrackingNo?: string | null;
 }
 export interface PaymentRequest {
   timeStamp: string;

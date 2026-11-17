@@ -15,7 +15,7 @@ for key,name,roots,components,html in directions:
     data=json.loads(source.read_text(encoding='utf-8'))
     assert data['roots']==roots
     entry={
-        'platform':'web','route':'/activities','direction':key,'name':name,
+        'platform':'web','route':'/activities','direction':key,'name':name,'selected':key=='B',
         'designFile':str(DESIGN),'artboards':roots,'components':components,
         'variables':data['variables'],
         'readbackFile':source.name,'readbackSha256':hashlib.sha256(source.read_bytes()).hexdigest(),
@@ -30,7 +30,7 @@ for key,name,roots,components,html in directions:
     preview=ROOT/'design-demos'/html
     if preview.exists(): entry['previewSha256']=hashlib.sha256(preview.read_bytes()).hexdigest()
     mapping.append(entry)
-result={'version':1,'status':'proposals-awaiting-user-selection','selectedDirection':None,
+result={'version':1,'status':'direction-approved-handoff','selectedDirection':'B','approvalRecord':'direction-approved.md',
         'penSave':{'modifiedAt':'2026-11-17T15:00:52.130676+08:00','size':5064358,'verification':'saved-root-evidence.json'},
         'scope':'Three alternatives for one admin homepage and matching components/dialogs',
         'thumbnailArtboard':'m1HOo','pages':mapping,

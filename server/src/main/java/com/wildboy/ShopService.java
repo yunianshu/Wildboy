@@ -96,7 +96,11 @@ public class ShopService {
               r.getObject("expires_at", OffsetDateTime.class),
               r.getBoolean("reconciliation_required"),
               List.of(),
-              r.getInt("original_total_cents"));
+              r.getInt("original_total_cents"),
+              r.getObject("shipped_at", OffsetDateTime.class),
+              r.getObject("receipt_confirmed_at", OffsetDateTime.class),
+              r.getString("shipping_company"),
+              r.getString("shipping_tracking_no"));
 
   public List<Product> products(boolean admin) {
     return products(admin, null);
@@ -244,7 +248,11 @@ public class ShopService {
         order.expiresAt(),
         order.reconciliationRequired(),
         items,
-        order.originalTotalCents());
+        order.originalTotalCents(),
+        order.shippedAt(),
+        order.receiptConfirmedAt(),
+        order.shippingCompany(),
+        order.shippingTrackingNo());
   }
 
   public Order order(String id, String userId, boolean admin) {
@@ -581,7 +589,7 @@ public class ShopService {
         && (company == null || company.isBlank() || trackingNo == null || trackingNo.isBlank()))
       throw new ApiException(400, "SHIPPING_DETAILS_REQUIRED", "微信支付订单发货需填写物流公司和运单号");
     db.update(
-        "UPDATE shop_order SET status='SHIPPED',shipping_company=?,shipping_tracking_no=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE shop_order SET status='SHIPPED',shipping_company=?,shipping_tracking_no=?,shipped_at=CURRENT_TIMESTAMP,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         company == null ? "" : company.strip(),
         trackingNo == null ? "" : trackingNo.strip(),
         id);

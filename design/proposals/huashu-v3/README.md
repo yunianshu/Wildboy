@@ -2,7 +2,7 @@
 
 使用 huashu-design v3.3.0 制作。此前本机没有该技能，本轮已从作者仓库补装完整最新版，并读取执行。
 
-本轮只比较 Web `/activities` 首页，包含配套按钮、输入、选择、状态、空状态和发布确认弹窗。三版均来自已保存并实际重新读取的 Pen 数据。用户尚未选定方向。
+本轮比较 Web `/activities` 首页，包含配套按钮、输入、选择、状态、空状态和发布确认弹窗。三版均来自已保存并实际重新读取的 Pen 数据。用户已于 2026-11-17 选择 B「莓果晴天」，见 direction-approved.md；后续无需重新选风格。交接提示词见 D:/AiProject/Wildboy/docs/ui-refactor/handoff-B.md。
 
 ## 查看
 
@@ -30,4 +30,4 @@
 
 原重构任务保持有效；本轮遵循用户后续“先做一个界面看看”“几种方案我来选择”，先交可选择的设计。小程序首页及其共享依赖 81 个文件的保护摘要无差异。本轮没有把任一新方案写入生产代码，也没有重新执行小程序原生或后台业务验收。
 
-按 [技能 SKILL.md](C:/Users/59290/.codex/skills/huashu-design/SKILL.md) 的“摆出来就停”，用户选择后记录选择原话，再将选定体系扩展到全部既定页面，重新读取各页设计后继续生产界面调整。不会把本轮原型检查当作完整双端重构通过。
+三方向选择已完成。**2026-11-17 后续执行已由交接 AI 完成**：B 体系已扩展到全部既定页面（`extend-b.py` 生成 100 个 B 画板），实际读回（`readback-b.py` → `docs/ui-refactor/berry/pen-readback.json`）后落地生产界面并通过双端验证，见 `docs/ui-refactor/berry/`（[plan](../../../docs/ui-refactor/berry/plan.md)、[verification](../../../docs/ui-refactor/berry/verification.md)）。柑橘代画板已加 `[历史·柑橘]` 前缀保留，A/C 提案画板与首页基线 Q78i6 未改动。

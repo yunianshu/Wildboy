@@ -1,0 +1,11 @@
+{
+ "suite": "tests/e2e/admin-redesign-browser.cjs (WILDBOY_E2E_TARGET=current)",
+ "web": "http://127.0.0.1:15176",
+ "api": "http://127.0.0.1:19082/api/v1",
+ "passed": true,
+ "screens": 154,
+ "checks": 160,
+ "failedChecks": [],
+ "browserErrors": [],
+ "overflowScreens": []
+}

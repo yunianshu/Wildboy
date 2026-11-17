@@ -29,13 +29,14 @@
     "pages/article/index",
     "pages/admin-memberships/index",
     "pages/activity-orders/index",
-    "pages/admin-activity-orders/index"
+    "pages/admin-activity-orders/index",
+    "pages/order-detail/index"
   ],
   "window": {
     "navigationBarTitleText": "Wildboy",
-    "navigationBarBackgroundColor": "#F6F4ED",
+    "navigationBarBackgroundColor": "#FFFAFB",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#F6F4ED"
+    "backgroundColor": "#FFFAFB"
   },
   "permission": {
     "scope.userLocation": {

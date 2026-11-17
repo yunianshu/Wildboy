@@ -8,7 +8,7 @@
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-6, 24px) var(--space-4, 16px);
-  color: var(--color-muted, #59664f);
+  color: var(--color-muted, #755E67);
   font-size: var(--font-body, 14px);
   line-height: 1.7;
   text-align: center;
@@ -41,15 +41,15 @@
 }
 
 .ui-state-error {
-  color: var(--color-error, #8b3028);
+  color: var(--color-error, #B03A2E);
 }
 
 .ui-state-spinner {
   box-sizing: border-box;
   width: 24px;
   height: 24px;
-  border: 2px solid var(--color-border, #d7dfd1);
-  border-top-color: var(--color-primary, #193f34);
+  border: 2px solid var(--color-border, #E8DCE0);
+  border-top-color: var(--color-primary, #B93858);
   border-radius: 50%;
   animation: ui-state-spin 800ms linear infinite;
 }

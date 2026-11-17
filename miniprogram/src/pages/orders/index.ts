@@ -149,6 +149,11 @@ Page({
   retry() {
     void this.load();
   },
+  openDetail(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id) return;
+    wx.navigateTo({ url: `/pages/order-detail/index?id=${id}&type=shop` });
+  },
   signIn() {
     wx.navigateTo({ url: "/pages/login/index" });
   },

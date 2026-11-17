@@ -1,0 +1,79 @@
+<view class="page order-detail-page page-motion {{pageMotionClass}}">
+  <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后查看订单详情<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
+  <block wx:else>
+    <ui-state wx:if="{{loading}}" kind="loading">正在读取订单…</ui-state>
+    <ui-state wx:elif="{{error}}" kind="error">{{error}}<view class="detail-actions"><button class="secondary ui-button" bindtap="retry">重新加载</button><button class="secondary ui-button" bindtap="backToList">返回订单列表</button></view></ui-state>
+
+    <block wx:elif="{{detail.kind === 'shop'}}">
+      <view class="detail-card status-card">
+        <view class="status-title">{{detail.statusText}}</view>
+        <view class="status-sub" wx:if="{{detail.order.status === 'SHIPPED' && !detail.order.receiptConfirmedAt}}">快递正在派送，确认收货后交易完成</view>
+        <view class="status-sub" wx:elif="{{detail.order.receiptConfirmedAt}}">已于 {{detail.receiptText}} 确认收货</view>
+        <view class="status-sub" wx:else>金额与状态以微信支付记录为准</view>
+        <view class="receipt-hint" wx:if="{{detail.order.status === 'SHIPPED' && !detail.order.receiptConfirmedAt}}">微信将在发货后 10 天自动确认收货</view>
+      </view>
+
+      <view class="detail-card">
+        <view class="card-caption">订单商品</view>
+        <view class="product-line" wx:for="{{detail.items}}" wx:key="id">
+          <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" />
+          <view class="product-info">
+            <view class="product-name">{{item.productName}}<text wx:if="{{item.tierName}}" class="muted small"> · {{item.tierName}}会员价</text></view>
+            <view class="muted small">{{item.quantityText}}</view>
+          </view>
+          <view class="product-price">{{item.priceText}}</view>
+        </view>
+        <view class="meta-row"><text class="muted">订单金额</text><text class="amount">{{detail.totalText}}</text></view>
+        <view class="meta-row" wx:if="{{detail.hasDiscount}}"><text class="muted">优惠前</text><text class="muted">{{detail.originalTotalText}}</text></view>
+        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text></view>
+        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text></view>
+        <view class="meta-row"><text class="muted">下单时间</text><text class="meta-value">{{detail.dateText}}</text></view>
+        <view class="notice" wx:if="{{detail.order.reconciliationRequired}}">支付状态待核对，请联系管理员。</view>
+      </view>
+
+      <view class="detail-card" wx:if="{{detail.order.status === 'SHIPPED' || detail.shippedText}}">
+        <view class="card-caption">物流信息</view>
+        <view class="meta-row" wx:if="{{detail.order.shippingCompany}}"><text class="muted">快递公司</text><text class="meta-value">{{detail.order.shippingCompany}}</text></view>
+        <view class="meta-row" wx:if="{{detail.order.shippingTrackingNo}}"><text class="muted">运单号</text><text class="meta-value">{{detail.order.shippingTrackingNo}}</text></view>
+        <view class="meta-row" wx:if="{{detail.shippedText}}"><text class="muted">发货时间</text><text class="meta-value">{{detail.shippedText}}</text></view>
+      </view>
+
+      <view class="detail-card">
+        <view class="card-caption">收货地址</view>
+        <view class="recipient">{{detail.order.recipientName}} {{detail.order.phone}}</view>
+        <view class="muted small">{{detail.order.address}}</view>
+      </view>
+
+      <view class="detail-actions" wx:if="{{detail.canConfirmReceipt}}">
+        <button class="primary ui-button ui-button-block" bindtap="confirmReceipt" loading="{{busy}}">确认收货</button>
+        <view class="muted small center">由微信官方组件发起，确认后同步微信订单状态</view>
+      </view>
+      <view class="detail-actions">
+        <button class="secondary ui-button ui-button-block" bindtap="backToList">返回订单列表</button>
+      </view>
+      <view class="error" wx:if="{{confirmError}}" aria-role="alert">{{confirmError}}</view>
+    </block>
+
+    <block wx:elif="{{detail.kind === 'activity'}}">
+      <view class="detail-card status-card">
+        <view class="status-title">{{detail.statusText}}</view>
+        <view class="status-sub">{{detail.order.activityTitle}} · {{detail.order.partySize}} 人</view>
+      </view>
+      <view class="detail-card">
+        <view class="card-caption">活动订单</view>
+        <view class="meta-row"><text class="muted">订单金额</text><text class="amount">{{detail.totalText}}</text></view>
+        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text></view>
+        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text></view>
+        <view class="meta-row"><text class="muted">名额保留至</text><text class="meta-value">{{detail.dateText}}</text></view>
+      </view>
+      <view class="virtual-card">
+        <view class="virtual-title">虚拟商品订单</view>
+        <view class="muted small">无需物流与确认收货，微信按虚拟商品规则结算</view>
+      </view>
+      <view class="detail-actions">
+        <button class="primary ui-button ui-button-block" bindtap="viewRegistrations">查看我的报名</button>
+        <button class="secondary ui-button ui-button-block" bindtap="backToList">返回订单列表</button>
+      </view>
+    </block>
+  </block>
+</view>

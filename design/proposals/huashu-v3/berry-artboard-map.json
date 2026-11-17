@@ -1,0 +1,514 @@
+{
+  "generated": "2026-11-17",
+  "marker": "B / 莓果晴天 · 全端扩展",
+  "web": {
+    "jooRk": {
+      "id": "bap6t",
+      "name": "B / Web / 运营工作台",
+      "route": "/operations"
+    },
+    "mS4Tg": {
+      "id": "bTVrb",
+      "name": "B / Web / 运营工作台 · 列表状态",
+      "route": "/operations"
+    },
+    "vMuxZ": {
+      "id": "bAfQ3",
+      "name": "B / Web / 消息管理",
+      "route": "/notifications"
+    },
+    "Sfyhp": {
+      "id": "bxaM9",
+      "name": "B / Web / 消息管理 · 恢复通知",
+      "route": "/notifications"
+    },
+    "VZIjm": {
+      "id": "baDWh",
+      "name": "B / Web / 活动模板",
+      "route": "/templates"
+    },
+    "xHqTA": {
+      "id": "bLMwD",
+      "name": "B / Web / 活动订单 · 全部订单",
+      "route": "/activity-orders"
+    },
+    "XErK6": {
+      "id": "bosNZ",
+      "name": "B / Web / 活动订单 · 待支付详情",
+      "route": "/activity-orders"
+    },
+    "othlP": {
+      "id": "bKVQg",
+      "name": "B / Web / 活动订单 · 退款审核",
+      "route": "/activity-orders"
+    },
+    "CCqVo": {
+      "id": "b8MJj",
+      "name": "B / Web / 新建活动",
+      "route": "/activities/new"
+    },
+    "afpqo": {
+      "id": "bAQ7C",
+      "name": "B / Web / 编辑活动",
+      "route": "/activities/:id/edit"
+    },
+    "A7gFGK": {
+      "id": "bm9fu",
+      "name": "B / Web / 报名名单",
+      "route": "/activities/:id/registrations"
+    },
+    "tSb5v": {
+      "id": "bGMZ4",
+      "name": "B / Web / 报名名单 · 查看资料确认",
+      "route": "/activities/:id/registrations"
+    },
+    "jv8du": {
+      "id": "bzdXn",
+      "name": "B / Web / 商城管理",
+      "route": "/shop"
+    },
+    "jLyLI": {
+      "id": "bhisd",
+      "name": "B / Web / 商城管理 · 装备订单",
+      "route": "/shop"
+    },
+    "Z4snv": {
+      "id": "bjrLJ",
+      "name": "B / Web / 商品分类",
+      "route": "/shop/categories"
+    },
+    "kc418": {
+      "id": "bTgAE",
+      "name": "B / Web / 退款售后",
+      "route": "/refunds"
+    },
+    "pKPcb": {
+      "id": "b8JCZ",
+      "name": "B / Web / 退款售后 · 申请审核",
+      "route": "/refunds"
+    },
+    "sPQxB": {
+      "id": "bmRet",
+      "name": "B / Web / 发货上报",
+      "route": "/shipping-reports"
+    },
+    "MuHVO": {
+      "id": "bBpsG",
+      "name": "B / Web / 发货上报 · 补报确认",
+      "route": "/shipping-reports"
+    },
+    "udj84": {
+      "id": "beNxv",
+      "name": "B / Web / 用户管理",
+      "route": "/users"
+    },
+    "x9gG8s": {
+      "id": "bcGQt",
+      "name": "B / Web / 会员管理 · 等级列表",
+      "route": "/memberships"
+    },
+    "V6uBE": {
+      "id": "bxgqX",
+      "name": "B / Web / 会员管理 · 用户业务身份",
+      "route": "/memberships"
+    },
+    "vruDl": {
+      "id": "bTP4c",
+      "name": "B / Web / 会员管理 · 等级编辑",
+      "route": "/memberships"
+    },
+    "Asyql": {
+      "id": "beQGD",
+      "name": "B / Web / 会员管理 · 分配业务身份",
+      "route": "/memberships"
+    },
+    "hSL6j": {
+      "id": "bAWtr",
+      "name": "B / Web / 文章管理 · 文章列表",
+      "route": "/articles"
+    },
+    "LzCfb": {
+      "id": "beDqq",
+      "name": "B / Web / 文章编辑 · 新建草稿",
+      "route": "/articles/new"
+    },
+    "Rkx83": {
+      "id": "bXkza",
+      "name": "B / Web / 文章编辑 · 工作台",
+      "route": "/articles/:id/edit"
+    },
+    "MYBYC": {
+      "id": "bo5qZ",
+      "name": "B / Web / 文章编辑 · 文档",
+      "route": "/articles/:id/edit"
+    },
+    "P6RC06": {
+      "id": "bpSjZ",
+      "name": "B / Web / 文章编辑 · 设为官方介绍确认",
+      "route": "/articles/:id/edit"
+    },
+    "Pr4cO": {
+      "id": "bw6fQ",
+      "name": "B / Web / 协议管理",
+      "route": "/legal"
+    },
+    "DbJts": {
+      "id": "bna4V",
+      "name": "B / Web / 基础配置 · 四入口与目标页",
+      "route": "/settings"
+    },
+    "xNcp5": {
+      "id": "bch9U",
+      "name": "B / Web / 基础配置 · 弹窗内容配置",
+      "route": "/settings"
+    },
+    "k0nVX": {
+      "id": "bQC3S",
+      "name": "B / Web / 基础配置 · 版本冲突恢复",
+      "route": "/settings"
+    },
+    "UHolL": {
+      "id": "bEWHv",
+      "name": "B / Web / 管理员账号",
+      "route": "/settings/admin-account"
+    },
+    "jwaEj": {
+      "id": "bC7yp",
+      "name": "B / Web / 管理员账号 · 修改",
+      "route": "/settings/admin-account"
+    },
+    "dxs6Q": {
+      "id": "H3X2a",
+      "name": "B / Web / 活动管理",
+      "route": "/activities"
+    },
+    "PoJPW": {
+      "id": "bBpy7",
+      "name": "B / Web / 管理员登录",
+      "route": "/login"
+    },
+    "UFr8b": {
+      "id": "bHTR6",
+      "name": "B / Web / 活动管理 · 窄屏",
+      "route": "/activities"
+    },
+    "YcrPD": {
+      "id": "bSsFD",
+      "name": "B / Web / 编辑活动 · 窄屏",
+      "route": "/activities/:id/edit"
+    },
+    "yJl1Q": {
+      "id": "bQXXY",
+      "name": "B / Web / 基础配置 · 窄屏",
+      "route": "/settings"
+    },
+    "D02kiL": {
+      "id": "bAoTr",
+      "name": "B / Web / 活动订单 · 窄屏",
+      "route": "/activity-orders"
+    },
+    "TNona": {
+      "id": "byDx3",
+      "name": "B / Web / 文章编辑 · 窄屏",
+      "route": "/articles/:id/edit"
+    }
+  },
+  "mini": {
+    "zdkYd": {
+      "id": "bSWbb",
+      "name": "B / 小程序 / 活动",
+      "route": "pages/activities/index"
+    },
+    "mzsV1": {
+      "id": "buhez",
+      "name": "B / 小程序 / 活动详情",
+      "route": "pages/detail/index"
+    },
+    "KGp4I": {
+      "id": "buBCX",
+      "name": "B / 小程序 / 活动详情 · 已报名",
+      "route": "pages/detail/index"
+    },
+    "v2aly": {
+      "id": "bLnsQ",
+      "name": "B / 小程序 / 填写报名",
+      "route": "pages/register/index"
+    },
+    "ScdDU": {
+      "id": "beqcP",
+      "name": "B / 小程序 / 报名结果",
+      "route": "pages/signup-success/index"
+    },
+    "bVFjG": {
+      "id": "bTn3t",
+      "name": "B / 小程序 / 我的报名",
+      "route": "pages/registrations/index"
+    },
+    "fhwJH": {
+      "id": "bekLY",
+      "name": "B / 小程序 / 活动消息",
+      "route": "pages/notifications/index"
+    },
+    "3yIfJ": {
+      "id": "bvG8b",
+      "name": "B / 小程序 / 活动订单",
+      "route": "pages/activity-orders/index"
+    },
+    "E7QA9": {
+      "id": "b5hAi",
+      "name": "B / 小程序 / 商城",
+      "route": "pages/shop/index"
+    },
+    "YbhOC": {
+      "id": "b4mjh",
+      "name": "B / 小程序 / 商品详情",
+      "route": "pages/product/index"
+    },
+    "KgWt0": {
+      "id": "bcW7C",
+      "name": "B / 小程序 / 确认订单",
+      "route": "pages/checkout/index"
+    },
+    "kD4zv": {
+      "id": "bNWPD",
+      "name": "B / 小程序 / 我的订单",
+      "route": "pages/orders/index"
+    },
+    "AIEqe": {
+      "id": "bcLLS",
+      "name": "B / 小程序 / 收货地址",
+      "route": "pages/addresses/index"
+    },
+    "asCpo": {
+      "id": "bxS9A",
+      "name": "B / 小程序 / 我的山野",
+      "route": "pages/mine/index"
+    },
+    "u9yYo": {
+      "id": "bdTdv",
+      "name": "B / 小程序 / 活动联系人 / 资料摘要",
+      "route": "pages/profile/index"
+    },
+    "CX7SL": {
+      "id": "buVFm",
+      "name": "B / 小程序 / 活动联系人 / 编辑与未同意",
+      "route": "pages/profile/index"
+    },
+    "r2Vg3F": {
+      "id": "bCXqE",
+      "name": "B / 小程序 / 微信登录",
+      "route": "pages/login/index"
+    },
+    "jy5Vc": {
+      "id": "bWtRR",
+      "name": "B / 小程序 / 文章 [pages/article/index]",
+      "route": "pages/article/index"
+    },
+    "r5wRDb": {
+      "id": "b8FaW",
+      "name": "B / 小程序 / 隐私政策",
+      "route": "pages/privacy/index"
+    },
+    "Jt0Pi": {
+      "id": "bjhFJ",
+      "name": "B / 小程序管理 / 身份验证",
+      "route": "pages/admin-login/index"
+    },
+    "r2Js0": {
+      "id": "bRyd7",
+      "name": "B / 小程序管理 / 入口状态查询失败",
+      "route": "pages/admin-login/index"
+    },
+    "ouWUv": {
+      "id": "b2bNr",
+      "name": "B / 小程序管理 / 尚未配置账号",
+      "route": "pages/admin-login/index"
+    },
+    "hRh1p": {
+      "id": "bkpv4",
+      "name": "B / 小程序管理 / 活动目录",
+      "route": "pages/admin-activities/index"
+    },
+    "yNHlA": {
+      "id": "bdgyn",
+      "name": "B / 小程序管理 / 活动编辑 · 基本",
+      "route": "pages/admin-editor/index"
+    },
+    "h50occ": {
+      "id": "bK2dB",
+      "name": "B / 小程序管理 / 活动编辑 · 报名",
+      "route": "pages/admin-editor/index"
+    },
+    "wfShm": {
+      "id": "biRuT",
+      "name": "B / 小程序管理 / 活动编辑 · 详情",
+      "route": "pages/admin-editor/index"
+    },
+    "NFbtm": {
+      "id": "bcRkh",
+      "name": "B / 小程序管理 / 取消活动确认",
+      "route": "pages/admin-editor/index"
+    },
+    "YIDDP": {
+      "id": "b2RNA",
+      "name": "B / 小程序管理 / 取消活动结果",
+      "route": "pages/admin-editor/index"
+    },
+    "ACw3S": {
+      "id": "bwgm3",
+      "name": "B / 小程序管理 / 加载失败保留草稿",
+      "route": "pages/admin-editor/index"
+    },
+    "X6euG": {
+      "id": "b3XJA",
+      "name": "B / 小程序管理 / 报名名单",
+      "route": "pages/admin-roster/index"
+    },
+    "E7GexY": {
+      "id": "bBpqP",
+      "name": "B / 小程序管理 / 协议草稿",
+      "route": "pages/admin-legal/index"
+    },
+    "oXo8G": {
+      "id": "biBtU",
+      "name": "B / 小程序管理 / 协议历史",
+      "route": "pages/admin-legal/index"
+    },
+    "vm86H": {
+      "id": "bqH6W",
+      "name": "B / 小程序管理 / 发布确认",
+      "route": "pages/admin-legal/index"
+    },
+    "W9vBy": {
+      "id": "bvgUG",
+      "name": "B / 小程序管理 / 商品库存",
+      "route": "pages/admin-shop/index"
+    },
+    "IWwi8": {
+      "id": "bZc5g",
+      "name": "B / 小程序管理 / 商品编辑 / 双价与分类",
+      "route": "pages/admin-product/index"
+    },
+    "L50wpo": {
+      "id": "bTwms",
+      "name": "B / 小程序管理 / 商品编辑 / 同页分类管理",
+      "route": "pages/admin-product/index"
+    },
+    "yxY9p": {
+      "id": "b8rPw",
+      "name": "B / 小程序管理 / 图文版本冲突",
+      "route": "pages/admin-product/index"
+    },
+    "FGTf9": {
+      "id": "bU6eK",
+      "name": "B / 小程序管理 / 确认重载图文",
+      "route": "pages/admin-product/index"
+    },
+    "P9Nefw": {
+      "id": "byMEg",
+      "name": "B / 小程序管理 / 分类编辑 / 恢复状态",
+      "route": "pages/admin-product/index"
+    },
+    "R9RNM": {
+      "id": "bekWn",
+      "name": "B / 小程序管理 / 订单发货",
+      "route": "pages/admin-orders/index"
+    },
+    "p6tHR": {
+      "id": "b7B9N",
+      "name": "B / 小程序管理 / 发货前核对",
+      "route": "pages/admin-orders/index"
+    },
+    "q9SqVI": {
+      "id": "bmwwD",
+      "name": "B / 小程序管理 / 发货完成结果",
+      "route": "pages/admin-orders/index"
+    },
+    "qF4od": {
+      "id": "bgSDR",
+      "name": "B / 小程序管理 / 图文编辑",
+      "route": "pages/admin-content/index"
+    },
+    "gbfMY": {
+      "id": "bPR8U",
+      "name": "B / 小程序管理 / 用户管理",
+      "route": "pages/admin-users/index"
+    },
+    "uHPy2": {
+      "id": "bgnEM",
+      "name": "B / 小程序管理 / 用户资料与报名弹窗",
+      "route": "pages/admin-users/index"
+    },
+    "wlpgC": {
+      "id": "b3hYN",
+      "name": "B / 小程序管理 / 用户筛选弹窗",
+      "route": "pages/admin-users/index"
+    },
+    "sreFA": {
+      "id": "bAR9T",
+      "name": "B / 小程序管理 / 活动订单与退款",
+      "route": "pages/admin-activity-orders/index"
+    },
+    "aoeMz": {
+      "id": "bLrbG",
+      "name": "B / 小程序管理 / 会员管理",
+      "route": "pages/admin-memberships/index"
+    },
+    "JLFre": {
+      "id": "bN3ic",
+      "name": "B / 状态稿 / 活动与报名 · 状态",
+      "route": "state:activities-register"
+    },
+    "hlmk3": {
+      "id": "bgpU6",
+      "name": "B / 状态稿 / 参与人与协议 · 恢复",
+      "route": "state:participants-legal"
+    },
+    "mGkPt": {
+      "id": "b6Euq",
+      "name": "B / 状态稿 / 商城 · 加载与刷新",
+      "route": "state:shop-loading"
+    },
+    "vaPck": {
+      "id": "bVR5G",
+      "name": "B / 状态稿 / 结算与支付 · 恢复",
+      "route": "state:checkout-pay"
+    },
+    "kx38q": {
+      "id": "bWRCw",
+      "name": "B / 状态稿 / 订单售后 · 申请与核对",
+      "route": "state:order-refund"
+    },
+    "MJO4e": {
+      "id": "bjYcp",
+      "name": "B / 状态稿 / 收货地址 · 编辑与空态",
+      "route": "state:address-edit"
+    },
+    "tZwlR": {
+      "id": "bapi9",
+      "name": "B / 状态稿 / 我的 · 身份与独立恢复",
+      "route": "state:mine-identity"
+    },
+    "KGIQF": {
+      "id": "bzbtG",
+      "name": "B / 状态稿 / 登录与协议 · 恢复",
+      "route": "state:login-consent"
+    },
+    "FKrkZ": {
+      "id": "b2KYK",
+      "name": "B / 状态稿 / 列表与商品 · 边界",
+      "route": "state:list-product"
+    },
+    "Xwjvy": {
+      "id": "bRhjN",
+      "name": "B / 状态稿 / 订单取消与退款结果",
+      "route": "state:order-result"
+    }
+  },
+  "components": {
+    "rhqa8": "b7jbp",
+    "GiOGX": "bVVTn",
+    "lrX3H": "bkAPH",
+    "C66TNf": "bwLMa"
+  }
+}
