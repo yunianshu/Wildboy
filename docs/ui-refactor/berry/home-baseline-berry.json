@@ -1,12 +1,13 @@
 {
  "date": "2026-11-17",
- "note": "B 莓果首页换色后的新基线。用户指令：排版不变、颜色换 B。与旧基线（2026-11-17-citrus/home-baseline.json）相比仅下列文件变化，且 git diff 审计证明变化全部为颜色值；wxml/ts/json 结构文件零变化。 2026-11-18 订单中心接入：app.json 因注册 pages/order-detail/index 与窗口底色换 B 而更新（结构追加与颜色，非首页排版改动）。",
+ "note": "B 莓果首页换色后的新基线。用户指令：排版不变、颜色换 B。与旧基线（2026-11-17-citrus/home-baseline.json）相比仅下列文件变化，且 git diff 审计证明变化全部为颜色值；wxml/ts/json 结构文件零变化。 2026-11-18 订单中心接入：app.json 因注册 pages/order-detail/index 与窗口底色换 B 而更新（结构追加与颜色，非首页排版改动）。 2026-11-18 Tab 抖动修复：motion.wxss 将切 Tab 的 ±24vw 横滑改为原位淡入（用户反馈的 UX 修复，属共享动效层，非首页排版变化）。",
  "changedFiles": [
   "miniprogram/src/app.wxss",
   "miniprogram/src/custom-tab-bar/index.wxss",
   "miniprogram/src/components/ui-state/index.wxss",
   "miniprogram/src/pages/home/index.wxss",
-  "miniprogram/src/app.json"
+  "miniprogram/src/app.json",
+  "miniprogram/src/styles/motion.wxss"
  ],
  "files": [
   {
@@ -131,9 +132,9 @@
   },
   {
    "file": "miniprogram/src/styles/motion.wxss",
-   "sha256": "0923a418054de3afda2ebcf1da1e0ca83ee0760c01581a547614d6207557c120",
+   "sha256": "d43fc7e8f651782789b96d6deba30b505c66f5449d796ec79ff6c60ec7d59b2c",
    "previousSha256": "0923a418054de3afda2ebcf1da1e0ca83ee0760c01581a547614d6207557c120",
-   "changedInBerry": false
+   "changedInBerry": true
   },
   {
    "file": "miniprogram/src/utils/activity-orders.ts",

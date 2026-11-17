@@ -65,6 +65,17 @@ test("arrival motion stays visible, bounded and disabled when the host reports r
   assert.match(css, /@media\s*\(prefers-reduced-motion:\s*reduce\)[\s\S]*animation:\s*none\s*!important/);
 });
 
+test("tab switches swap content in place without any horizontal slide", () => {
+  // 2026-11-18：±24vw 横滑在每次切 Tab 时被感知为「抖动」；改为原位淡入并被本测试锁定。
+  const css = fs.readFileSync(path.resolve(__dirname, "../src/styles/motion.wxss"), "utf8");
+  const tabs = [...css.matchAll(/@keyframes wildboy-tab-enter-[ab]\s*{([\s\S]*?)}/g)];
+  assert.equal(tabs.length, 2);
+  for (const tab of tabs) {
+    assert.doesNotMatch(tab[1], /transform|translate/i);
+    assert.match(tab[1], /opacity:\s*\.9\d/);
+  }
+});
+
 test("dialog damping is bounded to panels and has a reduced-motion alternative", () => {
   const css = fs.readFileSync(path.resolve(__dirname, "../src/styles/motion.wxss"), "utf8");
   assert.match(css, /\.motion-dialog-enter\s*{[^}]*opacity:\s*1;[^}]*180ms/);

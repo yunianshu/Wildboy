@@ -36,12 +36,14 @@
   overflow-x: clip;
 }
 
-.motion-tab-from-left { --tab-enter-offset: -24vw; }
-.motion-tab-from-right { --tab-enter-offset: 24vw; }
+/* Tab switches swap content in place: no horizontal slide, only a subtle fade.
+   The previous ±24vw slide read as page jitter on every tab change (2026-11-18). */
+.motion-tab-from-left { --tab-enter-offset: 0vw; }
+.motion-tab-from-right { --tab-enter-offset: 0vw; }
 
 .page-motion.motion-tab-a,
 .page-motion.motion-tab-b {
-  animation-duration: 240ms;
+  animation-duration: 150ms;
   animation-timing-function: var(--motion-ease, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
@@ -49,13 +51,13 @@
 .page-motion.motion-tab-b { animation-name: wildboy-tab-enter-b; }
 
 @keyframes wildboy-tab-enter-a {
-  from { transform: translateX(var(--tab-enter-offset)); }
-  to { transform: none; }
+  from { opacity: .96; }
+  to { opacity: 1; }
 }
 
 @keyframes wildboy-tab-enter-b {
-  from { transform: translateX(var(--tab-enter-offset)); }
-  to { transform: none; }
+  from { opacity: .96; }
+  to { opacity: 1; }
 }
 
 /* Dialog panels get a bounded arrival; the page root never scales. */
