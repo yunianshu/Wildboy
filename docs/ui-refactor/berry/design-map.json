@@ -5,14 +5,14 @@
  "approvalRecord": "design/proposals/huashu-v3/direction-approved.md",
  "pen": {
   "file": "design/设计图文件.pen",
-  "savedSizeBytes": 8548237,
+  "savedSizeBytes": 3609096,
   "method": "脚本编辑 + 备份 + 结构校验（本会话无 Pen MCP；沿用仓库 plan.md 约定）",
   "backupGlob": "design/backups/设计图文件.pen.*.bak"
  },
  "readback": {
   "file": "docs/ui-refactor/berry/pen-readback.json",
-  "sha256": "eac503d3afb3fbb15582ec64146ce09172e73f70a27ca305ed14d7df0cf9fdf4",
-  "artboards": 102,
+  "sha256": "82636070ebd66913ed214fa6aa8e5f5fcd392ea8e7fbc33e5cf07c3aef2d68d5",
+  "artboards": 105,
   "variables": 35
  },
  "variables": {
@@ -1605,6 +1605,7 @@
   "列表/表格/表单布局沿用各页真实任务结构，不强制卡片化；/activities 为两列左图右信息卡片（H3X2a）。",
   "窄屏/登录/小程序画板为整体换色 + 布局保留；小程序首页 Q78i6 不在 B 范围（保护对象）。",
   "危险/信息语义色为 B 扩展变量（hd-b-danger/info 等 17 项），延续 B 暖莓语系，见 variables。",
-  "2026-11-17 用户追加指令：小程序首页排版不变、颜色换 B。新增首页换色画板（extend-b-home.py），实施仅 4 个 wxss 的颜色值替换（git diff 审计 50 行全为颜色），wxml/ts 零改动。"
+  "2026-11-17 用户追加指令：小程序首页排版不变、颜色换 B。新增首页换色画板（extend-b-home.py），实施仅 4 个 wxss 的颜色值替换（git diff 审计 50 行全为颜色），wxml/ts 零改动。",
+  "2026-11-18 清理：按用户指令删除设计源中的历史代（初代 2 + 柑橘 103 + A/C 提案 6 共 111 板）与未使用历史变量（169 个），仅保留 B 体系 109 板 + 35 个 hd-b 变量 + 首页基线占位；文件 8.6MB→3.6MB。B 弹窗组件内部残留的初代按钮引用已替换为 B 组件（bDlgb）。A/C 演示 HTML 与小样同步清理。"
  ]
 }

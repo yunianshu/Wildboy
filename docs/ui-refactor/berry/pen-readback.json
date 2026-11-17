@@ -1,7 +1,7 @@
 {
  "generated": "2026-11-17",
  "source": "design/设计图文件.pen",
- "penSizeBytes": 8628718,
+ "penSizeBytes": 3609096,
  "variableCount": 35,
  "variables": {
   "hd-b-primary": {
@@ -263129,5 +263129,5 @@
    ]
   }
  },
- "readbackSha256": "31370cc168bf41ec7a90e9885104b74f4b954f5e1af6c0b68a895c46d2120fc3"
+ "readbackSha256": "82636070ebd66913ed214fa6aa8e5f5fcd392ea8e7fbc33e5cf07c3aef2d68d5"
 }

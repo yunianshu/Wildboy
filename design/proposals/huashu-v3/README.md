@@ -1,33 +1,27 @@
-# 野小子首页提案
+# 野小子 · B 莓果晴天设计体系
 
-使用 huashu-design v3.3.0 制作。此前本机没有该技能，本轮已从作者仓库补装完整最新版，并读取执行。
-
-本轮比较 Web `/activities` 首页，包含配套按钮、输入、选择、状态、空状态和发布确认弹窗。三版均来自已保存并实际重新读取的 Pen 数据。用户已于 2026-11-17 选择 B「莓果晴天」，见 direction-approved.md；后续无需重新选风格。交接提示词见 D:/AiProject/Wildboy/docs/ui-refactor/handoff-B.md。
+使用 huashu-design v3.3.0 制作。2026-11-17 用户选定 B「莓果晴天」（见 direction-approved.md），同日由交接 AI 扩展到全端并落地生产（v1.0.3 / v0.2.5 已上线）。**2026-11-18 清理**：按用户指令，设计源只保留 B 当前代——删除初代 2 板、柑橘 103 板、A/C 提案 6 板与 169 个历史变量（清理脚本 `cleanup-pen.py`，旧版本在 git 历史与 `design/backups/` 留档）；A/C 演示 HTML 与小样同步删除。
 
 ## 查看
 
-- [方案切换与原尺寸设计](http://127.0.0.1:15483/)
-- [A 晨光绿白](http://127.0.0.1:15483/dir-1.html)：窄白侧栏和活动表格，以时间、价格、名额的横向对照为主。
-- [B 莓果晴天](http://127.0.0.1:15483/dir-2.html)：横向导航和图片卡片，适合通过活动封面辨认路线。
-- [C 杏黄留白](http://127.0.0.1:15483/dir-3.html)：横向导航、分类侧栏与名额列表，强化分类和容量扫描。
-- [六个方向小样](http://127.0.0.1:15483/thumbs.html)：另外三种为备选。
+- [B 莓果晴天可点击原型](http://127.0.0.1:15483/dir-2.html)：横向导航和图片卡片，适合通过活动封面辨认路线。
 
-服务未运行时，执行 `python design/proposals/huashu-v3/preview-server.py`，或直接打开 `design-demos/index.html`。本地预览响应设置 no-store，不读取生产登录状态，不写后台数据。
+服务未运行时，执行 `python design/proposals/huashu-v3/preview-server.py`，或直接打开 `design-demos/dir-2.html`。本地预览响应设置 no-store，不读取生产登录状态，不写后台数据。
 
 ## 可编辑设计索引
 
-设计源 `D:/AiProject/Wildboy/design/设计图文件.pen`，本轮新增画板位于旧设计下方。
+设计源 `D:/AiProject/Wildboy/design/设计图文件.pen`，仅含 B 体系：
 
-| 方向 | 首页画板 | 组件及弹窗画板 | 发布确认组件 |
-|---|---|---|---|
-| A 晨光绿白 | n2cQ6B | O79Ql | GCIUe |
-| B 莓果晴天 | H3X2a | HyvJK | LhnkF |
-| C 杏黄留白 | M894N | Nu5Gj | q3sOy |
+| 内容 | 画板 |
+|---|---|
+| Web 活动首页（已实现） | H3X2a |
+| 组件与弹窗（含 8 个 B 组件定义） | HyvJK |
+| 全端 B 画板（Web/小程序/状态稿/首页换色/订单中心） | 共 109 根画板，映射见 `berry-artboard-map.json` 与 `docs/ui-refactor/berry/design-map.json` |
+| 变量 | 35 个 `hd-b-*`（令牌链 `scripts/ui-refresh-tokens.py` 依赖） |
+| 首页基线占位（保护对象标记） | Q78i6 |
 
-六格画板为 `m1HOo`。实际结构数据分别在 `design-readback-A.json`、`design-readback-B.json`、`design-readback-C.json`，路由、组件、变量与 HTML 映射在 `design-map.json`。
+原始三方向对比数据仍在 git 历史（97060bd 及以前）；B 的实际结构读回为 `docs/ui-refactor/berry/pen-readback.json`。
 
 ## 范围与后续
 
-原重构任务保持有效；本轮遵循用户后续“先做一个界面看看”“几种方案我来选择”，先交可选择的设计。小程序首页及其共享依赖 81 个文件的保护摘要无差异。本轮没有把任一新方案写入生产代码，也没有重新执行小程序原生或后台业务验收。
-
-三方向选择已完成。**2026-11-17 后续执行已由交接 AI 完成**：B 体系已扩展到全部既定页面（`extend-b.py` 生成 100 个 B 画板），实际读回（`readback-b.py` → `docs/ui-refactor/berry/pen-readback.json`）后落地生产界面并通过双端验证，见 `docs/ui-refactor/berry/`（[plan](../../../docs/ui-refactor/berry/plan.md)、[verification](../../../docs/ui-refactor/berry/verification.md)）。柑橘代画板已加 `[历史·柑橘]` 前缀保留，A/C 提案画板与首页基线 Q78i6 未改动。
+小程序首页 81 文件保护摘要见 `docs/ui-refactor/berry/home-baseline-berry.json`（2026-11-17 起首页按用户指令改为保排版换色）。生产实施与双端验证记录：[plan](../../../docs/ui-refactor/berry/plan.md)、[verification](../../../docs/ui-refactor/berry/verification.md)。微信订单中心接入说明：`docs/wechat-order-center.md`。
