@@ -16,8 +16,8 @@
 ## 2. 本次实际变更
 
 ### 设计（design/）
-- `pen-ui-refactor-2026-11-16.js`：新增 5 画板（`3yIfJ` 小程序/活动订单、`sreFA` 小程序管理/活动订单与退款、`aoeMz` 小程序管理/会员管理、`sPQxB` Web/发货上报、`MuHVO` Web/发货上报·补报确认）；`jooRk` 运营工作台补「发货上报待处理」指标卡；35 张 Web 画板侧栏「商城」组补「发货上报」导航项（登录页与 5 张窄屏画板本无侧栏，正确跳过）。+618 节点；备份 `设计图文件.pen.bak-ui-refactor-2026-11-16`；id 全局唯一校验通过。
-- `read-design-map-2026-11-16.js`：回读已保存文件生成映射。
+- `design/scripts/pen-ui-refactor-2026-11-16.js`：新增 5 画板（`3yIfJ` 小程序/活动订单、`sreFA` 小程序管理/活动订单与退款、`aoeMz` 小程序管理/会员管理、`sPQxB` Web/发货上报、`MuHVO` Web/发货上报·补报确认）；`jooRk` 运营工作台补「发货上报待处理」指标卡；35 张 Web 画板侧栏「商城」组补「发货上报」导航项（登录页与 5 张窄屏画板本无侧栏，正确跳过）。+618 节点；备份 `design/backups/设计图文件.pen.bak-ui-refactor-2026-11-16`；id 全局唯一校验通过。
+- `design/scripts/read-design-map-2026-11-16.js`：回读已保存文件生成映射。
 
 ### 代码
 - `miniprogram/src/pages/activity-orders/index.{wxml,wxss}`：按 3yIfJ 重构——页题+说明、状态胶囊（wait/ok/info/neutral 语义色）、卡片化订单（标题/人数合计/划线原价/价格明细/订单号/截止提示）、主次按钮分级（支付主按钮+核对次按钮一行；参与人/取消/退款次操作行）、参与人与退款面板软底展开块、确认面板。TS 业务逻辑与全部绑定事件未改。

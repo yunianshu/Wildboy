@@ -11,7 +11,7 @@
 | 小程序 (miniprogram/) | 微信原生小程序 + TypeScript | 全局 `app.wxss` + 页面 wxss + `styles/motion.wxss`；自定义 TabBar | `npm test`（build + tsc + node --test 524 用例）、`npm run typecheck` |
 | 设计 (design/) | Pen 源文件（JSON 节点树） | `$wb-*` 颜色/字体变量；Web 画板用 recolor-v2 色板（与 `--admin-*` 一一对应） | 结构校验脚本 + JSON 回读 |
 
-Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON，仓库既有工作流即「脚本直接编辑 .pen + 先备份 + 结构校验」（见 `design/pen-web-admin-recolor-v2-2026-11-14.py`）。本次沿用该约定。
+Pen 工具链现状：本会话未连接 Pen MCP；`.pen` 文件为可读 JSON，仓库既有工作流即「脚本直接编辑 .pen + 先备份 + 结构校验」（见 `design/scripts/pen-web-admin-recolor-v2-2026-11-14.py`）。本次沿用该约定。
 
 ## 2. 小程序主页面（保护对象）识别与基线
 

@@ -31,7 +31,7 @@
 
 ### 落地与验证
 
-- Pen：`design/pen-web-admin-recolor-v2-2026-11-14.py` 对 38 张画板做上下文感知映射（侧栏 429+462+495、主按钮 32、品牌文字 244、正文/弱化 801、胶囊 61 组、表头 20、描边 320、分组标签 165），结构校验仅颜色变化，v1 色值零残留；备份 `设计图文件.pen.bak-recolor-v2-2026-11-14`。脚本自渲染预览 `design/exports/web-admin-recolor-v2-preview-2026-11-14.*`。
+- Pen：`design/scripts/pen-web-admin-recolor-v2-2026-11-14.py` 对 38 张画板做上下文感知映射（侧栏 429+462+495、主按钮 32、品牌文字 244、正文/弱化 801、胶囊 61 组、表头 20、描边 320、分组标签 165），结构校验仅颜色变化，v1 色值零残留；备份 `design/backups/设计图文件.pen.bak-recolor-v2-2026-11-14`。脚本自渲染预览 `design/exports/web-admin-recolor-v2-preview-2026-11-14.*`。
 - 代码：style.css 令牌与组件全面换肤（约 40 处），ShopView 局部描边修正；状态语义类名与模块归属机制不变（statusTone.ts、data-module/data-group 复用）。
 - 门禁：vitest 194/194、`vue-tsc`、生产构建、改动文件 Prettier 通过；浏览器验收 158/158（隔离 API + Vite，报告 `test-results/admin-redesign-browser/1794637438667-ed37a/`），桌面截图抽查活动/运营/商城/用户/消息/订单均符合 v2 规范。
 - 生产部署（2026-11-14，经用户确认）：提交 e9ebec2 已推送 GitHub 并以 SSH 直推服务器快进 + deploy.sh 第 2–5 步执行；烟雾检查全过，线上 CSS（index-7u7_e6Vq.css）实测含全部 v2 令牌（#f6f7f9/#047857/#101613/#2563eb/#c2410c/#7c3aed/#ecfdf5/#fef2f2），登录页截图 `test-results/prod-login-v2-1440.png`。回退：服务器 `git reset --hard 122aee7` + 重跑部署步骤。
@@ -52,8 +52,8 @@
 
 ## 工具与 Pen 连接状态
 
-- `design/设计图文件.pen` 为 JSON 格式（`version 2.22`，139 个顶层节点），本项目既有脚本（`design/pen-web-admin*.js`）依赖 Pencil 应用内执行环境；本环境无 Pencil MCP 端点（`Pen.exe` 进程在运行但未监听任何本地端口，`design/pen-session.json` 记录的编辑器文件已不存在）。
-- 因此本轮直接以结构保持脚本（`design/pen-web-admin-recolor-2026-11-14.py`）对 .pen JSON 做逐节点颜色替换：只改 `fill`/`stroke` 颜色字符串与 `variables` 色板登记，不增删节点、不改 id 与布局。脚本与替换前后哈希记录于 design 目录。
+- `design/设计图文件.pen` 为 JSON 格式（`version 2.22`，139 个顶层节点），本项目既有脚本（`design/scripts/pen-web-admin*.js`）依赖 Pencil 应用内执行环境；本环境无 Pencil MCP 端点（`Pen.exe` 进程在运行但未监听任何本地端口，`design/pen-session.json` 记录的编辑器文件已不存在）。
+- 因此本轮直接以结构保持脚本（`design/scripts/pen-web-admin-recolor-2026-11-14.py`）对 .pen JSON 做逐节点颜色替换：只改 `fill`/`stroke` 颜色字符串与 `variables` 色板登记，不增删节点、不改 id 与布局。脚本与替换前后哈希记录于 design 目录。
 - 恢复方式：在 Pencil 桌面应用重新打开 `design/设计图文件.pen` 即可看到新配色；若应用内另有未保存副本，需先关闭不保存再打开。画板级人工微调仍可在应用内继续。
 
 ## 现状基线（38 张 Web 画板颜色统计）
@@ -116,7 +116,7 @@ onDark 各值在 #193F34 侧栏底上对比度 5.74–7.14（≥4.5）。
 
 | 验收项 | 结果 |
 | --- | --- |
-| Pen 结构校验 | 38 张画板逐节点替换后，除 fill/stroke 颜色与 variables 外结构逐字节一致；替换计数：61 处状态胶囊（success 21、warning 12、info 3、neutral 19、身份 user 6）、20 处表头（activity 6、ops 3、shop 3、user 5、content 3）、165 处侧栏分组标签（5 色 × 33）、variables 新增 32 个色板键；无未映射标签。脚本 `design/pen-web-admin-recolor-2026-11-14.py`，改前备份 `design/设计图文件.pen.bak-recolor-2026-11-14`。 |
+| Pen 结构校验 | 38 张画板逐节点替换后，除 fill/stroke 颜色与 variables 外结构逐字节一致；替换计数：61 处状态胶囊（success 21、warning 12、info 3、neutral 19、身份 user 6）、20 处表头（activity 6、ops 3、shop 3、user 5、content 3）、165 处侧栏分组标签（5 色 × 33）、variables 新增 32 个色板键；无未映射标签。脚本 `design/scripts/pen-web-admin-recolor-2026-11-14.py`，改前备份 `design/backups/设计图文件.pen.bak-recolor-2026-11-14`。 |
 | 画板预览 | 脚本自渲染预览（非 Pencil 应用输出）`design/exports/web-admin-recolor-preview-2026-11-14.html` 截图核对侧栏五色与表头底色；最终呈现以 Pencil 应用打开该 .pen 为准，本轮环境无 Pencil MCP/编辑器连接，未在应用内复核。 |
 | 对比度 | 全部文字/底组合 ≥4.5:1（success 5.54、warning 5.26、danger 6.08、info 5.89、neutral 5.05、五模块 strong/soft 4.61–5.89、onDark/侧栏 5.74–7.14）。 |
 | 单元测试 | `npm test`（vitest）194/194 通过，`npm run typecheck` 通过，`npm run build` 通过；改动文件 Prettier 通过（仓库仍有 13 个本轮未触碰文件的历史格式问题）。 |
@@ -166,7 +166,7 @@ onDark 各值在 #193F34 侧栏底上对比度 5.74–7.14（≥4.5）。
 ## 回退
 
 - 实现回退：撤销本轮 admin/src 提交即可（`git revert` 或按提交回退）；状态色与模块色集中在 style.css 变量、statusTone.ts 与 App.vue 的 data-module/data-group 绑定。
-- Pen 回退：用 `design/设计图文件.pen.bak-recolor-2026-11-14` 覆盖 `design/设计图文件.pen`；确认新稿已可用后可删除该备份。
+- Pen 回退：用 `design/backups/设计图文件.pen.bak-recolor-2026-11-14` 覆盖 `design/设计图文件.pen`；确认新稿已可用后可删除该备份。
 
 ## 验收标准
 

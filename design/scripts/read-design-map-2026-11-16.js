@@ -5,8 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const PEN = path.join(__dirname, "设计图文件.pen");
-const OUT = path.join(__dirname, "..", "docs", "ui-refactor", "design-map.json");
+const PEN = path.join(__dirname, "..", "设计图文件.pen");
+const OUT = path.join(__dirname, "..", "..", "docs", "ui-refactor", "design-map.json");
 const raw = fs.readFileSync(PEN);
 const doc = JSON.parse(raw.toString("utf8"));
 const digest = crypto.createHash("sha256").update(raw).digest("hex").slice(0, 16);

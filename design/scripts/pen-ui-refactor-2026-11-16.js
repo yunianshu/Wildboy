@@ -8,8 +8,8 @@
 const fs = require("fs");
 const path = require("path");
 
-const PEN = path.join(__dirname, "设计图文件.pen");
-const BACKUP = path.join(__dirname, "设计图文件.pen.bak-ui-refactor-2026-11-16");
+const PEN = path.join(__dirname, "..", "设计图文件.pen");
+const BACKUP = path.join(__dirname, "..", "backups", "设计图文件.pen.bak-ui-refactor-2026-11-16");
 
 const doc = JSON.parse(fs.readFileSync(PEN, "utf8"));
 
