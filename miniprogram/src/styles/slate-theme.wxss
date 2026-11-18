@@ -26,7 +26,7 @@ page {
 .secondary[disabled], button.secondary[disabled] { color: var(--rf-muted); background: var(--rf-neutral-bg); }
 .text-button { color: var(--rf-primary-text); min-height: 44px; }
 .error { color: var(--rf-danger); }
-.notice { background: var(--rf-soft); color: var(--rf-muted); border-radius: 12px; }
+.notice { background: var(--rf-soft); color: var(--rf-muted); border-radius: var(--rf-radius); }
 .badge, .pill { background: var(--rf-soft); color: var(--rf-primary-text); border-color: var(--rf-line); }
 input, textarea, .picker-value { color: var(--rf-ink); background: var(--rf-surface); border-color: var(--rf-line); border-radius: 8px; font-size: 14px; }
 input { height: 48px; }

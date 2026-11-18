@@ -8,27 +8,27 @@
 .page .form input { height: 48px; padding: 0 12px; }
 .page .form textarea { padding: 12px; }
 .page .form label { color: var(--rf-ink); font-size: 14px; }
-.page .card, .page .order-card, .page .booking-summary, .page .shipping-card { border-radius: 12px; }
+.page .card, .page .order-card, .page .booking-summary, .page .shipping-card { border-radius: var(--rf-radius); }
 .page .card, .page .order-card, .page .shipping-card { border: 1px solid var(--rf-line); background: var(--rf-surface); }
 .page .booking-summary { background: var(--rf-soft); }
 .page .tab.active { color: var(--rf-on-primary); background: var(--rf-primary); }
 .page .form button:not(.secondary):not(.text-button), .page .confirmation button:not(.secondary) { background: var(--rf-primary); color: var(--rf-on-primary); min-height: 44px; border-radius: 8px; }
 .page .form button[disabled] { background: var(--rf-line); color: var(--rf-muted); }
-.page .confirmation { margin: 16px 0; padding: 16px; border: 1px solid var(--rf-line); border-radius: 12px; background: var(--rf-soft); font-size: 14px; line-height: 1.6; }
+.page .confirmation { margin: 16px 0; padding: 16px; border: 1px solid var(--rf-line); border-radius: var(--rf-radius); background: var(--rf-soft); font-size: 14px; line-height: 1.6; }
 .page .form button, .page .confirmation button { line-height: 1.5; }
 .page .consent checkbox { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transform: none; }
-.page .participant-card { padding: 16px; margin: 12px 0; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: 12px; }
+.page .participant-card { padding: 16px; margin: 12px 0; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: var(--rf-radius); }
 
 .page .form .actions button { min-height: 44px; height: auto; white-space: normal; }
-.page .category-panel { margin-top: 16px; padding: 16px; border: 1px solid var(--rf-line); background: var(--rf-surface); border-radius: 12px; }
+.page .category-panel { margin-top: 16px; padding: 16px; border: 1px solid var(--rf-line); background: var(--rf-surface); border-radius: var(--rf-radius); }
 
 /* Shared non-home primitives; the protected home never imports this file. */
-button.primary, .na-page button.primary.ui-button, .page .form button:not(.secondary):not(.text-button), .page .confirmation button:not(.secondary) { min-height: 48px; background: var(--rf-primary); color: var(--rf-on-primary); border-radius: 10px; }
-button.secondary, .na-page button.secondary.ui-button { min-height: 48px; color: var(--rf-primary-text); background: var(--rf-soft); border-radius: 10px; }
-button.danger, .page button.danger { color: var(--rf-danger); background: var(--rf-danger-bg); border-radius: 10px; }
+button.primary, .na-page button.primary.ui-button, .page .form button:not(.secondary):not(.text-button), .page .confirmation button:not(.secondary) { min-height: 48px; background: var(--rf-primary); color: var(--rf-on-primary); border-radius: var(--rf-control-radius); }
+button.secondary, .na-page button.secondary.ui-button { min-height: 48px; color: var(--rf-primary-text); background: var(--rf-soft); border-radius: var(--rf-control-radius); }
+button.danger, .page button.danger { color: var(--rf-danger); background: var(--rf-danger-bg); border-radius: var(--rf-control-radius); }
 button[disabled], button.primary[disabled], button.secondary[disabled], .na-page button.ui-button[disabled], .page .form button[disabled] { color: var(--rf-muted); background: var(--rf-neutral-bg); opacity: 1; }
 .page .tab.active, .na-page .na-tabs .na-active { color: var(--rf-on-primary); background: var(--rf-primary); }
-.dialog-body input, .dialog-body textarea, .ui-refund-body textarea { box-sizing: border-box; width: 100%; height: 48px; padding: 0 12px; background: var(--rf-surface); border: 1px solid var(--rf-field-line); border-radius: 10px; color: var(--rf-ink); font-size: 14px; }
+.dialog-body input, .dialog-body textarea, .ui-refund-body textarea { box-sizing: border-box; width: 100%; height: 48px; padding: 0 12px; background: var(--rf-surface); border: 1px solid var(--rf-field-line); border-radius: var(--rf-control-radius); color: var(--rf-ink); font-size: 14px; }
 .dialog-body textarea, .ui-refund-body textarea { height: 112px; padding: 12px; }
 .dialog-body .label, .ui-refund-body .label { display: block; margin-bottom: 8px; color: var(--rf-ink); }
 .dialog-body .field, .ui-refund-body .field { margin-bottom: 16px; }
@@ -37,5 +37,5 @@ button[disabled], button.primary[disabled], button.secondary[disabled], .na-page
 .ui-refund-body { height: 240px; max-height: 48vh; }
 .ui-refund-body .notice { margin-bottom: 16px; }
 .dialog-actions { display: flex; gap: 12px; }
-.dialog-actions > button { flex: 1; width: 0; min-width: 0; min-height: 48px; margin: 0; padding: 8px 12px; line-height: 1.5; border-radius: 10px; }
-.page .form input, .page .form textarea, .page .picker, .na-page .na-field input, .na-page .na-field textarea, .na-page .na-picker, .uf-page input, .uf-page textarea { border-color: var(--rf-field-line); border-radius: 10px; }
+.dialog-actions > button { flex: 1; width: 0; min-width: 0; min-height: 48px; margin: 0; padding: 8px 12px; line-height: 1.5; border-radius: var(--rf-control-radius); }
+.page .form input, .page .form textarea, .page .picker, .na-page .na-field input, .na-page .na-field textarea, .na-page .na-picker, .uf-page input, .uf-page textarea { border-color: var(--rf-field-line); border-radius: var(--rf-control-radius); }

@@ -1,3 +1,11 @@
+# 当前选择：A 晨光绿白
+
+2026-11-18 用户明确表示“前面有三套，我选了B，但是现在我想选择A”，并要求在另一台电脑的 WildBoy 项目实施。当前目标已从 B 更新为 A；以下 B 选择仅作历史来源。
+
+A 源数据：design-readback-A.json；原型：design-demos/dir-1.html（由 build-A.cjs 恢复，摘要与原映射相同）。当前代码及验收见 docs/ui-refactor/dawn-a/verification.md。
+
+---
+
 # 已确认设计方向
 
 日期：2026-11-17（Asia/Shanghai）。

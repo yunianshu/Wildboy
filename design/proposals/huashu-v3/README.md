@@ -1,3 +1,9 @@
+# 当前方案：A 晨光绿白（2026-11-18）
+
+用户已将 B 改选 A。A 原型已恢复至 `design-demos/dir-1.html`，结构数据见 `design-readback-A.json`；当前验收见 `../../../docs/ui-refactor/dawn-a/verification.md`。下文是此前 B 交付记录，不代表本轮 A 的验收，也不是当前视觉指令。现有 Pen 仍为 B，未宣称同步完成。
+
+---
+
 # 野小子 · B 莓果晴天设计体系
 
 使用 huashu-design v3.3.0 制作。2026-11-17 用户选定 B「莓果晴天」（见 direction-approved.md），同日由交接 AI 扩展到全端并落地生产（v1.0.3 / v0.2.5 已上线）。**2026-11-18 清理**：按用户指令，设计源只保留 B 当前代——删除初代 2 板、柑橘 103 板、A/C 提案 6 板与 169 个历史变量（清理脚本 `cleanup-pen.py`，旧版本在 git 历史与 `design/backups/` 留档）；A/C 演示 HTML 与小样同步删除。

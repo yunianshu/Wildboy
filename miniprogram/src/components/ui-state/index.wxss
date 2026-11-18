@@ -8,7 +8,7 @@
   align-items: center;
   gap: var(--space-3, 12px);
   padding: var(--space-6, 24px) var(--space-4, 16px);
-  color: var(--color-muted, #755E67);
+  color: var(--color-muted, #5D7064);
   font-size: var(--font-body, 14px);
   line-height: 1.7;
   text-align: center;
@@ -48,8 +48,8 @@
   box-sizing: border-box;
   width: 24px;
   height: 24px;
-  border: 2px solid var(--color-border, #E8DCE0);
-  border-top-color: var(--color-primary, #B93858);
+  border: 2px solid var(--color-border, #E2E9E1);
+  border-top-color: var(--color-primary, #247A52);
   border-radius: 50%;
   animation: ui-state-spin 800ms linear infinite;
 }

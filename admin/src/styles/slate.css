@@ -1,4 +1,4 @@
-/* Layout rules read from the 2026-11-17 Pen artboards (B 莓果晴天 generation).
+/* Layout rules read from the 2026-11-17 Pen artboards (A 晨光绿白 generation).
    Business components continue to use the existing semantic classes and event handlers. */
 :root {
   --admin-inset: 32px;
@@ -384,5 +384,136 @@ button:disabled {
   }
   .form-modal .dialog-actions > button {
     flex: 1;
+  }
+}
+
+/* A: fixed white 196px navigation; native select retains narrow-screen behavior. */
+.morning-shell {
+  background: var(--rf-surface);
+  min-height: 100vh;
+}
+.morning-shell .topnav {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 196px;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--rf-line);
+  border-bottom: 0;
+  overflow-y: auto;
+}
+.morning-shell .brand {
+  height: 76px;
+  flex-shrink: 0;
+  align-items: center;
+}
+.morning-shell .brand-logo {
+  width: 132px;
+  height: 64px;
+}
+.morning-shell .brand-label {
+  display: none;
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: var(--rf-ink);
+  white-space: nowrap;
+}
+.sidebar-link .app-icon {
+  color: var(--rf-muted);
+}
+.sidebar-link:hover {
+  background: var(--rf-bg);
+}
+.sidebar-link.is-active {
+  background: var(--rf-soft);
+  color: var(--rf-primary);
+  font-weight: 600;
+}
+.sidebar-link.is-active .app-icon {
+  color: var(--rf-primary);
+}
+.morning-shell .topnav-admin {
+  margin-top: auto;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--rf-line);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.morning-shell .topnav-admin > .app-icon {
+  display: none;
+}
+.morning-shell .admin-name {
+  font-size: 13px;
+}
+.morning-shell .main-shell {
+  margin-left: 196px;
+}
+.morning-shell .subnav-title {
+  color: var(--rf-ink);
+  font-weight: 600;
+}
+.morning-shell .subnav-link {
+  display: none;
+}
+.morning-shell .subnav {
+  padding-top: 24px;
+}
+@media (max-width: 1199px) {
+  .morning-shell .topnav {
+    position: sticky;
+    inset: auto;
+    top: 0;
+    width: auto;
+    height: auto;
+    min-height: 64px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rf-line);
+    overflow: visible;
+  }
+  .morning-shell .brand {
+    height: 48px;
+    min-width: 100px;
+  }
+  .morning-shell .brand-logo {
+    width: 100px;
+    height: 48px;
+  }
+  .morning-shell .sidebar-nav {
+    display: none;
+  }
+  .morning-shell .topnav-admin {
+    margin: 0 0 0 auto;
+    border: 0;
+    padding: 0;
+  }
+  .morning-shell .mobile-nav {
+    display: block;
+    flex-basis: 100%;
+  }
+  .morning-shell .mobile-nav select {
+    width: 100%;
+  }
+  .morning-shell .main-shell {
+    margin-left: 0;
   }
 }

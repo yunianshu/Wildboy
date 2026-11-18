@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { currentUser, clearSession } from "./api";
 import AppIcon from "./components/AppIcon.vue";
@@ -73,7 +73,7 @@ const navigation = [
 const navigationByPath = navigation
   .flatMap((group) => group.items)
   .sort((a, b) => b.path.length - a.path.length);
-// 模块归属：与顶部五个分组一致，驱动分组高亮与子导航。
+// 模块归属保持不变，侧栏直接显示全部有效入口。
 const moduleBySection: Record<string, string> = {
   "/operations": "ops",
   "/notifications": "ops",
@@ -99,15 +99,9 @@ const pageModule = computed(
   () => moduleBySection[currentSection.value] ?? "activity",
 );
 const activeGroup = computed(
-  () => navigation.find((group) => group.key === pageModule.value) || navigation[1],
+  () =>
+    navigation.find((group) => group.key === pageModule.value) || navigation[1],
 );
-const openGroup = ref("");
-function toggleGroup(key: string) {
-  openGroup.value = openGroup.value === key ? "" : key;
-}
-function closeGroup() {
-  openGroup.value = "";
-}
 // 子导航：列表页显示同模块兄弟页；编辑/详情页显示返回入口。
 const isEditorRoute = computed(
   () =>
@@ -141,7 +135,7 @@ const pageTitle = computed(() => {
 watch(currentUser, (user) => {
   if (!user && route.path !== "/login") void router.replace("/login");
 });
-watch(route, closeGroup);
+
 function logout() {
   clearSession();
   void router.replace("/login");
@@ -149,45 +143,31 @@ function logout() {
 </script>
 <template>
   <RouterView v-if="route.path === '/login'" />
-  <div v-else class="app-shell" :data-module="pageModule">
+  <div v-else class="app-shell morning-shell" :data-module="pageModule">
     <header class="topnav">
-      <RouterLink class="brand" to="/activities" aria-label="野小子管理后台首页">
+      <RouterLink
+        class="brand"
+        to="/activities"
+        aria-label="野小子管理后台首页"
+      >
         <img class="brand-logo" :src="brandLogo" alt="" /><span
           class="brand-label"
           >管理后台</span
         >
       </RouterLink>
-      <nav class="topnav-groups" aria-label="管理页面分组">
-        <div
-          v-for="group in navigation"
-          :key="group.label"
-          class="nav-group"
-          :class="{ 'is-open': openGroup === group.key }"
-        >
-          <button
-            type="button"
-            class="group-tab"
-            :class="{ 'is-active': pageModule === group.key }"
-            :aria-expanded="openGroup === group.key"
-            aria-haspopup="true"
-            @click="toggleGroup(group.key)"
-            @keydown.escape.stop="closeGroup"
+      <nav class="sidebar-nav" aria-label="管理页面">
+        <template v-for="group in navigation" :key="group.key">
+          <RouterLink
+            v-for="item in group.items"
+            :key="item.path"
+            class="sidebar-link"
+            :class="{ 'is-active': currentSection === item.path }"
+            :aria-current="currentSection === item.path ? 'page' : undefined"
+            :to="item.path"
           >
-            {{ group.label }}<AppIcon name="chevron-down" :size="14"
-          /></button>
-          <div v-if="openGroup === group.key" class="group-menu" @mouseleave="closeGroup">
-            <RouterLink
-              v-for="item in group.items"
-              :key="item.path"
-              class="group-menu-item"
-              :class="{ 'is-active': currentSection === item.path }"
-              :aria-current="currentSection === item.path ? 'page' : undefined"
-              :to="item.path"
-              @click="closeGroup"
-              ><AppIcon :name="item.icon" :size="16" />{{ item.title }}</RouterLink
-            >
-          </div>
-        </div>
+            <AppIcon :name="item.icon" :size="18" />{{ item.title }}
+          </RouterLink>
+        </template>
       </nav>
       <div class="topnav-admin">
         <AppIcon name="user" :size="24" />
@@ -217,7 +197,11 @@ function logout() {
       </label>
     </header>
     <div class="main-shell">
-      <div class="subnav" aria-label="当前页面">
+      <div
+        v-if="route.path !== '/activities'"
+        class="subnav"
+        aria-label="当前页面"
+      >
         <RouterLink
           v-if="isEditorRoute && backLink.path"
           class="subnav-back"

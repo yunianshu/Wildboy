@@ -26,6 +26,67 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 describe("real component flows", () => {
+  it("renders A activity table without losing paid/free routes or price precision", async () => {
+    const rows = [
+      {
+        id: "paid",
+        title: "收费路线",
+        location: "山脊",
+        coverUrl: "/cover.png",
+        category: "WEEKLY",
+        startAt: "2026-12-01T08:00:00+08:00",
+        priceCents: 6801,
+        registeredCount: 3,
+        capacity: 20,
+        pendingPaymentCount: 2,
+        status: "PUBLISHED",
+      },
+      {
+        id: "free",
+        title: "免费路线",
+        location: "公园",
+        coverUrl: "/cover.png",
+        category: "WEEKLY",
+        startAt: "2026-12-02T08:00:00+08:00",
+        priceCents: 0,
+        registeredCount: 5,
+        capacity: 10,
+        pendingPaymentCount: 9,
+        status: "DRAFT",
+      },
+    ];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: rows,
+          total: 2,
+          page: 0,
+          size: 8,
+          hasMore: false,
+        }),
+      }),
+    );
+    const { wrapper } = await mounted(ActivitiesView, "/activities");
+    await flushPromises();
+    expect(wrapper.findAll("table thead th")).toHaveLength(7);
+    const records = wrapper.findAll("tbody tr");
+    expect(records).toHaveLength(2);
+    expect(records[0].text()).toContain("¥68.01");
+    expect(records[0].text()).toContain("待支付 2 人");
+    expect(
+      records[0].find('a[href="/activity-orders?activityId=paid"]').exists(),
+    ).toBe(true);
+    expect(
+      records[1].find('a[href="/activities/free/registrations"]').exists(),
+    ).toBe(true);
+    expect(records[1].text()).not.toContain("待支付");
+    expect(wrapper.get("h1").text()).toBe("活动管理");
+    wrapper.unmount();
+  });
+
   it("keeps login concise while retaining account labels and privacy guidance", async () => {
     const { wrapper } = await mounted(LoginView);
     expect(wrapper.get("h2").text()).toBe("管理员登录");
