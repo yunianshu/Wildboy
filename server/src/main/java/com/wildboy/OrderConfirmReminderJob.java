@@ -49,13 +49,18 @@ public class OrderConfirmReminderJob {
       String transactionId = db.queryForObject(
           "SELECT payment_transaction_id FROM shop_order WHERE id=?", String.class, id);
       var result = wechatOrders.notifyConfirmReceive(transactionId);
-      // 未外呼（未启用/缺配置）不落库：环境开启后仍可补发；外呼过则记录，避免每单重复触发。
-      if (result.attempted()) {
+      // 未外呼（未启用/缺配置）不落库：环境开启后仍可补发。
+      // 网络异常（errcode<0，请求未到达微信）与凭据类错误（token 无效/过期，提醒未送达）
+      // 都不消耗「每支付单一次」的机会，下轮扫描重试；其余微信明确应答才记录。
+      if (result.attempted() && result.errcode() >= 0
+          && !WechatOrderCenterService.CREDENTIAL_ERRORS.contains(result.errcode())) {
         db.update(
             "UPDATE shop_order SET confirm_reminded_at=CURRENT_TIMESTAMP,"
                 + "version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
             id);
-        log.info("确认收货提醒已发送 order={} errcode={}", id, result.errcode());
+        log.info("确认收货提醒已处理 order={} errcode={}", id, result.errcode());
+      } else if (result.attempted()) {
+        log.warn("Order confirm reminder deferred for order {}", id);
       }
     }
   }

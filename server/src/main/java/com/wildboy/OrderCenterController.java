@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Size;
 import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -15,8 +17,8 @@ import org.springframework.web.bind.annotation.*;
  *
  * <ul>
  *   <li>用户侧：按订单号解析订单（微信订单中心深链以 ${商品订单号} 跳入小程序订单详情页）、
- *       确认收货（经微信 get_order 复核后落库，防伪造组件回调）；
- *   <li>管理侧：订单中心状态（订单详情路径 + 结算确认完成度）、配置订单详情路径。
+ *       确认收货（经微信 get_order 复核后落库，防伪造组件回调）；</li>
+ *   <li>管理侧：订单中心状态（订单详情路径 + 结算确认完成度）、配置订单详情路径。</li>
  * </ul>
  */
 @RestController
@@ -24,12 +26,17 @@ public class OrderCenterController {
   final ShopService shop;
   final JdbcTemplate db;
   final WechatOrderCenterService wechatOrders;
+  final TransactionTemplate transactions;
 
   public OrderCenterController(
-      ShopService shop, JdbcTemplate db, WechatOrderCenterService wechatOrders) {
+      ShopService shop,
+      JdbcTemplate db,
+      WechatOrderCenterService wechatOrders,
+      PlatformTransactionManager transactionManager) {
     this.shop = shop;
     this.db = db;
     this.wechatOrders = wechatOrders;
+    this.transactions = new TransactionTemplate(transactionManager);
   }
 
   /** 微信订单中心深链与订单详情页入口：按商户订单号解析本人订单的类型与 id。 */
@@ -53,34 +60,47 @@ public class OrderCenterController {
    * 确认收货：仅已发货的微信支付装备订单；服务端以微信 get_order 复核 order_state≥3
    * 后写入 receipt_confirmed_at。发货上报开关关闭（测试环境）时跳过复核直接落库，
    * 与发货上报的守卫口径一致。
+   *
+   * <p>复核与落库在同一事务内持有订单行锁：复核期间退款/取消无法插队改写状态；
+   * 落库仍带状态守卫，复核通过后订单若已离开 SHIPPED（如已退款）则拒绝确认。
    */
   @PostMapping("/api/v1/order-center/orders/{id}/confirm-receipt")
   ConfirmReceiptOutput confirmReceipt(
       @PathVariable String id, @AuthenticationPrincipal Models.User user) {
-    var order = shop.order(id, user.id(), false);
-    if (!"SHIPPED".equals(order.status()))
-      throw ApiException.conflict("ORDER_NOT_SHIPPED",
-          "只有已发货订单可以确认收货");
-    if (order.receiptConfirmedAt() != null)
+    return transactions.execute(status -> {
+      var order = shop.lockOrder(id, user.id(), false);
+      if (!"SHIPPED".equals(order.status()))
+        throw ApiException.conflict("ORDER_NOT_SHIPPED",
+            "只有已发货订单可以确认收货");
+      if (order.receiptConfirmedAt() != null)
+        return new ConfirmReceiptOutput(order.id(), true);
+      if (order.paymentTransactionId() == null || order.paymentTransactionId().isBlank())
+        throw ApiException.conflict("NO_WECHAT_TRANSACTION",
+            "免微信支付订单无需确认收货");
+      var verify = wechatOrders.verifyReceiptConfirmed(order.paymentTransactionId());
+      if (verify.attempted() && verify.errcode() == 0) {
+        int state = WechatOrderCenterService.orderState(verify);
+        if (state < WechatOrderCenterService.ORDER_STATE_CONFIRMED)
+          throw ApiException.conflict(state < 0 ? "WECHAT_ORDER_VERIFY_FAILED" : "RECEIPT_NOT_CONFIRMED_WECHAT",
+              state < 0
+                  ? "微信订单状态核对未通过（无法解析订单状态），请稍后重试"
+                  : "微信订单状态尚未确认收货，请稍后重试");
+      } else if (verify.attempted()) {
+        throw ApiException.conflict("WECHAT_ORDER_VERIFY_FAILED",
+            "微信订单状态核对未通过（errcode=" + verify.errcode() + "），请稍后重试");
+      }
+      int updated =
+          db.update(
+              "UPDATE shop_order SET receipt_confirmed_at=CURRENT_TIMESTAMP,"
+                  + "version=version+1,updated_at=CURRENT_TIMESTAMP"
+                  + " WHERE id=? AND status='SHIPPED' AND receipt_confirmed_at IS NULL",
+              id);
+      // 行锁已排除常规竞态；再读一次状态防御触发器等非常规改写，异常时整体回滚。
+      if (updated == 0 || !"SHIPPED".equals(
+          db.queryForObject("SELECT status FROM shop_order WHERE id=?", String.class, id)))
+        throw ApiException.conflict("ORDER_NOT_SHIPPED", "只有已发货订单可以确认收货");
       return new ConfirmReceiptOutput(order.id(), true);
-    if (order.paymentTransactionId() == null || order.paymentTransactionId().isBlank())
-      throw ApiException.conflict("NO_WECHAT_TRANSACTION",
-          "免微信支付订单无需确认收货");
-    var verify = wechatOrders.verifyReceiptConfirmed(order.paymentTransactionId());
-    if (verify.attempted() && verify.errcode() == 0) {
-      int state = WechatOrderCenterService.orderState(verify);
-      if (state < WechatOrderCenterService.ORDER_STATE_CONFIRMED)
-        throw ApiException.conflict("RECEIPT_NOT_CONFIRMED_WECHAT",
-            "微信订单状态尚未确认收货，请稍后重试");
-    } else if (verify.attempted()) {
-      throw ApiException.conflict("WECHAT_ORDER_VERIFY_FAILED",
-          "微信订单状态核对未通过（errcode=" + verify.errcode() + "），请稍后重试");
-    }
-    db.update(
-        "UPDATE shop_order SET receipt_confirmed_at=CURRENT_TIMESTAMP,"
-            + "version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND receipt_confirmed_at IS NULL",
-        id);
-    return new ConfirmReceiptOutput(order.id(), true);
+    });
   }
 
   /** 管理侧状态：当前订单详情路径 + 结算确认完成度（开启外呼时）。 */

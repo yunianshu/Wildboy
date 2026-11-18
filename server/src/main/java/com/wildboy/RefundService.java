@@ -36,7 +36,10 @@ public class RefundService {
   }
   public Refund own(String orderId,String user) {
     shop.order(orderId,user,false);
-    return db.query(SELECT+"WHERE r.order_id=? AND r.user_id=?",mapper,orderId,user).stream().findFirst().orElse(null);
+    // 有进行中的申请优先展示；否则展示最近一条已终结（被拒/关闭）记录，与可重新申请的口径一致。
+    return db.query(SELECT+"WHERE r.order_id=? AND r.user_id=?"
+        +" ORDER BY CASE WHEN r.status IN ('REQUESTED','PROCESSING','UNKNOWN','ABNORMAL') THEN 0 ELSE 1 END,r.updated_at DESC,r.id",mapper,orderId,user)
+        .stream().findFirst().orElse(null);
   }
   public Refund get(String id) {
     return db.query(SELECT+"WHERE r.id=?",mapper,id).stream().findFirst().orElseThrow(ApiException::notFound);
@@ -58,7 +61,8 @@ public class RefundService {
     if(clean.isEmpty()||clean.length()>200)throw new ApiException(400,"INVALID_REFUND_REASON","请填写退款原因");
     return tx.execute(s->{
       var order=lockOrder(orderId,user);
-      var previous=db.query(SELECT+"WHERE r.order_id=?",mapper,orderId);
+      // 进行中的申请幂等返回；被拒/已关闭的申请允许重新发起（微信关闭的退款单无法继续）。
+      var previous=db.query(SELECT+"WHERE r.order_id=? AND r.status NOT IN ('REJECTED','CLOSED')",mapper,orderId);
       if(!previous.isEmpty())return previous.getFirst();
       if(!order.status().equals("PAID") || order.paymentTransactionId()==null)
         throw ApiException.conflict("REFUND_NOT_ELIGIBLE","仅已付款未发货订单可申请在线退款，已发货请联系客服");

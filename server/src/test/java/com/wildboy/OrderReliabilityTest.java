@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 import com.wechat.pay.java.service.payments.model.Transaction;
 import com.wechat.pay.java.service.payments.model.TransactionAmount;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
@@ -111,6 +112,46 @@ class OrderReliabilityTest {
     assertThat(shop.cancelOrder(order.id(),user.id()).status()).isEqualTo("CANCELLED");
     assertThat(shop.product(product.id(),true).stock()).isEqualTo(100);
   }
+  @Test void prepayRetryAfterUncertainFailureClearsReconciliationFlag() {
+    var order=shop.createOrder(user.id(),input("prepay-retry",1));
+    when(pay.prepay(any(),any()))
+        .thenThrow(new ApiException(502,"WECHAT_PAY_UNAVAILABLE","Synthetic timeout"))
+        .thenReturn(new ShopModels.PaymentRequest("1","nonce","prepay_id=qa","RSA","sig"));
+    assertThatThrownBy(() -> shop.payment(order.id(),user.id())).hasMessageContaining("Synthetic timeout");
+    assertThat(shop.order(order.id(),user.id(),false).reconciliationRequired()).isTrue();
+    assertThat(shop.payment(order.id(),user.id()).packageValue()).isEqualTo("prepay_id=qa");
+    var recovered=shop.order(order.id(),user.id(),false);
+    assertThat(recovered.reconciliationRequired()).isFalse();
+    assertThat(recovered.status()).isEqualTo("PENDING_PAYMENT");
+  }
+  @Test void uncreatedGatewayOrderReleasesStockOnlyAfterTwoMatureAbsenceChecks() {
+    var order=shop.createOrder(user.id(),input("absence-key",1));
+    when(pay.prepay(any(),any())).thenThrow(new ApiException(502,"WECHAT_PAY_UNAVAILABLE","Synthetic timeout"));
+    assertThatThrownBy(() -> shop.payment(order.id(),user.id())).hasMessageContaining("Synthetic timeout");
+    // 微信查无此单：核对解除待核对状态；到期前的取消保留库存并要求稍后再试
+    when(pay.queryOrder(order.orderNo())).thenThrow(new WechatPayService.OrderNotFound());
+    assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PENDING_PAYMENT");
+    assertThat(shop.order(order.id(),user.id(),false).reconciliationRequired()).isFalse();
+    doThrow(new ApiException(502,"WECHAT_CLOSE_FAILED","close failed")).when(pay).closeOrder(order.orderNo());
+    assertThatThrownBy(() -> shop.cancelOrder(order.id(),user.id()))
+        .isInstanceOfSatisfying(ApiException.class,e->assertThat(e.code).isEqualTo("PAYMENT_UNCERTAIN"));
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+    assertThat(db.queryForObject("SELECT payment_not_found_at FROM shop_order WHERE id=?",OffsetDateTime.class,order.id())).isNull();
+    // 过期后的第一次尝试只记录首次缺席探测：库存仍不释放
+    db.update("UPDATE shop_order SET expires_at=CURRENT_TIMESTAMP-INTERVAL '3 minutes' WHERE id=?",order.id());
+    assertThatThrownBy(() -> shop.cancelOrder(order.id(),user.id()))
+        .isInstanceOfSatisfying(ApiException.class,e->assertThat(e.code).isEqualTo("PAYMENT_UNCERTAIN"));
+    assertThat(db.queryForObject("SELECT payment_not_found_at FROM shop_order WHERE id=?",OffsetDateTime.class,order.id())).isNotNull();
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+    assertThat(shop.order(order.id(),user.id(),false).reconciliationRequired()).isTrue();
+    // 探针成熟后再次确认缺席：取消并回补库存，待核对状态解除
+    db.update("UPDATE shop_order SET payment_not_found_at=CURRENT_TIMESTAMP-INTERVAL '2 minutes',expiry_retry_at=CURRENT_TIMESTAMP WHERE id=?",order.id());
+    shop.expireOrder(order.id());
+    var closed=shop.order(order.id(),user.id(),false);
+    assertThat(closed.status()).isEqualTo("CANCELLED");
+    assertThat(closed.reconciliationRequired()).isFalse();
+    assertThat(shop.product(product.id(),true).stock()).isEqualTo(100);
+  }
   @Test void expiryUninitiatedReleasesOnceAndRejectsPay() {
     var order=shop.createOrder(user.id(),input("expired-key",2));
     db.update("UPDATE shop_order SET expires_at=CURRENT_TIMESTAMP-INTERVAL '1 minute' WHERE id=?",order.id());
@@ -191,9 +232,12 @@ class OrderReliabilityTest {
     when(pay.queryOrder(order.orderNo())).thenReturn(null);
     assertThatThrownBy(() -> shop.verifyPayment(order.id(),user.id())).hasMessageContaining("暂无法确认");
     for(var state : List.of(Transaction.TradeStateEnum.NOTPAY,Transaction.TradeStateEnum.USERPAYING,Transaction.TradeStateEnum.CLOSED)) {
+      // 微信权威应答「未支付」后，预支付失败留下的待核对状态随之解除，但库存仍不释放。
+      db.update("UPDATE shop_order SET reconciliation_required=TRUE WHERE id=?",order.id());
       when(pay.queryOrder(order.orderNo())).thenReturn(transaction(order,state));
       assertThat(shop.verifyPayment(order.id(),user.id()).status()).isEqualTo("PENDING_PAYMENT");
       assertThat(shop.product(product.id(),true).stock()).isEqualTo(99);
+      assertThat(shop.order(order.id(),user.id(),false).reconciliationRequired()).isFalse();
     }
   }
   @Test void verificationRejectsMismatchedOrderAndCallbackRejectsCurrencyTypePayerAndNullAmount() {

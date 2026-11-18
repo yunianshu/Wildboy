@@ -1,6 +1,8 @@
 package com.wildboy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -45,6 +47,7 @@ class OrderCenterIntegrationTest {
   @Autowired AuthService auth;
   @Autowired JdbcTemplate db;
   @Autowired ObjectMapper json;
+  @Autowired OrderConfirmReminderJob reminderJob;
   @MockitoBean WechatOrderCenterService wechatOrders;
 
   Models.User owner;
@@ -179,6 +182,94 @@ class OrderCenterIntegrationTest {
             .header("Authorization", token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.receiptConfirmed").value(true));
+  }
+
+  @Test
+  void confirmReceiptRechecksStatusUnderLockAndRefusesRefundedOrders() throws Exception {
+    var orderId = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000031", "9" + "0".repeat(31));
+    // 复核通过但订单在落库瞬间已离开 SHIPPED（如退款完成）：守卫拒绝，事务回滚
+    db.execute("""
+        CREATE FUNCTION qa_flip_refunded() RETURNS trigger LANGUAGE plpgsql AS $$
+        BEGIN
+          IF NEW.receipt_confirmed_at IS NOT NULL AND OLD.receipt_confirmed_at IS NULL THEN
+            NEW.status='REFUNDED';
+          END IF;
+          RETURN NEW;
+        END $$
+        """);
+    db.execute("CREATE TRIGGER qa_flip BEFORE UPDATE ON shop_order FOR EACH ROW EXECUTE FUNCTION qa_flip_refunded()");
+    var confirmed = new WechatOrderCenterService.CallResult(true, 0, "",
+        new ObjectMapper().createObjectNode().putObject("order").put("order_state", 3));
+    when(wechatOrders.verifyReceiptConfirmed("42000000000000000000000000000031")).thenReturn(confirmed);
+    try {
+      mvc.perform(post("/api/v1/order-center/orders/" + orderId + "/confirm-receipt")
+              .header("Authorization", token))
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.code").value("ORDER_NOT_SHIPPED"));
+      assertThat(db.queryForObject(
+          "SELECT receipt_confirmed_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+          .isNull();
+      assertThat(db.queryForObject("SELECT status FROM shop_order WHERE id=?", String.class, orderId))
+          .isEqualTo("SHIPPED");
+    } finally {
+      db.execute("DROP TRIGGER qa_flip ON shop_order");
+      db.execute("DROP FUNCTION qa_flip_refunded()");
+    }
+    // 触发器（模拟竞态）移除后正常确认
+    mvc.perform(post("/api/v1/order-center/orders/" + orderId + "/confirm-receipt")
+            .header("Authorization", token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.receiptConfirmed").value(true));
+  }
+
+  @Test
+  void reminderRetriesTransportFailuresAndConsumesOnlyRealWechatAnswers() {
+    var orderId = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000041", "10" + "0".repeat(30));
+    db.update("UPDATE shop_order SET shipped_at=CURRENT_TIMESTAMP-INTERVAL '73 hours' WHERE id=?", orderId);
+    // 网络异常（errcode<0，未到达微信）不消耗「每支付单一次」的机会
+    when(wechatOrders.notifyConfirmReceive("42000000000000000000000000000041"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, -1, "notify_confirm_receive", null));
+    reminderJob.remindDue();
+    assertThat(db.queryForObject(
+        "SELECT confirm_reminded_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+        .isNull();
+    // 凭据类错误（token 过期，提醒未送达用户）同样保留待办
+    when(wechatOrders.notifyConfirmReceive("42000000000000000000000000000041"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, 42001, "notify_confirm_receive", null));
+    reminderJob.remindDue();
+    assertThat(db.queryForObject(
+        "SELECT confirm_reminded_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+        .isNull();
+    // 微信明确应答（成功或明确拒绝）视为机会已消耗，不再重复触发
+    when(wechatOrders.notifyConfirmReceive("42000000000000000000000000000041"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, 0, "", null));
+    reminderJob.remindDue();
+    assertThat(db.queryForObject(
+        "SELECT confirm_reminded_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+        .isNotNull();
+  }
+
+  @Test
+  void reminderOnlyTargetsMatureUnconfirmedWechatShippedOrders() {
+    var reminded = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000051", "11" + "0".repeat(30));
+    var fresh = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000052", "12" + "0".repeat(30));
+    var free = shopOrder(owner.id(), "SHIPPED", null, "13" + "0".repeat(30));
+    var confirmed = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000053", "14" + "0".repeat(30));
+    var paid = shopOrder(owner.id(), "PAID", "42000000000000000000000000000054", "15" + "0".repeat(30));
+    db.update("UPDATE shop_order SET shipped_at=CURRENT_TIMESTAMP-INTERVAL '73 hours' WHERE id IN (?,?,?,?)",
+        reminded, free, confirmed, paid);
+    db.update("UPDATE shop_order SET receipt_confirmed_at=CURRENT_TIMESTAMP WHERE id=?", confirmed);
+    when(wechatOrders.notifyConfirmReceive("42000000000000000000000000000051"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, 0, "", null));
+    reminderJob.remindDue();
+    verify(wechatOrders).notifyConfirmReceive("42000000000000000000000000000051");
+    verify(wechatOrders, never()).notifyConfirmReceive("42000000000000000000000000000052");
+    verify(wechatOrders, never()).notifyConfirmReceive("42000000000000000000000000000053");
+    verify(wechatOrders, never()).notifyConfirmReceive("42000000000000000000000000000054");
+    for (String id : new String[] {fresh, free, confirmed, paid})
+      assertThat(db.queryForObject(
+          "SELECT confirm_reminded_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, id))
+          .isNull();
   }
 
   @Test

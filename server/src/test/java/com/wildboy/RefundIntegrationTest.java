@@ -78,4 +78,27 @@ class RefundIntegrationTest {
   assertThatThrownBy(()->refunds.apply(wrong,null)).hasMessageContaining("金额");assertThat(refunds.get(r.id()).status()).isEqualTo("PROCESSING");
   assertThat(db.queryForObject("SELECT stock FROM product WHERE id=?",Integer.class,product)).isEqualTo(2);
  }
+ @Test void rejectedOrClosedRefundsCanBeReRequested(){
+  var first=requested();
+  refunds.reject(first.id(),first.version(),"客户改主意保留","admin");
+  var second=requested();
+  assertThat(second.id()).isNotEqualTo(first.id());
+  assertThat(second.outRefundNo()).isNotEqualTo(first.outRefundNo());
+  assertThat(second.status()).isEqualTo("REQUESTED");
+  assertThat(refunds.own(order,user).id()).isEqualTo(second.id());
+  // 进行中的申请幂等返回，不重复建单
+  assertThat(refunds.request(order,user,"再次申请").id()).isEqualTo(second.id());
+  // 微信关闭退款单后订单回到可申请状态，仍可重新发起
+  when(pay.createRefund(any(),any())).thenReturn(result(second,"PROCESSING"));
+  assertThat(refunds.approve(second.id(),second.version(),"admin",false).status()).isEqualTo("PROCESSING");
+  refunds.apply(result(second,"CLOSED"),null);
+  assertThat(refunds.get(second.id()).status()).isEqualTo("CLOSED");
+  assertThat(shop.order(order,user,false).status()).isEqualTo("PAID");
+  var third=requested();
+  assertThat(third.id()).isNotEqualTo(second.id());
+  assertThat(refunds.own(order,user).id()).isEqualTo(third.id());
+  // 已终结的历史申请不能被迟到回调复活
+  assertThatThrownBy(()->refunds.apply(result(first,"SUCCESS"),null)).hasMessageContaining("状态");
+  assertThatThrownBy(()->refunds.apply(result(second,"SUCCESS"),null)).hasMessageContaining("状态");
+ }
 }

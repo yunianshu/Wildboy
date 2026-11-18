@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ShopService {
+  /** 缺席确认窗口（秒）：订单过期后两次独立探测至少间隔这么久才认定微信从未建单。 */
+  private static final int ABSENCE_CONFIRMATION_SECONDS = 60;
   private final JdbcTemplate db;
   private final LegalService legal;
   private final AuthService auth;
@@ -271,7 +273,8 @@ public class ShopService {
     return withItems(result.getFirst());
   }
 
-  private Order lockOrder(String id, String userId, boolean admin) {
+  // 包可见：订单中心确认收货与支付/取消共用同一把行锁，避免复核与落库之间状态被改写。
+  Order lockOrder(String id, String userId, boolean admin) {
     var result =
         db.query(
             "SELECT * FROM shop_order WHERE id=?" + (admin ? "" : " AND user_id=?") + " FOR UPDATE",
@@ -443,10 +446,12 @@ public class ShopService {
     });
     try {
       return transactions.execute(status -> {
-      Order order = lockOrder(id, userId, false);
-      requirePayable(order);
-      // The same row lock is used by cancellation, expiry and payment notifications.
-      return pay.prepay(withItems(order), openid);
+        Order order = lockOrder(id, userId, false);
+        requirePayable(order);
+        PaymentRequest request = pay.prepay(withItems(order), openid);
+        // 预支付成功即解除此前失败留下的待核对状态：订单在微信侧受控，缺席探测作废。
+        db.update("UPDATE shop_order SET reconciliation_required=FALSE,payment_not_found_at=NULL WHERE id=?", id);
+        return request;
       });
     } catch (RuntimeException failure) {
       markReconciliation(id);
@@ -460,7 +465,14 @@ public class ShopService {
     Order order = lockOrder(id, userId, false);
     if (!order.status().equals("PENDING_PAYMENT") || !order.paymentInitiated())
       return withItems(order);
-    Transaction remote = pay.queryOrder(order.orderNo());
+    Transaction remote;
+    try {
+      remote = pay.queryOrder(order.orderNo());
+    } catch (WechatPayService.OrderNotFound notExist) {
+      // 微信查无此单：预支付失败后从未建单，不确定性解除，等待重试支付或到期关闭。
+      db.update("UPDATE shop_order SET reconciliation_required=FALSE WHERE id=?", id);
+      return withItems(order);
+    }
     if (remote == null || remote.getTradeState() == null)
       throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，请稍后重试");
     if (!Objects.equals(remote.getOutTradeNo(), order.orderNo())
@@ -473,12 +485,17 @@ public class ShopService {
     }
     // NOTPAY/USERPAYING/CLOSED are not proof of payment and never release stock here.
     // Cancellation and expiry own the safe gateway-close/restock workflow.
+    // 微信已权威应答「未支付」：预支付失败留下的待核对状态随之解除。
+    db.update("UPDATE shop_order SET reconciliation_required=FALSE WHERE id=?", id);
     return withItems(order);
   }
 
-  @Transactional
   public Order cancelOrder(String id, String userId) {
-    return closePending(lockOrder(id, userId, false), userId, "ORDER_CANCEL");
+    // 独立事务提交缺席探测记录；支付结果待核对时保留库存并提示稍后再试。
+    Order order = transactions.execute(status -> closePending(lockOrder(id, userId, false), userId, "ORDER_CANCEL"));
+    if (order.status().equals("PENDING_PAYMENT"))
+      throw ApiException.conflict("PAYMENT_UNCERTAIN", "支付结果待核对，库存保留，请稍后重试");
+    return order;
   }
 
   public void expireOrder(String id) {
@@ -515,9 +532,22 @@ public class ShopService {
         pay.closeOrder(order.orderNo());
       } catch (ApiException closeFailure) {
         // An uncertain close is not permission to restock. Query only reconciles a verified
-        // successful payment or an explicitly CLOSED gateway order. NOT_EXIST is uncertain
-        // after a timed-out prepay and must retain stock until a later safe reconciliation.
-        Transaction remote = pay.queryOrder(order.orderNo());
+        // successful payment or an explicitly CLOSED gateway order. ORDER_NOT_EXIST follows
+        // the absence-confirmation discipline below instead of holding stock forever.
+        Transaction remote = null;
+        boolean absenceConfirmed = false;
+        boolean absenceDeferred = false;
+        try {
+          remote = pay.queryOrder(order.orderNo());
+        } catch (WechatPayService.OrderNotFound notExist) {
+          absenceDeferred = !confirmGatewayAbsence(order);
+          absenceConfirmed = !absenceDeferred;
+        }
+        if (absenceDeferred) {
+          // 首次探测或尚未成熟：保留库存与待核对状态，等待下一次取消/过期重试确认。
+          markReconciliation(order.id());
+          return withItems(order);
+        }
         if (remote != null && Objects.equals(remote.getOutTradeNo(), order.orderNo())
             && Objects.equals(remote.getMchid(), pay.merchantId())
             && Objects.equals(remote.getAppid(), pay.appId())
@@ -525,19 +555,35 @@ public class ShopService {
           completePayment(remote);
           return order(order.id(), order.userId(), false);
         }
-        if (remote == null || remote.getTradeState() != Transaction.TradeStateEnum.CLOSED
-            || !Objects.equals(remote.getOutTradeNo(), order.orderNo())
-            || !Objects.equals(remote.getMchid(), pay.merchantId())
-            || !Objects.equals(remote.getAppid(), pay.appId())) throw closeFailure;
+        if (!absenceConfirmed
+            && (remote == null || remote.getTradeState() != Transaction.TradeStateEnum.CLOSED
+                || !Objects.equals(remote.getOutTradeNo(), order.orderNo())
+                || !Objects.equals(remote.getMchid(), pay.merchantId())
+                || !Objects.equals(remote.getAppid(), pay.appId()))) throw closeFailure;
       }
     }
-    db.update("UPDATE shop_order SET status='CANCELLED',reconciliation_required=FALSE,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", order.id());
+    db.update("UPDATE shop_order SET status='CANCELLED',reconciliation_required=FALSE,payment_not_found_at=NULL,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", order.id());
     // Deterministic lock order prevents deadlocks for carts with more than one product.
     var items = withItems(order).items().stream().sorted(Comparator.comparing(OrderItem::productId)).toList();
     for (OrderItem item : items)
       db.update("UPDATE product SET stock=stock+?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", item.quantity(), item.productId());
     activities.audit(actor, order.id(), action);
     return order(order.id(), order.userId(), false);
+  }
+
+  /**
+   * 微信查无此单（ORDER_NOT_EXIST）时的缺席确认：预支付从未建单，或建单请求仍在途。
+   * 与活动订单一致，仅在订单过期 {@value #ABSENCE_CONFIRMATION_SECONDS} 秒后、两次独立探测
+   * （间隔至少 {@value #ABSENCE_CONFIRMATION_SECONDS} 秒）都查无此单时才确认缺席。
+   */
+  private boolean confirmGatewayAbsence(Order order) {
+    var now = OffsetDateTime.now();
+    if (now.isBefore(order.expiresAt().plusSeconds(ABSENCE_CONFIRMATION_SECONDS))) return false;
+    OffsetDateTime notFoundAt = db.queryForObject(
+        "SELECT payment_not_found_at FROM shop_order WHERE id=?", OffsetDateTime.class, order.id());
+    if (notFoundAt != null) return !now.isBefore(notFoundAt.plusSeconds(ABSENCE_CONFIRMATION_SECONDS));
+    db.update("UPDATE shop_order SET payment_not_found_at=? WHERE id=?", now, order.id());
+    return false;
   }
 
   @Transactional
@@ -570,7 +616,7 @@ public class ShopService {
       throw ApiException.conflict("PAYMENT_ORDER_STATE_CONFLICT", "订单状态与支付通知冲突，请人工核对");
     }
     db.update(
-        "UPDATE shop_order SET status='PAID',reconciliation_required=FALSE,payment_transaction_id=?,paid_at=CURRENT_TIMESTAMP,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        "UPDATE shop_order SET status='PAID',reconciliation_required=FALSE,payment_not_found_at=NULL,payment_transaction_id=?,paid_at=CURRENT_TIMESTAMP,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         transaction.getTransactionId(),
         order.id());
     activities.audit(order.userId(), order.id(), "ORDER_PAID");
@@ -597,11 +643,7 @@ public class ShopService {
     var updated = order(id, null, true);
     // 微信支付订单向「发货信息管理」上报物流；免支付单无微信交易记录，服务内部会跳过并落库为 SKIPPED
     String reportId = shippingReports.register("shop", updated.id(), updated.orderNo(), 1);
-    shipping.uploadShopShipment(
-        withItems(updated),
-        company,
-        trackingNo,
-        result -> shippingReports.complete(reportId, result));
+    shippingReports.submitAfterCommit(reportId);
     return updated;
   }
 }

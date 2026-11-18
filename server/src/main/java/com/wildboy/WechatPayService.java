@@ -63,7 +63,11 @@ public class WechatPayService {
   }
 
   public void requireConfigured() {
-    config();
+    try {
+      config();
+    } catch (Exception failure) {
+      throw PaymentDiagnostics.failure(PaymentDiagnostics.Stage.CONFIGURATION, failure);
+    }
   }
 
   public String appId() { return appId; }
@@ -96,7 +100,8 @@ public class WechatPayService {
     }
   }
 
-  private JsapiServiceExtension service() {
+  // 包可见以便测试注入替身；项目固定使用 subclass mock maker，无法拦截构造器。
+  JsapiServiceExtension service() {
     return new JsapiServiceExtension.Builder().config(config()).build();
   }
 
@@ -112,6 +117,7 @@ public class WechatPayService {
       throw new IllegalArgumentException("Unsupported payment callback");
     if (openid == null || openid.isBlank())
       throw new ApiException(409, "WECHAT_IDENTITY_REQUIRED", "请使用真实微信账号登录后支付");
+    var stage = PaymentDiagnostics.Stage.REQUEST_BUILD;
     try {
       var request = new PrepayRequest();
       request.setAppid(appId);
@@ -127,17 +133,19 @@ public class WechatPayService {
       var payer = new Payer();
       payer.setOpenid(openid);
       request.setPayer(payer);
-      PrepayWithRequestPaymentResponse response = service().prepayWithRequestPayment(request);
+      stage = PaymentDiagnostics.Stage.SDK_INITIALIZATION;
+      var jsapi = service();
+      stage = PaymentDiagnostics.Stage.PREPAY;
+      PrepayWithRequestPaymentResponse response = jsapi.prepayWithRequestPayment(request);
+      stage = PaymentDiagnostics.Stage.RESPONSE_MAPPING;
       return new ShopModels.PaymentRequest(
           response.getTimeStamp(),
           response.getNonceStr(),
           response.getPackageVal(),
           response.getSignType(),
           response.getPaySign());
-    } catch (ApiException e) {
-      throw e;
     } catch (Exception e) {
-      throw new ApiException(502, "WECHAT_PAY_UNAVAILABLE", "微信支付暂不可用，请稍后重试");
+      throw PaymentDiagnostics.failure(stage, e);
     }
   }
 

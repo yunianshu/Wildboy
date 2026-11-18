@@ -253,7 +253,7 @@ public class ActivityOrderService {
       activities.audit(o.userId(),o.id(),"ACTIVITY_ORDER_PAID");
       // 付费报名确认后上报虚拟发货，使用本次已核验的微信交易单号；结果落库供补报。
       String reportId=shippingReports.register("activity",o.id(),o.orderNo(),3);
-      shipping.uploadActivityFulfillment(o,t.getTransactionId(),r->shippingReports.complete(reportId,r));
+      shippingReports.submitAfterCommit(reportId);
     });
   }
   public Order cancel(String id,String user) {

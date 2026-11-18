@@ -24,6 +24,8 @@ public class WechatNotificationGateway {
     client=RestClient.builder().baseUrl("https://api.weixin.qq.com").requestFactory(f).build();
   }
   public boolean ready(){return enabled&&!appId.isBlank()&&!secret.isBlank()&&!template.isBlank()&&titleKey.matches("thing[0-9]+")&&timeKey.matches("time[0-9]+")&&detailKey.matches("thing[0-9]+")&&!titleKey.equals(detailKey)&&Set.of("formal","trial","developer").contains(state);}
+  /** 凭据类错误（40001/40014/42001）后作废缓存 token，供订单中心等同源调用方复用。 */
+  synchronized void invalidateToken(){this.token=null;this.expires=Instant.EPOCH;}
   public String templateId(){return ready()?template:"";}
   synchronized String accessToken(){
     if(token!=null&&expires.isAfter(Instant.now()))return token;

@@ -137,16 +137,27 @@ public class WechatOrderCenterService {
               .body(body)
               .retrieve()
               .body(JsonNode.class);
-      int code = r == null ? -1 : r.path("errcode").asInt(-1);
+      int code = errorCode(r);
       if (code == 0) {
         log.info("订单中心接口成功 action={}", action);
         return CallResult.ok(r);
       }
+      // 凭据类错误说明缓存 token 已失效：作废缓存，避免后续每次调用都带着坏 token 重试。
+      if (CREDENTIAL_ERRORS.contains(code)) gateway.invalidateToken();
       log.warn("订单中心接口未成功 action={} errcode={}", action, code);
       return CallResult.failed(code, action);
     } catch (RuntimeException e) {
       log.warn("订单中心接口异常 action={} error={}", action, e.getClass().getSimpleName());
       return CallResult.failed(-1, action);
     }
+  }
+
+  /** 与通知网关一致的凭据类错误码：token 无效/过期，重试前需重新获取。 */
+  static final java.util.Set<Integer> CREDENTIAL_ERRORS = java.util.Set.of(40001, 40014, 42001);
+
+  /** 严格解析整数 errcode：非整数（缺失/小数/越界）一律按 -1 处理，避免 asInt 静默截断。 */
+  private static int errorCode(JsonNode response) {
+    JsonNode code = response == null ? null : response.get("errcode");
+    return code != null && code.isIntegralNumber() && code.canConvertToInt() ? code.intValue() : -1;
   }
 }

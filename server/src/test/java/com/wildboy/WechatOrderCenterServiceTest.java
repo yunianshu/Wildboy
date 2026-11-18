@@ -119,6 +119,36 @@ class WechatOrderCenterServiceTest {
   }
 
   @Test
+  void fractionalOrMalformedErrcodeIsNeverTreatedAsSuccess() {
+    var responses = new String[] {"{}", "{\"errcode\":0.5}", "{\"errcode\":\"0\"}", "{\"errcode\":4294967296}"};
+    // 网关会缓存 token：全部期望预先声明，四次复核共用同一 token。
+    expectAccessToken();
+    for (String response : responses)
+      wechat.expect(requestTo(WECHAT + "/wxa/sec/order/get_order?access_token=order-center-token"))
+          .andRespond(withSuccess(response, MediaType.APPLICATION_JSON));
+    for (String ignored : responses) {
+      var result = service.verifyReceiptConfirmed("4200000001");
+      assertTrue(result.attempted());
+      assertEquals(-1, result.errcode());
+    }
+    wechat.verify();
+  }
+
+  @Test
+  void credentialErrorsInvalidateTheCachedTokenForTheNextCall() {
+    // 顺序：取 token → 42001（作废缓存）→ 重新取 token → 成功
+    expectAccessToken();
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/get_order?access_token=order-center-token"))
+        .andRespond(withSuccess("{\"errcode\":42001,\"errmsg\":\"access_token expired\"}", MediaType.APPLICATION_JSON));
+    expectAccessToken();
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/get_order?access_token=order-center-token"))
+        .andRespond(withSuccess("{\"errcode\":0,\"order\":{\"order_state\":3}}", MediaType.APPLICATION_JSON));
+    assertEquals(42001, service.verifyReceiptConfirmed("4200000001").errcode());
+    assertEquals(0, service.verifyReceiptConfirmed("4200000001").errcode());
+    wechat.verify();
+  }
+
+  @Test
   void disabledServiceSkipsAllCalls() {
     var gateway = new WechatNotificationGateway(
         "", "", false, "", "thing1", "time2", "thing3", "trial");

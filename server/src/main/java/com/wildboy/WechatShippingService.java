@@ -2,7 +2,9 @@ package com.wildboy;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.http.HttpClient;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -35,13 +37,22 @@ public class WechatShippingService {
   private final AuthService auth;
   private final RestClient client;
   private final boolean enabled; // 生产开启；测试环境保持关闭，避免外呼微信
-  private boolean tradeManaged; // 只缓存确认已开通的结果
+  private boolean tradeManaged;
+  private Clock clock = Clock.systemUTC();
+  private Instant nextTradeCheck = Instant.MIN;
+  private UploadResult tradeFailure;
+  private int tradeFailures;
 
-  /** 一次上报的结果：attempted=false 表示本次未外呼（如免支付单、非微信用户），errcode=0 表示微信已受理。 */
-  public record UploadResult(boolean attempted, int errcode, String error) {
-    static UploadResult skipped(String reason) { return new UploadResult(false, 0, reason); }
-    static UploadResult ok() { return new UploadResult(true, 0, ""); }
-    static UploadResult failed(int errcode, String error) { return new UploadResult(true, errcode, error); }
+  public enum Outcome { REPORTED, RETRYABLE, NOT_OPEN, DISABLED, INAPPLICABLE }
+
+  /** 明确区分永久不适用、关闭开关、尚未开通和临时失败；只有 REPORTED 是受理成功。 */
+  public record UploadResult(Outcome outcome, int errcode, String error) {
+    boolean attempted() { return outcome == Outcome.REPORTED || outcome == Outcome.RETRYABLE; }
+    static UploadResult skipped(String reason) { return new UploadResult(Outcome.INAPPLICABLE, 0, reason); }
+    static UploadResult disabled() { return new UploadResult(Outcome.DISABLED, 0, "disabled"); }
+    static UploadResult notOpen() { return new UploadResult(Outcome.NOT_OPEN, 0, "trade_management_not_open"); }
+    static UploadResult ok() { return new UploadResult(Outcome.REPORTED, 0, ""); }
+    static UploadResult failed(int errcode, String error) { return new UploadResult(Outcome.RETRYABLE, errcode, error); }
   }
 
   public WechatShippingService(
@@ -65,9 +76,13 @@ public class WechatShippingService {
   public void uploadShopShipment(
       ShopModels.Order order, String company, String trackingNo, Consumer<UploadResult> onResult) {
     afterCommit(
-        () -> onResult.accept(
-            upload(order.orderNo(), order.paymentTransactionId(), order.userId(), 1,
-                () -> courierShipping(order, company, trackingNo))));
+        () -> onResult.accept(uploadShopShipmentNow(order, company, trackingNo)));
+  }
+
+  // ShippingReportService 持有订单锁时同步调用，避免资格检查与退款之间的竞态。
+  UploadResult uploadShopShipmentNow(ShopModels.Order order, String company, String trackingNo) {
+    return upload(order.orderNo(), order.paymentTransactionId(), order.userId(), 1,
+        () -> courierShipping(order, company, trackingNo));
   }
 
   private Map<String, Object> courierShipping(ShopModels.Order order, String company, String trackingNo) {
@@ -105,31 +120,38 @@ public class WechatShippingService {
   public void uploadActivityFulfillment(
       ActivityOrderModels.Order order, String transactionId, Consumer<UploadResult> onResult) {
     afterCommit(
-        () -> onResult.accept(
-            upload(order.orderNo(), transactionId, order.userId(), 3,
-                () -> Map.of("item_desc", itemDesc(List.of(order.activityTitle() + "×" + order.partySize()))))));
+        () -> onResult.accept(uploadActivityFulfillmentNow(order, transactionId)));
+  }
+
+  UploadResult uploadActivityFulfillmentNow(ActivityOrderModels.Order order, String transactionId) {
+    return upload(order.orderNo(), transactionId, order.userId(), 3,
+        () -> Map.of("item_desc", itemDesc(List.of(order.activityTitle() + "×" + order.partySize()))));
   }
 
   /** 单次上报外呼；跳过与失败都不抛异常，结果交给调用方落库。 */
   UploadResult upload(
       String orderNo, String transactionId, String userId, int logisticsType,
       Supplier<Map<String, Object>> shippingInfo) {
-    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank()) {
-      log.warn("发货信息上报未启用或缺少小程序配置 order={}", orderNo);
-      return UploadResult.skipped("disabled");
-    }
     if (transactionId == null || transactionId.isBlank())
       return UploadResult.skipped("missing_transaction"); // 免支付订单没有微信交易记录，无需上报
+    if (!enabled) return UploadResult.disabled();
+    if (gateway.appId.isBlank() || gateway.secret.isBlank())
+      return UploadResult.failed(-1, "shipping_configuration_unavailable");
     String openid;
     try {
       openid = auth.wechatOpenid(userId);
+    } catch (ApiException e) {
+      return "WECHAT_IDENTITY_REQUIRED".equals(e.code)
+          ? UploadResult.skipped("no_wechat_identity") : UploadResult.failed(-1, "identity_lookup_failed");
     } catch (RuntimeException e) {
-      return UploadResult.skipped("no_wechat_identity"); // 非微信身份用户没有可上报的收货方
+      return UploadResult.failed(-1, "identity_lookup_failed");
     }
-    if (!tradeManaged()) return UploadResult.skipped("not_trade_managed");
+    if (openid == null || openid.isBlank()) return UploadResult.skipped("no_wechat_identity");
+    UploadResult unavailable = tradeManagementUnavailable();
+    if (unavailable != null) return unavailable;
     try {
       var shipping = shippingInfo.get();
-      if (shipping == null) return UploadResult.skipped("shipping_payload_unavailable");
+      if (shipping == null) return UploadResult.failed(-1, "shipping_payload_unavailable");
       var body = new LinkedHashMap<String, Object>();
       body.put("order_key", Map.of("order_number_type", 2, "transaction_id", transactionId));
       body.put("logistics_type", logisticsType);
@@ -155,15 +177,16 @@ public class WechatShippingService {
       return code == 0 ? UploadResult.ok() : UploadResult.failed(code, "upload_shipping_info");
     } catch (RuntimeException e) {
       log.warn("发货信息上报异常 order={} error={}", orderNo, e.getClass().getSimpleName());
-      return UploadResult.failed(-1, e.getClass().getSimpleName());
+      return UploadResult.failed(-1, "shipping_request_failed");
     }
   }
 
   /** 重试任务与后台补报需要据此判断是否可以外呼。 */
   boolean shippingEnabled() { return enabled; }
 
-  private synchronized boolean tradeManaged() {
-    if (tradeManaged) return true;
+  private synchronized UploadResult tradeManagementUnavailable() {
+    if (tradeManaged) return null;
+    if (clock.instant().isBefore(nextTradeCheck)) return tradeFailure;
     try {
       JsonNode r =
           client.post()
@@ -178,14 +201,20 @@ public class WechatShippingService {
       int code = errorCode(r);
       if (code != 0 || !r.path("is_trade_managed").isBoolean()) {
         log.warn("发货信息管理开通状态查询失败 errcode={}", code);
-        return false;
+        tradeFailure = UploadResult.failed(code == 0 ? -1 : code, "trade_management_query_failed");
+      } else {
+        tradeManaged = r.path("is_trade_managed").asBoolean();
+        if (tradeManaged) return null;
+        tradeFailure = UploadResult.notOpen();
       }
-      tradeManaged = r.path("is_trade_managed").asBoolean();
-      if (!tradeManaged) log.warn("小程序尚未开通发货信息管理服务，请在公众平台确认");
     } catch (RuntimeException e) {
       log.warn("发货信息管理开通状态查询失败 error={}", e.getClass().getSimpleName());
+      tradeFailure = UploadResult.failed(-1, "trade_management_query_failed");
     }
-    return tradeManaged;
+    // 同一实例的多个订单共享探测退避，避免服务未开通或持续故障时每单重复探测。
+    long minutes = tradeFailure.outcome() == Outcome.NOT_OPEN ? 360 : Math.min(60, 1L << Math.min(tradeFailures++, 6));
+    nextTradeCheck = clock.instant().plus(Duration.ofMinutes(minutes));
+    return tradeFailure;
   }
 
   private String resolveCarrierCode(String company) {
@@ -215,7 +244,8 @@ public class WechatShippingService {
   }
 
   private static int errorCode(JsonNode response) {
-    return response == null ? -1 : response.path("errcode").asInt(-1);
+    JsonNode code = response == null ? null : response.get("errcode");
+    return code != null && code.isIntegralNumber() && code.canConvertToInt() ? code.intValue() : -1;
   }
 
   private static void afterCommit(Runnable report) {

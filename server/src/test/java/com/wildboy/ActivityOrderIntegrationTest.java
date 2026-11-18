@@ -159,9 +159,11 @@ class ActivityOrderIntegrationTest {
     var a=activity(1);var u=user();var o=reserve(a,u,1,600);var transaction=paid(o);
     transaction.getAmount().setTotal(1);assertThatThrownBy(()->orders.completePayment(transaction)).hasMessageContaining("不匹配");
     verifyNoInteractions(shipping);
+    when(shipping.shippingEnabled()).thenReturn(true);
+    when(shipping.uploadActivityFulfillmentNow(any(),any())).thenReturn(WechatShippingService.UploadResult.ok());
     transaction.getAmount().setTotal(600);orders.completePayment(transaction);orders.completePayment(transaction);
     var fulfillmentOrder = ArgumentCaptor.forClass(Order.class);
-    verify(shipping).uploadActivityFulfillment(fulfillmentOrder.capture(), eq(transaction.getTransactionId()), any());
+    verify(shipping).uploadActivityFulfillmentNow(fulfillmentOrder.capture(), eq(transaction.getTransactionId()));
     assertThat(fulfillmentOrder.getValue().id()).isEqualTo(o.id());
     assertThatThrownBy(()->orders.get(o.id(),user().id())).isInstanceOf(ApiException.class);
     var r=orders.refund(o.id(),u.id(),"QA cancel");
