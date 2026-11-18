@@ -9,6 +9,9 @@ services:
       WECHAT_PAY_PUBLIC_KEY_PATH: /run/secrets/wechatpay_public_key.pem
       # 微信「发货信息管理」上报开关；需在 .env 设为 true 才会向微信上报发货/履约信息。
       WILDBOY_SHIPPING_ENABLED: ${WILDBOY_SHIPPING_ENABLED:-false}
+      # 小程序「消息推送」接收端点（安全模式 Token/EncodingAESKey，mp 后台消息推送配置）
+      WECHAT_PUSH_TOKEN: ${WECHAT_PUSH_TOKEN:-}
+      WECHAT_PUSH_AES_KEY: ${WECHAT_PUSH_AES_KEY:-}
     volumes:
       - type: bind
         source: ${WILDBOY_WECHAT_PAY_KEY_DIR:-/etc/wildboy/wechat-pay}/apiclient_key.pem
