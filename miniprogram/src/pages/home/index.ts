@@ -42,6 +42,7 @@ Page({
     popup: null as null | { title: string; text: string; image: string },
     popupImageError: false,
     popupGeneration: 0,
+    popupBodyHeight: 0,
     items: [] as ReturnType<typeof homeActivitySlots>,
     articles: [] as ArticleSummary[],
     articleLoading: false,
@@ -67,13 +68,18 @@ Page({
     this._shown = true;
   },
   _shown: false,
+  _popupSizeRequest: 0,
+  _popupDisposed: false,
   onHide() {
+    this._popupSizeRequest++;
     resetTabSwipe(this);
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
     this.setData({ popup: null, shortcutBusy: false });
   },
   onUnload() {
+    this._popupDisposed = true;
+    this._popupSizeRequest++;
     resetTabSwipe(this);
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
@@ -216,13 +222,14 @@ Page({
     if (entry.type === "POPUP") {
       this.setData({
         popup: {
-          title: entry.popupTitle || entry.name,
-          text: entry.popupText,
+          title: entry.popupTitle.trim(),
+          text: entry.popupText.trim(),
           image: entry.popupImageUrl,
         },
         popupImageError: false,
         popupGeneration: this.data.popupGeneration + 1,
-      });
+        popupBodyHeight: 0,
+      }, () => this.resizePopup());
       return;
     }
     if (entry.type === "PAGE") {
@@ -265,15 +272,36 @@ Page({
     }
   },
   closePopup() {
-    this.setData({ popup: null, popupImageError: false });
+    this._popupSizeRequest++;
+    this.setData({ popup: null, popupImageError: false, popupBodyHeight: 0 });
   },
   keepPopup() {},
+  resizePopup(e?: WechatMiniprogram.CustomEvent) {
+    const generation = this.data.popupGeneration;
+    if (this._popupDisposed || !this.data.popup || (e && Number(e.currentTarget.dataset.generation) !== generation)) return;
+    if (typeof wx.createSelectorQuery !== "function") return;
+    const request = ++this._popupSizeRequest;
+    const query = wx.createSelectorQuery().in(this);
+    query.select(".shortcut-content").boundingClientRect();
+    query.select(".shortcut-heading").boundingClientRect();
+    query.exec((rects) => {
+      if (!this.data.popup || this.data.popupGeneration !== generation || this._popupSizeRequest !== request) return;
+      const content = rects[0] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
+      const heading = rects[1] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
+      if (!content || !Number.isFinite(content.height) || content.height <= 0) return;
+      const maxHeight = Math.max(1, Math.floor(wx.getWindowInfo().windowHeight * 0.8) - 44 - (heading?.height || 44));
+      this.setData({ popupBodyHeight: Math.min(Math.ceil(content.height), maxHeight) });
+    });
+  },
+  onResize() {
+    this.resizePopup();
+  },
   popupImageFailed(e: WechatMiniprogram.CustomEvent) {
     if (
-      this.data.popup &&
+      !this._popupDisposed && this.data.popup &&
       Number(e.currentTarget.dataset.generation) === this.data.popupGeneration
     )
-      this.setData({ popupImageError: true });
+      this.setData({ popupImageError: true }, () => this.resizePopup());
   },
   allActivities() {
     wx.setStorageSync("wildboy-category", "ALL");

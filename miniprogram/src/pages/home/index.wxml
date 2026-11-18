@@ -141,14 +141,18 @@
 </view>
 
 <view wx:if="{{popup}}" class="shortcut-mask" catchtap="closePopup" catchtouchmove="keepPopup">
-  <view class="shortcut-dialog motion-dialog-enter" catchtap="keepPopup" aria-role="dialog" aria-label="{{popup.title}}">
-    <view class="shortcut-title">{{popup.title}}</view>
-    <scroll-view scroll-y class="shortcut-body">
-      <image wx:if="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-generation="{{popupGeneration}}" binderror="popupImageFailed" />
-      <ui-state wx:if="{{popupImageError}}" kind="error">图片加载失败，请关闭后重试</ui-state>
-      <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
-      <ui-state wx:if="{{!popup.image && !popup.text}}" kind="empty">暂未配置内容，请联系主理人在后台上传二维码或设置弹窗内容。</ui-state>
+  <view class="shortcut-dialog motion-dialog-enter" catchtap="keepPopup" aria-role="dialog" aria-modal="true" aria-label="{{popup.title || '图片与说明'}}">
+    <view class="shortcut-heading">
+      <view wx:if="{{popup.title}}" class="shortcut-title">{{popup.title}}</view>
+      <button class="shortcut-close" bindtap="closePopup" aria-label="关闭弹窗"><image src="/assets/icons-slate/close.svg" mode="aspectFit" aria-hidden="true" /></button>
+    </view>
+    <scroll-view scroll-y class="shortcut-body" style="height:{{popupBodyHeight ? popupBodyHeight + 'px' : 'auto'}}">
+      <view class="shortcut-content">
+        <image wx:if="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-generation="{{popupGeneration}}" bindload="resizePopup" binderror="popupImageFailed" />
+        <view wx:if="{{popupImageError}}" class="shortcut-message">图片加载失败，请关闭后重试</view>
+        <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
+        <view wx:if="{{!popup.image && !popup.text}}" class="shortcut-message">暂未配置内容，请联系主理人。</view>
+      </view>
     </scroll-view>
-    <button class="secondary" bindtap="closePopup">关闭</button>
   </view>
 </view>

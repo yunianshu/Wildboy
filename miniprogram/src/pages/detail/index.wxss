@@ -1,12 +1,17 @@
 @import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
 .article-page { padding-bottom: calc(110px + env(safe-area-inset-bottom)); background: var(--rf-bg); }
+/* Native navigation stays above this cover; do not position into its capsule area. */
+.article-cover-wrap { position: relative; }
 .article-cover { width: 100%; height: 240px; background: var(--rf-soft); }
 .article-head { padding: 20px 16px 16px; background: var(--rf-surface); }
 .article-title { color: var(--rf-ink); font-size: 24px; font-weight: 700; line-height: 1.45; }
 .article-meta { margin-top: 8px; color: var(--rf-muted); font-size: 12px; line-height: 1.6; }
-.share { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 0; margin: 8px 0 0; line-height: 1.5; text-align: left; background: transparent; color: var(--rf-primary-text); font-size: 13px; }
-.share-icon { width: 18px; height: 18px; }
+/* Overlay belongs to the cover, never the title/content flow. */
+.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; line-height: 1; border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); box-shadow: 0 2px 8px rgba(32, 55, 44, .12); }
+.share::after { border: 0; }
+.share-pressed { background: var(--rf-soft); }
+.share-icon { width: 22px; height: 22px; }
 .article-intro { padding: 16px; background: var(--rf-surface); color: var(--rf-muted); font-size: 14px; line-height: 1.8; }
 .article-gallery { padding: 0 16px; }
 .article-gallery image { width: 100%; height: 220px; margin-top: 12px; border-radius: 12px; background: var(--rf-soft); }
