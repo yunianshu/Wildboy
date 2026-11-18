@@ -1,0 +1,194 @@
+{
+  "passed": true,
+  "pages": [
+    {
+      "route": "/login",
+      "kind": "login",
+      "height": 960,
+      "nodes": 18,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/operations",
+      "kind": "workbench",
+      "height": 1578,
+      "nodes": 159,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/activities",
+      "kind": "table",
+      "height": 960,
+      "nodes": 106,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/activities/new",
+      "kind": "form",
+      "height": 1190,
+      "nodes": 117,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/activities/:id/edit",
+      "kind": "form",
+      "height": 1468,
+      "nodes": 135,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "kind": "table",
+      "height": 960,
+      "nodes": 87,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/templates",
+      "kind": "workbench",
+      "height": 984,
+      "nodes": 104,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/activity-orders",
+      "kind": "workbench",
+      "height": 1872.0,
+      "nodes": 182,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/shop",
+      "kind": "workbench",
+      "height": 1370,
+      "nodes": 137,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/shop/categories",
+      "kind": "settings",
+      "height": 960,
+      "nodes": 85,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/refunds",
+      "kind": "workbench",
+      "height": 960,
+      "nodes": 101,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/shipping-reports",
+      "kind": "table",
+      "height": 1096,
+      "nodes": 106,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/users",
+      "kind": "table",
+      "height": 1304,
+      "nodes": 152,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/memberships",
+      "kind": "membership",
+      "height": 1404,
+      "nodes": 151,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/notifications",
+      "kind": "table",
+      "height": 1004,
+      "nodes": 101,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/articles",
+      "kind": "table",
+      "height": 960,
+      "nodes": 75,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/articles/new",
+      "kind": "editor",
+      "height": 960,
+      "nodes": 68,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/articles/:id/edit",
+      "kind": "editor",
+      "height": 960,
+      "nodes": 87,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/legal",
+      "kind": "editor",
+      "height": 960,
+      "nodes": 77,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/settings",
+      "kind": "settings",
+      "height": 1000,
+      "nodes": 119,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/settings/admin-account",
+      "kind": "settings",
+      "height": 960,
+      "nodes": 82,
+      "named": true,
+      "enumLabelsChinese": true
+    },
+    {
+      "route": "/shop?tab=orders",
+      "kind": "workbench",
+      "height": 960,
+      "nodes": 120,
+      "named": true,
+      "enumLabelsChinese": true
+    }
+  ],
+  "estimatedLayoutIssues": [],
+  "visualReview": {
+    "reviewedExports": 22,
+    "directory": "functional-previews/web",
+    "result": "22 张高清已逐页检查；修订后的 Dzg9p、pmW0b 再次复查通过，无可见裁切或重叠，应付实付及退款订单关联清楚。",
+    "rebuildRoutes": [],
+    "changes": [
+      "Pending activity order now distinguishes amount due and paid=0 in list and detail.",
+      "Refund example is explicitly another paid order AC-DEMO-003 with its own readonly context and form.",
+      "Shop table renamed to include both paid and shipped orders."
+    ]
+  },
+  "limits": "仅验证静态可编辑设计稿，不等同于生产页面、支付渠道或真机流程测试。"
+}

@@ -1,0 +1,314 @@
+{
+  "boards": [
+    {
+      "key": "system:principles",
+      "id": "oKxdg"
+    },
+    {
+      "key": "web-state:version-conflict",
+      "id": "Llvts"
+    },
+    {
+      "key": "web-state:privacy-reveal",
+      "id": "Z6Vmi"
+    },
+    {
+      "key": "web-state:activity-publish",
+      "id": "cuali"
+    },
+    {
+      "key": "web-state:refund-action",
+      "id": "p5a8L"
+    },
+    {
+      "key": "web-state:role-change",
+      "id": "N4Gbh"
+    },
+    {
+      "key": "mini-state:auth-required",
+      "id": "x1MfXe"
+    },
+    {
+      "key": "mini-state:quote-changed",
+      "id": "B7qyC"
+    },
+    {
+      "key": "mini-state:payment-unknown",
+      "id": "GMX2e"
+    },
+    {
+      "key": "mini-state:version-conflict",
+      "id": "OJ2HM"
+    },
+    {
+      "key": "mini-state:refund-confirmation",
+      "id": "r4sUw"
+    },
+    {
+      "key": "web:/login",
+      "id": "gJAt8"
+    },
+    {
+      "key": "web:/operations",
+      "id": "t7rdxG"
+    },
+    {
+      "key": "web:/activities",
+      "id": "N7VXb"
+    },
+    {
+      "key": "web:/activities/new",
+      "id": "Ntqrw"
+    },
+    {
+      "key": "web:/activities/:id/edit",
+      "id": "sfzi0"
+    },
+    {
+      "key": "web:/activities/:id/registrations",
+      "id": "IPxcf"
+    },
+    {
+      "key": "web:/templates",
+      "id": "I09CK"
+    },
+    {
+      "key": "web:/shop",
+      "id": "VZk0U"
+    },
+    {
+      "key": "web:/shop/categories",
+      "id": "TJVV2"
+    },
+    {
+      "key": "web:/refunds",
+      "id": "COL03"
+    },
+    {
+      "key": "web:/shipping-reports",
+      "id": "JXQsy"
+    },
+    {
+      "key": "web:/users",
+      "id": "n73xav"
+    },
+    {
+      "key": "web:/memberships",
+      "id": "eNDKU"
+    },
+    {
+      "key": "web:/notifications",
+      "id": "VcXnO"
+    },
+    {
+      "key": "web:/articles",
+      "id": "D15Mx"
+    },
+    {
+      "key": "web:/articles/new",
+      "id": "Emexl"
+    },
+    {
+      "key": "web:/articles/:id/edit",
+      "id": "XdHTW"
+    },
+    {
+      "key": "web:/legal",
+      "id": "w7XnPi"
+    },
+    {
+      "key": "web:/settings",
+      "id": "sd4BP"
+    },
+    {
+      "key": "web:/settings/admin-account",
+      "id": "vWoMw"
+    },
+    {
+      "key": "web-state:list-recovery",
+      "id": "uEIeD"
+    },
+    {
+      "key": "web:/activity-orders",
+      "id": "Dzg9p"
+    },
+    {
+      "key": "web:/shop?tab=orders",
+      "id": "pmW0b"
+    },
+    {
+      "key": "mini-state:mini-profile-profileEditorOpen",
+      "id": "o1dJDf"
+    },
+    {
+      "key": "mini-state:mini-admin-content-blockEditorOpen",
+      "id": "TdwsI"
+    },
+    {
+      "key": "mini:pages/home/index",
+      "id": "fNx5j"
+    },
+    {
+      "key": "mini:pages/activities/index",
+      "id": "Z4FVg"
+    },
+    {
+      "key": "mini:pages/shop/index",
+      "id": "t8Xrw"
+    },
+    {
+      "key": "mini:pages/checkout/index",
+      "id": "oYo0P"
+    },
+    {
+      "key": "mini:pages/detail/index",
+      "id": "ZVgor"
+    },
+    {
+      "key": "mini:pages/mine/index",
+      "id": "S1dle2"
+    },
+    {
+      "key": "mini:pages/privacy/index",
+      "id": "T4MCVQ"
+    },
+    {
+      "key": "mini:pages/registrations/index",
+      "id": "j3kqEi"
+    },
+    {
+      "key": "mini:pages/signup-success/index",
+      "id": "T8xvQG"
+    },
+    {
+      "key": "mini:pages/admin-login/index",
+      "id": "Hm81T"
+    },
+    {
+      "key": "mini:pages/admin-editor/index",
+      "id": "P7Zcp8"
+    },
+    {
+      "key": "mini:pages/admin-roster/index",
+      "id": "nk6hq"
+    },
+    {
+      "key": "mini:pages/admin-legal/index",
+      "id": "DrrXb"
+    },
+    {
+      "key": "mini:pages/admin-shop/index",
+      "id": "oMR7J"
+    },
+    {
+      "key": "mini:pages/admin-product/index",
+      "id": "zcNaB"
+    },
+    {
+      "key": "mini:pages/addresses/index",
+      "id": "jMgHF"
+    },
+    {
+      "key": "mini:pages/notifications/index",
+      "id": "ZRjBI"
+    },
+    {
+      "key": "mini:pages/profile/index",
+      "id": "OzxS4"
+    },
+    {
+      "key": "mini:pages/admin-content/index",
+      "id": "RHxFf"
+    },
+    {
+      "key": "mini:pages/article/index",
+      "id": "r3JOu"
+    },
+    {
+      "key": "mini:pages/order-detail/index",
+      "id": "rEcs2"
+    },
+    {
+      "key": "mini-state:mini-admin-activities-publishConfirmationOpen",
+      "id": "UjNQc"
+    },
+    {
+      "key": "mini-state:mini-admin-product-categoryManagerOpen",
+      "id": "Q5skmp"
+    },
+    {
+      "key": "mini-state:mini-admin-orders-shippingFormOpen",
+      "id": "cfQec"
+    },
+    {
+      "key": "mini-state:mini-addresses-addressEditorOpen",
+      "id": "toyP2"
+    },
+    {
+      "key": "mini:pages/product/index",
+      "id": "i7wF5e"
+    },
+    {
+      "key": "mini:pages/orders/index",
+      "id": "SgbAM"
+    },
+    {
+      "key": "mini:pages/register/index",
+      "id": "mDiPw"
+    },
+    {
+      "key": "mini:pages/admin-activities/index",
+      "id": "v7T4w"
+    },
+    {
+      "key": "mini:pages/login/index",
+      "id": "eUD8P"
+    },
+    {
+      "key": "mini:pages/admin-orders/index",
+      "id": "yCfgW"
+    },
+    {
+      "key": "mini:pages/admin-users/index",
+      "id": "o1fEB"
+    },
+    {
+      "key": "mini:pages/admin-memberships/index",
+      "id": "DCUoO"
+    },
+    {
+      "key": "mini:pages/activity-orders/index",
+      "id": "gaW0x"
+    },
+    {
+      "key": "mini:pages/admin-activity-orders/index",
+      "id": "OKdU4"
+    },
+    {
+      "key": "mini-state:mini-orders-refundDialogOpen",
+      "id": "UA6SP"
+    },
+    {
+      "key": "mini-state:mini-admin-users-roleConfirmationOpen",
+      "id": "axsaF"
+    },
+    {
+      "key": "mini-state:mini-admin-activity-orders-orderConfirmationOpen",
+      "id": "ZWLkt"
+    }
+  ],
+  "boardCount": 74,
+  "expectedRoutes": 53,
+  "nodes": 4250,
+  "issues": [],
+  "tokens": [
+    "hd-a-bg",
+    "hd-a-ink",
+    "hd-a-surface",
+    "hd-a-primary",
+    "hd-a-soft",
+    "hd-a-muted",
+    "hd-a-field",
+    "hd-a-line"
+  ]
+}

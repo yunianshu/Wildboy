@@ -1,8 +1,8 @@
 # 野小子界面规范 · A 晨光绿白（2026-11-18）
 
-当前实现采用用户重新选择的 A「晨光绿白」，取代 B「莓果晴天」。依据为 `design/proposals/huashu-v3/design-readback-A.json`、`source-A.html` 与恢复的 `design-demos/dir-1.html`。A 原始两画板只有活动页与组件；其他页面沿用真实业务结构并应用统一 A 主题，不宣称已逐页重画 Pen。
+当前代码采用用户选择的 A「晨光绿白」视觉方向。原始 A 活动页证据保留在 design/proposals/huashu-v3。用户随后明确要求 Pen 不参考 B，而应从项目功能角度重新设计。
 
-当前 `.pen` 仍为此前清理后的 B 画板，尚未同步本轮 A 实现。不要以该文件旧颜色覆盖代码。原始 A 数据、实现扩展和验收边界见 `docs/ui-refactor/dawn-a/verification.md`。
+本次 Pen 已独立重建为功能优先设计稿：22 个后台页面/模式、31 个小程序页面、20 个条件/异常状态及 1 张规范。此稿是下一阶段功能布局的设计基线，不代表生产代码已实施全部新布局。详见 docs/ui-refactor/dawn-a/functional-preview-index.md 与 functional-verification.md。
 
 ## 范围与首页保护
 

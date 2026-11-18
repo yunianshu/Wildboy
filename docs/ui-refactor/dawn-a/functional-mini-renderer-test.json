@@ -1,0 +1,638 @@
+{
+  "passed": true,
+  "pages": 31,
+  "editableNodes": 1508,
+  "geometryIssues": 0,
+  "results": [
+    {
+      "route": "pages/home/index",
+      "width": 390,
+      "height": 2202
+    },
+    {
+      "route": "pages/activities/index",
+      "width": 390,
+      "height": 1053
+    },
+    {
+      "route": "pages/shop/index",
+      "width": 390,
+      "height": 727
+    },
+    {
+      "route": "pages/product/index",
+      "width": 390,
+      "height": 968
+    },
+    {
+      "route": "pages/checkout/index",
+      "width": 390,
+      "height": 889
+    },
+    {
+      "route": "pages/orders/index",
+      "width": 390,
+      "height": 747
+    },
+    {
+      "route": "pages/detail/index",
+      "width": 390,
+      "height": 937
+    },
+    {
+      "route": "pages/register/index",
+      "width": 390,
+      "height": 1068
+    },
+    {
+      "route": "pages/mine/index",
+      "width": 390,
+      "height": 806
+    },
+    {
+      "route": "pages/privacy/index",
+      "width": 390,
+      "height": 396
+    },
+    {
+      "route": "pages/registrations/index",
+      "width": 390,
+      "height": 843
+    },
+    {
+      "route": "pages/signup-success/index",
+      "width": 390,
+      "height": 633
+    },
+    {
+      "route": "pages/admin-login/index",
+      "width": 390,
+      "height": 638
+    },
+    {
+      "route": "pages/admin-activities/index",
+      "width": 390,
+      "height": 777
+    },
+    {
+      "route": "pages/admin-editor/index",
+      "width": 390,
+      "height": 1658
+    },
+    {
+      "route": "pages/admin-roster/index",
+      "width": 390,
+      "height": 886
+    },
+    {
+      "route": "pages/login/index",
+      "width": 390,
+      "height": 654
+    },
+    {
+      "route": "pages/admin-legal/index",
+      "width": 390,
+      "height": 1063
+    },
+    {
+      "route": "pages/admin-shop/index",
+      "width": 390,
+      "height": 695
+    },
+    {
+      "route": "pages/admin-product/index",
+      "width": 390,
+      "height": 1286
+    },
+    {
+      "route": "pages/admin-orders/index",
+      "width": 390,
+      "height": 643
+    },
+    {
+      "route": "pages/addresses/index",
+      "width": 390,
+      "height": 429
+    },
+    {
+      "route": "pages/notifications/index",
+      "width": 390,
+      "height": 679
+    },
+    {
+      "route": "pages/profile/index",
+      "width": 390,
+      "height": 609
+    },
+    {
+      "route": "pages/admin-users/index",
+      "width": 390,
+      "height": 1200
+    },
+    {
+      "route": "pages/admin-content/index",
+      "width": 390,
+      "height": 797
+    },
+    {
+      "route": "pages/article/index",
+      "width": 390,
+      "height": 547
+    },
+    {
+      "route": "pages/admin-memberships/index",
+      "width": 390,
+      "height": 1730
+    },
+    {
+      "route": "pages/activity-orders/index",
+      "width": 390,
+      "height": 791
+    },
+    {
+      "route": "pages/admin-activity-orders/index",
+      "width": 390,
+      "height": 1072
+    },
+    {
+      "route": "pages/order-detail/index",
+      "width": 390,
+      "height": 912
+    }
+  ],
+  "priorStaticResult": {
+    "passed": true,
+    "pages": 31,
+    "editableNodes": 1517,
+    "geometryIssues": 0,
+    "results": [
+      {
+        "route": "pages/home/index",
+        "width": 390,
+        "height": 2202
+      },
+      {
+        "route": "pages/activities/index",
+        "width": 390,
+        "height": 1053
+      },
+      {
+        "route": "pages/shop/index",
+        "width": 390,
+        "height": 727
+      },
+      {
+        "route": "pages/product/index",
+        "width": 390,
+        "height": 1080
+      },
+      {
+        "route": "pages/checkout/index",
+        "width": 390,
+        "height": 889
+      },
+      {
+        "route": "pages/orders/index",
+        "width": 390,
+        "height": 727
+      },
+      {
+        "route": "pages/detail/index",
+        "width": 390,
+        "height": 937
+      },
+      {
+        "route": "pages/register/index",
+        "width": 390,
+        "height": 1098
+      },
+      {
+        "route": "pages/mine/index",
+        "width": 390,
+        "height": 806
+      },
+      {
+        "route": "pages/privacy/index",
+        "width": 390,
+        "height": 396
+      },
+      {
+        "route": "pages/registrations/index",
+        "width": 390,
+        "height": 843
+      },
+      {
+        "route": "pages/signup-success/index",
+        "width": 390,
+        "height": 633
+      },
+      {
+        "route": "pages/admin-login/index",
+        "width": 390,
+        "height": 638
+      },
+      {
+        "route": "pages/admin-activities/index",
+        "width": 390,
+        "height": 777
+      },
+      {
+        "route": "pages/admin-editor/index",
+        "width": 390,
+        "height": 1658
+      },
+      {
+        "route": "pages/admin-roster/index",
+        "width": 390,
+        "height": 886
+      },
+      {
+        "route": "pages/login/index",
+        "width": 390,
+        "height": 628
+      },
+      {
+        "route": "pages/admin-legal/index",
+        "width": 390,
+        "height": 1063
+      },
+      {
+        "route": "pages/admin-shop/index",
+        "width": 390,
+        "height": 695
+      },
+      {
+        "route": "pages/admin-product/index",
+        "width": 390,
+        "height": 1286
+      },
+      {
+        "route": "pages/admin-orders/index",
+        "width": 390,
+        "height": 643
+      },
+      {
+        "route": "pages/addresses/index",
+        "width": 390,
+        "height": 429
+      },
+      {
+        "route": "pages/notifications/index",
+        "width": 390,
+        "height": 679
+      },
+      {
+        "route": "pages/profile/index",
+        "width": 390,
+        "height": 609
+      },
+      {
+        "route": "pages/admin-users/index",
+        "width": 390,
+        "height": 1200
+      },
+      {
+        "route": "pages/admin-content/index",
+        "width": 390,
+        "height": 797
+      },
+      {
+        "route": "pages/article/index",
+        "width": 390,
+        "height": 547
+      },
+      {
+        "route": "pages/admin-memberships/index",
+        "width": 390,
+        "height": 1750
+      },
+      {
+        "route": "pages/activity-orders/index",
+        "width": 390,
+        "height": 728
+      },
+      {
+        "route": "pages/admin-activity-orders/index",
+        "width": 390,
+        "height": 1248
+      },
+      {
+        "route": "pages/order-detail/index",
+        "width": 390,
+        "height": 912
+      }
+    ]
+  },
+  "visualReview": {
+    "method": "实际逐张查看官方高清PNG，不是源码检查代替视觉验收",
+    "pagesInspected": [
+      {
+        "route": "pages/home/index",
+        "nodeId": "fNx5j",
+        "file": "functional-previews/mini/fNx5j.png"
+      },
+      {
+        "route": "pages/activities/index",
+        "nodeId": "Z4FVg",
+        "file": "functional-previews/mini/Z4FVg.png"
+      },
+      {
+        "route": "pages/shop/index",
+        "nodeId": "t8Xrw",
+        "file": "functional-previews/mini/t8Xrw.png"
+      },
+      {
+        "route": "pages/product/index",
+        "nodeId": "i7wF5e",
+        "file": "functional-previews/mini/i7wF5e.png"
+      },
+      {
+        "route": "pages/checkout/index",
+        "nodeId": "oYo0P",
+        "file": "functional-previews/mini/oYo0P.png"
+      },
+      {
+        "route": "pages/orders/index",
+        "nodeId": "SgbAM",
+        "file": "functional-previews/mini/SgbAM.png"
+      },
+      {
+        "route": "pages/detail/index",
+        "nodeId": "ZVgor",
+        "file": "functional-previews/mini/ZVgor.png"
+      },
+      {
+        "route": "pages/register/index",
+        "nodeId": "mDiPw",
+        "file": "functional-previews/mini/mDiPw.png"
+      },
+      {
+        "route": "pages/mine/index",
+        "nodeId": "S1dle2",
+        "file": "functional-previews/mini/S1dle2.png"
+      },
+      {
+        "route": "pages/privacy/index",
+        "nodeId": "T4MCVQ",
+        "file": "functional-previews/mini/T4MCVQ.png"
+      },
+      {
+        "route": "pages/registrations/index",
+        "nodeId": "j3kqEi",
+        "file": "functional-previews/mini/j3kqEi.png"
+      },
+      {
+        "route": "pages/signup-success/index",
+        "nodeId": "T8xvQG",
+        "file": "functional-previews/mini/T8xvQG.png"
+      },
+      {
+        "route": "pages/admin-login/index",
+        "nodeId": "Hm81T",
+        "file": "functional-previews/mini/Hm81T.png"
+      },
+      {
+        "route": "pages/admin-activities/index",
+        "nodeId": "v7T4w",
+        "file": "functional-previews/mini/v7T4w.png"
+      },
+      {
+        "route": "pages/admin-editor/index",
+        "nodeId": "P7Zcp8",
+        "file": "functional-previews/mini/P7Zcp8.png"
+      },
+      {
+        "route": "pages/admin-roster/index",
+        "nodeId": "nk6hq",
+        "file": "functional-previews/mini/nk6hq.png"
+      },
+      {
+        "route": "pages/login/index",
+        "nodeId": "eUD8P",
+        "file": "functional-previews/mini/eUD8P.png"
+      },
+      {
+        "route": "pages/admin-legal/index",
+        "nodeId": "DrrXb",
+        "file": "functional-previews/mini/DrrXb.png"
+      },
+      {
+        "route": "pages/admin-shop/index",
+        "nodeId": "oMR7J",
+        "file": "functional-previews/mini/oMR7J.png"
+      },
+      {
+        "route": "pages/admin-product/index",
+        "nodeId": "zcNaB",
+        "file": "functional-previews/mini/zcNaB.png"
+      },
+      {
+        "route": "pages/admin-orders/index",
+        "nodeId": "yCfgW",
+        "file": "functional-previews/mini/yCfgW.png"
+      },
+      {
+        "route": "pages/addresses/index",
+        "nodeId": "jMgHF",
+        "file": "functional-previews/mini/jMgHF.png"
+      },
+      {
+        "route": "pages/notifications/index",
+        "nodeId": "ZRjBI",
+        "file": "functional-previews/mini/ZRjBI.png"
+      },
+      {
+        "route": "pages/profile/index",
+        "nodeId": "OzxS4",
+        "file": "functional-previews/mini/OzxS4.png"
+      },
+      {
+        "route": "pages/admin-users/index",
+        "nodeId": "o1fEB",
+        "file": "functional-previews/mini/o1fEB.png"
+      },
+      {
+        "route": "pages/admin-content/index",
+        "nodeId": "RHxFf",
+        "file": "functional-previews/mini/RHxFf.png"
+      },
+      {
+        "route": "pages/article/index",
+        "nodeId": "r3JOu",
+        "file": "functional-previews/mini/r3JOu.png"
+      },
+      {
+        "route": "pages/admin-memberships/index",
+        "nodeId": "DCUoO",
+        "file": "functional-previews/mini/DCUoO.png"
+      },
+      {
+        "route": "pages/activity-orders/index",
+        "nodeId": "gaW0x",
+        "file": "functional-previews/mini/gaW0x.png"
+      },
+      {
+        "route": "pages/admin-activity-orders/index",
+        "nodeId": "OKdU4",
+        "file": "functional-previews/mini/OKdU4.png"
+      },
+      {
+        "route": "pages/order-detail/index",
+        "nodeId": "rEcs2",
+        "file": "functional-previews/mini/rEcs2.png"
+      }
+    ],
+    "stateImagesInspected": [
+      "functional-previews/states/X8sfL.png",
+      "functional-previews/states/UjNQc.png",
+      "functional-previews/states/Q5skmp.png",
+      "functional-previews/states/cfQec.png",
+      "functional-previews/states/toyP2.png",
+      "functional-previews/states/o1dJDf.png",
+      "functional-previews/states/aJiPf.png",
+      "functional-previews/states/TdwsI.png",
+      "functional-previews/states/K6QLp.png"
+    ],
+    "coverage": {
+      "registeredPages": 31,
+      "independentConditionalStates": 9
+    },
+    "observedLayout": "40张未发现文字裁切、元素重叠；首页6活动4商品、390通栏装备、顶部品牌与文字Tab落实。",
+    "sixClassReview": {
+      "itemActions": "每项已归属，发现状态串用并补修",
+      "choiceDuplication": "已消除choice重复；发现商品stepper独立±重复并补修",
+      "conditionalForms": "原9条件状态已独立；活动订单退款上下文补修",
+      "developerCopy": "订单详情实现术语已移除；报名和登录残余补修",
+      "controls": "select/switch/datetime已落实；退款只读信息被误作输入补修",
+      "homepage": "通过当前高清视觉检查"
+    },
+    "fixes": [
+      "每条订单显式actions，已发货无支付按钮，待付款保留取消订单",
+      "活动已发布/草稿分别给取消/发布动作，源码已有",
+      "商品步进器移除重复±按钮",
+      "管理员待发货订单增加源码已有标记发货入口",
+      "用户退款区明确对应另一已付订单，消除未付款已退款歧义",
+      "管理员退款审核示例统一为退款待审核；编号金额状态原因只读，只有备注可编辑；移除待审核核对退款按钮",
+      "报名去实现说明，配置管理员登录入口展示真实动作",
+      "会员管理改任务说明而非伪tabs同时展示两个任务",
+      "报名历史标明选中用户；权限变更与整单退款确认加入脱敏目标及金额"
+    ],
+    "finalVisualStatus": "通过本轮31页+9独立状态高清视觉审查，修改13项官方重建后已逐张复核。仅设计静态视觉通过，不代表原生交互或支付业务验收。",
+    "notTested": [
+      "真实微信小程序运行",
+      "可点击交互",
+      "服务端支付或退款流程"
+    ],
+    "postRebuildReview": {
+      "passed": true,
+      "method": "逐张查看最新官方Export高清PNG，10页和3独立状态",
+      "boards": [
+        {
+          "key": "mini:pages/product/index",
+          "id": "i7wF5e",
+          "file": "functional-previews/mini/i7wF5e.png"
+        },
+        {
+          "key": "mini:pages/orders/index",
+          "id": "SgbAM",
+          "file": "functional-previews/mini/SgbAM.png"
+        },
+        {
+          "key": "mini:pages/admin-activities/index",
+          "id": "v7T4w",
+          "file": "functional-previews/mini/v7T4w.png"
+        },
+        {
+          "key": "mini:pages/admin-orders/index",
+          "id": "yCfgW",
+          "file": "functional-previews/mini/yCfgW.png"
+        },
+        {
+          "key": "mini:pages/activity-orders/index",
+          "id": "gaW0x",
+          "file": "functional-previews/mini/gaW0x.png"
+        },
+        {
+          "key": "mini:pages/admin-activity-orders/index",
+          "id": "OKdU4",
+          "file": "functional-previews/mini/OKdU4.png"
+        },
+        {
+          "key": "mini:pages/register/index",
+          "id": "mDiPw",
+          "file": "functional-previews/mini/mDiPw.png"
+        },
+        {
+          "key": "mini:pages/login/index",
+          "id": "eUD8P",
+          "file": "functional-previews/mini/eUD8P.png"
+        },
+        {
+          "key": "mini:pages/admin-memberships/index",
+          "id": "DCUoO",
+          "file": "functional-previews/mini/DCUoO.png"
+        },
+        {
+          "key": "mini:pages/admin-users/index",
+          "id": "o1fEB",
+          "file": "functional-previews/mini/o1fEB.png"
+        },
+        {
+          "key": "mini-state:mini-orders-refundDialogOpen",
+          "id": "UA6SP",
+          "file": "functional-previews/states/UA6SP.png"
+        },
+        {
+          "key": "mini-state:mini-admin-users-roleConfirmationOpen",
+          "id": "axsaF",
+          "file": "functional-previews/states/axsaF.png"
+        },
+        {
+          "key": "mini-state:mini-admin-activity-orders-orderConfirmationOpen",
+          "id": "ZWLkt",
+          "file": "functional-previews/states/ZWLkt.png"
+        }
+      ],
+      "observations": [
+        "已发货订单只剩查看详情；待付款动作完整且归属本单",
+        "数量步进器仅一组±",
+        "草稿/已发布活动显示不同操作",
+        "发货列表已有标记发货入口",
+        "用户退款明确绑定另一已付订单",
+        "管理员退款只读信息与审核备注正确区分，不再显示待付款操作",
+        "报名与登录实现说明已移除，登录入口明确",
+        "会员任务区域和用户报名历史上下文明确",
+        "3个确认状态明确脱敏目标、金额与影响范围",
+        "13张未见文本裁切、重叠或异常大面积空白"
+      ]
+    },
+    "completedRebuildRoutes": [
+      "pages/product/index",
+      "pages/orders/index",
+      "pages/admin-activities/index",
+      "pages/admin-orders/index",
+      "pages/activity-orders/index",
+      "pages/admin-activity-orders/index",
+      "pages/register/index",
+      "pages/login/index",
+      "pages/admin-memberships/index",
+      "pages/admin-users/index"
+    ],
+    "completedRebuildStateIds": [
+      "mini-orders-refundDialogOpen",
+      "mini-admin-users-roleConfirmationOpen",
+      "mini-admin-activity-orders-orderConfirmationOpen"
+    ],
+    "mustRebuildRoutes": [],
+    "mustRebuildStateIds": [],
+    "pendingCount": 0
+  },
+  "semanticAssertions": {
+    "passed": true,
+    "cases": [
+      "已发货订单无继续支付",
+      "数量控件无重复按钮",
+      "31页静态树几何合法"
+    ]
+  }
+}

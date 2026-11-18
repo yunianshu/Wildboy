@@ -1,0 +1,2776 @@
+{
+  "version": 1,
+  "date": "2026-11-18",
+  "basis": "当前源码功能，不参考B设计或旧截图。A只提供绿白视觉。",
+  "effectiveRoutes": 21,
+  "extraMode": "/shop?tab=orders",
+  "excluded": [
+    "候补（旧文件未路由）",
+    "课程",
+    "多级分类/删除"
+  ],
+  "sampleNotice": "所有示例均为设计演示，不是真实业务数据",
+  "pages": [
+    {
+      "route": "/login",
+      "title": "管理员登录",
+      "kind": "login",
+      "group": "授权",
+      "task": "验证账号身份",
+      "primaryAction": "登录",
+      "reason": "登录成功才进入后台",
+      "sections": [
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "账号",
+              "value": "admin-demo"
+            },
+            {
+              "label": "密码",
+              "value": "••••••••"
+            }
+          ],
+          "actions": [
+            {
+              "label": "登录",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "账号": "admin-demo",
+            "密码": "••••••••"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "凭据错误",
+          "message": "凭据错误",
+          "recovery": null
+        },
+        {
+          "name": "验证中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "非管理员",
+          "message": "非管理员",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/operations",
+      "title": "今日运营",
+      "kind": "workbench",
+      "group": "今日处理",
+      "task": "先定位异常再处理对象",
+      "primaryAction": "处理选中异常",
+      "reason": "建议默认首页，未改变代码入口",
+      "sections": [
+        {
+          "title": "待处理事项",
+          "fields": [
+            {
+              "label": "待发货",
+              "value": "3 笔"
+            },
+            {
+              "label": "上报失败",
+              "value": "1 笔"
+            },
+            {
+              "label": "支付核对异常",
+              "value": "2 笔"
+            },
+            {
+              "label": "低库存",
+              "value": "登山杖 · 3 件"
+            }
+          ],
+          "actions": [
+            {
+              "label": "打开原对象处理",
+              "level": "primary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "待发货": 3,
+            "上报失败": 1,
+            "统计范围": "近7天"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "时间范围与概况",
+          "fields": [
+            {
+              "label": "days",
+              "value": "近 7 天"
+            },
+            {
+              "label": "活动报名/占用/容量",
+              "value": "48 / 52 / 80 人"
+            },
+            {
+              "label": "已付订单/毛额/退款",
+              "value": "26 笔 / ¥4,180.00 / ¥159.00"
+            },
+            {
+              "label": "按日趋势",
+              "value": "11/12—11/18"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "异常与审计",
+          "fields": [
+            {
+              "label": "异常类型/对象ID/状态/说明",
+              "value": "支付核对 · SHOP-DEMO-003 · 结果待确认"
+            },
+            {
+              "label": "审计实体筛选",
+              "value": "输入订单或活动ID"
+            },
+            {
+              "label": "操作人与时间",
+              "value": "管理员 · 11/18 09:30"
+            }
+          ],
+          "actions": [
+            {
+              "label": "加载更多",
+              "level": "secondary"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "局部失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无待办",
+          "message": "无待办",
+          "recovery": null
+        },
+        {
+          "name": "核对中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/activities",
+      "title": "活动管理",
+      "kind": "table",
+      "group": "活动生命周期",
+      "task": "横向对比并找到活动",
+      "primaryAction": "新建活动",
+      "reason": "8条分页，收费进入订单，免费进入名单",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "标题搜索",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "分类",
+              "value": "本周活动"
+            },
+            {
+              "label": "发布状态",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "封面/标题/地点",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "出发时间",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "价格",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "报名/容量",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "待支付人数",
+              "value": "按当前对象显示"
+            }
+          ],
+          "actions": [
+            {
+              "label": "新建活动",
+              "level": "primary"
+            },
+            {
+              "label": "筛选",
+              "level": "secondary"
+            },
+            {
+              "label": "重置",
+              "level": "secondary"
+            },
+            {
+              "label": "编辑",
+              "level": "secondary"
+            },
+            {
+              "label": "收费订单/免费名单",
+              "level": "secondary"
+            },
+            {
+              "label": "上一页/下一页",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "周末山脊徒步",
+            "价格": "¥68.00",
+            "名额": "12 / 20",
+            "状态": "PUBLISHED",
+            "出发": "2026-12-05 08:00"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "活动 / 地点",
+            "分类",
+            "出发时间",
+            "价格",
+            "报名 / 名额",
+            "状态",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "周末山脊徒步 / 山脊步道",
+              "本周活动",
+              "12/05 08:00",
+              "¥68.00",
+              "12 / 20",
+              "已发布",
+              "编辑 · 订单"
+            ],
+            [
+              "溪谷自然观察 / 溪谷",
+              "休闲活动",
+              "12/06 09:30",
+              "免费",
+              "6 / 16",
+              "已发布",
+              "编辑 · 名单"
+            ],
+            [
+              "冬季露营入门 / 山野营地",
+              "假期活动",
+              "12/12 10:00",
+              "¥158.00",
+              "0 / 12",
+              "草稿",
+              "编辑 · 订单"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "无活动",
+          "message": "无活动",
+          "recovery": null
+        },
+        {
+          "name": "无筛选结果",
+          "message": "无筛选结果",
+          "recovery": null
+        },
+        {
+          "name": "分页边界",
+          "message": "分页边界",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/activities/new",
+      "title": "新建活动",
+      "kind": "form",
+      "group": "活动生命周期",
+      "task": "完成报名必需信息后创建草稿",
+      "primaryAction": "创建草稿",
+      "reason": "按身份/报名约束/行程/内容分区，不做向导",
+      "sections": [
+        {
+          "title": "活动身份",
+          "fields": [
+            {
+              "label": "标题",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "分类",
+              "value": "本周活动"
+            },
+            {
+              "label": "摘要",
+              "value": "森林缓坡环线，预计五小时"
+            },
+            {
+              "label": "封面",
+              "value": "category-weekly.jpg"
+            },
+            {
+              "label": "相册",
+              "value": "营地、步道照片"
+            }
+          ],
+          "actions": [],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "周末山脊徒步",
+            "分类": "WEEKLY",
+            "容量": 20,
+            "价格元": "68.00"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "报名约束",
+          "fields": [
+            {
+              "label": "人数上限",
+              "value": "20 人"
+            },
+            {
+              "label": "身份证要求",
+              "value": "不要求"
+            },
+            {
+              "label": "报名截止",
+              "value": "2026-12-04 18:00"
+            },
+            {
+              "label": "每人价格",
+              "value": "¥68.00"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "行程时间地点",
+          "fields": [
+            {
+              "label": "开始时间",
+              "value": "2026-12-05 08:00"
+            },
+            {
+              "label": "结束时间",
+              "value": "2026-12-05 16:00"
+            },
+            {
+              "label": "地点",
+              "value": "山脊步道"
+            },
+            {
+              "label": "集合点",
+              "value": "公园南门"
+            },
+            {
+              "label": "说明",
+              "value": "请穿防滑鞋并自备饮水"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "正文与发布",
+          "fields": [
+            {
+              "label": "服务端ID",
+              "value": "activity-demo-01"
+            },
+            {
+              "label": "Markdown内容保存状态",
+              "value": "正文已保存"
+            },
+            {
+              "label": "对象版本",
+              "value": "3"
+            }
+          ],
+          "actions": [
+            {
+              "label": "创建草稿",
+              "level": "primary"
+            },
+            {
+              "label": "发布/取消",
+              "level": "confirm-required",
+              "condition": "已有对象且当前状态允许"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "校验错误",
+          "message": "校验错误",
+          "recovery": null
+        },
+        {
+          "name": "创建结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/activities/:id/edit",
+      "title": "编辑活动",
+      "kind": "form",
+      "group": "活动生命周期",
+      "task": "修改对象并明确发布后果",
+      "primaryAction": "保存修改",
+      "reason": "价格/正文分开保存；发布/取消二次确认",
+      "sections": [
+        {
+          "title": "活动身份",
+          "fields": [
+            {
+              "label": "标题",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "分类",
+              "value": "本周活动"
+            },
+            {
+              "label": "摘要",
+              "value": "森林缓坡环线，预计五小时"
+            },
+            {
+              "label": "封面",
+              "value": "category-weekly.jpg"
+            },
+            {
+              "label": "相册",
+              "value": "营地、步道照片"
+            }
+          ],
+          "actions": [],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "活动ID": "activity-demo-01",
+            "标题": "周末山脊徒步",
+            "版本": 3,
+            "状态": "DRAFT"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "报名约束",
+          "fields": [
+            {
+              "label": "人数上限",
+              "value": "20 人"
+            },
+            {
+              "label": "身份证要求",
+              "value": "不要求"
+            },
+            {
+              "label": "报名截止",
+              "value": "2026-12-04 18:00"
+            },
+            {
+              "label": "每人价格",
+              "value": "¥68.00"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "行程时间地点",
+          "fields": [
+            {
+              "label": "开始时间",
+              "value": "2026-12-05 08:00"
+            },
+            {
+              "label": "结束时间",
+              "value": "2026-12-05 16:00"
+            },
+            {
+              "label": "地点",
+              "value": "山脊步道"
+            },
+            {
+              "label": "集合点",
+              "value": "公园南门"
+            },
+            {
+              "label": "说明",
+              "value": "请穿防滑鞋并自备饮水"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "正文与发布",
+          "fields": [
+            {
+              "label": "服务端ID",
+              "value": "activity-demo-01"
+            },
+            {
+              "label": "Markdown内容保存状态",
+              "value": "正文已保存"
+            },
+            {
+              "label": "对象版本",
+              "value": "3"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存修改",
+              "level": "primary"
+            },
+            {
+              "label": "发布/取消",
+              "level": "confirm-required",
+              "condition": "已有对象且当前状态允许"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "版本冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "未保存离开",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        },
+        {
+          "name": "正文未保存",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/activities/:id/registrations",
+      "title": "报名名单",
+      "kind": "table",
+      "group": "活动生命周期",
+      "task": "出发前核对参与人",
+      "primaryAction": "查看参与人",
+      "reason": "默认脱敏；揭示需用途确认，离开清理",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "活动上下文",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "报名状态",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "报名时间",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "姓名",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "脱敏电话/证件",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "20条分页",
+              "value": "第 1 页 · 共 24 笔"
+            }
+          ],
+          "actions": [
+            {
+              "label": "查看参与人",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "姓名": "王*",
+            "电话": "138****0000",
+            "状态": "CONFIRMED"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "报名时间",
+            "姓名",
+            "手机",
+            "证件",
+            "状态"
+          ],
+          "sampleRows": [
+            [
+              "11/18 09:00",
+              "王*",
+              "138****0000",
+              "未要求",
+              "已确认"
+            ],
+            [
+              "11/18 09:20",
+              "李*",
+              "139****0000",
+              "未要求",
+              "已确认"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "揭示失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "隐私确认",
+          "message": "隐私确认",
+          "recovery": null
+        },
+        {
+          "name": "空名单",
+          "message": "空名单",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/templates",
+      "title": "活动模板",
+      "kind": "workbench",
+      "group": "活动生命周期",
+      "task": "复用活动生成未来排期",
+      "primaryAction": "新建模板",
+      "reason": "模板选择与排期面板相邻，生成不等于发布",
+      "sections": [
+        {
+          "title": "对象列表",
+          "columns": [
+            "模板",
+            "来源活动",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "周末轻徒步",
+              "周末山脊徒步",
+              "编辑 · 生成排期"
+            ],
+            [
+              "城市慢行",
+              "城市绿道轻徒步",
+              "编辑 · 生成排期"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        },
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "模板名称",
+              "value": "周末轻徒步"
+            },
+            {
+              "label": "来源活动",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "版本",
+              "value": "3"
+            },
+            {
+              "label": "开始日期",
+              "value": "2026-12-05 08:00"
+            },
+            {
+              "label": "次数",
+              "value": "3 次"
+            },
+            {
+              "label": "间隔",
+              "value": "7 天"
+            }
+          ],
+          "actions": [
+            {
+              "label": "新建模板",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "模板": "周末轻徒步",
+            "起始": "2026-12-05 08:00",
+            "次数": 3,
+            "间隔天": 7
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "源活动失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "日期错误",
+          "message": "日期错误",
+          "recovery": null
+        },
+        {
+          "name": "生成失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/activity-orders",
+      "title": "活动订单",
+      "kind": "workbench",
+      "group": "交易履约",
+      "task": "按订单状态处理支付参与人与退款",
+      "primaryAction": "处理选中订单",
+      "reason": "核对/关闭/退款动作取决于实际状态；全额退款确认金额",
+      "sections": [
+        {
+          "title": "对象列表",
+          "columns": [
+            "订单",
+            "活动",
+            "人数",
+            "实付",
+            "状态",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "AC-DEMO-001",
+              "周末山脊徒步",
+              "2",
+              "¥122.40",
+              "待支付",
+              "查看订单"
+            ],
+            [
+              "AC-DEMO-002",
+              "溪谷自然观察",
+              "1",
+              "免费",
+              "免支付已确认",
+              "查看订单"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        },
+        {
+          "title": "定位与订单队列",
+          "fields": [
+            {
+              "label": "activityId/orderId",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "订单号",
+              "value": "AC-DEMO-001"
+            },
+            {
+              "label": "活动",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "人数",
+              "value": "2 人"
+            },
+            {
+              "label": "实付",
+              "value": "¥136.00"
+            },
+            {
+              "label": "状态",
+              "value": "待支付"
+            },
+            {
+              "label": "20条分页",
+              "value": "第 1 页 · 共 24 笔"
+            }
+          ],
+          "actions": [],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "订单": "AC-DEMO-001",
+            "人数": 2,
+            "实付": "¥136.00",
+            "状态": "PENDING_PAYMENT"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象详情",
+          "fields": [
+            {
+              "label": "原价/实付/币种",
+              "value": "¥136.00 / ¥122.40 / CNY"
+            },
+            {
+              "label": "支付交易号",
+              "value": "尚未支付"
+            },
+            {
+              "label": "版本",
+              "value": "3"
+            },
+            {
+              "label": "参与人摘要",
+              "value": "王*、李* · 电话已隐藏"
+            }
+          ],
+          "actions": [
+            {
+              "label": "核对支付",
+              "level": "primary",
+              "condition": "PENDING_PAYMENT"
+            },
+            {
+              "label": "查看隐私",
+              "level": "confirm-required"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "退款处理",
+          "fields": [
+            {
+              "label": "退款状态",
+              "value": "待审核"
+            },
+            {
+              "label": "全额退款原因",
+              "value": "用户行程变更"
+            },
+            {
+              "label": "金额确认勾选",
+              "value": "确认退款 ¥122.40"
+            },
+            {
+              "label": "决定备注",
+              "value": "填写处理备注"
+            }
+          ],
+          "actions": [
+            {
+              "label": "发起/批准/拒绝/核对/重试",
+              "level": "confirm-required",
+              "condition": "按具体订单和退款状态分别呈现"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "待支付",
+          "message": "待支付",
+          "recovery": null
+        },
+        {
+          "name": "已付",
+          "message": "已付",
+          "recovery": null
+        },
+        {
+          "name": "免费确认",
+          "message": "免费确认",
+          "recovery": null
+        },
+        {
+          "name": "关闭",
+          "message": "关闭",
+          "recovery": null
+        },
+        {
+          "name": "退款中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "已退款",
+          "message": "已退款",
+          "recovery": null
+        },
+        {
+          "name": "结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/shop",
+      "title": "商品与商城订单",
+      "kind": "workbench",
+      "group": "交易履约",
+      "task": "在商品维护和订单履约间明确切换",
+      "primaryAction": "新建商品或处理待发货",
+      "reason": "同路由商品和?tab=orders两模式；真实履约后才发货",
+      "sections": [
+        {
+          "title": "对象列表",
+          "columns": [
+            "商品",
+            "分类",
+            "原价 / 现价",
+            "库存",
+            "状态",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "轻量登山杖",
+              "户外装备",
+              "¥199 / ¥159",
+              "18",
+              "上架",
+              "编辑"
+            ],
+            [
+              "折叠坐垫",
+              "露营用品",
+              "¥39 / ¥29",
+              "6",
+              "上架",
+              "编辑"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        },
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "商品名/分类",
+              "value": "轻量登山杖 / 户外装备"
+            },
+            {
+              "label": "原价/现价",
+              "value": "¥199.00 / ¥159.00"
+            },
+            {
+              "label": "库存/上下架",
+              "value": "18 件 / 上架"
+            },
+            {
+              "label": "封面/描述/正文",
+              "value": "商品图片与说明"
+            },
+            {
+              "label": "订单号/明细/实付",
+              "value": "SHOP-DEMO-001 / 1件 / ¥159.00"
+            },
+            {
+              "label": "收件信息",
+              "value": "王* · 138****0000"
+            },
+            {
+              "label": "物流公司/单号",
+              "value": "顺丰 / SF-DEMO-001"
+            }
+          ],
+          "actions": [
+            {
+              "label": "新建商品或处理待发货",
+              "level": "primary"
+            },
+            {
+              "label": "商品编辑",
+              "level": "secondary"
+            },
+            {
+              "label": "分类筛选",
+              "level": "secondary"
+            },
+            {
+              "label": "订单详情",
+              "level": "secondary"
+            },
+            {
+              "label": "收件隐私（确认）",
+              "level": "confirm-required"
+            },
+            {
+              "label": "发货（确认）",
+              "level": "confirm-required"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "商品": "轻量登山杖",
+            "原价": "¥199.00",
+            "现价": "¥159.00",
+            "库存": 18
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "库存不足",
+          "message": "库存不足",
+          "recovery": null
+        },
+        {
+          "name": "待核对",
+          "message": "待核对",
+          "recovery": null
+        },
+        {
+          "name": "未保存",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        },
+        {
+          "name": "发货结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/shop/categories",
+      "title": "商品分类",
+      "kind": "settings",
+      "group": "交易履约",
+      "task": "简单维护一级分类",
+      "primaryAction": "新分类",
+      "reason": "仅增改，不设计删除或多级树",
+      "sections": [
+        {
+          "title": "对象列表",
+          "columns": [
+            "名称",
+            "排序",
+            "商品数量",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "户外装备",
+              "10",
+              "8",
+              "编辑"
+            ],
+            [
+              "露营用品",
+              "20",
+              "5",
+              "编辑"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        },
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "分类名称",
+              "value": "户外装备"
+            },
+            {
+              "label": "排序",
+              "value": "10"
+            },
+            {
+              "label": "商品数",
+              "value": "8"
+            }
+          ],
+          "actions": [
+            {
+              "label": "新分类",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "名称": "户外装备",
+            "排序": 10,
+            "商品数": 8
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "空分类",
+          "message": "空分类",
+          "recovery": null
+        },
+        {
+          "name": "版本冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "读取失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/refunds",
+      "title": "商城退款",
+      "kind": "workbench",
+      "group": "交易履约",
+      "task": "审核并跟踪实际退款结果",
+      "primaryAction": "处理选中退款",
+      "reason": "批准拒绝重试核对按接口状态；活动退款仍在活动订单",
+      "sections": [
+        {
+          "title": "对象列表",
+          "columns": [
+            "退款订单",
+            "金额",
+            "原因",
+            "状态",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "SHOP-DEMO-001",
+              "¥159.00",
+              "用户取消行程",
+              "待审核",
+              "处理"
+            ],
+            [
+              "SHOP-DEMO-002",
+              "¥29.00",
+              "商品退回",
+              "退款中",
+              "核对"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        },
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "订单号",
+              "value": "AC-DEMO-001"
+            },
+            {
+              "label": "金额",
+              "value": "¥159.00"
+            },
+            {
+              "label": "申请原因",
+              "value": "用户取消行程"
+            },
+            {
+              "label": "状态",
+              "value": "待支付"
+            },
+            {
+              "label": "最近错误",
+              "value": "无"
+            },
+            {
+              "label": "决定备注",
+              "value": "填写处理备注"
+            },
+            {
+              "label": "版本",
+              "value": "3"
+            }
+          ],
+          "actions": [
+            {
+              "label": "处理选中退款",
+              "level": "primary"
+            },
+            {
+              "label": "批准/拒绝（确认）",
+              "level": "confirm-required"
+            },
+            {
+              "label": "核对",
+              "level": "secondary"
+            },
+            {
+              "label": "重试（确认）",
+              "level": "confirm-required"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "订单": "SHOP-DEMO-001",
+            "金额": "¥159.00",
+            "状态": "REQUESTED"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "待审核",
+          "message": "待审核",
+          "recovery": null
+        },
+        {
+          "name": "处理中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/shipping-reports",
+      "title": "微信发货上报",
+      "kind": "table",
+      "group": "交易履约",
+      "task": "恢复平台报告失败",
+      "primaryAction": "重试可恢复失败",
+      "reason": "平台上报不等于实际履约，明确两者区别",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "shop/activity来源",
+              "value": "商城"
+            },
+            {
+              "label": "订单号",
+              "value": "AC-DEMO-001"
+            },
+            {
+              "label": "物流类型",
+              "value": "快递"
+            },
+            {
+              "label": "状态",
+              "value": "待支付"
+            },
+            {
+              "label": "尝试次数",
+              "value": "2"
+            },
+            {
+              "label": "错误码/说明",
+              "value": "平台暂不可用"
+            },
+            {
+              "label": "下次重试/报告时间",
+              "value": "11/18 10:00"
+            }
+          ],
+          "actions": [
+            {
+              "label": "重试可恢复失败",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "订单": "SHOP-DEMO-002",
+            "来源": "shop",
+            "状态": "FAILED",
+            "尝试": 2
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "来源",
+            "订单",
+            "状态",
+            "尝试",
+            "最近结果",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "商城",
+              "SHOP-DEMO-001",
+              "失败",
+              "2",
+              "平台暂不可用",
+              "重试"
+            ],
+            [
+              "活动",
+              "AC-DEMO-003",
+              "已上报",
+              "1",
+              "11/18 09:30",
+              "查看"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "PENDING",
+          "message": "PENDING",
+          "recovery": null
+        },
+        {
+          "name": "REPORTED",
+          "message": "REPORTED",
+          "recovery": null
+        },
+        {
+          "name": "FAILED",
+          "message": "FAILED",
+          "recovery": null
+        },
+        {
+          "name": "SKIPPED",
+          "message": "SKIPPED",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/users",
+      "title": "用户管理",
+      "kind": "table",
+      "group": "用户权益",
+      "task": "核对用户历史并管理授权",
+      "primaryAction": "查看用户",
+      "reason": "8条用户/4条历史分页；会员等级不是管理员权限",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "搜索",
+              "value": "输入昵称或用户ID"
+            },
+            {
+              "label": "资料完成",
+              "value": "全部"
+            },
+            {
+              "label": "角色",
+              "value": "全部"
+            },
+            {
+              "label": "来源",
+              "value": "微信"
+            },
+            {
+              "label": "微信验证",
+              "value": "已验证"
+            },
+            {
+              "label": "脱敏姓名电话",
+              "value": "王* · 138****0000"
+            },
+            {
+              "label": "报名统计",
+              "value": "3次"
+            },
+            {
+              "label": "详情历史",
+              "value": "已确认 · 周末山脊徒步"
+            },
+            {
+              "label": "canChangeRole/阻止原因",
+              "value": "可调整"
+            }
+          ],
+          "actions": [
+            {
+              "label": "查看用户",
+              "level": "primary"
+            },
+            {
+              "label": "筛选",
+              "level": "secondary"
+            },
+            {
+              "label": "资料/历史切换",
+              "level": "secondary"
+            },
+            {
+              "label": "授予/撤销管理员（确认）",
+              "level": "confirm-required"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "姓名": "王*",
+            "电话": "138****0000",
+            "来源": "WECHAT",
+            "角色": "USER"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "用户",
+            "手机",
+            "来源",
+            "资料",
+            "角色",
+            "报名",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "王*",
+              "138****0000",
+              "微信",
+              "已完善",
+              "普通用户",
+              "3 次",
+              "查看"
+            ],
+            [
+              "李*",
+              "139****0000",
+              "微信",
+              "已完善",
+              "管理员",
+              "8 次",
+              "查看"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "不可改权原因",
+          "message": "不可改权原因",
+          "recovery": null
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "目标需重新登录",
+          "message": "目标需重新登录",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/memberships",
+      "title": "身份与会员价格",
+      "kind": "membership",
+      "group": "用户权益",
+      "task": "简单配置活动商品独立优惠",
+      "primaryAction": "保存等级规则",
+      "reason": "活动和商品并列两列设置，不出现课程或复杂审批",
+      "sections": [
+        {
+          "title": "等级基本信息",
+          "fields": [
+            {
+              "label": "名称",
+              "value": "山野会员"
+            },
+            {
+              "label": "排序",
+              "value": "10"
+            },
+            {
+              "label": "启用",
+              "value": "已启用"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存等级",
+              "level": "primary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "等级": "山野会员",
+            "活动": "九折，最多一人",
+            "商品": "每件减10元"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "活动优惠",
+          "fields": [
+            {
+              "label": "启用",
+              "value": "已启用"
+            },
+            {
+              "label": "DISCOUNT/FIXED/REDUCTION",
+              "value": "折扣"
+            },
+            {
+              "label": "优惠数值",
+              "value": "9 折"
+            },
+            {
+              "label": "ACCOUNT_ALL/ONE_BENEFIT",
+              "value": "最多一人"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "商品优惠",
+          "fields": [
+            {
+              "label": "启用",
+              "value": "已启用"
+            },
+            {
+              "label": "DISCOUNT/FIXED/REDUCTION",
+              "value": "折扣"
+            },
+            {
+              "label": "每件优惠数值",
+              "value": "9 折"
+            }
+          ],
+          "actions": [],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "用户身份",
+          "fields": [
+            {
+              "label": "搜索",
+              "value": "输入昵称或用户ID"
+            },
+            {
+              "label": "GUEST/MEMBER/LEADER",
+              "value": "会员"
+            },
+            {
+              "label": "关联等级",
+              "value": "山野会员"
+            },
+            {
+              "label": "等级可用状态",
+              "value": "可用"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存用户身份",
+              "level": "primary"
+            }
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "禁用等级",
+          "message": "禁用等级",
+          "recovery": null
+        },
+        {
+          "name": "版本冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "未保存",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/notifications",
+      "title": "活动消息",
+      "kind": "table",
+      "group": "今日处理",
+      "task": "追踪通知结果并恢复失败",
+      "primaryAction": "重试可恢复通知",
+      "reason": "重排不等于送达；缺授权需核实重新订阅",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "标题/类型/详情",
+              "value": "周末活动出发提醒"
+            },
+            {
+              "label": "状态",
+              "value": "待支付"
+            },
+            {
+              "label": "次数",
+              "value": "1"
+            },
+            {
+              "label": "错误",
+              "value": "平台暂不可用"
+            },
+            {
+              "label": "配置是否可用",
+              "value": "可用"
+            },
+            {
+              "label": "授权确认",
+              "value": "待核实用户重新订阅"
+            }
+          ],
+          "actions": [
+            {
+              "label": "重试可恢复通知",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "周末出发提醒",
+            "状态": "FAILED",
+            "尝试": 1
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "通知",
+            "状态",
+            "尝试",
+            "最近结果",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "周末活动出发提醒",
+              "失败",
+              "1",
+              "发送暂不可用",
+              "重试"
+            ],
+            [
+              "溪谷活动地点变更",
+              "已发送",
+              "1",
+              "11/18 09:00",
+              "查看"
+            ],
+            [
+              "冬季露营报名提醒",
+              "无授权",
+              "0",
+              "等待用户重新订阅",
+              "核对授权"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "PENDING",
+          "message": "PENDING",
+          "recovery": null
+        },
+        {
+          "name": "SENDING",
+          "message": "SENDING",
+          "recovery": null
+        },
+        {
+          "name": "SENT",
+          "message": "SENT",
+          "recovery": null
+        },
+        {
+          "name": "FAILED",
+          "message": "FAILED",
+          "recovery": null
+        },
+        {
+          "name": "NO_PERMISSION",
+          "message": "NO_PERMISSION",
+          "recovery": null
+        },
+        {
+          "name": "UNCONFIGURED",
+          "message": "UNCONFIGURED",
+          "recovery": null
+        },
+        {
+          "name": "OBSOLETE",
+          "message": "OBSOLETE",
+          "recovery": null
+        },
+        {
+          "name": "UNKNOWN",
+          "message": "UNKNOWN",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/articles",
+      "title": "文章目录",
+      "kind": "table",
+      "group": "内容平台",
+      "task": "选择内容或开始写作",
+      "primaryAction": "新建文章",
+      "reason": "列表选文章，发布在独立编辑页确认",
+      "sections": [
+        {
+          "title": "对象定位与字段对比",
+          "fields": [
+            {
+              "label": "标题/封面",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "摘要",
+              "value": "森林缓坡环线，预计五小时"
+            },
+            {
+              "label": "关联活动",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "发布状态",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "官方标志",
+              "value": "按当前对象显示"
+            },
+            {
+              "label": "20条追加",
+              "value": "按当前对象显示"
+            }
+          ],
+          "actions": [
+            {
+              "label": "新建文章",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "冬季徒步装备清单",
+            "状态": "DRAFT"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        },
+        {
+          "title": "对象列表",
+          "columns": [
+            "文章",
+            "摘要",
+            "关联活动",
+            "状态",
+            "官方",
+            "操作"
+          ],
+          "sampleRows": [
+            [
+              "冬季徒步装备清单",
+              "出发前的装备检查",
+              "冬季露营入门",
+              "草稿",
+              "否",
+              "编辑"
+            ],
+            [
+              "认识野小子",
+              "周末一起走进自然",
+              "无",
+              "已发布",
+              "是",
+              "编辑"
+            ]
+          ],
+          "sampleNotice": "全为设计演示，不是真实数据",
+          "actions": []
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "空内容",
+          "message": "空内容",
+          "recovery": null
+        },
+        {
+          "name": "追加失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/articles/new",
+      "title": "新建文章",
+      "kind": "editor",
+      "group": "内容平台",
+      "task": "先创建文章身份再写正文",
+      "primaryAction": "保存草稿",
+      "reason": "取得ID后开启Markdown正文，不提前伪装发布",
+      "sections": [
+        {
+          "title": "内容编辑",
+          "fields": [
+            {
+              "label": "标题",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "摘要",
+              "value": "森林缓坡环线，预计五小时"
+            },
+            {
+              "label": "封面上传",
+              "value": "已上传封面"
+            },
+            {
+              "label": "关联活动",
+              "value": "冬季露营入门"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存草稿",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "冬季徒步装备清单",
+            "摘要": "出发前检查装备",
+            "关联活动": "activity-demo-01"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "创建结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        },
+        {
+          "name": "关联源失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "上传失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/articles/:id/edit",
+      "title": "文章编辑",
+      "kind": "editor",
+      "group": "内容平台",
+      "task": "保护双草稿并完成发布",
+      "primaryAction": "保存内容",
+      "reason": "正文主区，资料次区；发布/撤回/官方标记独立确认",
+      "sections": [
+        {
+          "title": "内容编辑",
+          "fields": [
+            {
+              "label": "标题",
+              "value": "周末山脊徒步"
+            },
+            {
+              "label": "Markdown正文",
+              "value": "## 出发准备\n检查登山鞋与饮水。"
+            },
+            {
+              "label": "图片",
+              "value": "步道照片"
+            },
+            {
+              "label": "摘要",
+              "value": "森林缓坡环线，预计五小时"
+            },
+            {
+              "label": "封面",
+              "value": "category-weekly.jpg"
+            },
+            {
+              "label": "关联活动",
+              "value": "冬季露营入门"
+            },
+            {
+              "label": "版本",
+              "value": "3"
+            },
+            {
+              "label": "工作台/文档布局",
+              "value": "工作台"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存内容",
+              "level": "primary"
+            },
+            {
+              "label": "发布（确认）",
+              "level": "confirm-required"
+            },
+            {
+              "label": "撤回",
+              "level": "secondary"
+            },
+            {
+              "label": "设置官方文章（确认）",
+              "level": "confirm-required"
+            },
+            {
+              "label": "保存正文",
+              "level": "secondary"
+            },
+            {
+              "label": "重载",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "标题": "冬季徒步装备清单",
+            "版本": 2,
+            "状态": "DRAFT",
+            "正文": "## 出发准备\n请检查登山鞋与饮水。"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "正文未保存",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "发布确认",
+          "message": "发布确认",
+          "recovery": null
+        },
+        {
+          "name": "上传中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/legal",
+      "title": "协议版本",
+      "kind": "editor",
+      "group": "内容平台",
+      "task": "保存草稿并审慎发布新版本",
+      "primaryAction": "保存草稿",
+      "reason": "协议发布影响用户同意版本，不是普通自动保存",
+      "sections": [
+        {
+          "title": "内容编辑",
+          "fields": [
+            {
+              "label": "PRIVACY/TERMS",
+              "value": "隐私政策"
+            },
+            {
+              "label": "草稿标题/正文/revision",
+              "value": "隐私政策 / 编辑草稿"
+            },
+            {
+              "label": "当前发布版",
+              "value": "当前 v2"
+            },
+            {
+              "label": "历史正文/时间",
+              "value": "v1 · 2026-10-01"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存草稿",
+              "level": "primary"
+            },
+            {
+              "label": "类型切换",
+              "level": "secondary"
+            },
+            {
+              "label": "查看历史只读版本",
+              "level": "secondary"
+            },
+            {
+              "label": "发布（确认）",
+              "level": "confirm-required"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "类型": "PRIVACY",
+            "标题": "隐私政策",
+            "草稿版本": 3,
+            "发布版本": 2
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "历史只读",
+          "message": "历史只读",
+          "recovery": null
+        },
+        {
+          "name": "发布确认",
+          "message": "发布确认",
+          "recovery": null
+        },
+        {
+          "name": "切类型未保存",
+          "message": "还有内容未保存。",
+          "recovery": "继续编辑"
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/settings",
+      "title": "平台配置",
+      "kind": "settings",
+      "group": "内容平台",
+      "task": "维护入口与订单中心接入",
+      "primaryAction": "保存四个入口",
+      "reason": "入口共享草稿，接入设置独立保存，不改保护首页排版",
+      "sections": [
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "四入口slot/name/icon/type/page/articleId/popup文本/图片",
+              "value": "入口1 · 本周活动 · 既有页面"
+            },
+            {
+              "label": "微信订单中心enabled/路径/确认状态/错误码",
+              "value": "已启用 / 路径未配置 / 未完成确认"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存四个入口",
+              "level": "primary"
+            },
+            {
+              "label": "切换入口草稿",
+              "level": "secondary"
+            },
+            {
+              "label": "选择目标文章",
+              "level": "secondary"
+            },
+            {
+              "label": "上传弹窗图片",
+              "level": "secondary"
+            },
+            {
+              "label": "设置订单详情路径",
+              "level": "secondary"
+            },
+            {
+              "label": "重读平台状态",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "slot": 1,
+            "名称": "本周活动",
+            "类型": "已有页面",
+            "目标": "WEEKLY",
+            "订单中心": "路径未配置"
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "文章源失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "平台未配置",
+          "message": "平台未配置",
+          "recovery": null
+        },
+        {
+          "name": "平台结果未知",
+          "message": "结果待确认，请先核对。",
+          "recovery": "核对结果"
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    },
+    {
+      "route": "/settings/admin-account",
+      "title": "管理员账号",
+      "kind": "settings",
+      "group": "授权",
+      "task": "安全配置账号并说明会话后果",
+      "primaryAction": "保存账号设置",
+      "reason": "验证当前密码；成功清密码，解释会话撤销",
+      "sections": [
+        {
+          "title": "任务与对象",
+          "fields": [
+            {
+              "label": "configured",
+              "value": "已配置"
+            },
+            {
+              "label": "username",
+              "value": "admin-demo"
+            },
+            {
+              "label": "canConfigure/阻止原因",
+              "value": "允许配置"
+            },
+            {
+              "label": "当前密码",
+              "value": "••••••••"
+            },
+            {
+              "label": "新密码",
+              "value": "••••••••"
+            },
+            {
+              "label": "确认密码",
+              "value": "••••••••"
+            },
+            {
+              "label": "版本",
+              "value": "3"
+            }
+          ],
+          "actions": [
+            {
+              "label": "保存账号设置",
+              "level": "primary"
+            },
+            {
+              "label": "刷新/重新读取",
+              "level": "secondary"
+            }
+          ],
+          "example": {
+            "notice": "设计演示数据，不是真实业务",
+            "username": "admin-demo",
+            "configured": true,
+            "canConfigure": true,
+            "version": 2
+          },
+          "sampleNotice": "全为设计演示，不是真实数据"
+        }
+      ],
+      "states": [
+        {
+          "name": "加载中",
+          "message": "正在处理，请稍候。",
+          "recovery": null
+        },
+        {
+          "name": "读取失败可重试",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "无权限",
+          "message": "无权限",
+          "recovery": null
+        },
+        {
+          "name": "演示只读",
+          "message": "演示只读",
+          "recovery": null
+        },
+        {
+          "name": "验证失败",
+          "message": "暂时无法加载，请重试。",
+          "recovery": "重试"
+        },
+        {
+          "name": "冲突",
+          "message": "内容已变化，请重新读取。",
+          "recovery": "重新读取"
+        },
+        {
+          "name": "需重新登录",
+          "message": "需重新登录",
+          "recovery": null
+        }
+      ],
+      "source": "admin/src/router.ts + 对应views组件 + admin/src/types.ts/api.ts",
+      "permissions": "后台API要求ADMIN；动作另校验服务端状态/能力与版本"
+    }
+  ],
+  "overlays": [
+    {
+      "key": "version-conflict",
+      "title": "记录已在别处更新",
+      "kind": "conflict",
+      "fields": [
+        "具体对象",
+        "本地草稿仍保留",
+        "重读将替换的字段"
+      ],
+      "primaryAction": "重新读取并复核",
+      "secondaryAction": "保留草稿查看",
+      "reason": "不提供不存在的强行覆盖接口"
+    },
+    {
+      "key": "privacy-reveal",
+      "title": "查看参与人或收件资料",
+      "kind": "privacy",
+      "fields": [
+        "具体对象",
+        "用途",
+        "将揭示的电话/证件/地址",
+        "离开清除"
+      ],
+      "primaryAction": "确认查看",
+      "secondaryAction": "取消",
+      "reason": "取消不能请求明文"
+    },
+    {
+      "key": "activity-publish",
+      "title": "发布活动确认",
+      "kind": "confirmation",
+      "fields": [
+        "活动",
+        "出发时间",
+        "报名价格",
+        "容量",
+        "对小程序用户可见"
+      ],
+      "primaryAction": "确认发布",
+      "secondaryAction": "返回检查",
+      "reason": "仅使用已保存对象"
+    },
+    {
+      "key": "refund-action",
+      "title": "退款处理确认",
+      "kind": "confirmation",
+      "fields": [
+        "订单号",
+        "实付金额",
+        "全额退款金额",
+        "原因/备注",
+        "状态以渠道回读为准"
+      ],
+      "primaryAction": "确认当前退款动作",
+      "secondaryAction": "返回",
+      "reason": "按申请/批准/拒绝真实动作区分，不预示到账"
+    },
+    {
+      "key": "role-change",
+      "title": "变更管理员权限",
+      "kind": "authorization",
+      "fields": [
+        "目标账号",
+        "当前与目标角色",
+        "授权范围",
+        "目标会话失效",
+        "用户需主动重新登录"
+      ],
+      "primaryAction": "确认变更",
+      "secondaryAction": "取消",
+      "reason": "只能在canChangeRole允许时操作"
+    }
+  ]
+}

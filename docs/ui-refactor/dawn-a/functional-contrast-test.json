@@ -1,0 +1,30 @@
+{
+  "passed": true,
+  "pairs": [
+    {
+      "foreground": "ink",
+      "background": "surface",
+      "ratio": 12.77
+    },
+    {
+      "foreground": "muted",
+      "background": "surface",
+      "ratio": 5.29
+    },
+    {
+      "foreground": "muted",
+      "background": "bg",
+      "ratio": 4.95
+    },
+    {
+      "foreground": "primary",
+      "background": "soft",
+      "ratio": 4.67
+    },
+    {
+      "foreground": "surface",
+      "background": "primary",
+      "ratio": 5.28
+    }
+  ]
+}
