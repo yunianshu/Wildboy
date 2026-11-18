@@ -174,14 +174,42 @@ class OrderCenterIntegrationTest {
   }
 
   @Test
-  void confirmReceiptSkipsWechatVerificationWhenOrderCenterDisabled() throws Exception {
-    var orderId = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000024", "8" + "0".repeat(31));
+  void confirmReceiptRejectsUnverifiedWechatOrderWhenOrderCenterDisabled() throws Exception {
+    var orderId = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000024", "8" + "0".repeat(30));
     when(wechatOrders.verifyReceiptConfirmed("42000000000000000000000000000024"))
         .thenReturn(new WechatOrderCenterService.CallResult(false, 0, "disabled", null));
     mvc.perform(post("/api/v1/order-center/orders/" + orderId + "/confirm-receipt")
             .header("Authorization", token))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.receiptConfirmed").value(true));
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WECHAT_ORDER_VERIFY_FAILED"));
+    assertThat(db.queryForObject("SELECT receipt_confirmed_at FROM shop_order WHERE id=?",
+        java.time.OffsetDateTime.class, orderId)).isNull();
+  }
+
+  @Test
+  void confirmReceiptFailsClosedWhenOrderCenterEnabledButVerificationImpossible() throws Exception {
+    var orderId = shopOrder(owner.id(), "SHIPPED", "42000000000000000000000000000061", "16" + "0".repeat(30));
+    when(wechatOrders.enabled()).thenReturn(true);
+    // 已启用却未外呼（如小程序配置缺失）：真实微信支付订单不允许跳过复核
+    when(wechatOrders.verifyReceiptConfirmed("42000000000000000000000000000061"))
+        .thenReturn(new WechatOrderCenterService.CallResult(false, 0, "disabled", null));
+    mvc.perform(post("/api/v1/order-center/orders/" + orderId + "/confirm-receipt")
+            .header("Authorization", token))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WECHAT_ORDER_VERIFY_FAILED"));
+    assertThat(db.queryForObject(
+        "SELECT receipt_confirmed_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+        .isNull();
+    // 复核外呼失败（网络/微信拒绝）：同样拒绝且不落库
+    when(wechatOrders.verifyReceiptConfirmed("42000000000000000000000000000061"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, -1, "get_order", null));
+    mvc.perform(post("/api/v1/order-center/orders/" + orderId + "/confirm-receipt")
+            .header("Authorization", token))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("WECHAT_ORDER_VERIFY_FAILED"));
+    assertThat(db.queryForObject(
+        "SELECT receipt_confirmed_at FROM shop_order WHERE id=?", java.time.OffsetDateTime.class, orderId))
+        .isNull();
   }
 
   @Test

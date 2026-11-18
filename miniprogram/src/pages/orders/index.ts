@@ -11,6 +11,9 @@ import { money, orderStatusLabel, payOrder, verifyPayment } from "../../utils/sh
 const epoch = new RequestEpoch();
 type Refund = { id:string; orderId:string; status:string; reason:string; decisionNote:string; lastError:string; amountCents:number };
 const refundLabels:Record<string,string>={REQUESTED:"待审核",REJECTED:"已拒绝",PROCESSING:"退款中",UNKNOWN:"结果待核对",SUCCESS:"已退款",ABNORMAL:"退款异常",CLOSED:"退款关闭"};
+// 只有终态且未成功的退款（被拒绝/被微信关闭）允许重新提交；进行中或已退款不得重复申请。
+const refundReRequestable = (record: Refund | null) =>
+  !record || record.status === "REJECTED" || record.status === "CLOSED";
 type OrderView = Order & {
   statusText: string;
   totalText: string;
@@ -40,7 +43,7 @@ Page({
       { code: "REFUNDED", name: "已退款" },
     ],
     busyId: "",
-    refundOrderId: "", refundRecord: null as Refund | null, refundAmountText: "", refundStatusText: "", refundReason: "", refundError: "",
+    refundOrderId: "", refundRecord: null as Refund | null, refundReRequestable: false, refundAmountText: "", refundStatusText: "", refundReason: "", refundError: "",
     error: "",
   },
   onShow() {
@@ -50,7 +53,7 @@ Page({
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:"" });
+    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundReRequestable:false,refundAmountText:"",refundReason:"",refundError:"" });
   },
   onReachBottom() {
     void this.load(false);
@@ -212,22 +215,23 @@ Page({
     this.setData({busyId:id,error:""});
     try {
       const record=await request<Refund|null>(`/orders/${id}/refund`);
-      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundAmountText:record&&Number.isFinite(record.amountCents)?`¥${(record.amountCents/100).toFixed(2)}`:"",refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundOrderId:id,refundRecord:record,refundReRequestable:refundReRequestable(record),refundAmountText:record&&Number.isFinite(record.amountCents)?`¥${(record.amountCents/100).toFixed(2)}`:"",refundStatusText:record?refundLabels[record.status]||record.status:"",refundReason:"",refundError:""});
     } catch(error){if(epoch.valid(current))this.setData({error:message(error),...(!hasSession()?{items:[],loggedIn:false}:{})});}
     finally{if(epoch.valid(current))this.setData({busyId:""});}
   },
   refundInput(event:WechatMiniprogram.Input){if(!this.data.busyId)this.setData({refundReason:event.detail.value,refundError:""});},
-  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundAmountText:"",refundReason:"",refundError:""});},
+  closeRefund(){if(!this.data.busyId)this.setData({refundOrderId:"",refundRecord:null,refundReRequestable:false,refundAmountText:"",refundReason:"",refundError:""});},
   stopRefundEvent(){},
   async requestRefund(){
     const id=this.data.refundOrderId,reason=this.data.refundReason.trim();
-    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore||this.data.refundRecord)return;
+    // 进行中（待审核/退款中/待核对/异常）或已退款的申请禁止重复提交；被拒绝/已关闭可重申。
+    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore||!refundReRequestable(this.data.refundRecord))return;
     if(!reason||reason.length>200){this.setData({refundError:"请填写退款原因"});return;}
     const current=epoch.next(),session=sessionVersion();this.setData({busyId:id,refundError:""});
     try {
       const record=await request<Refund>(`/orders/${id}/refund`,"POST",{reason});
-      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundRecord:record,refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
-    } catch(error){if(epoch.valid(current))this.setData({refundError:message(error),...(!hasSession()?{items:[],loggedIn:false,refundOrderId:"",refundRecord:null}:{})});}
+      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundRecord:record,refundReRequestable:refundReRequestable(record),refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
+    } catch(error){if(epoch.valid(current))this.setData({refundError:message(error),...(!hasSession()?{items:[],loggedIn:false,refundOrderId:"",refundRecord:null,refundReRequestable:false}:{})});}
     finally{if(epoch.valid(current))this.setData({busyId:""});}
   },
   async cancel(event: WechatMiniprogram.TouchEvent) {

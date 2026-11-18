@@ -435,22 +435,43 @@ public class ShopService {
       throw ApiException.conflict("ORDER_EXPIRED", "订单支付期限已过，正在安全关闭，请重新下单");
   }
 
+  /** 提交支付意图时记录的网关身份；缺席确认与跨商户重试守卫都依赖它。 */
+  private record PaymentAttempt(String merchantId, String appId, boolean gatewaySeen) {}
+
+  private PaymentAttempt paymentAttempt(String id) {
+    return db.queryForObject(
+        "SELECT payment_merchant_id,payment_app_id,payment_gateway_seen FROM shop_order WHERE id=?",
+        (r, n) -> new PaymentAttempt(r.getString(1), r.getString(2), r.getBoolean(3)), id);
+  }
+
+  /** 与活动订单一致：记录的商户/AppID 与当前配置相同才允许按同一渠道重试或确认缺席。 */
+  private boolean sameGateway(PaymentAttempt attempt) {
+    return attempt.merchantId() != null && attempt.appId() != null && pay.enabled()
+        && attempt.merchantId().equals(pay.merchantId()) && attempt.appId().equals(pay.appId());
+  }
+
   public PaymentRequest payment(String id, String userId) {
     // Commit intent BEFORE the external call. A timeout/crash must never erase the possibility
     // that WeChat created the order; cancellation must close it before releasing stock.
     String openid = auth.wechatOpenid(userId);
     pay.requireConfigured();
     transactions.executeWithoutResult(status -> {
-      requirePayable(lockOrder(id, userId, false));
-      db.update("UPDATE shop_order SET payment_initiated=TRUE,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", id);
+      Order order = lockOrder(id, userId, false);
+      requirePayable(order);
+      // 原支付意图属于其他商户/应用时不能换渠道重试：旧渠道订单可能仍在途并被支付。
+      if (order.paymentInitiated() && !sameGateway(paymentAttempt(id)))
+        throw ApiException.conflict("PAYMENT_UNCERTAIN", "原支付渠道待核对，订单继续保留，请联系客服");
+      db.update("UPDATE shop_order SET payment_initiated=TRUE,payment_merchant_id=?,payment_app_id=?,payment_not_found_at=NULL,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+          pay.merchantId(), pay.appId(), id);
     });
     try {
       return transactions.execute(status -> {
         Order order = lockOrder(id, userId, false);
         requirePayable(order);
         PaymentRequest request = pay.prepay(withItems(order), openid);
-        // 预支付成功即解除此前失败留下的待核对状态：订单在微信侧受控，缺席探测作废。
-        db.update("UPDATE shop_order SET reconciliation_required=FALSE,payment_not_found_at=NULL WHERE id=?", id);
+        // 预支付成功即解除此前失败留下的待核对状态：订单已在微信侧建单（曾见过网关订单），
+        // 缺席探测作废且此后查无此单永不释放库存。
+        db.update("UPDATE shop_order SET reconciliation_required=FALSE,payment_not_found_at=NULL,payment_gateway_seen=TRUE WHERE id=?", id);
         return request;
       });
     } catch (RuntimeException failure) {
@@ -465,13 +486,19 @@ public class ShopService {
     Order order = lockOrder(id, userId, false);
     if (!order.status().equals("PENDING_PAYMENT") || !order.paymentInitiated())
       return withItems(order);
+    if (!sameGateway(paymentAttempt(id))) {
+      markReconciliation(id);
+      return order(id, userId, false);
+    }
     Transaction remote;
     try {
       remote = pay.queryOrder(order.orderNo());
     } catch (WechatPayService.OrderNotFound notExist) {
-      // 微信查无此单：预支付失败后从未建单，不确定性解除，等待重试支付或到期关闭。
-      db.update("UPDATE shop_order SET reconciliation_required=FALSE WHERE id=?", id);
-      return withItems(order);
+      // 微信查无此单。只有与原支付渠道一致时这个应答才能解除待核对状态；
+      // 身份不同（如切换商户号）的查无此单不能证明本渠道从未建单。
+      if (sameGateway(paymentAttempt(id)))
+        db.update("UPDATE shop_order SET reconciliation_required=FALSE WHERE id=?", id);
+      return order(id, userId, false);
     }
     if (remote == null || remote.getTradeState() == null)
       throw new ApiException(502, "WECHAT_QUERY_FAILED", "微信订单状态暂无法确认，请稍后重试");
@@ -485,9 +512,9 @@ public class ShopService {
     }
     // NOTPAY/USERPAYING/CLOSED are not proof of payment and never release stock here.
     // Cancellation and expiry own the safe gateway-close/restock workflow.
-    // 微信已权威应答「未支付」：预支付失败留下的待核对状态随之解除。
-    db.update("UPDATE shop_order SET reconciliation_required=FALSE WHERE id=?", id);
-    return withItems(order);
+    // 微信已权威应答「未支付」：曾在网关见过此单，待核对状态解除后返回已提交的最新状态。
+    db.update("UPDATE shop_order SET reconciliation_required=FALSE,payment_gateway_seen=TRUE WHERE id=?", id);
+    return order(id, userId, false);
   }
 
   public Order cancelOrder(String id, String userId) {
@@ -528,6 +555,10 @@ public class ShopService {
     if (!order.status().equals("PENDING_PAYMENT") && !order.status().equals("CONFIRMED_FREE"))
       throw ApiException.conflict("ORDER_NOT_CANCELLABLE", "当前订单不能取消");
     if (order.paymentInitiated()) {
+      if (!sameGateway(paymentAttempt(order.id()))) {
+        markReconciliation(order.id());
+        return withItems(order);
+      }
       try {
         pay.closeOrder(order.orderNo());
       } catch (ApiException closeFailure) {
@@ -548,18 +579,25 @@ public class ShopService {
           markReconciliation(order.id());
           return withItems(order);
         }
-        if (remote != null && Objects.equals(remote.getOutTradeNo(), order.orderNo())
+        boolean matchesGateway = remote != null
+            && Objects.equals(remote.getOutTradeNo(), order.orderNo())
             && Objects.equals(remote.getMchid(), pay.merchantId())
-            && Objects.equals(remote.getAppid(), pay.appId())
-            && remote.getTradeState() == Transaction.TradeStateEnum.SUCCESS) {
+            && Objects.equals(remote.getAppid(), pay.appId());
+        if (matchesGateway)
+          // 查单命中本渠道订单：此后即使再查无此单也绝不释放库存。
+          db.update("UPDATE shop_order SET payment_gateway_seen=TRUE WHERE id=?", order.id());
+        if (matchesGateway && remote.getTradeState() == Transaction.TradeStateEnum.SUCCESS) {
           completePayment(remote);
           return order(order.id(), order.userId(), false);
         }
-        if (!absenceConfirmed
-            && (remote == null || remote.getTradeState() != Transaction.TradeStateEnum.CLOSED
-                || !Objects.equals(remote.getOutTradeNo(), order.orderNo())
-                || !Objects.equals(remote.getMchid(), pay.merchantId())
-                || !Objects.equals(remote.getAppid(), pay.appId()))) throw closeFailure;
+        if (matchesGateway && remote.getTradeState() != Transaction.TradeStateEnum.CLOSED) {
+          // Persist positive gateway evidence even when the close could not complete.
+          // Throwing here would roll back gateway_seen and make later absence probes unsafe.
+          markReconciliation(order.id());
+          return withItems(order);
+        }
+        if (!absenceConfirmed && (!matchesGateway || remote.getTradeState() != Transaction.TradeStateEnum.CLOSED))
+          throw closeFailure;
       }
     }
     db.update("UPDATE shop_order SET status='CANCELLED',reconciliation_required=FALSE,payment_not_found_at=NULL,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", order.id());
@@ -573,10 +611,16 @@ public class ShopService {
 
   /**
    * 微信查无此单（ORDER_NOT_EXIST）时的缺席确认：预支付从未建单，或建单请求仍在途。
-   * 与活动订单一致，仅在订单过期 {@value #ABSENCE_CONFIRMATION_SECONDS} 秒后、两次独立探测
-   * （间隔至少 {@value #ABSENCE_CONFIRMATION_SECONDS} 秒）都查无此单时才确认缺席。
+   * 与活动订单一致：原支付商户/AppID 必须与当前配置相同（切换商户号后别家渠道的
+   * 「查无此单」不能证明本渠道从未建单）、且从未在微信侧见过此单（预支付成功或查单
+   * 命中都会置位 {@code payment_gateway_seen}），并在订单过期
+   * {@value #ABSENCE_CONFIRMATION_SECONDS} 秒后、两次独立探测（间隔至少
+   * {@value #ABSENCE_CONFIRMATION_SECONDS} 秒）都查无此单时才确认缺席。
+   * 历史行身份为 NULL 时按未知渠道处理：宁可保留库存交人工核对，不自动释放。
    */
   private boolean confirmGatewayAbsence(Order order) {
+    PaymentAttempt attempt = paymentAttempt(order.id());
+    if (!sameGateway(attempt) || attempt.gatewaySeen()) return false;
     var now = OffsetDateTime.now();
     if (now.isBefore(order.expiresAt().plusSeconds(ABSENCE_CONFIRMATION_SECONDS))) return false;
     OffsetDateTime notFoundAt = db.queryForObject(

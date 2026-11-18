@@ -166,6 +166,17 @@ class WechatOrderCenterServiceTest {
     wechat.verify();
   }
 
+  @Test
+  void receiptVerificationFailsClosedWhenEnabledButUnconfigured() {
+    // 已启用但缺少小程序配置：按核对失败处理（attempted + errcode=-1），不放行本地确认收货
+    var gateway = new WechatNotificationGateway("", "", false, "", "thing1", "time2", "thing3", "trial");
+    var enabled = new WechatOrderCenterService(gateway, true);
+    var result = enabled.verifyReceiptConfirmed("4200000001");
+    assertTrue(result.attempted());
+    assertEquals(-1, result.errcode());
+    wechat.verify();
+  }
+
   private void expectAccessToken() {
     wechat.expect(requestTo(WECHAT + "/cgi-bin/token?grant_type=client_credential&appid=" + APP
             + "&secret=order-center-test-secret"))

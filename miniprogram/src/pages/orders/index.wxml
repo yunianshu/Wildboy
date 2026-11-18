@@ -26,8 +26,8 @@
 <ui-dialog wx:if="{{refundOrderId}}" title="退款 / 售后" busy="{{!!busyId}}" bindclose="closeRefund">
   <scroll-view scroll-y class="ui-refund-body">
     <block wx:if="{{refundRecord}}"><view class="badge">{{refundStatusText}}{{refundAmountText ? " · " + refundAmountText : ""}}</view><view class="notice">{{refundRecord.reason}}</view><view>{{refundRecord.decisionNote || refundRecord.lastError}}</view></block>
-    <block wx:else><view class="notice">已付款、未发货订单可申请整单退款。</view><view class="field"><text class="label">退款原因</text><textarea placeholder="请简要说明退款原因" maxlength="200" value="{{refundReason}}" bindinput="refundInput" disabled="{{busyId}}" /></view></block>
+    <block wx:if="{{!refundRecord || refundReRequestable}}"><view class="notice">{{refundRecord ? "上一次申请已结束，可重新提交退款申请。" : "已付款、未发货订单可申请整单退款。"}}</view><view class="field"><text class="label">退款原因</text><textarea placeholder="请简要说明退款原因" maxlength="200" value="{{refundReason}}" bindinput="refundInput" disabled="{{busyId}}" /></view></block>
     <view wx:if="{{refundError}}" class="error" aria-role="alert">{{refundError}}</view>
   </scroll-view>
-  <view slot="footer" class="dialog-actions"><button class="secondary" bindtap="closeRefund" disabled="{{busyId}}">关闭</button><button wx:if="{{!refundRecord}}" class="primary" bindtap="requestRefund" disabled="{{busyId}}" loading="{{busyId}}">提交申请</button></view>
+  <view slot="footer" class="dialog-actions"><button class="secondary" bindtap="closeRefund" disabled="{{busyId}}">关闭</button><button wx:if="{{!refundRecord || refundReRequestable}}" class="primary" bindtap="requestRefund" disabled="{{busyId}}" loading="{{busyId}}">提交申请</button></view>
 </ui-dialog>

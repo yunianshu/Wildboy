@@ -462,6 +462,46 @@ test("refund submission uses current identity and duplicate clicks send once",as
  const p=page("orders");p.setData({loading:false,refundOrderId:"order-1",refundReason:"不再需要"});let resolve;let calls=0;api.request=()=>{calls++;return new Promise(r=>resolve=r);};
  const pending=p.requestRefund();await p.requestRefund();assert.equal(calls,1);session++;resolve({id:"r",status:"REQUESTED"});await pending;assert.equal(p.data.refundRecord,null);
 });
+test("rejected or closed refunds can be re-requested but active or successful ones cannot",async()=>{
+ // 已拒绝的退款允许重新提交
+ const p=page("orders");p.data.loading=false;
+ let record={id:"r1",orderId:"order-1",status:"REJECTED",reason:"第一次",decisionNote:"已沟通",lastError:"",amountCents:19905};
+ api.request=async(path,method,data)=>{requests.push({path,method,data});
+  if(method==="POST"){record={id:"r2",orderId:"order-1",status:"REQUESTED",reason:data.reason,decisionNote:"",lastError:"",amountCents:19905};return record;}
+  return record;};
+ await p.openRefund(event("order-1"));
+ assert.equal(p.data.refundRecord.status,"REJECTED");
+ assert.equal(p.data.refundReRequestable,true);
+ assert.equal(p.data.refundStatusText,"已拒绝");
+ p.refundInput({detail:{value:"重新申请退款"}});
+ await p.requestRefund();
+ assert.equal(p.data.refundRecord.status,"REQUESTED");
+ assert.equal(p.data.refundReRequestable,false);
+ assert.equal(p.data.refundStatusText,"待审核");
+ await p.requestRefund();
+ assert.equal(requests.filter(r=>r.method==="POST").length,1);
+ // 进行中与已退款的申请不放开重申入口
+ for(const status of ["REQUESTED","PROCESSING","UNKNOWN","ABNORMAL","SUCCESS"]){
+  p.setData({refundOrderId:"order-1",refundRecord:{id:"x",orderId:"order-1",status,reason:"r",decisionNote:"",lastError:"",amountCents:19905},refundReRequestable:false,refundReason:"再来一次"});
+  await p.requestRefund();
+  assert.equal(requests.filter(r=>r.method==="POST").length,1,status+" 不应重复提交");
+ }
+ // 微信关闭的退款同样允许重新提交
+ p.setData({refundOrderId:"order-1",refundRecord:{id:"c1",orderId:"order-1",status:"CLOSED",reason:"r",decisionNote:"",lastError:"",amountCents:19905},refundReRequestable:true,refundReason:"关闭后重申"});
+ await p.requestRefund();
+ assert.equal(p.data.refundRecord.status,"REQUESTED");
+ assert.equal(requests.filter(r=>r.method==="POST").length,2);
+ p.closeRefund();
+ assert.equal(p.data.refundReRequestable,false);
+});
+test("refund dialog markup keeps the form available only for re-requestable records",()=>{
+ const markup=fs.readFileSync("src/pages/orders/index.wxml","utf8");
+ assert.match(markup,/wx:if="\{\{!refundRecord \|\| refundReRequestable\}\}"/);
+ // 提交按钮与表单同门控；状态徽标仍只依赖记录存在
+ const submit=markup.match(/<button[^>]*bindtap="requestRefund"[^>]*>/);
+ assert.ok(submit);
+ assert.match(submit[0],/wx:if="\{\{!refundRecord \|\| refundReRequestable\}\}"/);
+});
 
 test("refund actions cannot invalidate an in-flight order page and leave loading stuck", async () => {
   const p = page("orders");

@@ -58,8 +58,7 @@ public class OrderCenterController {
 
   /**
    * 确认收货：仅已发货的微信支付装备订单；服务端以微信 get_order 复核 order_state≥3
-   * 后写入 receipt_confirmed_at。发货上报开关关闭（测试环境）时跳过复核直接落库，
-   * 与发货上报的守卫口径一致。
+   * 后写入 receipt_confirmed_at。复核未外呼或未通过一律拒绝，不放行本地确认。
    *
    * <p>复核与落库在同一事务内持有订单行锁：复核期间退款/取消无法插队改写状态；
    * 落库仍带状态守卫，复核通过后订单若已离开 SHIPPED（如已退款）则拒绝确认。
@@ -78,6 +77,10 @@ public class OrderCenterController {
         throw ApiException.conflict("NO_WECHAT_TRANSACTION",
             "免微信支付订单无需确认收货");
       var verify = wechatOrders.verifyReceiptConfirmed(order.paymentTransactionId());
+      if (!verify.attempted())
+        // A skipped verification is never proof of receipt for a real WeChat transaction.
+        throw ApiException.conflict("WECHAT_ORDER_VERIFY_FAILED",
+            "微信订单状态暂无法核对，请稍后重试");
       if (verify.attempted() && verify.errcode() == 0) {
         int state = WechatOrderCenterService.orderState(verify);
         if (state < WechatOrderCenterService.ORDER_STATE_CONFIRMED)

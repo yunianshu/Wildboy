@@ -1045,6 +1045,9 @@ class BackendIntegrationTest {
 
   @Test
   void paymentPrepayCloseAndShipmentFollowOrderState() {
+    when(pay.enabled()).thenReturn(true);
+    when(pay.merchantId()).thenReturn("merchant-qa");
+    when(pay.appId()).thenReturn("app-qa");
     var product = product(5000, 2);
     User customer = auth.user("wechat:qa-openid", "Wechat customer", "USER");
     var order = shop.createOrder(customer.id(), orderInput(product.id(), 1));

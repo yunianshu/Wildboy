@@ -86,10 +86,16 @@ public class WechatOrderCenterService {
     return post("get_order_detail_path", Map.of());
   }
 
-  /** 确认收货复核：order_state ≥ 3 视为微信侧已确认/已完成。 */
+  /**
+   * 确认收货复核：order_state ≥ 3 视为微信侧已确认/已完成。
+   *
+   * <p>Disabled integration returns skipped; callers must not treat it as proof of receipt.
+   * Missing configuration is a verification failure.
+   */
   public CallResult verifyReceiptConfirmed(String transactionId) {
-    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank())
-      return CallResult.skipped("disabled");
+    if (!enabled) return CallResult.skipped("disabled");
+    if (gateway.appId.isBlank() || gateway.secret.isBlank())
+      return CallResult.failed(-1, "shipping_configuration_unavailable");
     if (transactionId == null || transactionId.isBlank())
       return CallResult.skipped("missing_transaction");
     var body = new LinkedHashMap<String, Object>();

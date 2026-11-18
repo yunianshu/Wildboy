@@ -38,19 +38,27 @@
 
 ## 商品订单支付恢复
 
-- 预支付重试成功、支付回调、或查单得到微信权威的「未支付/查无此单」应答后，都会解除 `reconciliation_required` 待核对状态；只有查询失败或结果不匹配时保留。
+- 预支付重试成功、支付回调、或查单得到微信权威的「未支付/查无此单」应答后，都会解除 `reconciliation_required` 待核对状态；只有查询失败、结果不匹配或渠道身份不一致时保留。核对响应返回与数据库已提交状态一致的最新订单。
 - `closeOrder` 失败且微信 `ORDER_NOT_EXIST` 时不再永久占用库存：按活动订单同等的缺席确认纪律处理——订单过期 60 秒后、两次独立探测（间隔至少 60 秒）都查无此单，才认定微信从未建单，取消订单并回补库存（`payment_not_found_at` 记录首次探测，V28 迁移新增）。首次探测或未到期成熟时取消请求返回 `PAYMENT_UNCERTAIN` 并保留库存，由过期任务每 5 分钟自动重试。
+- 缺席确认必须核对原支付商户/AppID（提交支付意图时记录，V30 迁移新增 `payment_merchant_id`/`payment_app_id`/`payment_gateway_seen`）：切换商户号后别家渠道的「查无此单」不能证明本渠道从未建单；预支付成功或查单命中即置「曾见网关订单」，此后查无此单永不释放库存；渠道身份未知的在途订单保留库存交人工核对。跨商户重试支付同样被 `PAYMENT_UNCERTAIN` 拒绝，防止旧渠道订单在途时换渠道重复建单。
 - 用户主动取消在缺席未确认前同样返回 `PAYMENT_UNCERTAIN`；已支付/已关闭的微信单仍分别按对账成功或正常取消处理，行为不变。
 
 ## 退款重新申请（商城）
 
-被拒绝（REJECTED）或被微信关闭（CLOSED）的退款单可以重新发起申请：进行中的申请仍幂等返回，`own` 接口优先展示进行中记录。V29 迁移把「每订单一条退款」的全局唯一约束放宽为「每订单最多一条进行中」的部分唯一索引，终态记录保留为历史。迟到的网关回调不能复活已终结申请。
+被拒绝（REJECTED）或被微信关闭（CLOSED）的退款单可以重新发起申请：进行中的申请仍幂等返回，`own` 接口优先展示进行中记录。V29 迁移把「每订单一条退款」的全局唯一约束放宽为「每订单最多一条进行中」的部分唯一索引，终态记录保留为历史。迟到的网关回调不能复活已终结申请。小程序订单页退款弹窗同样只对 REJECTED/CLOSED 开放重新提交，进行中（待审核/退款中/待核对/异常）与已退款不放开。
 
 ## 收货确认与提醒
 
 - 确认收货在单个事务内持有订单行锁完成微信 `get_order` 复核与落库，复核期间退款/取消无法插队改写状态；落库带 `SHIPPED` 状态守卫并复读校验，订单已退款等场景整体回滚拒绝。
+- 微信支付订单必须取得有效的平台确认收货结果才落库；集成关闭、缺少配置、跳过核验或调用失败均拒绝本地确认，且不修改订单。
 - 确认收货提醒（每支付单微信限一次）只在微信真实应答（`errcode>=0`，成功或明确拒绝）时记录 `confirm_reminded_at`；网络异常（未到达微信）保留待办由下轮扫描重试，不再把一次性提醒机会烧在传输失败上。
 
 ## 验证方式
 
 后端以既有 Java 21、Maven 和缓存依赖离线运行；集成与迁移测试使用临时 EmbeddedPostgres，微信接口全部模拟。重点测试包括失败恢复、开关切换、历史过滤/错峰、重复登记、并发领取/完成、过期令牌、成功不回退、退款锁、异常兜底提交和诊断脱敏。实际执行结果以本次提交报告为准，测试通过不能代替微信真机支付或生产根因排查。
+
+## Follow-up verification safeguards
+
+- Real WeChat receipt confirmation rejects skipped verification, including disabled integration.
+- Payment verification and closing require the original merchant/AppID identity before any gateway request. Unknown legacy identities retain stock for manual reconciliation.
+- Positive gateway evidence survives an unsuccessful close, preventing a later not-found response from releasing reserved stock.
