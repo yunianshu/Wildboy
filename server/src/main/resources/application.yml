@@ -40,6 +40,10 @@ wildboy:
   wechat:
     app-id: ${WECHAT_APP_ID:}
     app-secret: ${WECHAT_APP_SECRET:}
+    # 消息推送服务（发货信息管理事件）：mp 后台「消息推送」配置的 Token 与
+    # EncodingAESKey（安全模式必填）。留空时 /api/v1/wechat/messages 拒绝接收。
+    push-token: ${WECHAT_PUSH_TOKEN:}
+    push-aes-key: ${WECHAT_PUSH_AES_KEY:}
   shipping:
     # 微信「发货信息管理」上报开关：交易类小程序合规要求，生产开启
     enabled: ${WILDBOY_SHIPPING_ENABLED:false}

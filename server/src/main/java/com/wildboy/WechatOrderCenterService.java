@@ -87,6 +87,43 @@ public class WechatOrderCenterService {
   }
 
   /**
+   * 设置发货消息/确认收货消息点击后的跳转路径（set_msg_jump_path）。
+   * 平台会在路径后追加 transaction_id、merchant_id、merchant_trade_no（及二级商户号）
+   * 查询参数；路径为空或不存在时仍跳平台默认页。要求已接入确认收货组件。
+   */
+  public CallResult setMsgJumpPath(String path) {
+    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank())
+      return CallResult.skipped("disabled");
+    String normalized = path == null ? "" : path.strip();
+    if (normalized.isEmpty() || normalized.length() > 256 || normalized.contains("://")
+        || !normalized.matches("[a-zA-Z0-9/_?&=%.,:-]+"))
+      throw new ApiException(400, "INVALID_JUMP_PATH", "跳转路径需为合法的小程序页面路径");
+    return post("set_msg_jump_path", Map.of("path", normalized));
+  }
+
+  /**
+   * 对账查询微信侧发货管理订单列表（get_order_list）：按支付时间/支付者/状态过滤，
+   * 翻页用 last_index + page_size（上限 100）。body 原样透传给调用方解析。
+   */
+  public CallResult getOrderList(Long beginTime, Long endTime, Integer orderState,
+      String openid, String lastIndex, Integer pageSize) {
+    if (!enabled || gateway.appId.isBlank() || gateway.secret.isBlank())
+      return CallResult.skipped("disabled");
+    var body = new LinkedHashMap<String, Object>();
+    if (beginTime != null || endTime != null) {
+      var range = new LinkedHashMap<String, Object>();
+      if (beginTime != null) range.put("begin_time", beginTime);
+      if (endTime != null) range.put("end_time", endTime);
+      body.put("pay_time_range", range);
+    }
+    if (orderState != null) body.put("order_state", orderState);
+    if (openid != null && !openid.isBlank()) body.put("openid", openid.strip());
+    if (lastIndex != null && !lastIndex.isBlank()) body.put("last_index", lastIndex);
+    if (pageSize != null) body.put("page_size", Math.min(Math.max(pageSize, 1), 100));
+    return post("get_order_list", body);
+  }
+
+  /**
    * 确认收货复核：order_state ≥ 3 视为微信侧已确认/已完成。
    *
    * <p>Disabled integration returns skipped; callers must not treat it as proof of receipt.

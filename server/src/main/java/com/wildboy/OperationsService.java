@@ -23,6 +23,9 @@ public class OperationsService {
         """));
     result.put("orders",db.queryForMap("SELECT COUNT(*) FILTER (WHERE status IN ('PAID','SHIPPED','REFUNDED')) AS paid_orders,COALESCE(SUM(total_cents) FILTER (WHERE status IN ('PAID','SHIPPED','REFUNDED')),0) AS gross_cents,COALESCE(SUM(total_cents) FILTER (WHERE status='REFUNDED'),0) AS refunded_cents FROM shop_order WHERE paid_at>=CURRENT_TIMESTAMP-(? * INTERVAL '1 day')",days));
     result.put("pendingShipping",db.queryForObject("SELECT COUNT(*) FROM shop_order WHERE status IN ('PAID','CONFIRMED_FREE') AND NOT EXISTS(SELECT 1 FROM refund_request r WHERE r.order_id=shop_order.id AND r.status IN ('REQUESTED','PROCESSING','UNKNOWN','ABNORMAL'))",Long.class));
+    // 微信发货信息管理：48 小时未发货会被平台催办；本地 24h/40h 两级预警计数（仅微信支付单）。
+    result.put("shippingDueSoon",db.queryForObject("SELECT COUNT(*) FROM shop_order o WHERE o.status='PAID' AND o.payment_transaction_id IS NOT NULL AND o.paid_at<=CURRENT_TIMESTAMP-INTERVAL '24 hours' AND o.paid_at>CURRENT_TIMESTAMP-INTERVAL '40 hours' AND NOT EXISTS(SELECT 1 FROM refund_request r WHERE r.order_id=o.id AND r.status NOT IN ('REJECTED','CLOSED'))",Long.class));
+    result.put("shippingOverdue",db.queryForObject("SELECT COUNT(*) FROM shop_order o WHERE o.status='PAID' AND o.payment_transaction_id IS NOT NULL AND o.paid_at<=CURRENT_TIMESTAMP-INTERVAL '40 hours' AND NOT EXISTS(SELECT 1 FROM refund_request r WHERE r.order_id=o.id AND r.status NOT IN ('REJECTED','CLOSED'))",Long.class));
     result.put("shippingReportFailures",db.queryForObject("SELECT COUNT(*) FROM shipping_report WHERE status IN ('PENDING','FAILED')",Long.class));
     result.put("lowStock",db.queryForList("SELECT id,name,stock FROM product WHERE status='ON_SALE' AND stock<=5 ORDER BY stock,id LIMIT 20"));
     result.put("trend",db.queryForList("SELECT to_char(paid_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD') AS day,COUNT(*) AS orders,COALESCE(SUM(total_cents),0) AS gross_cents,COALESCE(SUM(total_cents) FILTER(WHERE status='REFUNDED'),0) AS refunded_cents FROM shop_order WHERE paid_at>=CURRENT_TIMESTAMP-(? * INTERVAL '1 day') AND status IN ('PAID','SHIPPED','REFUNDED') GROUP BY 1 ORDER BY 1",days));
@@ -31,6 +34,12 @@ public class OperationsService {
   static final String EXCEPTIONS="""
       SELECT 'PAYMENT' AS kind,id,id AS entity_id,'待核对支付' AS message,'UNKNOWN' AS status,version,updated_at,
         NULL::varchar AS activity_id FROM shop_order WHERE reconciliation_required=true
+      UNION ALL SELECT 'SHIPPING',id,id,CASE WHEN paid_at<=CURRENT_TIMESTAMP-INTERVAL '40 hours'
+          THEN '微信单超40小时未发货' ELSE '微信单超24小时未发货' END,'PAID',version,paid_at,NULL
+        FROM shop_order WHERE status='PAID' AND payment_transaction_id IS NOT NULL
+          AND paid_at<=CURRENT_TIMESTAMP-INTERVAL '24 hours'
+          AND NOT EXISTS(SELECT 1 FROM refund_request r WHERE r.order_id=shop_order.id
+            AND r.status NOT IN ('REJECTED','CLOSED'))
       UNION ALL SELECT 'REFUND',id,order_id,'退款待处理',status,version,updated_at,NULL
         FROM refund_request WHERE status IN ('REQUESTED','UNKNOWN','ABNORMAL')
       UNION ALL SELECT 'ACTIVITY_PAYMENT',id,id,'活动支付待核对','UNKNOWN',version,updated_at,activity_id

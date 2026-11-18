@@ -49,6 +49,8 @@ function fetcher() {
           activities: { total: 2, registrations: 10, capacity: 20, full: 1 },
           orders: { paid_orders: 3, gross_cents: 10000, refunded_cents: 2000 },
           pendingShipping: 1,
+          shippingDueSoon: 2,
+          shippingOverdue: 1,
           lowStock: [],
           trend: [],
         };
@@ -125,6 +127,8 @@ describe("operational workflows", () => {
     const w = mountView(OperationsView);
     await flushPromises();
     expect(w.text()).toContain("¥80.00");
+    expect(w.text()).toContain("发货预警（24h/40h）");
+    expect(w.text()).toContain("2 / 1");
     await w
       .findAll("button")
       .find((b) => b.text() === "异常待办")!

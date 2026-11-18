@@ -184,4 +184,55 @@ class WechatOrderCenterServiceTest {
         .andRespond(withSuccess("{\"access_token\":\"order-center-token\",\"expires_in\":7200}",
             MediaType.APPLICATION_JSON));
   }
+
+  @Test
+  void setsMsgJumpPathWithAccessTokenAndStripsWhitespace() {
+    expectAccessToken();
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/set_msg_jump_path?access_token=order-center-token"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(content().json("{\"path\":\"pages/order-detail/index\"}", JsonCompareMode.STRICT))
+        .andRespond(withSuccess("{\"errcode\":0,\"errmsg\":\"ok\"}", MediaType.APPLICATION_JSON));
+    var result = service.setMsgJumpPath(" pages/order-detail/index ");
+    assertTrue(result.attempted());
+    assertEquals(0, result.errcode());
+    wechat.verify();
+  }
+
+  @Test
+  void invalidJumpPathNeverCallsWechat() {
+    for (String path : new String[] {"", "   ", "javascript:alert(1)", "https://example.com/x",
+        "a".repeat(257), null}) {
+      var thrown = assertThrows(ApiException.class, () -> service.setMsgJumpPath(path));
+      assertEquals(400, thrown.status);
+      assertEquals("INVALID_JUMP_PATH", thrown.code);
+    }
+    wechat.verify();
+  }
+
+  @Test
+  void queriesWechatOrderListWithStrictBodyAndCappedPageSize() {
+    expectAccessToken();
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/get_order_list?access_token=order-center-token"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(content().json(
+            "{\"pay_time_range\":{\"begin_time\":100,\"end_time\":200},\"order_state\":2,"
+                + "\"openid\":\"o-pay\",\"page_size\":100}", JsonCompareMode.STRICT))
+        .andRespond(withSuccess(
+            "{\"errcode\":0,\"last_index\":\"idx\",\"has_more\":false,\"order_list\":[]}",
+            MediaType.APPLICATION_JSON));
+    var result = service.getOrderList(100L, 200L, 2, "o-pay", null, 500);
+    assertEquals(0, result.errcode());
+    assertEquals("idx", result.body().path("last_index").asText());
+    wechat.verify();
+  }
+
+  @Test
+  void orderListWithoutFiltersSendsEmptyBody() {
+    expectAccessToken();
+    wechat.expect(requestTo(WECHAT + "/wxa/sec/order/get_order_list?access_token=order-center-token"))
+        .andExpect(content().json("{}", JsonCompareMode.STRICT))
+        .andRespond(withSuccess("{\"errcode\":0,\"order_list\":[]}", MediaType.APPLICATION_JSON));
+    assertEquals(0, service.getOrderList(null, null, null, null, null, null).errcode());
+    wechat.verify();
+  }
 }

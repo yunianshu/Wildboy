@@ -62,3 +62,10 @@
 - Real WeChat receipt confirmation rejects skipped verification, including disabled integration.
 - Payment verification and closing require the original merchant/AppID identity before any gateway request. Unknown legacy identities retain stock for manual reconciliation.
 - Positive gateway evidence survives an unsuccessful close, preventing a later not-found response from releasing reserved stock.
+
+## 发货管理闭环补充（消息推送、预警、对账、消息跳转）
+
+- **消息推送接收**（`/api/v1/wechat/messages`，`WechatMessagePushController`）：按官方规范实现 GET 验证（sha1(token,timestamp,nonce) 字典序拼接，回显 echostr）与 POST 事件接收；明文模式验 `signature`，安全模式验 `msg_signature` 并 AES-256-CBC 解密（密文结构 random(16B)+len(4B 网络字节序)+msg+appid），解密后校验尾部 appid 归属，跨小程序密文重放被拒。发货信息管理四类事件（催接入、48 小时催发货、结算通知、管控提醒）写入 `audit_event`（`actor_id=system`，仅事件名与订单标识，不落 openid/消息文本）；其余事件确认接收不入库。Token/EncodingAESKey 未配置时端点一律 503，绝不在无验签下接收。上线需在 mp 后台「消息推送」配置 URL/Token/EncodingAESKey（数据格式 JSON，推荐安全模式），对应环境变量 `WECHAT_PUSH_TOKEN`/`WECHAT_PUSH_AES_KEY`。
+- **本地 48 小时发货预警**（`OrderShippingOverdueJob`，扫描间隔 `wildboy.orders.shipping-due-scan-ms` 默认 10 分钟）：微信平台对超 48 小时未发货订单催办；本地在 24h/40h 两级各告警一次（`SHIPPING_DUE_24H`/`SHIPPING_DUE_40H` 审计事件），仅限有微信交易号的实物订单，退款处理中不告警；运营看板新增 `shippingDueSoon`/`shippingOverdue` 计数，超时订单进入异常列表（kind=SHIPPING）。与官方催办推送互补兜底。
+- **消息跳转路径**（`set_msg_jump_path`）：管理后台「基础配置-微信电商订单」可设置发货/确认收货消息点击后的跳转页面；校验仅接受小程序页面路径（拒绝完整 URL），微信会在路径后追加 transaction_id 等参数，路径为空或不存在时仍跳平台默认页。
+- **微信订单对账**（`get_order_list`）：管理后台按支付时间/状态（1-6）/openid 直通查询微信侧支付单（lastIndex 翻页，page_size 上限 100），用于核对发货/确认收货/结算与纠纷标记；仅作对账，不回写本地订单。

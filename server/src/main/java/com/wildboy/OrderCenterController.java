@@ -141,4 +141,48 @@ public class OrderCenterController {
         "errcode", result.errcode(),
         "error", result.error());
   }
+
+  /** 设置发货消息/确认收货消息点击后的跳转路径（微信会在路径后追加订单参数）。 */
+  public record MsgJumpPathInput(
+      @NotBlank @Size(max = 256) String path) {}
+
+  @PutMapping("/api/v1/admin/wechat-order-center/msg-jump-path")
+  Map<String, Object> updateMsgJumpPath(@Valid @RequestBody MsgJumpPathInput input) {
+    var result = wechatOrders.setMsgJumpPath(input.path());
+    if (result == null)
+      throw ApiException.conflict("WECHAT_ORDER_CENTER_UNAVAILABLE", "微信订单服务不可用");
+    return Map.of(
+        "attempted", result.attempted(),
+        "errcode", result.errcode(),
+        "error", result.error());
+  }
+
+  /**
+   * 对账查询微信侧发货管理订单列表（get_order_list 直通）。orderState：
+   * 1=待发货 2=已发货 3=确认收货 4=交易完成 5=已退款 6=资金待结算；
+   * begin/end 为秒级时间戳，lastIndex 翻页续传。
+   */
+  @GetMapping("/api/v1/admin/wechat-order-center/wechat-orders")
+  Map<String, Object> wechatOrders(
+      @RequestParam(required = false) Long begin,
+      @RequestParam(required = false) Long end,
+      @RequestParam(required = false) Integer orderState,
+      @RequestParam(required = false) String openid,
+      @RequestParam(required = false) String lastIndex,
+      @RequestParam(required = false, defaultValue = "20") Integer size) {
+    if (orderState != null && (orderState < 1 || orderState > 6))
+      throw new ApiException(400, "INVALID_ORDER_STATE", "订单状态需为 1-6");
+    if (begin != null && end != null && begin > end)
+      throw new ApiException(400, "INVALID_TIME_RANGE", "开始时间不能晚于结束时间");
+    var result = wechatOrders.getOrderList(begin, end, orderState, openid, lastIndex, size);
+    var out = new java.util.LinkedHashMap<String, Object>();
+    out.put("attempted", result.attempted());
+    out.put("errcode", result.errcode());
+    out.put("error", result.error());
+    out.put("lastIndex", result.body() == null ? "" : result.body().path("last_index").asText(""));
+    out.put("hasMore", result.body() != null && result.body().path("has_more").asBoolean(false));
+    out.put("orders", result.body() == null ? java.util.List.of()
+        : result.body().path("order_list"));
+    return out;
+  }
 }

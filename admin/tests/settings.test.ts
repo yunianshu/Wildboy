@@ -344,3 +344,148 @@ it("shows wechat order center status and configures the detail path", async () =
   expect(JSON.parse(put![1].body)).toEqual({ path: "pages/order-detail/index?no=${商品订单号}" });
   w.unmount();
 });
+
+it("configures the wechat message jump path with local URL validation", async () => {
+  const calls: Array<[string, any?]> = [];
+  const fetchJump = vi.fn(async (url: string, opts: any = {}) => {
+    calls.push([url, opts]);
+    if (url.includes("/admin/wechat-order-center/status"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          enabled: true,
+          orderDetailPathConfigured: true,
+          orderDetailPath: "pages/a",
+          confirmationCompleted: true,
+          pathErrcode: 0,
+          confirmationErrcode: 0,
+        }),
+      };
+    if (url.includes("/articles?"))
+      return { ok: true, status: 200, json: async () => ({ items: [], hasMore: false }) };
+    if (opts.method === "PUT" && url.includes("msg-jump-path"))
+      return { ok: true, status: 200, json: async () => ({ attempted: true, errcode: 0 }) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+    };
+  });
+  vi.stubGlobal("fetch", fetchJump);
+  const w = await view();
+
+  const card = w.get(".order-center-card");
+  const jumpButton = card
+    .findAll("button")
+    .find((b) => b.text().includes("设置消息跳转路径"))!;
+  await jumpButton.trigger("click");
+  const dialog = w.get(".form-modal");
+  const input = dialog.get('input[name="msgJumpPath"]');
+  // 完整网址不是小程序页面路径 → 本地拦截
+  await input.setValue("https://evil.example/x");
+  await dialog.get("#msg-jump-form").trigger("submit");
+  await flushPromises();
+  expect(dialog.text()).toContain("不能是完整网址");
+  expect(
+    calls.find(([u, o]) => o?.method === "PUT" && u.includes("msg-jump-path")),
+  ).toBeUndefined();
+  // 合法路径 → 调用管理端点
+  await input.setValue("pages/order-detail/index");
+  await dialog.get("#msg-jump-form").trigger("submit");
+  await flushPromises();
+  const put = calls.find(([u, o]) => o?.method === "PUT" && u.includes("msg-jump-path"));
+  expect(put).toBeTruthy();
+  expect(JSON.parse(put![1].body)).toEqual({ path: "pages/order-detail/index" });
+  w.unmount();
+});
+
+it("queries wechat order list with filters and pagination", async () => {
+  const calls: Array<[string, any?]> = [];
+  let page = 0;
+  const fetchOrders = vi.fn(async (url: string, opts: any = {}) => {
+    calls.push([url, opts]);
+    if (url.includes("/admin/wechat-order-center/status"))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          enabled: true,
+          orderDetailPathConfigured: true,
+          orderDetailPath: "pages/a",
+          confirmationCompleted: true,
+          pathErrcode: 0,
+          confirmationErrcode: 0,
+        }),
+      };
+    if (url.includes("/articles?"))
+      return { ok: true, status: 200, json: async () => ({ items: [], hasMore: false }) };
+    if (url.includes("/admin/wechat-order-center/wechat-orders")) {
+      page += 1;
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          attempted: true,
+          errcode: 0,
+          error: "",
+          lastIndex: page === 1 ? "idx-1" : "idx-2",
+          hasMore: page === 1,
+          orders:
+            page === 1
+              ? [
+                  {
+                    transaction_id: "42000000000000000000000000000081",
+                    merchant_trade_no: "30000000000000000000000000000081",
+                    order_state: 2,
+                    pay_time: 1765000000,
+                    paid_amount: 19900,
+                    in_complaint: false,
+                  },
+                ]
+              : [
+                  {
+                    transaction_id: "42000000000000000000000000000082",
+                    merchant_trade_no: "30000000000000000000000000000082",
+                    order_state: 6,
+                    pay_time: 1765000100,
+                    paid_amount: 9900,
+                    in_complaint: true,
+                  },
+                ],
+        }),
+      };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+    };
+  });
+  vi.stubGlobal("fetch", fetchOrders);
+  const w = await view();
+
+  // 选择状态并查询
+  const form = w.get(".wechat-orders-filters");
+  await form.get("select").setValue("2");
+  await form.trigger("submit");
+  await flushPromises();
+  const first = calls.find(([u]) => u.includes("/wechat-orders?"))!;
+  expect(first[0]).toContain("orderState=2");
+  expect(first[0]).toContain("size=20");
+  const card2 = w.get('[aria-labelledby="wechat-orders-heading"]');
+  expect(card2.text()).toContain("42000000000000000000000000000081");
+  expect(card2.text()).toContain("已发货");
+  expect(card2.text()).toContain("¥199.00");
+  // 加载更多携带 lastIndex
+  const more = card2
+    .findAll("button")
+    .find((b) => b.text().includes("加载更多"))!;
+  await more.trigger("click");
+  await flushPromises();
+  const second = calls.filter(([u]) => u.includes("/wechat-orders?"))[1];
+  expect(second[0]).toContain("lastIndex=idx-1");
+  expect(card2.text()).toContain("资金待结算");
+  expect(card2.text()).toContain("纠纷中");
+  w.unmount();
+});

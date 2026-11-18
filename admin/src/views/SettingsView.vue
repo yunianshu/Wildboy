@@ -293,6 +293,119 @@ async function saveOrderPath() {
   }
 }
 onMounted(() => void loadOrderCenter());
+
+// 发货消息跳转路径：用户点微信发货/确认收货消息直达小程序订单页（set_msg_jump_path）。
+const jumpDialog = ref(false),
+  jumpValue = ref("pages/order-detail/index"),
+  jumpSaving = ref(false),
+  jumpError = ref("");
+async function saveJumpPath() {
+  const path = jumpValue.value.trim();
+  if (!path || path.includes("://")) {
+    jumpError.value = "请填写小程序页面路径（如 pages/order-detail/index），不能是完整网址。";
+    return;
+  }
+  jumpSaving.value = true;
+  jumpError.value = "";
+  try {
+    const result = await request<{ attempted: boolean; errcode: number }>(
+      "/admin/wechat-order-center/msg-jump-path",
+      { method: "PUT", body: JSON.stringify({ path }) },
+    );
+    if (!result.attempted) {
+      jumpError.value = "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      return;
+    }
+    if (result.errcode !== 0) {
+      jumpError.value = `微信返回错误码 ${result.errcode}；需先接入确认收货组件。`;
+      return;
+    }
+    jumpDialog.value = false;
+  } catch (e) {
+    jumpError.value = errorMessage(e);
+  } finally {
+    jumpSaving.value = false;
+  }
+}
+
+// 微信侧订单对账（get_order_list）：按支付时间/状态/openid 查询，lastIndex 翻页。
+type WechatOrderRow = {
+  transaction_id?: string;
+  merchant_trade_no?: string;
+  order_state?: number;
+  pay_time?: number;
+  paid_amount?: number;
+  in_complaint?: boolean;
+};
+const ORDER_STATE_LABELS = ["待发货", "已发货", "确认收货", "交易完成", "已退款", "资金待结算"];
+const wxOrders = ref<WechatOrderRow[]>([]),
+  wxQueried = ref(false),
+  wxLoading = ref(false),
+  wxError = ref(""),
+  wxState = ref<"" | number>(""),
+  wxOpenid = ref(""),
+  wxBegin = ref(""),
+  wxEnd = ref(""),
+  wxLastIndex = ref(""),
+  wxHasMore = ref(false);
+function epochOf(local: string): number | null {
+  if (!local) return null;
+  const ms = Date.parse(local);
+  return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+}
+async function queryWechatOrders(carry = "") {
+  if (wxLoading.value) return;
+  const begin = epochOf(wxBegin.value);
+  const end = epochOf(wxEnd.value);
+  if (!carry) {
+    if (wxBegin.value && begin === null) {
+      wxError.value = "开始时间格式无效。";
+      return;
+    }
+    if (wxEnd.value && end === null) {
+      wxError.value = "结束时间格式无效。";
+      return;
+    }
+  }
+  wxLoading.value = true;
+  wxError.value = "";
+  try {
+    const params = new URLSearchParams();
+    if (begin !== null) params.set("begin", String(begin));
+    if (end !== null) params.set("end", String(end));
+    if (wxState.value !== "") params.set("orderState", String(wxState.value));
+    if (wxOpenid.value.trim()) params.set("openid", wxOpenid.value.trim());
+    if (carry) params.set("lastIndex", carry);
+    else params.set("size", "20");
+    const result = await request<{
+      attempted: boolean;
+      errcode: number;
+      error: string;
+      lastIndex: string;
+      hasMore: boolean;
+      orders: WechatOrderRow[];
+    }>(`/admin/wechat-order-center/wechat-orders?${params.toString()}`);
+    if (!result.attempted) {
+      wxError.value = "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      return;
+    }
+    if (result.errcode !== 0) {
+      wxError.value = `微信返回错误码 ${result.errcode}。`;
+      return;
+    }
+    wxOrders.value = carry ? wxOrders.value.concat(result.orders) : result.orders;
+    wxLastIndex.value = result.lastIndex;
+    wxHasMore.value = result.hasMore;
+    wxQueried.value = true;
+  } catch (e) {
+    wxError.value = errorMessage(e);
+  } finally {
+    wxLoading.value = false;
+  }
+}
+function wechatOrderStateLabel(state: number | undefined): string {
+  return state && state >= 1 && state <= 6 ? ORDER_STATE_LABELS[state - 1] : `状态${state ?? "?"}`;
+}
 </script>
 <template>
   <main class="workspace settings-workspace">
@@ -536,6 +649,9 @@ onMounted(() => void loadOrderCenter());
           @click="openPathDialog"
           >配置订单路径</button
         >
+        <button class="secondary" type="button" @click="jumpDialog = true"
+          >设置消息跳转路径</button
+        >
       </div>
     </section>
     <FormModal v-if="pathDialog" :busy="pathSaving" @close="pathDialog = false"
@@ -569,6 +685,113 @@ onMounted(() => void loadOrderCenter());
         </div>
       </form>
     </FormModal>
+    <FormModal v-if="jumpDialog" :busy="jumpSaving" @close="jumpDialog = false"
+      ><template #title><h2>设置消息跳转路径</h2></template>
+      <form id="msg-jump-form" class="form-section" @submit.prevent="saveJumpPath">
+        <p v-if="jumpError" class="error-box" role="alert">{{ jumpError }}</p>
+        <label
+          >小程序页面路径
+          <input
+            v-model="jumpValue"
+            name="msgJumpPath"
+            maxlength="256"
+            placeholder="pages/order-detail/index"
+            required
+        /></label>
+        <p class="order-center-note">
+          用户点击微信发货消息/确认收货消息时直达该页面；微信会自动在路径后追加
+          transaction_id、merchant_trade_no 等参数。路径为空或不存在时仍跳平台默认页。
+        </p>
+        <div class="dialog-actions">
+          <button
+            class="secondary"
+            type="button"
+            :disabled="jumpSaving"
+            @click="jumpDialog = false"
+            >取消</button
+          >
+          <button class="primary" type="submit" :disabled="jumpSaving">{{
+            jumpSaving ? "保存中…" : "保存"
+          }}</button>
+        </div>
+      </form>
+    </FormModal>
+    <section class="order-center-card" aria-labelledby="wechat-orders-heading">
+      <h2 id="wechat-orders-heading">微信订单对账</h2>
+      <p class="order-center-note">
+        按微信侧发货管理维度查询支付单（get_order_list），用于核对发货/确认收货/结算状态；数据来自微信，仅作对账用途。
+      </p>
+      <form class="wechat-orders-filters" @submit.prevent="queryWechatOrders()">
+        <label
+          >支付开始
+          <input v-model="wxBegin" type="datetime-local" name="wxBegin"
+        /></label>
+        <label
+          >支付结束
+          <input v-model="wxEnd" type="datetime-local" name="wxEnd"
+        /></label>
+        <label
+          >状态
+          <select v-model="wxState" name="wxState">
+            <option value="">全部</option>
+            <option v-for="(label, i) in ORDER_STATE_LABELS" :key="label" :value="i + 1">
+              {{ label }}
+            </option>
+          </select></label
+        >
+        <label
+          >支付者 openid
+          <input v-model="wxOpenid" name="wxOpenid" maxlength="64" placeholder="选填"
+        /></label>
+        <button class="primary" type="submit" :disabled="wxLoading">{{
+          wxLoading ? "查询中…" : "查询"
+        }}</button>
+      </form>
+      <p v-if="wxError" class="error-box" role="alert">{{ wxError }}</p>
+      <table v-if="wxOrders.length" class="wechat-orders-table">
+        <thead>
+          <tr>
+            <th>微信交易单号</th>
+            <th>商户单号</th>
+            <th>状态</th>
+            <th>支付时间</th>
+            <th>金额</th>
+            <th>纠纷</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(row, i) in wxOrders" :key="row.transaction_id || i">
+            <td>{{ row.transaction_id || "—" }}</td>
+            <td>{{ row.merchant_trade_no || "—" }}</td>
+            <td>{{ wechatOrderStateLabel(row.order_state) }}</td>
+            <td>{{
+              row.pay_time ? new Date(row.pay_time * 1000).toLocaleString() : "—"
+            }}</td>
+            <td>{{
+              typeof row.paid_amount === "number"
+                ? `¥${(row.paid_amount / 100).toFixed(2)}`
+                : "—"
+            }}</td>
+            <td>{{ row.in_complaint ? "纠纷中" : "—" }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <UiState
+        v-else-if="wxQueried && !wxLoading"
+        kind="empty"
+        compact
+        >没有符合条件的微信支付单</UiState
+      >
+      <div v-if="wxHasMore" class="order-center-actions">
+        <button
+          class="secondary"
+          type="button"
+          :disabled="wxLoading"
+          @click="queryWechatOrders(wxLastIndex)"
+          >加载更多</button
+        >
+      </div>
+    </section>
   </main>
 </template>
 <style scoped>
@@ -588,6 +811,32 @@ onMounted(() => void loadOrderCenter());
   color: var(--admin-muted);
   font-size: 13px;
   line-height: 1.6;
+}
+.wechat-orders-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+.wechat-orders-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+.wechat-orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.wechat-orders-table th,
+.wechat-orders-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--admin-line);
+  word-break: break-all;
 }
 .order-center-status {
   list-style: none;

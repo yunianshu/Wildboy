@@ -335,4 +335,69 @@ class OrderCenterIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.errcode").value(0));
   }
+
+  @Test
+  void msgJumpPathRequiresAdminAndValidatesPath() throws Exception {
+    var admin = "Bearer " + auth.login(
+        auth.user("order-center-qa:admin" + UUID.randomUUID(), "Admin", "ADMIN")).token();
+    mvc.perform(put("/api/v1/admin/wechat-order-center/msg-jump-path")
+            .contentType("application/json")
+            .content("{\"path\":\"pages/order-detail/index\"}"))
+        .andExpect(status().isUnauthorized());
+    mvc.perform(put("/api/v1/admin/wechat-order-center/msg-jump-path")
+            .header("Authorization", token)
+            .contentType("application/json")
+            .content("{\"path\":\"pages/order-detail/index\"}"))
+        .andExpect(status().isForbidden());
+    when(wechatOrders.setMsgJumpPath("pages/order-detail/index"))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, 0, "", null));
+    mvc.perform(put("/api/v1/admin/wechat-order-center/msg-jump-path")
+            .header("Authorization", admin)
+            .contentType("application/json")
+            .content(json.writeValueAsString(
+                new OrderCenterController.MsgJumpPathInput("pages/order-detail/index"))))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.errcode").value(0));
+    // 完整 URL 不是小程序页面路径（校验在服务层，此处以 stub 模拟其拒绝）
+    when(wechatOrders.setMsgJumpPath("https://evil.example/x"))
+        .thenThrow(new ApiException(400, "INVALID_JUMP_PATH", "跳转路径需为合法的小程序页面路径"));
+    mvc.perform(put("/api/v1/admin/wechat-order-center/msg-jump-path")
+            .header("Authorization", admin)
+            .contentType("application/json")
+            .content(json.writeValueAsString(
+                new OrderCenterController.MsgJumpPathInput("https://evil.example/x"))))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_JUMP_PATH"));
+  }
+
+  @Test
+  void wechatOrderListPassesThroughAndValidatesFilters() throws Exception {
+    var admin = "Bearer " + auth.login(
+        auth.user("order-center-qa:admin" + UUID.randomUUID(), "Admin", "ADMIN")).token();
+    var body = new ObjectMapper().createObjectNode();
+    body.put("last_index", "idx-1");
+    body.put("has_more", true);
+    body.putArray("order_list").addObject().put("transaction_id", "42000000000000000000000000000071");
+    when(wechatOrders.getOrderList(100L, 200L, 2, null, null, 20))
+        .thenReturn(new WechatOrderCenterService.CallResult(true, 0, "", body));
+    mvc.perform(get("/api/v1/admin/wechat-order-center/wechat-orders")
+            .param("begin", "100").param("end", "200").param("orderState", "2")
+            .header("Authorization", token))
+        .andExpect(status().isForbidden());
+    mvc.perform(get("/api/v1/admin/wechat-order-center/wechat-orders")
+            .param("begin", "100").param("end", "200").param("orderState", "2")
+            .header("Authorization", admin))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.orders[0].transaction_id").value("42000000000000000000000000000071"))
+        .andExpect(jsonPath("$.lastIndex").value("idx-1"))
+        .andExpect(jsonPath("$.hasMore").value(true));
+    mvc.perform(get("/api/v1/admin/wechat-order-center/wechat-orders")
+            .param("orderState", "9").header("Authorization", admin))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_ORDER_STATE"));
+    mvc.perform(get("/api/v1/admin/wechat-order-center/wechat-orders")
+            .param("begin", "300").param("end", "200").header("Authorization", admin))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.code").value("INVALID_TIME_RANGE"));
+  }
 }

@@ -62,6 +62,9 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers("/api/v1/payments/wechat/notify", "/api/v1/payments/wechat/refund-notify", "/api/v1/payments/wechat/activity-notify", "/api/v1/payments/wechat/activity-refund-notify")
                     .permitAll()
+                    // 微信消息推送端点由 push-token 验签保护（WechatMessagePushController），不走会话鉴权
+                    .requestMatchers("/api/v1/wechat/messages")
+                    .permitAll()
                     .requestMatchers("/api/v1/admin/**")
                     .hasRole("ADMIN")
                     .anyRequest()

@@ -13,6 +13,8 @@ type Dashboard = {
   };
   orders: { paid_orders: number; gross_cents: number; refunded_cents: number };
   pendingShipping: number;
+  shippingDueSoon?: number;
+  shippingOverdue?: number;
   shippingReportFailures?: number;
   lowStock: { id: string; name: string; stock: number }[];
   trend: {
@@ -223,13 +225,24 @@ import UiState from "../components/UiState.vue";
             <span>待发货</span><strong>{{ data.pendingShipping }}</strong>
           </article>
           <article>
+            <span>发货预警（24h/40h）</span
+            ><strong
+              >{{ data.shippingDueSoon ?? 0 }} /
+              {{ data.shippingOverdue ?? 0 }}</strong
+            >
+          </article>
+          <article>
             <span>发货上报待处理</span
             ><strong>{{ data.shippingReportFailures ?? 0 }}</strong>
           </article>
         </div>
         <p class="muted">
           订单按付款时间统计，净额扣除已确认退款；待发货不含售后处理中订单；
-          发货上报待处理含失败与待上报记录，可在<a href="#/shipping-reports">发货上报</a>页补报。
+          发货预警为微信支付单超 24/40 小时未发货的本地两级告警（平台 48 小时催办前置），
+          超时订单同时进入下方异常列表；发货上报待处理含失败与待上报记录，可在<a
+            href="#/shipping-reports"
+            >发货上报</a
+          >页补报。
         </p>
         <div class="overview-panels">
           <section>
