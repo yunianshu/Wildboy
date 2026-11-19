@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const root = path.resolve(__dirname, "../src");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
-const routes = JSON.parse(read("app.json")).pages.filter(route => !route.includes("/admin-"));
+const routes = JSON.parse(read("app.json")).pages;
 
 test("shared native state component is global, visible by default and preserves caller slots", () => {
   assert.equal(JSON.parse(read("app.json")).usingComponents["ui-state"], "/components/ui-state/index");

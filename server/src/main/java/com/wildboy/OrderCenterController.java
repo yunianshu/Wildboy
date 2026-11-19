@@ -39,17 +39,18 @@ public class OrderCenterController {
     this.transactions = new TransactionTemplate(transactionManager);
   }
 
-  /** 微信订单中心深链与订单详情页入口：按商户订单号解析本人订单的类型与 id。 */
+  /** 微信订单中心深链与发货消息跳转入口：按商户订单号或微信支付交易单号解析本人订单的类型与 id。 */
   @GetMapping("/api/v1/order-center/resolve")
   Map<String, String> resolve(@RequestParam String no, @AuthenticationPrincipal Models.User user) {
     if (no == null || no.isBlank()) throw ApiException.notFound();
+    String key = no.strip();
     var found = db.query(
-        "SELECT id FROM shop_order WHERE order_no=? AND user_id=? LIMIT 1",
-        (r, n) -> r.getString("id"), no.strip(), user.id());
+        "SELECT id FROM shop_order WHERE (order_no=? OR payment_transaction_id=?) AND user_id=? LIMIT 1",
+        (r, n) -> r.getString("id"), key, key, user.id());
     if (!found.isEmpty()) return Map.of("type", "shop", "id", found.getFirst());
     found = db.query(
-        "SELECT id FROM activity_order WHERE order_no=? AND user_id=? LIMIT 1",
-        (r, n) -> r.getString("id"), no.strip(), user.id());
+        "SELECT id FROM activity_order WHERE (order_no=? OR payment_transaction_id=?) AND user_id=? LIMIT 1",
+        (r, n) -> r.getString("id"), key, key, user.id());
     if (!found.isEmpty()) return Map.of("type", "activity", "id", found.getFirst());
     throw ApiException.notFound();
   }
@@ -119,7 +120,8 @@ public class OrderCenterController {
         : path.body().path("path").asText(""));
     out.put("confirmationCompleted", confirmation.attempted() && confirmation.errcode() == 0
         && confirmation.body() != null
-        && confirmation.body().path("is_completed").asBoolean(false));
+        && (confirmation.body().path("completed").asBoolean(false)
+            || confirmation.body().path("is_completed").asBoolean(false)));
     out.put("pathErrcode", path.errcode());
     out.put("confirmationErrcode", confirmation.errcode());
     return out;

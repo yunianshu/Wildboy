@@ -30,28 +30,6 @@ function saveAuthentication(result: AuthResult, attempt: number): AuthResult {
   wx.setStorageSync(TOKEN_KEY, result.token);
   return result;
 }
-export async function adminLogin(
-  username: string,
-  password: string,
-  isCurrent: () => boolean = () => true,
-): Promise<AuthResult> {
-  if (
-    !username.trim() ||
-    username.trim().length > 100 ||
-    !password ||
-    password.length > 200
-  )
-    throw new Error("请填写正确的管理员账号和密码");
-  const attempt = ++authenticationAttempt;
-  const result = await request<AuthResult>("/auth/admin", "POST", {
-    username: username.trim(),
-    password,
-  });
-  if (!result?.user?.id || result.user.role !== "ADMIN")
-    throw new ApiError("该账号没有管理权限", 403, "FORBIDDEN");
-  if (!isCurrent()) throw new ApiError("登录已取消", 409, "LOGIN_CANCELLED");
-  return saveAuthentication(result, attempt);
-}
 export function hasSession(): boolean {
   return !!wx.getStorageSync(TOKEN_KEY);
 }

@@ -1,3 +1,4 @@
+import { displayAvatar } from "../../utils/display-profile";
 import {
   request,
   getCurrentUser,
@@ -23,10 +24,8 @@ Page({
     topInset: 48,
     version: buildVersion,
     user: null as User | null,
+    avatarUrl: "",
     activityUser: false,
-    adminLoginEnabled: false,
-    adminCapabilityLoading: false,
-    adminCapabilityError: "",
     requiresConsent: false,
     legalStatusLoading: false,
     legalStatusRetryable: false,
@@ -35,8 +34,6 @@ Page({
     loggingIn: false,
     error: "",
   },
-  capabilityEpoch: 0,
-  capabilityFlight: undefined as Promise<void> | undefined,
   onLoad() {
     const layout = measureCapsuleHeader();
     this.setData({ topInset: layout.top + 10, headerLayout: layout });
@@ -55,19 +52,14 @@ Page({
     enterPage(this);
     syncTabBar(this);
     void this.load();
-    void this.loadAdminCapability();
   },
   onHide() {
     resetTabSwipe(this);
     epoch.invalidate();
-    this.capabilityEpoch++;
-    this.capabilityFlight = undefined;
     this.setData({
       user: null,
+      avatarUrl: "",
       activityUser: false,
-      adminLoginEnabled: false,
-      adminCapabilityLoading: false,
-      adminCapabilityError: "",
       loading: false,
       requiresConsent: false,
       legalStatusLoading: false,
@@ -78,13 +70,12 @@ Page({
   onUnload() {
     resetTabSwipe(this);
     epoch.invalidate();
-    this.capabilityEpoch++;
-    this.capabilityFlight = undefined;
   },
   async load() {
     const n = epoch.next();
     this.setData({
       user: null,
+      avatarUrl: "",
       activityUser: false,
       error: "",
       loading: hasSession(),
@@ -101,6 +92,7 @@ Page({
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
       this.setData({
         user,
+        avatarUrl: displayAvatar(user),
         activityUser: isActivityUser(user),
       });
       // The account is shown as soon as it loads; the independent legal check
@@ -144,38 +136,6 @@ Page({
     if (!this.data.legalStatusRetryable || !hasSession()) return;
     void this.loadLegalStatus(epoch.next(), sessionVersion());
   },
-  async loadAdminCapability() {
-    // Deduplicated fire-and-forget: a duplicate call neither re-requests nor waits on
-    // the shared in-flight request; callers needing the result keep the first promise.
-    if (this.capabilityFlight) return;
-    const n = ++this.capabilityEpoch;
-    this.setData({ adminLoginEnabled: false, adminCapabilityLoading: true, adminCapabilityError: "" });
-    const pending = (async () => {
-      try {
-        const result = await request<{ adminLoginEnabled?: unknown }>(
-          "/auth/capabilities",
-        );
-        if (n !== this.capabilityEpoch) return;
-        if (result?.adminLoginEnabled === true)
-          this.setData({ adminLoginEnabled: true, adminCapabilityError: "" });
-        else if (result?.adminLoginEnabled === false)
-          this.setData({ adminLoginEnabled: false, adminCapabilityError: "" });
-        else this.setData({ adminCapabilityError: "管理入口状态异常，请稍后重试" });
-      } catch (e) {
-        if (n === this.capabilityEpoch)
-          this.setData({ adminCapabilityError: message(e) });
-      } finally {
-        if (n === this.capabilityEpoch) this.setData({ adminCapabilityLoading: false });
-      }
-    })();
-    this.capabilityFlight = pending;
-    try {
-      await pending;
-    } finally {
-      if (this.capabilityFlight === pending) this.capabilityFlight = undefined;
-    }
-    return pending;
-  },
   signIn() {
     wx.navigateTo({ url: "/pages/login/index" });
   },
@@ -183,8 +143,6 @@ Page({
     wx.navigateTo({ url: "/pages/login/index?mode=consent" });
   },
   activityOrders() {wx.navigateTo({url:"/pages/activity-orders/index"});},
-  activityOrderManage() {if(this.data.user?.role === "ADMIN")wx.navigateTo({url:"/pages/admin-activity-orders/index"});},
-  membershipManage() { if (this.data.user?.role === "ADMIN") wx.navigateTo({ url: "/pages/admin-memberships/index" }); },
   registrations() {
     wx.navigateTo({ url: "/pages/registrations/index" });
   },
@@ -195,35 +153,17 @@ Page({
   orders() {
     wx.navigateTo({ url: "/pages/orders/index" });
   },
+  displayProfile() {
+    if (!this.data.user) { this.signIn(); return; }
+    if (this.data.user.accountSource !== "WECHAT" || !this.data.user.wechatVerified) { this.profile(); return; }
+    wx.navigateTo({ url: "/pages/display-profile/index" });
+  },
+  avatarError() { this.setData({ avatarUrl: "" }); },
   profile() {
     wx.navigateTo({ url: "/pages/profile/index" });
   },
-  userManage() {
-    if (this.data.user?.role === "ADMIN")
-      wx.navigateTo({ url: "/pages/admin-users/index" });
-  },
-  manage() {
-    if (this.data.user?.role === "ADMIN")
-      wx.navigateTo({ url: "/pages/admin-activities/index" });
-  },
-  shopManage() {
-    if (this.data.user?.role === "ADMIN")
-      wx.navigateTo({ url: "/pages/admin-shop/index" });
-  },
-  orderManage() {
-    if (this.data.user?.role === "ADMIN")
-      wx.navigateTo({ url: "/pages/admin-orders/index" });
-  },
-  legalManage() {
-    if (this.data.user?.role === "ADMIN")
-      wx.navigateTo({ url: "/pages/admin-legal/index" });
-  },
   terms() {
     wx.navigateTo({ url: "/pages/privacy/index?kind=TERMS" });
-  },
-  adminSignIn() {
-    if (!this.data.adminLoginEnabled) return;
-    wx.navigateTo({ url: "/pages/admin-login/index" });
   },
   privacy() {
     wx.navigateTo({ url: "/pages/privacy/index" });

@@ -118,6 +118,12 @@ class OrderCenterIntegrationTest {
         .andExpect(jsonPath("$.type").value("shop"))
         .andExpect(jsonPath("$.id").value(shopId));
 
+    mvc.perform(get("/api/v1/order-center/resolve").header("Authorization", token)
+            .param("no", "42000000000000000000000000000011"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.type").value("shop"))
+        .andExpect(jsonPath("$.id").value(shopId));
+
     mvc.perform(get("/api/v1/order-center/resolve").header("Authorization", token).param("no", activityNo))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.type").value("activity"));
@@ -317,6 +323,17 @@ class OrderCenterIntegrationTest {
     mvc.perform(get("/api/v1/admin/wechat-order-center/status").header("Authorization", admin))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.enabled").value(false));
+
+    when(wechatOrders.enabled()).thenReturn(true);
+    when(wechatOrders.getOrderDetailPath()).thenReturn(new WechatOrderCenterService.CallResult(
+        true, 0, "", new ObjectMapper().createObjectNode().put("path", "pages/order-detail/index?no=${商品订单号}")));
+    when(wechatOrders.confirmationCompleted()).thenReturn(new WechatOrderCenterService.CallResult(
+        true, 0, "", new ObjectMapper().createObjectNode().put("completed", true)));
+    mvc.perform(get("/api/v1/admin/wechat-order-center/status").header("Authorization", admin))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.enabled").value(true))
+        .andExpect(jsonPath("$.orderDetailPathConfigured").value(true))
+        .andExpect(jsonPath("$.confirmationCompleted").value(true));
 
     mvc.perform(put("/api/v1/admin/wechat-order-center/order-detail-path")
             .header("Authorization", admin)

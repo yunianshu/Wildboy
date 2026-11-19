@@ -1,0 +1,9 @@
+@import "../../styles/slate-theme.wxss";
+@import "../../styles/user-flow.wxss";
+@import "../../styles/slate-components.wxss";
+.avatar-field { display: flex; align-items: center; gap: 16px; }
+button.avatar-picker { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 80px; height: 80px; margin: 0; padding: 0; border-radius: 50%; overflow: hidden; background: var(--rf-soft); }
+.avatar-photo { width: 80px; height: 80px; }
+.avatar-placeholder { width: 36px; height: 36px; }
+.avatar-copy { min-width: 0; }
+.avatar-copy .label { margin-bottom: 4px; }

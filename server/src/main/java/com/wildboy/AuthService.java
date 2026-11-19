@@ -227,7 +227,8 @@ public class AuthService {
         r.getString("real_name"),
         r.getString("phone"),
         r.getObject("profile_completed_at", OffsetDateTime.class) != null,
-        r.getLong("role_version"));
+        r.getLong("role_version"), r.getString("avatar_url"),
+        r.getObject("display_profile_updated_at") != null);
   }
 
   static String hash(String token) {

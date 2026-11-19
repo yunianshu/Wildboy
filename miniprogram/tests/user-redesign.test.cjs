@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const api = require("../dist/utils/api.js");
 const legal = require("../dist/utils/legal.js");
-const routes = ["activities", "detail", "register", "signup-success", "registrations", "shop", "product", "checkout", "orders", "addresses", "mine", "profile", "admin-users", "notifications", "login", "privacy"];
+const routes = ["activities", "detail", "register", "signup-success", "registrations", "shop", "product", "checkout", "orders", "addresses", "mine", "profile", "notifications", "login", "privacy"];
 const source = path.resolve(__dirname, "../src");
 let definition, navigations;
 global.Page = d => { definition = d; };
@@ -26,64 +26,6 @@ beforeEach(() => {
   api.getCurrentUser = async () => ({ id: "current-user", nickname: "当前用户", role: "USER" });
   api.request = async () => { throw new Error("网络暂不可用"); };
   legal.currentLegal = async () => ({ ready: true, privacy: { version: 1 }, terms: { version: 1 } });
-});
-
-test("public administrator entry stays closed unless the strict capability succeeds and never grants a role", async () => {
-  for (const name of ["mine", "login"]) {
-    const p = page(name);
-    const enter = name === "mine" ? p.adminSignIn : p.admin;
-    enter();
-    assert.deepEqual(navigations, []);
-    api.request = async () => ({ adminLoginEnabled: false });
-    await p.loadAdminCapability();
-    enter();
-    assert.equal(p.data.adminLoginEnabled, false);
-    assert.deepEqual(navigations, []);
-    api.request = async () => ({ adminLoginEnabled: "true" });
-    await p.loadAdminCapability();
-    assert.equal(p.data.adminLoginEnabled, false);
-    assert.ok(p.data.adminCapabilityError);
-    api.request = async () => ({ adminLoginEnabled: true });
-    await p.loadAdminCapability();
-    assert.equal(p.data.adminLoginEnabled, true);
-    enter();
-    assert.equal(navigations.pop(), "/pages/admin-login/index");
-    assert.equal(p.data.user?.role, undefined);
-  }
-});
-
-test("capability requests are deduplicated and late results cannot reenable hidden pages", async () => {
-  for (const name of ["mine", "login"]) {
-    let resolve, calls = 0;
-    const p = page(name);
-    api.request = () => { calls++; return new Promise(r => { resolve = r; }); };
-    const pending = p.loadAdminCapability();
-    await p.loadAdminCapability();
-    assert.equal(calls, 1);
-    p.onHide();
-    resolve({ adminLoginEnabled: true });
-    await pending;
-    assert.equal(p.data.adminLoginEnabled, false);
-    assert.equal(p.data.adminCapabilityLoading, false);
-    api.request = async () => ({ adminLoginEnabled: true });
-    await p.loadAdminCapability();
-    assert.equal(p.data.adminLoginEnabled, true);
-    p.onUnload();
-  }
-});
-
-test("capability failure preserves ordinary login consent and independent My profile", async () => {
-  const login = page("login");
-  login.setData({ current: { ready: true }, privacyRead: true, termsRead: true, agreed: true });
-  await login.loadAdminCapability();
-  assert.equal(login.data.agreed, true);
-  assert.equal(login.data.privacyRead, true);
-  assert.equal(login.data.termsRead, true);
-  const mine = page("mine");
-  mine.setData({ user: { id: "u", role: "USER" }, requiresConsent: false });
-  await mine.loadAdminCapability();
-  assert.equal(mine.data.user.id, "u");
-  assert.equal(mine.data.user.role, "USER");
 });
 
 test("initial My legal status cannot block a confirmed profile or reset it on independent failure", async () => {

@@ -3,35 +3,25 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs"),
   path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
-test("all thirty-one registered native pages have compiled JS WXML WXSS JSON", () => {
+test("all twenty registered native pages have compiled JS WXML WXSS JSON", () => {
   const app = JSON.parse(fs.readFileSync(path.join(root, "app.json")));
-  assert.equal(app.pages.length, 31);
+  assert.equal(app.pages.length, 20);
   assert.equal(new Set(app.pages).size, app.pages.length);
+  assert.equal(app.pages.filter((route) => route.includes("admin")).length, 0);
   for (const route of [
     "article",
     "activity-orders",
-    "admin-activity-orders",
-    "admin-memberships",
     "notifications",
     "profile",
-    "admin-users",
-    "admin-content",
+    "display-profile",
     "mine",
     "login",
-    "admin-legal",
     "registrations",
     "signup-success",
-    "admin-login",
-    "admin-activities",
-    "admin-editor",
-    "admin-roster",
     "shop",
     "product",
     "checkout",
     "orders",
-    "admin-shop",
-    "admin-product",
-    "admin-orders",
   ])
     assert.ok(app.pages.includes(`pages/${route}/index`));
   for (const page of app.pages)

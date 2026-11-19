@@ -63,10 +63,15 @@ Page({
   orderType: "" as "" | "shop" | "activity",
 
   onLoad(query: Record<string, string | undefined>) {
-    const no = (query.no || "").trim();
+    const no = (
+      query.no ||
+      query.merchant_trade_no ||
+      query.transaction_id ||
+      ""
+    ).trim();
     const id = (query.id || "").trim();
     const type = (query.type || (no ? "" : "shop")) as "" | "shop" | "activity";
-    // 微信订单中心深链：no=商户订单号（${商品订单号} 占位符替换结果），channel=1 标记来源。
+    // 微信订单中心深链（no=商户订单号）与发货/确认收货服务通知跳转（merchant_trade_no/transaction_id）。
     if (id) {
       this.orderId = id;
       this.orderType = type === "activity" ? "activity" : "shop";

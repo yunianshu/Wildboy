@@ -431,7 +431,7 @@ public class ShopService {
   private void requirePayable(Order order) {
     if (!order.status().equals("PENDING_PAYMENT"))
       throw ApiException.conflict("ORDER_NOT_PAYABLE", "当前订单状态不可支付");
-    if (!order.expiresAt().isAfter(OffsetDateTime.now()))
+    if (!order.expiresAt().isAfter(OffsetDateTime.now().plusMinutes(1)))
       throw ApiException.conflict("ORDER_EXPIRED", "订单支付期限已过，正在安全关闭，请重新下单");
   }
 

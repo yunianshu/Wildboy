@@ -33,7 +33,7 @@ public final class Models {
       String realName,
       String phone,
       boolean profileCompleted,
-      long version) {}
+      long version, String avatarUrl, boolean displayProfileCompleted) {}
 
   public record Login(String token, User user) {}
 

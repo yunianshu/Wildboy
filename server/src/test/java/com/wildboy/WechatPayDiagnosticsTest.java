@@ -173,7 +173,7 @@ class WechatPayDiagnosticsTest {
     response.setSignType("RSA");
     response.setPaySign("synthetic-signature");
     when(sdk.prepayWithRequestPayment(any())).thenReturn(response);
-    OffsetDateTime expires = OffsetDateTime.parse("2026-11-18T13:00:00Z");
+    OffsetDateTime expires = OffsetDateTime.parse("2026-11-18T13:00:00.123456Z");
     stubSdk();
     var result = pay.prepay(ORDER, 100, expires, OPENID, PERSON, callback);
     assertThat(result).isEqualTo(new ShopModels.PaymentRequest("1700000000", "test-nonce", "prepay_id=synthetic", "RSA", "synthetic-signature"));
@@ -186,6 +186,7 @@ class WechatPayDiagnosticsTest {
     assertThat(request.getValue().getPayer().getOpenid()).isEqualTo(OPENID);
     assertThat(request.getValue().getNotifyUrl()).isEqualTo("https://example.test/" + callback);
     assertThat(request.getValue().getAmount().getTotal()).isEqualTo(100);
+    assertThat(request.getValue().getTimeExpire()).isEqualTo("2026-11-18T21:00:00+08:00");
     assertThat(appender.list).isEmpty();
   }
 

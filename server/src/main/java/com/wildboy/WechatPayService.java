@@ -125,7 +125,11 @@ public class WechatPayService {
       request.setDescription(description);
       request.setOutTradeNo(orderNo);
       request.setNotifyUrl("notify".equals(callbackName) ? notifyUrl : java.net.URI.create(notifyUrl).resolve(callbackName).toString());
-      request.setTimeExpire(expiresAt.format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
+      request.setTimeExpire(
+          expiresAt
+              .atZoneSameInstant(java.time.ZoneOffset.ofHours(8))
+              .truncatedTo(java.time.temporal.ChronoUnit.SECONDS)
+              .format(java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME));
       var amount = new Amount();
       amount.setTotal(totalCents);
       amount.setCurrency("CNY");

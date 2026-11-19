@@ -22,3 +22,15 @@ All design mutations use the installed official Pencil MCP server and its docume
 - Narrow Web pages, the component reference and the mini-program home design are undergoing separate layout corrections against current implementation.
 
 The final readback, coverage summary, screenshots, save verification and commit are recorded after completion, not inferred from this work log.
+
+# Mini admin board removal (2026-11-18)
+
+## Change
+
+The mini program dropped its in-app admin UI (management moves to the Web admin). Using the official Pencil MCP `execute` API only:
+
+- Deleted 20 mini-program boards: 12 admin page boards (`pages/admin-*`), 7 admin-only state boards, and the legacy `暂无管理权限` (auth-required) state board. The content-version-conflict state board only applied to admin pages and was removed with them.
+- Cleaned the `pages/login` board (removed 管理员入口 header and 管理员登录 action) and the `pages/mine` board (removed the 管理入口 · 仅管理员可见 section with its 7 rows).
+- Deleted the 19 corresponding preview PNGs and synced `functional-preview-index.md` (74 → 54 boards), `functional-pen-index.json` (web 22 / mini 19 / mini-state 6 / web-state 6 / system 1), `functional-mini-blueprints.json` (19 pages / 7 state boards), `functional-mini-inventory.json`, `functional-mini-renderer-test.json` and `functional-verification.md`.
+- Pre-change backup: `design/backups/设计图文件.pen.20261118-before-remove-mini-admin.bak` (74 boards / 4,250 nodes). Post-save verified on disk: 58 top-level nodes (54 boards + 4 section headers) / 3,462 nodes; button text centered across all 156 actions.
+- Screenshots of `pages/login` and `pages/mine` re-checked after cleanup: admin entries gone, layout intact.

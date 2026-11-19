@@ -88,13 +88,12 @@ test('all four real page onShow hooks synchronize external navigation without wr
     source(`${item.pagePath}.ts`);
     const actual = pageDefinition;
     const p = page(item.pagePath);
-    let loads = 0, capabilities = 0;
+    let loads = 0;
     Object.assign(p, actual, { data: structuredClone(actual.data), setData(update) { Object.assign(this.data, update); },
-      load() { loads++; }, loadCategories() {}, loadAdminCapability() { capabilities++; } });
+      load() { loads++; }, loadCategories() {} });
     activate(p); actual.onShow.call(p);
     assert.equal(p.component.data.selected, p.route);
     assert.equal(loads, item.pagePath === 'pages/home/index' ? 0 : 1);
-    assert.equal(capabilities, item.pagePath === 'pages/mine/index' ? 1 : 0);
   }
   assert.equal(calls.length, 0);
 });

@@ -71,6 +71,8 @@ export interface Home {
 export type AccountSource = "WECHAT" | "PASSWORD" | "DEMO" | "OTHER";
 
 export interface User {
+  avatarUrl?: string | null;
+  displayProfileCompleted?: boolean;
   id: string;
   nickname: string;
   role: string;
@@ -82,36 +84,8 @@ export interface User {
   version?: number;
 }
 
-export interface AdminUser {
-  id: string;
-  nickname: string;
-  realName: string;
-  phone: string;
-  profileCompleted: boolean;
-  createdAt: string;
-  profileUpdatedAt: string | null;
-  registrationCount: number;
-  confirmedRegistrationCount: number;
-  pendingRegistrationCount?: number;
-  lastRegistrationAt: string | null;
-  role: string;
-  accountSource: AccountSource;
-  wechatVerified: boolean;
-  canChangeRole: boolean;
-  roleChangeBlockReason: string | null;
-  version: number;
-}
-
 export type RegistrationStatus = "CONFIRMED" | "CANCELLED";
 
-export interface AdminUserDetail {
-  user: AdminUser;
-  registrations: PageResult<Omit<Registration, "status"> & {
-    status: RegistrationStatus | "PENDING_PAYMENT";
-    source?: "FREE_REGISTRATION" | "ACTIVITY_ORDER";
-    orderStatus?: "PENDING_PAYMENT" | "PAID" | "CONFIRMED_FREE" | "REFUND_PENDING" | "CLOSED" | "REFUNDED" | null;
-  }>;
-}
 export interface AuthResult {
   token: string;
   user: User;

@@ -158,24 +158,6 @@ test("saving an explicitly opened registration contact editor returns directly t
   await p.save(); assert.deepEqual(navigations, ["back"]); assert.equal(p.data.editing, false);
 });
 
-test("interrupted login capability checks reload on return and do not let old finally clear new loading", async () => {
-  const p = page("login"); p.setData({ loading: false }); let finishOld, finishNew;
-  handler = () => new Promise(resolve => { if (!finishOld) finishOld = resolve; else finishNew = resolve; });
-  const old = p.loadAdminCapability(); p.onHide(); p.onShow();
-  finishOld({ adminLoginEnabled: true }); await old;
-  assert.equal(p.data.adminCapabilityLoading, true);
-  assert.equal(p.data.adminLoginEnabled, false);
-  finishNew({ adminLoginEnabled: true }); await flush(); p.admin();
-  assert.deepEqual(navigations, ["/pages/admin-login/index"]);
-});
-
-test("failed login capability check can be retried independently of the loaded agreement", async () => {
-  const p = page("login"); handler = async () => { throw Error("offline"); };
-  await p.loadAdminCapability(); assert.match(p.data.adminCapabilityError, /offline/);
-  handler = async () => ({ adminLoginEnabled: true }); await p.loadAdminCapability();
-  assert.equal(p.data.adminCapabilityError, ""); assert.equal(p.data.adminLoginEnabled, true);
-});
-
 test("load-more after an initial activity failure retries page zero, then advances only after success", async () => {
   const p = page("activities"); handler = async () => { throw Error("offline"); };
   await p.load(true);

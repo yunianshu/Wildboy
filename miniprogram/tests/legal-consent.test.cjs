@@ -63,6 +63,7 @@ beforeEach(() => {
   api.login = async (v, current) => {
     if (!current()) throw new Error("取消");
     logins.push(v);
+    return {token:"session",user:{id:"u",role:"USER",accountSource:"WECHAT",wechatVerified:true,displayProfileCompleted:true}};
   };
 });
 function agree(p) {

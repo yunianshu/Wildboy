@@ -19,9 +19,9 @@ button.avatar-pressed { background: var(--rf-line); }
 .links { margin-top: 24px; }
 .links view { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 0; border-bottom: 1px solid var(--rf-line); }
 .row-chevron { width: 18px; height: 18px; flex-shrink: 0; }
-.admin-auth { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; margin-top: 16px; color: var(--rf-muted); font-size: 13px; }
-.admin-auth image { width: 16px; height: 16px; }
 .notice { margin-top: 16px; }
 .app-version { margin-top: 24px; text-align: center; color: var(--rf-muted); font-size: 12px; }
 
 @import "../../styles/slate-components.wxss";
+
+.avatar-photo { width: 56px; height: 56px; border-radius: 50%; }

@@ -111,6 +111,22 @@ test('微信深链按订单号解析并渲染装备订单详情', async () => {
   assert.equal(detail.canConfirmReceipt, true);
 });
 
+test('微信发货与确认收货消息跳转携带 merchant_trade_no 或 transaction_id 均可解析订单', async () => {
+  const definition = loadPageModule();
+  const byMerchantTradeNo = makeInstance(definition);
+  byMerchantTradeNo.onLoad({ merchant_trade_no: 'M-100', transaction_id: '420001' });
+  assert.equal(byMerchantTradeNo.pendingNo, 'M-100');
+  await byMerchantTradeNo.load();
+  assert.equal(state.requests[0].path, '/order-center/resolve?no=M-100');
+
+  state.requests = [];
+  const byTransactionId = makeInstance(definition);
+  byTransactionId.onLoad({ transaction_id: '420001' });
+  assert.equal(byTransactionId.pendingNo, '420001');
+  await byTransactionId.load();
+  assert.equal(state.requests[0].path, '/order-center/resolve?no=420001');
+});
+
 test('确认收货调用微信组件并经服务端复核后回填不可再次确认', async () => {
   const definition = loadPageModule();
   const instance = makeInstance(definition, { orderId: 'order-1', orderType: 'shop' });

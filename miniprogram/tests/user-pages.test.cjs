@@ -103,25 +103,16 @@ beforeEach(() => {
   };
   api.requireSession = async () => {};
 });
-test("normal My separate from registrations never routes USER to management", async () => {
+test("normal My page navigates to registrations", async () => {
   const p = page("mine");
   await p.load();
-  p.manage();
-  assert.equal(navigations.length, 0);
   p.registrations();
   assert.deepEqual(navigations, ["/pages/registrations/index"]);
-});
-test("My ADMIN entry relies on server me and hides profile in background", async () => {
-  role = "ADMIN";
-  const p = page("mine");
-  await p.load();
-  p.manage();
-  assert.equal(navigations[0], "/pages/admin-activities/index");
   p.onHide();
   assert.equal(p.data.user, null);
 });
-test("My failed role check cannot retain management identity", async () => {
-  role = "ADMIN";
+test("My failed account load cannot retain identity", async () => {
+  role = "USER";
   const p = page("mine");
   await p.load();
   api.getCurrentUser = async () => {
@@ -129,8 +120,6 @@ test("My failed role check cannot retain management identity", async () => {
   };
   await p.load();
   assert.equal(p.data.user, null);
-  p.manage();
-  assert.deepEqual(navigations, []);
 });
 test("registration status is server global query and filtered total", async () => {
   const p = page("registrations");

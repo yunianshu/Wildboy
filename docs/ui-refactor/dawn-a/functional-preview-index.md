@@ -2,7 +2,7 @@
 
 设计方向：A 晨光绿白。以下画板全部从现有业务功能重新构建，不沿用 B 的页面结构。
 
-74 张可编辑画板：22 个后台页面/模式、31 个小程序页面、20 个条件/异常状态和 1 张设计规范。所有数据为演示。
+54 张可编辑画板：22 个后台页面/模式、19 个小程序页面、12 个条件/异常状态和 1 张设计规范。所有数据为演示。
 
 ## 后台
 
@@ -40,28 +40,16 @@
 - [mini:pages/privacy/index](functional-previews/mini/T4MCVQ.png)
 - [mini:pages/registrations/index](functional-previews/mini/j3kqEi.png)
 - [mini:pages/signup-success/index](functional-previews/mini/T8xvQG.png)
-- [mini:pages/admin-login/index](functional-previews/mini/Hm81T.png)
-- [mini:pages/admin-editor/index](functional-previews/mini/P7Zcp8.png)
-- [mini:pages/admin-roster/index](functional-previews/mini/nk6hq.png)
-- [mini:pages/admin-legal/index](functional-previews/mini/DrrXb.png)
-- [mini:pages/admin-shop/index](functional-previews/mini/oMR7J.png)
-- [mini:pages/admin-product/index](functional-previews/mini/zcNaB.png)
 - [mini:pages/addresses/index](functional-previews/mini/jMgHF.png)
 - [mini:pages/notifications/index](functional-previews/mini/ZRjBI.png)
 - [mini:pages/profile/index](functional-previews/mini/OzxS4.png)
-- [mini:pages/admin-content/index](functional-previews/mini/RHxFf.png)
 - [mini:pages/article/index](functional-previews/mini/r3JOu.png)
 - [mini:pages/order-detail/index](functional-previews/mini/rEcs2.png)
 - [mini:pages/product/index](functional-previews/mini/i7wF5e.png)
 - [mini:pages/orders/index](functional-previews/mini/SgbAM.png)
 - [mini:pages/register/index](functional-previews/mini/mDiPw.png)
-- [mini:pages/admin-activities/index](functional-previews/mini/v7T4w.png)
 - [mini:pages/login/index](functional-previews/mini/eUD8P.png)
-- [mini:pages/admin-orders/index](functional-previews/mini/yCfgW.png)
-- [mini:pages/admin-users/index](functional-previews/mini/o1fEB.png)
-- [mini:pages/admin-memberships/index](functional-previews/mini/DCUoO.png)
 - [mini:pages/activity-orders/index](functional-previews/mini/gaW0x.png)
-- [mini:pages/admin-activity-orders/index](functional-previews/mini/OKdU4.png)
 
 ## 状态与规范
 
@@ -71,18 +59,10 @@
 - [web-state:activity-publish](functional-previews/states/cuali.png)
 - [web-state:refund-action](functional-previews/states/p5a8L.png)
 - [web-state:role-change](functional-previews/states/N4Gbh.png)
-- [mini-state:auth-required](functional-previews/states/x1MfXe.png)
 - [mini-state:quote-changed](functional-previews/states/B7qyC.png)
 - [mini-state:payment-unknown](functional-previews/states/GMX2e.png)
-- [mini-state:version-conflict](functional-previews/states/OJ2HM.png)
 - [mini-state:refund-confirmation](functional-previews/states/r4sUw.png)
 - [web-state:list-recovery](functional-previews/states/uEIeD.png)
 - [mini-state:mini-profile-profileEditorOpen](functional-previews/states/o1dJDf.png)
-- [mini-state:mini-admin-content-blockEditorOpen](functional-previews/states/TdwsI.png)
-- [mini-state:mini-admin-activities-publishConfirmationOpen](functional-previews/states/UjNQc.png)
-- [mini-state:mini-admin-product-categoryManagerOpen](functional-previews/states/Q5skmp.png)
-- [mini-state:mini-admin-orders-shippingFormOpen](functional-previews/states/cfQec.png)
 - [mini-state:mini-addresses-addressEditorOpen](functional-previews/states/toyP2.png)
 - [mini-state:mini-orders-refundDialogOpen](functional-previews/states/UA6SP.png)
-- [mini-state:mini-admin-users-roleConfirmationOpen](functional-previews/states/axsaF.png)
-- [mini-state:mini-admin-activity-orders-orderConfirmationOpen](functional-previews/states/ZWLkt.png)

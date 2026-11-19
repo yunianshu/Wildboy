@@ -25,20 +25,12 @@
       "id": "N4Gbh"
     },
     {
-      "key": "mini-state:auth-required",
-      "id": "x1MfXe"
-    },
-    {
       "key": "mini-state:quote-changed",
       "id": "B7qyC"
     },
     {
       "key": "mini-state:payment-unknown",
       "id": "GMX2e"
-    },
-    {
-      "key": "mini-state:version-conflict",
-      "id": "OJ2HM"
     },
     {
       "key": "mini-state:refund-confirmation",
@@ -141,10 +133,6 @@
       "id": "o1dJDf"
     },
     {
-      "key": "mini-state:mini-admin-content-blockEditorOpen",
-      "id": "TdwsI"
-    },
-    {
       "key": "mini:pages/home/index",
       "id": "fNx5j"
     },
@@ -181,30 +169,6 @@
       "id": "T8xvQG"
     },
     {
-      "key": "mini:pages/admin-login/index",
-      "id": "Hm81T"
-    },
-    {
-      "key": "mini:pages/admin-editor/index",
-      "id": "P7Zcp8"
-    },
-    {
-      "key": "mini:pages/admin-roster/index",
-      "id": "nk6hq"
-    },
-    {
-      "key": "mini:pages/admin-legal/index",
-      "id": "DrrXb"
-    },
-    {
-      "key": "mini:pages/admin-shop/index",
-      "id": "oMR7J"
-    },
-    {
-      "key": "mini:pages/admin-product/index",
-      "id": "zcNaB"
-    },
-    {
       "key": "mini:pages/addresses/index",
       "id": "jMgHF"
     },
@@ -217,28 +181,12 @@
       "id": "OzxS4"
     },
     {
-      "key": "mini:pages/admin-content/index",
-      "id": "RHxFf"
-    },
-    {
       "key": "mini:pages/article/index",
       "id": "r3JOu"
     },
     {
       "key": "mini:pages/order-detail/index",
       "id": "rEcs2"
-    },
-    {
-      "key": "mini-state:mini-admin-activities-publishConfirmationOpen",
-      "id": "UjNQc"
-    },
-    {
-      "key": "mini-state:mini-admin-product-categoryManagerOpen",
-      "id": "Q5skmp"
-    },
-    {
-      "key": "mini-state:mini-admin-orders-shippingFormOpen",
-      "id": "cfQec"
     },
     {
       "key": "mini-state:mini-addresses-addressEditorOpen",
@@ -257,48 +205,20 @@
       "id": "mDiPw"
     },
     {
-      "key": "mini:pages/admin-activities/index",
-      "id": "v7T4w"
-    },
-    {
       "key": "mini:pages/login/index",
       "id": "eUD8P"
-    },
-    {
-      "key": "mini:pages/admin-orders/index",
-      "id": "yCfgW"
-    },
-    {
-      "key": "mini:pages/admin-users/index",
-      "id": "o1fEB"
-    },
-    {
-      "key": "mini:pages/admin-memberships/index",
-      "id": "DCUoO"
     },
     {
       "key": "mini:pages/activity-orders/index",
       "id": "gaW0x"
     },
     {
-      "key": "mini:pages/admin-activity-orders/index",
-      "id": "OKdU4"
-    },
-    {
       "key": "mini-state:mini-orders-refundDialogOpen",
       "id": "UA6SP"
-    },
-    {
-      "key": "mini-state:mini-admin-users-roleConfirmationOpen",
-      "id": "axsaF"
-    },
-    {
-      "key": "mini-state:mini-admin-activity-orders-orderConfirmationOpen",
-      "id": "ZWLkt"
     }
   ],
-  "boardCount": 74,
-  "expectedRoutes": 53,
+  "boardCount": 54,
+  "expectedRoutes": 41,
   "nodes": 4250,
   "issues": [],
   "tokens": [

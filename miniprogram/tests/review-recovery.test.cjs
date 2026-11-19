@@ -20,40 +20,9 @@ beforeEach(() => {
   global.wx = { navigateTo: value => navigations.push(value.url), getStorageSync: () => undefined };
   api.request = async url => {
     calls.push(url);
-    if (url === '/auth/capabilities') return { adminLoginEnabled: false };
     if (url === '/me/consents') return { ready: true, requiresConsent: false };
     return { items: [], page: 0, hasMore: false };
   };
-});
-
-test('My account result cannot enable an unavailable administrator login', async () => {
-  const p = page('mine');
-  await p.loadAdminCapability();
-  await p.load();
-  p.adminSignIn();
-  assert.equal(p.data.adminLoginEnabled, false);
-  assert.deepEqual(navigations, []);
-  api.request = async () => ({ adminLoginEnabled: true });
-  await p.loadAdminCapability();
-  api.request = async () => ({ ready: true, requiresConsent: false });
-  await p.load();
-  assert.equal(p.data.adminLoginEnabled, true, 'retrying account details preserves the independent capability');
-});
-
-test('hidden capability completion cannot finish a newer My request', async () => {
-  const pending = [];
-  api.request = () => new Promise(resolve => pending.push(resolve));
-  const p = page('mine');
-  const first = p.loadAdminCapability();
-  p.onHide();
-  const second = p.loadAdminCapability();
-  pending[0]({ adminLoginEnabled: true });
-  await first;
-  assert.equal(p.data.adminCapabilityLoading, true);
-  assert.equal(p.data.adminLoginEnabled, false);
-  pending[1]({ adminLoginEnabled: false });
-  await second;
-  assert.equal(p.data.adminCapabilityLoading, false);
 });
 
 test('logout clears consent notices and an old confirmation cannot sign out another account', async () => {

@@ -160,53 +160,6 @@ test("late 401 from old session cannot clear newer session", async () => {
   await assert.rejects(api.request("/me"));
   assert.equal(store["wildboy-session"], "new");
 });
-test("admin login only persists a server-confirmed ADMIN and never a password", async () => {
-  let sent;
-  reply = (o) => {
-    sent = o;
-    o.success({
-      statusCode: 200,
-      data: { token: "admin-token", user: { id: "admin", role: "ADMIN" } },
-    });
-  };
-  await api.adminLogin(" operator ", "local-password");
-  assert.deepEqual(sent.data, {
-    username: "operator",
-    password: "local-password",
-  });
-  assert.equal(store["wildboy-session"], "admin-token");
-  assert.deepEqual(Object.keys(store), ["wildboy-session"]);
-});
-test("failed admin login preserves existing user session", async () => {
-  store["wildboy-session"] = "user-token";
-  reply = (o) => {
-    assert.equal(o.header.Authorization, undefined);
-    o.success({ statusCode: 401, data: { message: "账号或密码错误" } });
-  };
-  await assert.rejects(api.adminLogin("operator", "wrong"));
-  assert.equal(store["wildboy-session"], "user-token");
-});
-test("USER response cannot be promoted to administrator", async () => {
-  store["wildboy-session"] = "old";
-  await assert.rejects(
-    api.adminLogin("operator", "wrong"),
-    (e) => e.status === 403,
-  );
-  assert.equal(store["wildboy-session"], "old");
-});
-test("leaving administrator login screen prevents late session replacement", async () => {
-  store["wildboy-session"] = "old";
-  reply = (o) =>
-    o.success({
-      statusCode: 200,
-      data: { token: "admin", user: { id: "a", role: "ADMIN" } },
-    });
-  await assert.rejects(
-    api.adminLogin("operator", "password", () => false),
-    (e) => e.code === "LOGIN_CANCELLED",
-  );
-  assert.equal(store["wildboy-session"], "old");
-});
 test("logout prevents pending WeChat login from restoring a session", async () => {
   let waiting;
   reply = (o) => {

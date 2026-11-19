@@ -1,7 +1,7 @@
 {
   "passed": true,
-  "pages": 31,
-  "editableNodes": 1508,
+  "pages": 19,
+  "editableNodes": 958,
   "geometryIssues": 0,
   "results": [
     {
@@ -65,49 +65,9 @@
       "height": 633
     },
     {
-      "route": "pages/admin-login/index",
-      "width": 390,
-      "height": 638
-    },
-    {
-      "route": "pages/admin-activities/index",
-      "width": 390,
-      "height": 777
-    },
-    {
-      "route": "pages/admin-editor/index",
-      "width": 390,
-      "height": 1658
-    },
-    {
-      "route": "pages/admin-roster/index",
-      "width": 390,
-      "height": 886
-    },
-    {
       "route": "pages/login/index",
       "width": 390,
       "height": 654
-    },
-    {
-      "route": "pages/admin-legal/index",
-      "width": 390,
-      "height": 1063
-    },
-    {
-      "route": "pages/admin-shop/index",
-      "width": 390,
-      "height": 695
-    },
-    {
-      "route": "pages/admin-product/index",
-      "width": 390,
-      "height": 1286
-    },
-    {
-      "route": "pages/admin-orders/index",
-      "width": 390,
-      "height": 643
     },
     {
       "route": "pages/addresses/index",
@@ -125,34 +85,14 @@
       "height": 609
     },
     {
-      "route": "pages/admin-users/index",
-      "width": 390,
-      "height": 1200
-    },
-    {
-      "route": "pages/admin-content/index",
-      "width": 390,
-      "height": 797
-    },
-    {
       "route": "pages/article/index",
       "width": 390,
       "height": 547
     },
     {
-      "route": "pages/admin-memberships/index",
-      "width": 390,
-      "height": 1730
-    },
-    {
       "route": "pages/activity-orders/index",
       "width": 390,
       "height": 791
-    },
-    {
-      "route": "pages/admin-activity-orders/index",
-      "width": 390,
-      "height": 1072
     },
     {
       "route": "pages/order-detail/index",
@@ -162,8 +102,8 @@
   ],
   "priorStaticResult": {
     "passed": true,
-    "pages": 31,
-    "editableNodes": 1517,
+    "pages": 19,
+    "editableNodes": 947,
     "geometryIssues": 0,
     "results": [
       {
@@ -227,49 +167,9 @@
         "height": 633
       },
       {
-        "route": "pages/admin-login/index",
-        "width": 390,
-        "height": 638
-      },
-      {
-        "route": "pages/admin-activities/index",
-        "width": 390,
-        "height": 777
-      },
-      {
-        "route": "pages/admin-editor/index",
-        "width": 390,
-        "height": 1658
-      },
-      {
-        "route": "pages/admin-roster/index",
-        "width": 390,
-        "height": 886
-      },
-      {
         "route": "pages/login/index",
         "width": 390,
         "height": 628
-      },
-      {
-        "route": "pages/admin-legal/index",
-        "width": 390,
-        "height": 1063
-      },
-      {
-        "route": "pages/admin-shop/index",
-        "width": 390,
-        "height": 695
-      },
-      {
-        "route": "pages/admin-product/index",
-        "width": 390,
-        "height": 1286
-      },
-      {
-        "route": "pages/admin-orders/index",
-        "width": 390,
-        "height": 643
       },
       {
         "route": "pages/addresses/index",
@@ -287,34 +187,14 @@
         "height": 609
       },
       {
-        "route": "pages/admin-users/index",
-        "width": 390,
-        "height": 1200
-      },
-      {
-        "route": "pages/admin-content/index",
-        "width": 390,
-        "height": 797
-      },
-      {
         "route": "pages/article/index",
         "width": 390,
         "height": 547
       },
       {
-        "route": "pages/admin-memberships/index",
-        "width": 390,
-        "height": 1750
-      },
-      {
         "route": "pages/activity-orders/index",
         "width": 390,
         "height": 728
-      },
-      {
-        "route": "pages/admin-activity-orders/index",
-        "width": 390,
-        "height": 1248
       },
       {
         "route": "pages/order-detail/index",
@@ -387,49 +267,9 @@
         "file": "functional-previews/mini/T8xvQG.png"
       },
       {
-        "route": "pages/admin-login/index",
-        "nodeId": "Hm81T",
-        "file": "functional-previews/mini/Hm81T.png"
-      },
-      {
-        "route": "pages/admin-activities/index",
-        "nodeId": "v7T4w",
-        "file": "functional-previews/mini/v7T4w.png"
-      },
-      {
-        "route": "pages/admin-editor/index",
-        "nodeId": "P7Zcp8",
-        "file": "functional-previews/mini/P7Zcp8.png"
-      },
-      {
-        "route": "pages/admin-roster/index",
-        "nodeId": "nk6hq",
-        "file": "functional-previews/mini/nk6hq.png"
-      },
-      {
         "route": "pages/login/index",
         "nodeId": "eUD8P",
         "file": "functional-previews/mini/eUD8P.png"
-      },
-      {
-        "route": "pages/admin-legal/index",
-        "nodeId": "DrrXb",
-        "file": "functional-previews/mini/DrrXb.png"
-      },
-      {
-        "route": "pages/admin-shop/index",
-        "nodeId": "oMR7J",
-        "file": "functional-previews/mini/oMR7J.png"
-      },
-      {
-        "route": "pages/admin-product/index",
-        "nodeId": "zcNaB",
-        "file": "functional-previews/mini/zcNaB.png"
-      },
-      {
-        "route": "pages/admin-orders/index",
-        "nodeId": "yCfgW",
-        "file": "functional-previews/mini/yCfgW.png"
       },
       {
         "route": "pages/addresses/index",
@@ -447,34 +287,14 @@
         "file": "functional-previews/mini/OzxS4.png"
       },
       {
-        "route": "pages/admin-users/index",
-        "nodeId": "o1fEB",
-        "file": "functional-previews/mini/o1fEB.png"
-      },
-      {
-        "route": "pages/admin-content/index",
-        "nodeId": "RHxFf",
-        "file": "functional-previews/mini/RHxFf.png"
-      },
-      {
         "route": "pages/article/index",
         "nodeId": "r3JOu",
         "file": "functional-previews/mini/r3JOu.png"
       },
       {
-        "route": "pages/admin-memberships/index",
-        "nodeId": "DCUoO",
-        "file": "functional-previews/mini/DCUoO.png"
-      },
-      {
         "route": "pages/activity-orders/index",
         "nodeId": "gaW0x",
         "file": "functional-previews/mini/gaW0x.png"
-      },
-      {
-        "route": "pages/admin-activity-orders/index",
-        "nodeId": "OKdU4",
-        "file": "functional-previews/mini/OKdU4.png"
       },
       {
         "route": "pages/order-detail/index",
@@ -538,24 +358,9 @@
           "file": "functional-previews/mini/SgbAM.png"
         },
         {
-          "key": "mini:pages/admin-activities/index",
-          "id": "v7T4w",
-          "file": "functional-previews/mini/v7T4w.png"
-        },
-        {
-          "key": "mini:pages/admin-orders/index",
-          "id": "yCfgW",
-          "file": "functional-previews/mini/yCfgW.png"
-        },
-        {
           "key": "mini:pages/activity-orders/index",
           "id": "gaW0x",
           "file": "functional-previews/mini/gaW0x.png"
-        },
-        {
-          "key": "mini:pages/admin-activity-orders/index",
-          "id": "OKdU4",
-          "file": "functional-previews/mini/OKdU4.png"
         },
         {
           "key": "mini:pages/register/index",
@@ -568,29 +373,9 @@
           "file": "functional-previews/mini/eUD8P.png"
         },
         {
-          "key": "mini:pages/admin-memberships/index",
-          "id": "DCUoO",
-          "file": "functional-previews/mini/DCUoO.png"
-        },
-        {
-          "key": "mini:pages/admin-users/index",
-          "id": "o1fEB",
-          "file": "functional-previews/mini/o1fEB.png"
-        },
-        {
           "key": "mini-state:mini-orders-refundDialogOpen",
           "id": "UA6SP",
           "file": "functional-previews/states/UA6SP.png"
-        },
-        {
-          "key": "mini-state:mini-admin-users-roleConfirmationOpen",
-          "id": "axsaF",
-          "file": "functional-previews/states/axsaF.png"
-        },
-        {
-          "key": "mini-state:mini-admin-activity-orders-orderConfirmationOpen",
-          "id": "ZWLkt",
-          "file": "functional-previews/states/ZWLkt.png"
         }
       ],
       "observations": [
@@ -609,19 +394,12 @@
     "completedRebuildRoutes": [
       "pages/product/index",
       "pages/orders/index",
-      "pages/admin-activities/index",
-      "pages/admin-orders/index",
       "pages/activity-orders/index",
-      "pages/admin-activity-orders/index",
       "pages/register/index",
-      "pages/login/index",
-      "pages/admin-memberships/index",
-      "pages/admin-users/index"
+      "pages/login/index"
     ],
     "completedRebuildStateIds": [
-      "mini-orders-refundDialogOpen",
-      "mini-admin-users-roleConfirmationOpen",
-      "mini-admin-activity-orders-orderConfirmationOpen"
+      "mini-orders-refundDialogOpen"
     ],
     "mustRebuildRoutes": [],
     "mustRebuildStateIds": [],
@@ -632,7 +410,7 @@
     "cases": [
       "已发货订单无继续支付",
       "数量控件无重复按钮",
-      "31页静态树几何合法"
+      "19页静态树几何合法"
     ]
   }
 }

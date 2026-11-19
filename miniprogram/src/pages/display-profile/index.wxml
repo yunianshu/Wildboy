@@ -1,0 +1,19 @@
+<view class="uf-page display-profile-page page-motion {{pageMotionClass}}">
+  <view class="uf-header"><view class="uf-title">头像与昵称</view><view class="uf-muted">选填，不影响登录与报名。可使用微信头像昵称，也可以自行设置。</view></view>
+  <ui-state wx:if="{{loading}}" kind="loading">正在读取资料</ui-state>
+  <view wx:elif="{{user}}" class="uf-stack">
+    <view class="avatar-field">
+      <button class="avatar-picker" open-type="chooseAvatar" bindchooseavatar="chooseAvatar" disabled="{{saving || !canChooseAvatar}}" aria-label="选择头像">
+        <image class="{{avatarPreview ? 'avatar-photo' : 'avatar-placeholder'}}" src="{{avatarPreview || '/assets/icons-slate/user.svg'}}" mode="aspectFill" binderror="avatarError" />
+      </button>
+      <view class="avatar-copy"><view class="label">头像（选填）</view><view class="uf-caption">点击选择 · JPG / PNG，≤2MB 且不超过 1024×1024</view></view>
+    </view>
+    <view class="field"><label class="label" for="display-nickname">昵称（选填）</label><input wx:for="{{inputKeys}}" wx:key="*this" data-review-key="{{item}}" id="display-nickname" type="nickname" value="{{nickname}}" maxlength="32" bindinput="inputNickname" bindblur="blurNickname" bindnicknamereview="reviewNickname" disabled="{{saving || reviewing || !canReviewNickname}}" placeholder="输入昵称或选择微信昵称" /></view>
+    <view wx:if="{{!canChooseAvatar || !canReviewNickname}}" class="uf-note">当前微信版本不支持完整的头像昵称填写，请升级微信；也可直接跳过，不影响使用。</view>
+    <view wx:if="{{reviewing}}" class="uf-note">正在等待微信审核昵称。未响应时可重新输入或跳过。<button class="secondary ui-button ui-button-block" bindtap="resetNicknameReview" disabled="{{saving}}">重新输入昵称</button></view>
+    <view class="uf-caption">未填写的项目会保留原资料。手机号与活动联系人信息仍在「联系资料」中设置。</view>
+    <view wx:if="{{error}}" class="error" role="alert">{{error}}</view>
+    <view class="uf-actions"><button class="ui-button ui-button-block" bindtap="save" loading="{{saving}}" disabled="{{saving}}">{{saving ? '正在保存' : '保存资料'}}</button><button class="secondary ui-button ui-button-block" bindtap="skip" disabled="{{saving}}">{{onboarding ? '暂时跳过' : '暂不修改'}}</button></view>
+  </view>
+  <view wx:else><ui-state kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重新读取</button></ui-state><button class="secondary ui-button ui-button-block" bindtap="skip">返回</button></view>
+</view>
