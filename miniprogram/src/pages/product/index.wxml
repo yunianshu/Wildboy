@@ -9,9 +9,11 @@
       <view wx:if="{{memberPriceText}}" class="notice">{{tierName || '会员'}}优惠价 {{memberPriceText}} / 件</view>
       <view wx:elif="{{quoteLoading}}" class="muted" aria-role="status">正在核对会员价…</view>
       <view wx:elif="{{quoteError}}" class="muted" bindtap="refreshQuote">会员价暂未确认 · 点击重试</view>
-      <view class="divider" />
-      <view class="section-title small-title">装备细节</view>
-      <content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}" preview-images="{{true}}"/><text wx:else class="body-copy">{{product.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view>
+      <view class="section-title small-title detail-heading">装备细节</view>
+      <markdown-view wx:if="{{contentNodes.length}}" nodes="{{contentNodes}}" preview-images="{{true}}"/>
+      <content-view wx:elif="{{contentBlocks.length}}" blocks="{{contentBlocks}}" preview-images="{{true}}"/>
+      <text wx:else class="body-copy">{{product.description}}</text>
+      <view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view>
       <view class="notice">价格与库存以下单确认为准。</view>
       <view class="quantity-row"><view><view class="section-title small-title">购买数量</view><view class="muted">单种商品最多 99 件</view></view><view class="stepper"><button data-delta="-1" bindtap="changeQuantity" disabled="{{quantity <= 1}}" aria-label="减少购买数量"><image class="step-icon" src="/assets/icons-slate/minus.svg" mode="aspectFit" aria-hidden="{{true}}" /></button><text>{{quantity}}</text><button data-delta="1" bindtap="changeQuantity" disabled="{{quantity >= product.stock || quantity >= 99}}" aria-label="增加购买数量"><image class="step-icon" src="/assets/icons-slate/plus.svg" mode="aspectFit" aria-hidden="{{true}}" /></button></view></view>
     </view>

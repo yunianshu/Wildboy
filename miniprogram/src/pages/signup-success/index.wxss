@@ -35,7 +35,6 @@
   margin-bottom: 16rpx;
 }
 .trip-row {
-  border-bottom: 1rpx solid var(--rf-soft);
   padding: 20rpx 0;
   line-height: 1.6;
   display: flex;

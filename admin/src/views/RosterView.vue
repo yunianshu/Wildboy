@@ -9,6 +9,7 @@ import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import type { Activity, Registration, Page } from "../types";
 import { registrationTone } from "../statusTone";
+import { useRosterExport } from "../rosterExport";
 const route = useRoute(),
   activity = ref<Activity | null>(null),
   page = ref(0),
@@ -31,56 +32,13 @@ function applyFilters() {
   if (page.value) page.value = 0;
   else void load();
 }
-const exporting = ref(false);
-const exportError = ref("");
-async function downloadRoster() {
-  const actor = currentUser.value;
-  if (exporting.value || busy.value || actor?.role !== "ADMIN" || activity.value?.priceCents !== 0) return;
-  const attempt = generation;
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value);
-  const id = encodeURIComponent(String(route.params.id));
-  exporting.value = true;
-  exportError.value = "";
-  try {
-    const entries = await request<{ name: string; maskedPhone: string; status: string; createdAt: string }[]>(
-      "/admin/activities/" + id + "/registrations/export?" + params,
-      { signal: controller?.signal, cache: "no-store" },
-    );
-    if (attempt !== generation || actor !== currentUser.value) return;
-    if (!entries.length) { exportError.value = "没有符合条件的报名记录。"; return; }
-    saveRosterCsv(entries);
-  } catch (e) {
-    if (attempt === generation && actor === currentUser.value) exportError.value = errorMessage(e);
-  } finally {
-    if (attempt === generation) exporting.value = false;
-  }
-}
-function saveRosterCsv(entries: { name: string; maskedPhone: string; status: string; createdAt: string }[]) {
-  const quote = (value: string) => {
-    const safe = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/.test(value) ? "'" + value : value;
-    return '"' + safe.replaceAll('"', '""') + '"';
-  };
-  const rows = [["姓名", "手机号（脱敏）", "报名状态", "报名时间"]];
-  for (const entry of entries) {
-    rows.push([entry.name, entry.maskedPhone,
-      entry.status === "CONFIRMED" ? "已报名" : "已取消", displayDate(entry.createdAt)]);
-  }
-  const url = URL.createObjectURL(new Blob(["\uFEFF", rows.map(row => row.map(quote).join(",")).join("\r\n")],
-    { type: "text/csv;charset=utf-8" }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "报名名单-脱敏.csv";
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+const { exporting, exportError, downloadRoster, resetExport } = useRosterExport();
 let generation = 0,
   controller: AbortController | undefined;
 async function load() {
   const current = ++generation;
   controller?.abort();
-  exporting.value = false;
-  exportError.value = "";
+  resetExport();
   controller = new AbortController();
   busy.value = true;
   error.value = "";
@@ -172,8 +130,6 @@ watch(currentUser, () => {
   revealedDetails.value = {};
   data.value.items = [];
   activity.value = null;
-  exporting.value = false;
-  exportError.value = "";
 });
 watch([page, () => route.params.id], load);
 onMounted(load);
@@ -187,17 +143,6 @@ onUnmounted(() => {
 </script>
 <template>
   <main class="workspace">
-    <form v-if="activity?.priceCents === 0" class="action-row" @submit.prevent="applyFilters">
-      <input v-model="searchDraft" maxlength="80" aria-label="搜索报名人" placeholder="姓名或完整手机号" />
-      <select v-model="statusDraft" aria-label="报名状态">
-        <option value="">全部状态</option>
-        <option value="CONFIRMED">已报名</option>
-        <option value="CANCELLED">已取消</option>
-      </select>
-      <button class="secondary" :disabled="busy">查询</button>
-      <button type="button" class="secondary" :disabled="busy || exporting || !data.total" @click="downloadRoster">{{ exporting ? "正在导出…" : "导出筛选结果（脱敏）" }}</button>
-    </form>
-    <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <RouterLink class="back-link" to="/activities"
       ><AppIcon name="back" :size="16" /> 返回活动目录</RouterLink
     >
@@ -212,13 +157,35 @@ onUnmounted(() => {
           >
         </p>
       </div>
+      <div class="action-row">
       <RouterLink
         v-if="activity"
         class="secondary button"
         :to="`/activities/${activity.id}/edit`"
         >查看活动</RouterLink
       >
+        <button
+          v-if="activity?.priceCents === 0 && currentUser?.role === 'ADMIN'"
+          type="button"
+          class="primary"
+          :disabled="busy || exporting || !!error || !data.total"
+          @click="downloadRoster(activity.id, activity.title, filters)"
+        >
+          {{ exporting ? "正在导出…" : "导出名单" }}
+        </button>
+      </div>
     </section>
+    <form v-if="activity?.priceCents === 0" class="action-row" @submit.prevent="applyFilters">
+      <input v-model="searchDraft" maxlength="80" aria-label="搜索报名人" placeholder="姓名或完整手机号" />
+      <select v-model="statusDraft" aria-label="报名状态">
+        <option value="">全部状态</option>
+        <option value="CONFIRMED">已报名</option>
+        <option value="CANCELLED">已取消</option>
+      </select>
+      <button class="secondary" :disabled="busy">查询</button>
+
+    </form>
+    <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <div class="privacy-note">
       报名资料仅用于活动核验与联系。请勿公开、截图或用于无关营销。
     </div>

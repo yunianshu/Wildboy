@@ -45,6 +45,45 @@ class ContentMediaIntegrationTest {
   var blocks=List.of(new ContentModels.Block("table",null,null,null,List.of(List.of("行程","时间"),List.of("集合","08:00"))),new ContentModels.Block("image",null,"/assets/equipment.jpg","装备",null));
   mvc.perform(put(path()).header("Authorization",admin).contentType("application/json").content(json.writeValueAsString(new ContentModels.Input(blocks,0L)))).andExpect(status().isOk());
  }
+ @Test void productMarkdownKeepsLegacyContentAndPublishesNativeNodes() throws Exception {
+  var blocks = List.of(
+      new ContentModels.Block("text", "字面 **说明**", null, null, null),
+      new ContentModels.Block("image", null, "/assets/equipment.jpg", "装备图", null),
+      new ContentModels.Block("table", null, null, null, List.of(List.of("规格", "重量"), List.of("标准", "1kg"))));
+  String publicPath = "/api/v1/shop/products/" + id + "/content";
+  String editorPath = path() + "/markdown";
+  String legacy = json.writeValueAsString(new ContentModels.Input(blocks, 0L));
+  mvc.perform(put(path()).header("Authorization", admin).contentType("application/json").content(legacy))
+      .andExpect(status().isOk());
+  mvc.perform(get(editorPath)).andExpect(status().isUnauthorized());
+  var result = mvc.perform(get(editorPath).header("Authorization", admin))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1)).andReturn();
+  String oldMarkdown = json.readTree(result.getResponse().getContentAsByteArray()).path("markdown").asText();
+  assertThat(oldMarkdown).contains("字面 \\*\\*说明\\*\\*", "![装备图](/assets/equipment.jpg)", "| 规格 | 重量 |");
+  String markdown = "# 新规格\n\n" + oldMarkdown + "\n> 可调节\n\n***\n";
+  String input = json.writeValueAsString(new ContentModels.MarkdownInput(markdown, 1L));
+  mvc.perform(put(editorPath).header("Authorization", user).contentType("application/json").content(input))
+      .andExpect(status().isForbidden());
+  mvc.perform(put(editorPath).header("Authorization", admin).contentType("application/json").content(input))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2)).andExpect(jsonPath("$.markdown").value(markdown));
+  mvc.perform(put(editorPath).header("Authorization", admin).contentType("application/json").content(input))
+      .andExpect(status().isConflict());
+  mvc.perform(put(path()).header("Authorization", admin).contentType("application/json")
+      .content(json.writeValueAsString(new ContentModels.Input(blocks, 2L)))).andExpect(status().isConflict());
+  mvc.perform(get(publicPath)).andExpect(status().isOk())
+      .andExpect(jsonPath("$.contentNodes[0].type").value("heading"))
+      .andExpect(jsonPath("$.contentNodes[1].spans[0].s").value("字面 **说明**"))
+      .andExpect(jsonPath("$.contentNodes[2].caption").value("装备图"))
+      .andExpect(jsonPath("$.contentNodes[3].rows[0][1][0].s").value("1kg"))
+      .andExpect(jsonPath("$.contentNodes[4].quote").value(true))
+      .andExpect(jsonPath("$.contentNodes[5].type").value("hr"))
+      .andExpect(jsonPath("$.blocks[0].text").value("新规格"))
+      .andExpect(jsonPath("$.blocks[2].url").value("/assets/equipment.jpg"))
+      .andExpect(jsonPath("$.blocks[3].rows[1][1]").value("1kg"));
+  db.update("UPDATE product SET status='OFF_SHELF' WHERE id=?", id);
+  mvc.perform(get(publicPath)).andExpect(status().isNotFound());
+  mvc.perform(get(editorPath).header("Authorization", admin)).andExpect(status().isOk());
+ }
  @Test void uploadAuthenticatesValidatesReencodesAndServes()throws Exception{
   var out=new ByteArrayOutputStream();ImageIO.write(new BufferedImage(3,2,BufferedImage.TYPE_INT_RGB),"png",out);
   String input=json.writeValueAsString(Map.of("dataBase64",Base64.getEncoder().encodeToString(out.toByteArray())));

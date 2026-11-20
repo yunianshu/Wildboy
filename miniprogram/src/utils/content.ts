@@ -1,6 +1,7 @@
 import { request, mediaUrl } from './api';
+import type { MarkdownNode } from './articles';
 export type ContentBlock={type:'text'|'image'|'table';text?:string;url?:string;caption?:string;rows?:string[][]};
-export type ContentDocument={blocks:ContentBlock[];version:number};
+export type ContentDocument={blocks:ContentBlock[];version:number;contentNodes?:MarkdownNode[] | null};
 export async function loadContent(path:string):Promise<ContentDocument>{
  const data=await request<ContentDocument>(path);
  if(!data||!Array.isArray(data.blocks))throw new Error('图文加载失败');

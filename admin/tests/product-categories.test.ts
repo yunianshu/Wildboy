@@ -400,7 +400,7 @@ describe("product category and original/current prices", () => {
       return readShop(path, [catalog]);
     });
     const { wrapper } = await render(fetcher, "/shop");
-    await button(wrapper, "编辑").trigger("click");
+    await button(wrapper, "编辑商品信息").trigger("click");
     await wrapper.get('[name="productCategory"]').setValue(gear.id);
     await wrapper.get('[name="originalPrice"]').setValue("249.99");
     await wrapper.get('[name="currentPrice"]').setValue("199.50");
@@ -432,7 +432,7 @@ describe("product category and original/current prices", () => {
   it("blocks invalid original/current prices and a missing category without any product mutation", async () => {
     const fetcher = vi.fn(async (path: string) => readShop(path));
     const { wrapper } = await render(fetcher, "/shop");
-    await button(wrapper, "编辑").trigger("click");
+    await button(wrapper, "编辑商品信息").trigger("click");
     await wrapper.get('[name="originalPrice"]').setValue("100.00");
     await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.text()).toContain("原价不能低于现价");
@@ -459,7 +459,7 @@ describe("product category and original/current prices", () => {
     expect(wrapper.text()).toContain(order.orderNo);
     await button(wrapper, "商品与库存").trigger("click");
     await flushPromises();
-    await button(wrapper, "编辑").trigger("click");
+    await button(wrapper, "编辑商品信息").trigger("click");
     await wrapper.get(".form-modal form input").setValue("保留新名称");
     expect(wrapper.text()).toContain("分类网络断开");
     expect(button(wrapper, "确认并保存").attributes("disabled")).toBeDefined();

@@ -3,7 +3,7 @@
 .welcome { padding: 32px 16px calc(32px + env(safe-area-inset-bottom)); }
 .login-brand { margin: 24px 0 32px; font-size: 24px; font-weight: 800; color: var(--rf-primary-text); }
 .login-brand text { display: block; margin-top: 8px; color: var(--rf-muted); font-size: 13px; font-weight: 400; }
-.panel { padding: 24px 16px; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: 12px; }
+.panel { padding: 24px 16px; background: var(--rf-surface); border-radius: 12px; }
 .panel .title { margin: 0 0 24px; }
 .agreement { display: flex; align-items: flex-start; gap: 8px; margin: 20px 0; font-size: 14px; line-height: 1.6; color: var(--rf-muted); }
 .agreement checkbox { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; }

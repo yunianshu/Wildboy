@@ -39,7 +39,7 @@
   line-height: 1.5;
   text-align: left;
 }
-.address-card.address-selected { border-color: var(--rf-primary); }
+.address-card.address-selected { background: var(--rf-soft); }
 .address-card {
   background: #FFFFFF;
   padding: 28rpx;

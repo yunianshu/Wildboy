@@ -2,6 +2,7 @@
   "navigationBarTitleText": "商品详情",
   "usingComponents": {
     "content-view": "../../components/content-view-slate/index",
+    "markdown-view": "/components/markdown-view-slate/index",
     "ui-state": "/components/ui-state-slate/index"
   },
   "backgroundColor": "#F6F8F3",

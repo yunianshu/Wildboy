@@ -14,6 +14,7 @@ import FormModal from "../components/FormModal.vue";
 import AppIcon from "../components/AppIcon.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
+import { useRosterExport } from "../rosterExport";
 const route = useRoute();
 const activityId = computed(() =>
   typeof route.query.activityId === "string" ? route.query.activityId : "",
@@ -27,6 +28,7 @@ const refundDraft = ref("");
 const appliedFilters = ref({ query: "", status: "", refundStatus: "" });
 const notice = ref("");
 const total = ref(0);
+const { exporting, exportError, downloadRoster, resetExport } = useRosterExport();
 function applyFilters() {
   appliedFilters.value = { query: searchDraft.value.trim(), status: statusDraft.value, refundStatus: refundDraft.value };
   void load(0);
@@ -135,6 +137,7 @@ function clearDetail() {
 }
 function reset() {
   epoch++;
+  resetExport();
   clearDetail();
   items.value = [];
   busy.value = false;
@@ -497,11 +500,22 @@ onMounted(() => void load(0));
           orderId ? "活动订单核对" : activityId ? "收费活动名单" : "活动订单"
         }}
       </h1>
-      <button class="secondary" :disabled="busy" @click="load()">
+      <div v-if="activityId && !orderId && currentUser?.role === 'ADMIN'" class="action-row">
+        <button
+          class="primary"
+          type="button"
+          :disabled="busy || exporting"
+          @click="downloadRoster(activityId, items[0]?.activityTitle ?? '')"
+        >
+          {{ exporting ? "正在导出…" : "导出已确认名单" }}
+        </button>
+      </div>
+      <button v-else class="secondary" :disabled="busy" @click="load()">
         <AppIcon name="refresh" :size="16" />
         刷新订单
       </button>
     </div>
+    <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <div v-if="activityId || orderId" class="activity-order-scope">
       <strong>{{
         items[0]?.activityTitle ||

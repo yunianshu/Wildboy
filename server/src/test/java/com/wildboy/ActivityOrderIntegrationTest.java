@@ -83,6 +83,25 @@ class ActivityOrderIntegrationTest {
     assertThatThrownBy(()->activities.register(a.id(),u.id(),input(1))).hasMessageContaining("报名订单");
     assertThat(activities.get(a.id(),true).registeredCount()).isZero();
   }
+  @Test void paidRosterExportsEveryConfirmedParticipantAndMasksPhones() {
+    var a = activity(6);
+    var paidOrder = reserve(a, user(), 2, 1000);
+    orders.completePayment(paid(paidOrder));
+    var freeOrder = reserve(a, user(), 1, 0);
+    db.update("UPDATE activity_order_participant SET participant_name='QA waived' WHERE order_id=?", freeOrder.id());
+    reserve(a, user(), 1, 1000);
+    var cancelled = reserve(a, user(), 1, 0);
+    orders.cancel(cancelled.id(), cancelled.userId());
+    reserve(activity(2), user(), 1, 0);
+
+    var rows = activities.exportRoster(a.id(), null, null);
+    assertThat(rows).extracting(ActivityService.RosterExportRow::name)
+        .containsExactlyInAnyOrder("QA Person 0", "QA Person 1", "QA waived");
+    assertThat(rows).allSatisfy(row -> {
+      assertThat(row.maskedPhone()).isEqualTo("138****8000");
+      assertThat(row.status()).isEqualTo("CONFIRMED");
+    });
+  }
   @Test void paidOrderNeedsTheSameWechatContactAsFreeRegistration(){
     var a=activity(1);
     var u=auth.user("wechat:"+UUID.randomUUID(),"QA incomplete contact","USER");

@@ -64,6 +64,43 @@ describe("shop administration", () => {
       .find((b) => b.text() === label)!
       .trigger("click");
   }
+  it("opens independent information and content editors from the product row", async () => {
+    const contentPath = `/api/v1/admin/shop/products/${product.id}/content/markdown`;
+    const fetch = vi.fn(async (path: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        if (path.endsWith("/products")) return [product];
+        if (path.endsWith("/categories")) return [];
+        return orderPage;
+      },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/shop", component: ShopView },
+        { path: "/shop/products/:id/content", component: { template: "<h1>商品图文工作台</h1>" } },
+      ],
+    });
+    await router.push("/shop?productQuery=背包");
+    const wrapper = mount({ template: "<RouterView />" }, { global: { plugins: [router] } });
+    await flushPromises();
+
+    await wrapper.findAll("button").find(b => b.text() === "编辑商品信息")!.trigger("click");
+    expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
+    expect(wrapper.text()).not.toContain("商品图文工作台");
+    expect(fetch.mock.calls.some(([path]) => path === contentPath)).toBe(false);
+    await wrapper.get('button[aria-label="关闭弹窗"]').trigger("click");
+
+    await wrapper.get(`a[href^="/shop/products/${product.id}/content"]`).trigger("click");
+    await flushPromises();
+    expect(wrapper.get("h1").text()).toBe("商品图文工作台");
+    expect(wrapper.find("#shop-product-form").exists()).toBe(false);
+    expect(router.currentRoute.value.query.productQuery).toBe("背包");
+    wrapper.unmount();
+  });
+
   it("loads products and masks order delivery data", async () => {
     const fetchMock = vi.fn().mockImplementation(async (path: string) => ({
       ok: true,
@@ -294,7 +331,7 @@ describe("shop administration", () => {
     await click(wrapper, "订单与发货");
     await click(wrapper, "下一页");
     await click(wrapper, "商品与库存");
-    await click(wrapper, "编辑");
+    await click(wrapper, "编辑商品信息");
     // A catalog request already in flight finishes after the edit draft opens.
     finishRefresh([{ ...product, stock: 4, version: 3 }]);
     await flushPromises();
@@ -322,7 +359,7 @@ describe("shop administration", () => {
     const wrapper = mount(ShopView, { attachTo: document.body });
     try {
       await flushPromises();
-      await click(wrapper, "编辑");
+      await click(wrapper, "编辑商品信息");
       await wrapper.get('input[name="originalPrice"]').setValue("1");
       await wrapper.get('input[name="currentPrice"]').setValue("2");
       await wrapper.get(".form-modal form").trigger("submit");
@@ -362,7 +399,7 @@ describe("shop administration", () => {
     const wrapper = mount(ShopView, { attachTo: document.body });
     try {
       await flushPromises();
-      await click(wrapper, "编辑");
+      await click(wrapper, "编辑商品信息");
       await wrapper.get(".form-modal form input").setValue("保留的商品名称");
       await wrapper.get(".form-modal form").trigger("submit");
       await flushPromises();

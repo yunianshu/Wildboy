@@ -6,6 +6,7 @@ import EditorView from "./views/EditorView.vue";
 import RosterView from "./views/RosterView.vue";
 import LegalView from "./views/LegalView.vue";
 import ShopView from "./views/ShopView.vue";
+import ProductContentView from "./views/ProductContentView.vue";
 import ProductCategoriesView from "./views/ProductCategoriesView.vue";
 import UsersView from "./views/UsersView.vue";
 import AdminAccountView from "./views/AdminAccountView.vue";
@@ -27,6 +28,7 @@ export const router = createRouter({
     { path: "/activities", component: ActivitiesView },
     { path: "/shop", component: ShopView },
     { path: "/shop/categories", component: ProductCategoriesView },
+    { path: "/shop/products/:id/content", component: ProductContentView },
     { path: "/users", component: UsersView },
     { path: "/memberships", component: MembershipsView },
     { path: "/activity-orders", component: ActivityOrdersView },

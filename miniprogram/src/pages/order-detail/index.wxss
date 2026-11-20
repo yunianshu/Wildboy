@@ -11,11 +11,10 @@
   gap: 10px;
   padding: 16px;
   margin-top: 12px;
-  border: 1px solid var(--rf-line);
   border-radius: 12px;
   background: var(--rf-surface);
 }
-.status-card { border-left: 4px solid var(--rf-primary); }
+.status-card { background: var(--rf-soft); }
 .status-title { font-size: 20px; font-weight: 700; color: var(--rf-ink); }
 .status-sub { font-size: 12px; color: var(--rf-muted); }
 .receipt-hint { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--rf-muted); }

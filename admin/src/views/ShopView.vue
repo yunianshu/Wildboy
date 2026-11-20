@@ -15,7 +15,6 @@ import { displayDate } from "../forms";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
-import RichContentEditor from "../components/RichContentEditor.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import type {
@@ -27,12 +26,10 @@ import type {
   ProductStatus,
 } from "../types";
 
-const contentOpen = ref(false);
 const formOpen = ref(false);
 const filterOpen = ref(false);
 const formError = ref("");
 const formErrorElement = ref<HTMLElement>();
-const contentEditor = ref<{ canLeave: () => Promise<boolean>; busy: boolean } | null>(null);
 const products = ref<Product[]>([]),
   categories = ref<ProductCategory[]>([]),
   categoriesError = ref(""),
@@ -142,7 +139,6 @@ function clear() {
   shipping.value = null;
   shippingError.value = "";
   shippingConflictId.value = "";
-  contentOpen.value = false;
   formOpen.value = false;
   filterOpen.value = false;
   editingId.value = "";
@@ -259,10 +255,8 @@ function clearFilter() {
   rememberFilters();
   filterOpen.value = false;
 }
-async function openNew() {
-  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
+function openNew() {
   formError.value = "";
-  contentOpen.value = false;
   editingId.value = "";
   editingVersion.value = 0;
   form.value = {
@@ -279,10 +273,8 @@ async function openNew() {
   formSnapshot = JSON.stringify(form.value);
   formOpen.value = true;
 }
-async function edit(product: Product) {
-  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
+function edit(product: Product) {
   formError.value = "";
-  contentOpen.value = false;
   editingId.value = product.id;
   editingVersion.value = product.version;
   form.value = {
@@ -308,9 +300,7 @@ async function edit(product: Product) {
 async function reset(saved = false) {
   if (!saved && formOpen.value && JSON.stringify(form.value) !== formSnapshot &&
       !(await askConfirm("商品修改未保存，确定放弃吗？"))) return;
-  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   formError.value = "";
-  contentOpen.value = false;
   editingId.value = "";
   editingVersion.value = 0;
   formOpen.value = false;
@@ -326,10 +316,6 @@ async function reset(saved = false) {
     stock: "0",
     status: "ON_SALE",
   };
-}
-async function closeContent() {
-  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
-  contentOpen.value = false;
 }
 function parseYuan(value: string) {
   const text = value.trim();
@@ -601,7 +587,13 @@ onUnmounted(clear);
               <td>{{ product.stock }}</td>
               <td>{{ product.status === "ON_SALE" ? "上架" : "下架" }}</td>
               <td>
-                <button class="text-button" @click="edit(product)">编辑</button>
+                <div class="product-actions">
+                  <button type="button" class="text-button" @click="edit(product)">编辑商品信息</button>
+                  <RouterLink
+                    class="button text-button"
+                    :to="{ path: `/shop/products/${encodeURIComponent(product.id)}/content`, query: route?.query }"
+                  >编辑商品图文</RouterLink>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -811,9 +803,9 @@ onUnmounted(clear);
         </div>
       </form>
     </FormModal>
-    <FormModal :busy="busy" v-if="formOpen && !contentOpen" size="lg" @close="reset()"
+    <FormModal :busy="busy" v-if="formOpen" size="lg" @close="reset()"
       ><template #title
-        ><h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2></template
+        ><h2>{{ editingId ? "编辑商品信息" : "创建商品" }}</h2></template
       >
 
       <p
@@ -905,27 +897,6 @@ onUnmounted(clear);
           {{ busy ? "正在保存…" : "确认并保存" }}
         </button>
       </form>
-      <button
-        v-if="editingId"
-        type="button"
-        class="secondary content-button"
-        @click="contentOpen = true"
-      >
-        编辑图文详情
-      </button>
-    </FormModal>
-    <FormModal
-      :busy="busy || !!contentEditor?.busy"
-      title="编辑商品图文"
-      v-if="editingId && contentOpen"
-      size="lg"
-      @close="closeContent"
-    >
-      <RichContentEditor
-        ref="contentEditor"
-        :path="`/admin/shop/products/${editingId}/content`"
-        :disabled="busy"
-      />
     </FormModal>
   </main>
 </template>
@@ -970,8 +941,10 @@ onUnmounted(clear);
 .form-grid .primary {
   justify-self: start;
 }
-.content-button {
-  margin-top: 18px;
+.product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
 .order-admin-card {
   padding: 12px 0;

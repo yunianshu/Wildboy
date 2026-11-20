@@ -7,16 +7,16 @@
 .article-head { padding: 20px 16px 16px; background: var(--rf-surface); }
 .article-title { color: var(--rf-ink); font-size: 24px; font-weight: 700; line-height: 1.45; }
 .article-meta { margin-top: 8px; color: var(--rf-muted); font-size: 12px; line-height: 1.6; }
-/* Overlay belongs to the cover, never the title/content flow. */
-.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; line-height: 1; border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); box-shadow: 0 2px 8px rgba(32, 55, 44, .12); }
+/* The native share button imposes its own width. Keep this icon control square. */
+button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 44px !important; min-width: 44px !important; max-width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; line-height: 1; border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); box-shadow: 0 2px 8px rgba(32, 55, 44, .12); }
 .share::after { border: 0; }
 .share-pressed { background: var(--rf-soft); }
 .share-icon { width: 22px; height: 22px; }
 .article-intro { padding: 16px; background: var(--rf-surface); color: var(--rf-muted); font-size: 14px; line-height: 1.8; }
 .article-gallery { padding: 0 16px; }
 .article-gallery image { width: 100%; height: 220px; margin-top: 12px; border-radius: 12px; background: var(--rf-soft); }
-.article-section { margin: 16px 16px 0; border: 1px solid var(--rf-line); border-radius: 12px; background: var(--rf-surface); overflow: hidden; }
-.section-bar { padding: 16px 16px 12px; font-size: 18px; font-weight: 600; color: var(--rf-ink); border-bottom: 1px solid var(--rf-line); }
+.article-section { margin: 16px 16px 0; border-radius: 12px; background: var(--rf-surface); overflow: hidden; }
+.section-bar { padding: 16px 16px 12px; font-size: 18px; font-weight: 600; color: var(--rf-ink); }
 .section-body { padding: 16px; font-size: 14px; line-height: 1.8; color: var(--rf-ink); }
 .facts view { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 6px 0; }
 .facts view text:first-child { flex-shrink: 0; color: var(--rf-muted); }

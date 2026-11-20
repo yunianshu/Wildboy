@@ -82,6 +82,11 @@ public class ShopController {
     return shop.products(true, categoryId);
   }
 
+  @GetMapping("/admin/shop/products/{id}")
+  Product adminProduct(@PathVariable String id) {
+    return shop.product(id, true);
+  }
+
   @PostMapping("/admin/shop/products")
   ResponseEntity<Product> createProduct(
       @AuthenticationPrincipal Models.User user, @Valid @RequestBody ProductInput input) {

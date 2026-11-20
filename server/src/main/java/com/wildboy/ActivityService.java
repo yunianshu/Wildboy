@@ -536,8 +536,21 @@ public class ActivityService {
   public record RosterExportRow(String name, String maskedPhone, String status, OffsetDateTime createdAt) {}
 
   public List<RosterExportRow> exportRoster(String activity, RegistrationStatus status, String query) {
-    if (get(activity, true).priceCents() > 0)
-      throw ApiException.conflict("PAID_ACTIVITY_ROSTER", "收费活动名单请在活动订单查看");
+    if (get(activity, true).priceCents() > 0) {
+      if (status != null || (query != null && !query.isBlank())) {
+        throw new ApiException(400, "INVALID_PAID_ROSTER_FILTER", "收费活动导出仅包含已确认报名");
+      }
+      return db.query("""
+          SELECT p.participant_name, p.phone, o.created_at
+          FROM activity_order o JOIN activity_order_participant p ON p.order_id=o.id
+          WHERE o.activity_id=? AND o.status IN ('PAID', 'CONFIRMED_FREE')
+          ORDER BY o.created_at DESC, o.id, p.position
+          """,
+          (row, i) -> new RosterExportRow(row.getString("participant_name"),
+              UserService.maskPhone(row.getString("phone")), RegistrationStatus.CONFIRMED.name(),
+              row.getObject("created_at", OffsetDateTime.class)),
+          activity);
+    }
     var args = new ArrayList<Object>();
     String where = registrationFilter(null, activity, status, query, args);
     return db.query(

@@ -25,7 +25,8 @@ test('share overlays cover with 44px target below retained native navigation', (
   assert.notEqual(app.window.navigationStyle, 'custom');
   assert.match(css, /\.article-cover-wrap\s*{[^}]*position:\s*relative/);
   const rule = css.match(/\.share\s*{([^}]+)}/)[1];
-  for (const declaration of ['position: absolute', 'top: 12px', 'right: 16px', 'width: 44px', 'height: 44px', 'margin: 0', 'padding: 0', 'background: var(--rf-surface)']) assert.ok(rule.includes(declaration), declaration);
+  const declarations = rule.split(';').map(declaration => declaration.trim());
+  for (const declaration of ['position: absolute', 'top: 12px', 'right: 16px', 'width: 44px !important', 'min-width: 44px !important', 'height: 44px', 'border-radius: 50%', 'margin: 0', 'padding: 0', 'background: var(--rf-surface)']) assert.ok(declarations.includes(declaration), declaration);
   assert.doesNotMatch(rule, /position:\s*fixed|top:\s*-/);
 });
 

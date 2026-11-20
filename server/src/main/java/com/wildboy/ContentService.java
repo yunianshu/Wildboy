@@ -1,6 +1,7 @@
 package com.wildboy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -13,13 +14,91 @@ public class ContentService {
   public ContentService(JdbcTemplate db,ObjectMapper json,ActivityService activities,ShopService shop) {
     this.db=db;this.json=json;this.activities=activities;this.shop=shop;
   }
+  private record StoredContent(Document document, String markdown) {}
+
   public Document get(String type,String id,boolean admin) {
     if(type.equals("activity")) activities.get(id,admin); else shop.product(id,admin);
-    var found=db.query("SELECT blocks,version FROM rich_content WHERE entity_type=? AND entity_id=?",(r,n)-> {
-      try { return new Document(Arrays.asList(json.readValue(r.getString(1),Block[].class)),r.getLong(2)); }
+    return stored(type, id).document();
+  }
+
+  private StoredContent stored(String type, String id) {
+    var found=db.query("SELECT blocks,version,markdown FROM rich_content WHERE entity_type=? AND entity_id=?",(r,n)-> {
+      try {
+        var document = new Document(Arrays.asList(json.readValue(r.getString("blocks"), Block[].class)), r.getLong("version"));
+        return new StoredContent(document, r.getString("markdown"));
+      }
       catch(Exception e){throw new IllegalStateException("Invalid stored content",e);}
     },type,id);
-    return found.isEmpty()?new Document(List.of(),0):found.getFirst();
+    return found.isEmpty() ? new StoredContent(new Document(List.of(), 0), null) : found.getFirst();
+  }
+
+  public ProductDocument publicProduct(String id) {
+    shop.product(id, false);
+    var stored = stored("product", id);
+    var document = stored.document();
+    return new ProductDocument(document.blocks(), document.version(),
+        stored.markdown() == null ? null : ArticleMarkdown.toNodes(stored.markdown()));
+  }
+
+  public MarkdownDocument productMarkdown(String id) {
+    shop.product(id, true);
+    var stored = stored("product", id);
+    return new MarkdownDocument(stored.markdown() == null
+        ? ArticleMarkdown.fromProductBlocks(stored.document().blocks()) : stored.markdown(),
+        stored.document().version());
+  }
+
+  @Transactional
+  public MarkdownDocument saveProductMarkdown(String id, MarkdownInput in, String actor) {
+    lockEntity("product", id);
+    var old = stored("product", id).document();
+    checkVersion(in.version(), old.version());
+    var nodes = ArticleMarkdown.toNodes(in.markdown());
+    saveContent("product", id, legacyProductBlocks(json.valueToTree(nodes)), in.markdown(), actor);
+    return new MarkdownDocument(in.markdown(), old.version() + 1);
+  }
+
+  private static List<Block> legacyProductBlocks(JsonNode nodes) {
+    var blocks = new ArrayList<Block>();
+    for (var node : nodes) {
+      switch (node.path("type").asText()) {
+        case "image" -> blocks.add(new Block("image", null, node.path("url").asText(), node.path("caption").asText(), null));
+        case "table" -> {
+          var rows = new ArrayList<List<String>>();
+          rows.add(tableCells(node.path("head")));
+          for (var row : node.path("rows")) rows.add(tableCells(row));
+          blocks.add(new Block("table", null, null, null, rows));
+        }
+        case "heading", "paragraph" -> addLegacyText(blocks, spanText(node.path("spans")));
+        case "code" -> addLegacyText(blocks, node.path("text").asText());
+        case "list" -> {
+          var lines = new ArrayList<String>();
+          boolean ordered = node.path("ordered").asBoolean();
+          for (var item : node.path("items")) {
+            lines.add((ordered ? (lines.size() + 1) + ". " : "• ") + spanText(item.path("spans")));
+          }
+          addLegacyText(blocks, String.join("\n", lines));
+        }
+        default -> { }
+      }
+    }
+    return blocks;
+  }
+
+  private static List<String> tableCells(JsonNode row) {
+    var cells = new ArrayList<String>();
+    for (var cell : row) cells.add(spanText(cell));
+    return cells;
+  }
+
+  private static String spanText(JsonNode spans) {
+    var text = new StringBuilder();
+    for (var span : spans) text.append(span.path("s").asText());
+    return text.toString();
+  }
+
+  private static void addLegacyText(List<Block> blocks, String text) {
+    if (!text.isBlank()) blocks.add(new Block("text", text, null, null, null));
   }
   static boolean safeImage(String value) {
     if(value==null || value.length()>2048) return false;
@@ -47,15 +126,34 @@ public class ContentService {
   static void bad(){throw new ApiException(400,"INVALID_CONTENT","图文内容格式或长度无效");}
   @Transactional public Document save(String type,String id,Input in,String actor) {
     validate(in.blocks());
+    lockEntity(type, id);
+    var old = stored(type, id);
+    checkVersion(in.version(), old.document().version());
+    if (old.markdown() != null)
+      throw ApiException.conflict("CONTENT_CONFLICT", "请使用商品图文工作台编辑此内容");
+    saveContent(type, id, in.blocks(), null, actor);
+    return new Document(in.blocks(), old.document().version() + 1);
+  }
+
+  private void lockEntity(String type, String id) {
     String table=type.equals("activity")?"activity":"product";
     if(db.queryForList("SELECT id FROM "+table+" WHERE id=? FOR UPDATE",String.class,id).isEmpty()) throw ApiException.notFound();
-    var old=get(type,id,true);
-    if(in.version()==null || in.version()!=old.version()) throw ApiException.conflict("CONTENT_CONFLICT","图文已更新，请重新加载");
+  }
+
+  private static void checkVersion(Long expected, long actual) {
+    if (expected == null || expected != actual)
+      throw ApiException.conflict("CONTENT_CONFLICT", "图文已更新，请重新加载");
+  }
+
+  private void saveContent(String type, String id, List<Block> blocks, String markdown, String actor) {
     try {
-      String value=json.writeValueAsString(in.blocks());
-      db.update("INSERT INTO rich_content(entity_type,entity_id,blocks,version) VALUES(?,?,?,1) ON CONFLICT(entity_type,entity_id) DO UPDATE SET blocks=EXCLUDED.blocks,version=rich_content.version+1,updated_at=CURRENT_TIMESTAMP",type,id,value);
+      String value=json.writeValueAsString(blocks);
+      db.update("""
+          INSERT INTO rich_content(entity_type,entity_id,blocks,markdown,version) VALUES(?,?,?,?,1)
+          ON CONFLICT(entity_type,entity_id) DO UPDATE SET blocks=EXCLUDED.blocks,
+            markdown=EXCLUDED.markdown,version=rich_content.version+1,updated_at=CURRENT_TIMESTAMP
+          """, type, id, value, markdown);
     }catch(com.fasterxml.jackson.core.JsonProcessingException e){throw new IllegalArgumentException(e);}
     db.update("INSERT INTO audit_event(id,actor_id,entity_id,action) VALUES(?,?,?,?)",UUID.randomUUID().toString(),actor,id,"CONTENT_UPDATE");
-    return get(type,id,true);
   }
 }

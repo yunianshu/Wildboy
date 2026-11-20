@@ -6,7 +6,7 @@
 .cancelled { background: var(--rf-soft); color: var(--rf-muted); }
 .order-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; padding: 12rpx 0; }
 .product-name { font-weight: 600; line-height: 1.5; }
-.order-total { display: flex; align-items: center; justify-content: space-between; padding-top: 20rpx; margin-top: 14rpx; border-top: 1rpx solid var(--rf-soft); }
+.order-total { display: flex; align-items: center; justify-content: space-between; padding-top: 20rpx; margin-top: 14rpx; }
 .order-total .amount-strong { font-weight: 600; color: var(--rf-primary-text); font-size: 32rpx; }
 .order-number { margin-top: 12rpx; color: var(--rf-muted); font-size: 19rpx; word-break: break-all; }
 .order-actions { display: flex; gap: 16rpx; margin-top: 22rpx; }

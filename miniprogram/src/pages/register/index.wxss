@@ -33,7 +33,6 @@
 }
 .participant-card {
   padding: 24rpx 0;
-  border-top: 1rpx solid var(--rf-line);
 }
 .participant-head {
   display: flex;
@@ -92,7 +91,6 @@
 .participant-draft {
   padding: 24rpx 20rpx;
   margin-bottom: 24rpx;
-  border: 1rpx solid var(--rf-line);
   border-radius: 20rpx;
 }
 .participant-actions {

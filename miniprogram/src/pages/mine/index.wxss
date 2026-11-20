@@ -1,6 +1,6 @@
 @import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
-.profile { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--rf-surface); border: 1px solid var(--rf-line); border-radius: 12px; }
+.profile { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--rf-surface); border-radius: 12px; }
 button.avatar { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; flex-shrink: 0; margin: 0; padding: 0; border-radius: 50%; background: var(--rf-soft); }
 button.avatar-pressed { background: var(--rf-line); }
 .avatar-icon { width: 28px; height: 28px; }
@@ -12,12 +12,12 @@ button.avatar-pressed { background: var(--rf-line); }
 .login-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; line-height: 1.4; margin: 0; color: var(--rf-on-primary); background: var(--rf-primary); border-radius: 8px; }
 .my-content .section-head { margin: 24px 0 12px; }
 .menu-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-bottom: 16px; }
-.menu { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; border: 1px solid var(--rf-line); background: var(--rf-surface); }
+.menu { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; border-radius: 12px; background: var(--rf-surface); }
 .menu-icon { width: 24px; height: 24px; }
 .menu-title { font-size: 15px; font-weight: 500; line-height: 1.5; }
 .menu-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 16px; margin-bottom: 8px; border-radius: 12px; background: var(--rf-surface); }
 .links { margin-top: 24px; }
-.links view { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 0; border-bottom: 1px solid var(--rf-line); }
+.links view { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 0; }
 .row-chevron { width: 18px; height: 18px; flex-shrink: 0; }
 .notice { margin-top: 16px; }
 .app-version { margin-top: 24px; text-align: center; color: var(--rf-muted); font-size: 12px; }

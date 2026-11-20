@@ -26,24 +26,34 @@ public final class ArticleMarkdown {
 
   /** 旧版 blocks → Markdown（一次性兼容转换，读路径使用）。 */
   public static String fromBlocks(List<ContentModels.Block> blocks) {
+    return fromBlocks(blocks, false);
+  }
+
+  static String fromProductBlocks(List<ContentModels.Block> blocks) {
+    return fromBlocks(blocks, true);
+  }
+
+  private static String fromBlocks(List<ContentModels.Block> blocks, boolean literal) {
     if (blocks == null || blocks.isEmpty()) return "";
     StringBuilder md = new StringBuilder();
     for (var b : blocks) {
       switch (b.type() == null ? "" : b.type()) {
         case "text" -> {
           String text = b.text() == null ? "" : b.text().strip();
-          if (!text.isEmpty()) md.append(text).append("\n\n");
+          if (!text.isEmpty()) {
+            md.append(literal ? escapeText(text) : text).append("\n\n");
+          }
         }
         case "image" -> {
           String url = b.url() == null ? "" : b.url();
           String caption = b.caption() == null ? "" : b.caption().strip();
           if (!url.isEmpty()) {
             md.append("![")
-                .append(caption.replace("[", "(").replace("]", ")"))
+                .append(literal ? escapeText(caption).replace('\n', ' ') : caption.replace("[", "(").replace("]", ")"))
                 .append("](")
                 .append(url.replace("(", "%28").replace(")", "%29"))
                 .append(")\n\n");
-            if (!caption.isEmpty()) md.append('*').append(caption).append("*\n\n");
+            if (!literal && !caption.isEmpty()) md.append('*').append(caption).append("*\n\n");
           }
         }
         case "table" -> {
@@ -55,7 +65,7 @@ public final class ArticleMarkdown {
               .append(
                   String.join(
                       " | ",
-                      header.stream().map(c -> c == null ? "" : c.replace("|", "\\|")).toList()))
+                      header.stream().map(c -> tableText(c, literal)).toList()))
               .append(" |\n");
           md.append("| ").append("--- |".repeat(header.size()).stripTrailing()).append("\n");
           for (int i = 1; i < rows.size(); i++) {
@@ -65,7 +75,7 @@ public final class ArticleMarkdown {
                 .append(
                     String.join(
                         " | ",
-                        row.stream().map(c -> c == null ? "" : c.replace("|", "\\|")).toList()))
+                        row.stream().map(c -> tableText(c, literal)).toList()))
                 .append(" |\n");
           }
           md.append("\n");
@@ -74,6 +84,15 @@ public final class ArticleMarkdown {
       }
     }
     return md.toString();
+  }
+
+  private static String escapeText(String text) {
+    return text.replaceAll("[\\p{Punct}]", "\\\\$0");
+  }
+
+  private static String tableText(String cell, boolean literal) {
+    if (cell == null) return "";
+    return literal ? escapeText(cell.replaceAll("\\R", " ")) : cell.replace("|", "\\|");
   }
 
   /** 便捷入口：从存储的 blocks JSON 转换（读路径使用）。 */

@@ -73,6 +73,9 @@ beforeEach(() => {
       return ok(refund);
     }
     if (url.endsWith("/participants")) return ok([]);
+    if (url.endsWith("/registrations/export")) return ok([
+      { name: "参加者一", maskedPhone: "138****8000", status: "CONFIRMED", createdAt: "2026-01-01T00:00:00Z" },
+    ]);
     if (url.endsWith("/refund")) return ok(refund);
     if (options.method) return ok({ ...order, status: "PENDING_PAYMENT" });
     return ok({
@@ -107,6 +110,26 @@ async function open() {
   await flushPromises();
 }
 describe("activity order management", () => {
+  it("downloads a masked roster scoped to the activity, regardless of the current order filter", async () => {
+    const createObjectURL = vi.fn(() => "blob:roster");
+    vi.stubGlobal("URL", Object.assign(class extends URL {}, { createObjectURL, revokeObjectURL: vi.fn() }));
+    const download = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      expect(this.download).toBe("山野徒步-报名名单-脱敏.csv");
+    });
+    const router = await view("/?activityId=a1");
+    await wrapper.get('[aria-label="订单状态"]').setValue("PENDING_PAYMENT");
+    await button("查询").trigger("click");
+    await flushPromises();
+    await button("导出已确认名单").trigger("click");
+    await flushPromises();
+    expect(fetcher.mock.calls.at(-1)![0]).toMatch(/\/admin\/activities\/a1\/registrations\/export$/);
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(download).toHaveBeenCalledOnce();
+    await router.push("/");
+    await flushPromises();
+    expect(button("导出已确认名单")).toBeUndefined();
+  });
+
   it("keeps the selected activity filter through pagination and clears stale details when it changes", async () => {
     const router = await view("/?activityId=activity-one");
     expect(wrapper.text()).toContain("收费活动名单");

@@ -26,6 +26,15 @@ const paths: Record<string, string[]> = {
   check: ["m5 12 4 4L19 6"],
   logout: ["M9 4H4v16h5M9 12h12M17 8l4 4-4 4"],
   "chevron-down": ["m6 9 6 6 6-6"],
+  image: ["M3 4h18v16H3zM3 16l5-5 4 4 3-3 6 6", "M16 8h.01"],
+  table: ["M3 4h18v16H3zM3 9h18M3 14.5h18M12 4v16"],
+  text: ["M4 5h16M12 5v14M8 19h8"],
+  quote: ["M10 7H4v6h5l-2 4M20 7h-6v6h5l-2 4"],
+  line: ["M4 12h16"],
+  circle: ["M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"],
+  square: ["M4 4h16v16H4z"],
+  triangle: ["m12 4 9 16H3z"],
+  upload: ["M4 15v5h16v-5M12 16V4m-5 5 5-5 5 5"],
 };
 </script>
 <template>

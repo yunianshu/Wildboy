@@ -30,8 +30,7 @@ page {
 .badge, .pill { background: var(--rf-soft); color: var(--rf-primary-text); border-color: var(--rf-line); }
 input, textarea, .picker-value { color: var(--rf-ink); background: var(--rf-surface); border-color: var(--rf-line); border-radius: 8px; font-size: 14px; }
 input { height: 48px; }
-.divider { background: var(--rf-line); }
-.sticky-action { background: var(--rf-surface); border-top-color: var(--rf-line); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
+.sticky-action { background: var(--rf-surface); border-top: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); }
 .slate-tab-header { padding-left: 16px; padding-right: 16px; padding-bottom: 20px; }
 .slate-tab-header .uf-title { color: var(--rf-ink); font-size: 24px; }
 .slate-tab-content { padding-top: 0; padding-bottom: calc(74px + env(safe-area-inset-bottom)); }

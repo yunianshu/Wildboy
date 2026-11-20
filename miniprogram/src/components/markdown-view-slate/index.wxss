@@ -79,9 +79,8 @@
   flex: 1;
 }
 .md-quote-block {
-  border-left: 6rpx solid var(--rf-line);
   background: var(--rf-bg);
-  border-radius: 0 12rpx 12rpx 0;
+  border-radius: 12rpx;
   padding: 16rpx 20rpx;
   margin: 16rpx 0;
 }
@@ -105,7 +104,6 @@
 .md-table {
   display: inline-flex;
   flex-direction: column;
-  border: 1rpx solid var(--rf-soft);
   border-radius: 12rpx;
   overflow: hidden;
 }
@@ -119,15 +117,14 @@
 .md-th,
 .md-td {
   padding: 12rpx 20rpx;
-  border-right: 1rpx solid var(--rf-soft);
   min-width: 140rpx;
   max-width: 480rpx;
 }
 .md-th {
   font-weight: 700;
 }
-.md-tr:not(.md-tr-head) {
-  border-top: 1rpx solid var(--rf-soft);
+.md-tr:nth-child(even) {
+  background: var(--rf-bg);
 }
 .md-hr {
   border-top: 1rpx solid var(--rf-soft);
