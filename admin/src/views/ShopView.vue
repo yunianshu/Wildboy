@@ -8,6 +8,7 @@ import {
   ref,
   watch,
 } from "vue";
+import { askConfirm } from "../confirm";
 import { routeLocationKey, routerKey } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { displayDate } from "../forms";
@@ -15,6 +16,7 @@ import ConfirmDialog from "../components/ConfirmDialog.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import type {
   Order,
@@ -30,7 +32,7 @@ const formOpen = ref(false);
 const filterOpen = ref(false);
 const formError = ref("");
 const formErrorElement = ref<HTMLElement>();
-const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
+const contentEditor = ref<{ canLeave: () => Promise<boolean>; busy: boolean } | null>(null);
 const products = ref<Product[]>([]),
   categories = ref<ProductCategory[]>([]),
   categoriesError = ref(""),
@@ -72,6 +74,13 @@ let generation = 0;
 const shippingError = ref("");
 const shippingConflictId = ref("");
 const route = inject(routeLocationKey, null);
+const productQuery = ref("");
+const productStatus = ref("");
+const orderQuery = ref("");
+const orderStatus = ref("");
+const notice = ref("");
+let formSnapshot = "";
+
 const router = inject(routerKey, null);
 watch(
   () => route?.query.tab,
@@ -86,10 +95,39 @@ watch(
   { immediate: true },
 );
 
+function queryString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+appliedCategory.value = queryString(route?.query.category);
+productQuery.value = queryString(route?.query.productQuery);
+productStatus.value = queryString(route?.query.productStatus);
+orderQuery.value = queryString(route?.query.orderQuery);
+orderStatus.value = queryString(route?.query.orderStatus);
+const initialPage = Number(queryString(route?.query.page));
+page.value = Number.isSafeInteger(initialPage) && initialPage >= 0 && initialPage <= 100000 ? initialPage : 0;
+function rememberFilters() {
+  if (!route || !router) return;
+  void router.replace({ query: { ...route.query,
+    category: appliedCategory.value || undefined,
+    productQuery: productQuery.value.trim() || undefined,
+    productStatus: productStatus.value || undefined,
+    orderQuery: orderQuery.value.trim() || undefined,
+    orderStatus: orderStatus.value || undefined,
+    page: page.value ? String(page.value) : undefined,
+  } });
+}
+function searchOrders() {
+  page.value = 0;
+  rememberFilters();
+  void load();
+}
 const filteredProducts = computed(() =>
-  appliedCategory.value
-    ? products.value.filter((p) => p.categoryId === appliedCategory.value)
-    : products.value,
+  products.value.filter((p) =>
+    (!appliedCategory.value || p.categoryId === appliedCategory.value) &&
+    (!productStatus.value || p.status === productStatus.value) &&
+    (!route?.query.productId || p.id === route.query.productId) &&
+    p.name.toLocaleLowerCase().includes(productQuery.value.trim().toLocaleLowerCase()),
+  ),
 );
 function clear() {
   generation++;
@@ -113,6 +151,7 @@ function clear() {
   pendingSummary.value = "";
   busy.value = false;
   error.value = "";
+  notice.value = "";
   formError.value = "";
 }
 watch(currentUser, clear, { flush: "sync" });
@@ -169,9 +208,13 @@ async function load() {
   revealed.value = new Set();
   revealTarget.value = null;
   try {
+    const params = new URLSearchParams({ page: String(page.value), size: "20" });
+    if (orderQuery.value.trim()) params.set("query", orderQuery.value.trim());
+    if (orderStatus.value === "AWAITING_SHIPMENT") params.set("awaitingShipment", "true");
+    else if (orderStatus.value && orderStatus.value in orderStatuses) params.set("status", orderStatus.value);
     const [productData, orderData] = await Promise.all([
       request<Product[]>("/admin/shop/products"),
-      request<Page<Order>>(`/admin/orders?page=${page.value}&size=20`),
+      request<Page<Order>>(`/admin/orders?${params}`),
     ]);
     if (n !== generation) return;
     products.value = Array.isArray(productData) ? productData : [];
@@ -198,6 +241,7 @@ async function loadCategories() {
 }
 function changePage(delta: number) {
   page.value = Math.max(0, page.value + delta);
+  rememberFilters();
   void load();
 }
 function openFilter() {
@@ -206,11 +250,13 @@ function openFilter() {
 }
 function applyFilter() {
   appliedCategory.value = categoryFilterDraft.value;
+  rememberFilters();
   filterOpen.value = false;
 }
 function clearFilter() {
   appliedCategory.value = "";
   categoryFilterDraft.value = "";
+  rememberFilters();
   filterOpen.value = false;
 }
 async function openNew() {
@@ -230,6 +276,7 @@ async function openNew() {
     status: "ON_SALE",
   };
   baseline.value = { categoryId: "", priceCents: 0, originalPriceCents: 0 };
+  formSnapshot = JSON.stringify(form.value);
   formOpen.value = true;
 }
 async function edit(product: Product) {
@@ -255,9 +302,12 @@ async function edit(product: Product) {
     priceCents: product.priceCents,
     originalPriceCents: product.originalPriceCents ?? product.priceCents,
   };
+  formSnapshot = JSON.stringify(form.value);
   formOpen.value = true;
 }
-async function reset() {
+async function reset(saved = false) {
+  if (!saved && formOpen.value && JSON.stringify(form.value) !== formSnapshot &&
+      !(await askConfirm("商品修改未保存，确定放弃吗？"))) return;
   if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
   formError.value = "";
   contentOpen.value = false;
@@ -392,7 +442,8 @@ async function submitProduct(payload: ProductInput & { version?: number }) {
         body: JSON.stringify(payload),
       });
     if (n !== generation) return;
-    reset();
+    await reset(true);
+    notice.value = "商品已保存";
     await load();
   } catch (e) {
     if (n === generation) showFormError(errorMessage(e));
@@ -445,6 +496,7 @@ async function ship() {
     });
     if (n !== generation) return;
     shipping.value = null;
+    notice.value = "发货信息已保存";
     await load();
   } catch (e) {
     if (n !== generation) return;
@@ -474,7 +526,7 @@ onUnmounted(clear);
       </div>
       <div v-show="tab === 'products'" class="action-row">
         <button class="secondary button" @click="openFilter">筛选商品</button>
-        <button class="secondary button" @click="openNew">＋ 新商品</button>
+        <button class="primary button" @click="openNew">＋ 新商品</button>
       </div>
     </section>
     <nav class="task-tabs" aria-label="商城任务">
@@ -492,6 +544,7 @@ onUnmounted(clear);
         订单与发货
       </button>
     </nav>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
@@ -504,7 +557,18 @@ onUnmounted(clear);
         <h2>商品目录</h2>
         <span class="muted">{{ filteredProducts.length }} 件商品</span>
       </div>
-      <div class="table-scroll">
+      <form class="action-row" @submit.prevent="rememberFilters">
+        <input v-model="productQuery" aria-label="搜索商品名称" placeholder="商品名称" @change="rememberFilters" />
+        <select v-model="productStatus" aria-label="销售状态" @change="rememberFilters">
+          <option value="">全部销售状态</option>
+          <option value="ON_SALE">已上架</option>
+          <option value="OFF_SALE">已下架</option>
+        </select>
+        <RouterLink v-if="route?.query.productId" class="text-button" to="/shop">查看全部商品</RouterLink>
+      </form>
+      <UiState v-if="busy && !products.length" kind="loading" compact>正在加载商品…</UiState>
+      <UiState v-else-if="!busy && !error && !filteredProducts.length" compact>没有符合条件的商品</UiState>
+      <div v-if="filteredProducts.length" class="table-scroll">
         <table>
           <thead>
             <tr>
@@ -547,7 +611,17 @@ onUnmounted(clear);
     <section v-show="tab === 'orders'" id="shop-orders" class="editor-section">
       <div class="section-heading">
         <h2>装备订单</h2>
+        <button class="secondary" :disabled="busy" @click="load">刷新</button>
       </div>
+      <form class="action-row" @submit.prevent="searchOrders">
+        <input v-model="orderQuery" maxlength="100" aria-label="搜索装备订单" placeholder="订单号" />
+        <select v-model="orderStatus" aria-label="装备订单状态">
+          <option value="">全部订单状态</option>
+          <option value="AWAITING_SHIPMENT">待发货（可发货）</option>
+          <option v-for="(label, value) in orderStatuses" :key="value" :value="value">{{ label }}</option>
+        </select>
+        <button class="secondary" :disabled="busy">查询</button>
+      </form>
       <div class="privacy-note">
         收货资料仅用于订单履约，请勿公开或用于无关营销。
       </div>
@@ -579,6 +653,9 @@ onUnmounted(clear);
               会员优惠前 {{ money(order.originalTotalCents) }} · 优惠
               {{ money(order.originalTotalCents - order.totalCents) }}
             </p>
+            <p v-if="order.status === 'SHIPPED' && (order.shippingCompany || order.shippingTrackingNo)" class="muted">
+              {{ order.shippingCompany || "物流" }} {{ order.shippingTrackingNo }}
+            </p>
             <p v-if="order.reconciliationRequired" class="error">
               需核对微信订单状态，库存暂保留，请勿手动回库。
             </p>
@@ -599,7 +676,7 @@ onUnmounted(clear);
         </p>
         <div class="action-row">
           <button class="text-button" @click="toggleDetail(order.id)">
-            {{ detailed.has(order.id) ? "隐藏明细" : "查看" }}</button
+            {{ detailed.has(order.id) ? "隐藏明细" : "展开商品明细" }}</button
           ><button class="text-button" @click="toggle(order)">
             {{ revealed.has(order.id) ? "隐藏收货信息" : "查看收货信息" }}
           </button>
@@ -641,22 +718,7 @@ onUnmounted(clear);
           {{ displayDate(order.createdAt) }}
         </p>
       </article>
-      <nav class="pagination" aria-label="订单分页">
-        <button
-          class="secondary"
-          :disabled="busy || page === 0"
-          @click="changePage(-1)"
-        >
-          上一页</button
-        ><span>第 {{ page + 1 }} 页 · 共 {{ orders.total }} 笔</span
-        ><button
-          class="secondary"
-          :disabled="busy || !orders.hasMore"
-          @click="changePage(1)"
-        >
-          下一页
-        </button>
-      </nav>
+      <PaginationBar :page="orders.page" :page-size="orders.size" :total="orders.total" :has-more="orders.hasMore" :busy="busy" label="订单分页" @change="(next) => changePage(next - page)" />
     </section>
     <ConfirmDialog
       v-if="revealTarget"
@@ -749,7 +811,7 @@ onUnmounted(clear);
         </div>
       </form>
     </FormModal>
-    <FormModal :busy="busy" v-if="formOpen" size="lg" @close="reset"
+    <FormModal :busy="busy" v-if="formOpen && !contentOpen" size="lg" @close="reset()"
       ><template #title
         ><h2>{{ editingId ? "编辑商品" : "创建商品" }}</h2></template
       >
@@ -763,7 +825,6 @@ onUnmounted(clear);
       >
         {{ formError }}
       </p>
-      <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
       <p v-if="categoriesError" class="error-box" role="alert">
         {{ categoriesError }}
         <button class="text-button" :disabled="busy" @click="loadCategories">
@@ -854,7 +915,8 @@ onUnmounted(clear);
       </button>
     </FormModal>
     <FormModal
-      :busy="busy"
+      :busy="busy || !!contentEditor?.busy"
+      title="编辑商品图文"
       v-if="editingId && contentOpen"
       size="lg"
       @close="closeContent"

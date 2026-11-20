@@ -14,6 +14,7 @@
     </view>
     <view class="default-row"><text>{{currentDefault ? "当前默认地址" : "设为默认地址"}}</text><switch checked="{{draft.isDefault}}" bindchange="defaultChange" disabled="{{busy || currentDefault}}" color="#1D6342" /></view>
     <view wx:if="{{error}}" class="error">{{error}}</view>
+    <button class="secondary" bindtap="importWechatAddress" disabled="{{busy || locating}}">从微信导入</button>
     <button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy || locating}}">{{selecting ? '保存并使用' : '保存地址'}}</button>
     <button class="secondary" bindtap="cancel" disabled="{{busy || locating}}">取消</button>
   </block>
@@ -21,13 +22,13 @@
     <ui-state wx:if="{{loading}}" kind="loading">正在加载地址…</ui-state>
     <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
     <ui-state wx:elif="{{!items.length}}" kind="empty">还没有收货地址</ui-state>
-    <view wx:for="{{items}}" wx:key="id" class="address-card">
+    <view wx:for="{{items}}" wx:key="id" class="address-card {{selecting && selectedId === item.id ? 'address-selected' : ''}}" data-id="{{item.id}}" bindtap="select">
       <view class="address-name">{{item.recipientName}} <text>{{item.phone}}</text><text wx:if="{{item.isDefault}}" class="default-tag">默认</text></view>
       <view class="address-detail">{{item.address}}</view>
       <view class="address-actions">
-        <button class="text-button" data-id="{{item.id}}" bindtap="edit" disabled="{{busy}}">编辑</button>
-        <button class="text-button" data-id="{{item.id}}" bindtap="remove" disabled="{{busy}}">删除</button>
-        <button wx:if="{{selecting}}" class="select-address" data-id="{{item.id}}" bindtap="select" disabled="{{busy}}">使用此地址</button>
+        <button class="text-button" data-id="{{item.id}}" catchtap="edit" disabled="{{busy}}">编辑</button>
+        <button class="text-button" data-id="{{item.id}}" catchtap="remove" disabled="{{busy}}">删除</button>
+        <button wx:if="{{selecting}}" class="select-address" data-id="{{item.id}}" catchtap="select" disabled="{{busy}}">{{selectedId === item.id ? '使用当前地址' : '使用此地址'}}</button>
       </view>
     </view>
     <button class="primary" bindtap="add" disabled="{{busy || loading}}">新增地址</button>

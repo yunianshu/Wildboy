@@ -3,6 +3,7 @@ import { askConfirm } from "../confirm";
 import { ref, watch, onUnmounted } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { request, currentUser, errorMessage } from "../api";
+import UiState from "./UiState.vue";
 import ImageUpload from "./ImageUpload.vue";
 type Block = {
   type: "text" | "image" | "table";
@@ -76,10 +77,27 @@ function table(i: number, event: Event) {
     .map((r) => r.split("\t"));
   dirty.value = true;
 }
+function insertColumnSeparator(i: number, event: KeyboardEvent) {
+  if (event.shiftKey) return;
+  event.preventDefault();
+  const field = event.currentTarget as HTMLTextAreaElement;
+  field.setRangeText("\t", field.selectionStart, field.selectionEnd, "end");
+  table(i, event);
+}
 function move(i: number, delta: number) {
   const j = i + delta;
   if (j < 0 || j >= blocks.value.length) return;
   [blocks.value[i], blocks.value[j]] = [blocks.value[j], blocks.value[i]];
+  dirty.value = true;
+}
+async function remove(block: Block) {
+  const hasContent = block.text?.trim() || block.url || block.caption?.trim()
+    || block.rows?.some((row) => row.some((cell) => cell.trim()));
+  const n = generation;
+  if (hasContent && !(await askConfirm("删除这段图文？"))) return;
+  const index = blocks.value.indexOf(block);
+  if (n !== generation || index < 0 || busy.value || props.disabled) return;
+  blocks.value.splice(index, 1);
   dirty.value = true;
 }
 async function save() {
@@ -118,8 +136,9 @@ onBeforeRouteLeave(
   <section class="editor-section rich-editor">
     <h2>图文详情</h2>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
+    <UiState v-if="!loaded && busy" kind="loading" compact>正在读取图文…</UiState>
     <button
-      v-if="!loaded"
+      v-if="!loaded && !busy"
       class="secondary button"
       :disabled="busy"
       @click="load"
@@ -148,10 +167,8 @@ onBeforeRouteLeave(
             下移</button
           ><button
             type="button"
-            @click="
-              blocks.splice(i, 1);
-              dirty = true;
-            "
+            class="danger-outline"
+            @click="remove(block)"
           >
             删除
           </button>
@@ -181,7 +198,8 @@ onBeforeRouteLeave(
             style="max-width: 100%; max-height: 240px"
         /></template>
         <label v-else
-          >表格（每行一条，列用 Tab 分隔）<textarea
+          >表格（Tab 分列，Shift+Tab 离开）<textarea
+            @keydown.tab="insertColumnSeparator(i, $event)"
             :value="block.rows?.map((r) => r.join('\t')).join('\n')"
             rows="5"
             @input="table(i, $event)"

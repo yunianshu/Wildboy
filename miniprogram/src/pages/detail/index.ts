@@ -43,7 +43,10 @@ Page({
   },
   onShow() {
     enterPage(this);
-    if (this.data.id) { void this.load(); void this.loadRichContent(); }
+    if (this.data.id) {
+      void this.load();
+      if (!this.data.contentBlocks.length) void this.loadRichContent();
+    }
   },
   onHide() {
     epoch.invalidate();
@@ -59,7 +62,7 @@ Page({
   async load() {
     const n = epoch.next();
     this.setData({
-      loading: true,
+      loading: !this.data.activity,
       error: "",
       registrationError: "",
       registration: null,
@@ -162,6 +165,13 @@ Page({
     } finally {
       this.setData({ cancelling: false });
     }
+  },
+  previewPhoto(event: WechatMiniprogram.TouchEvent) {
+    const activity = this.data.activity;
+    if (!activity) return;
+    const urls = [activity.coverUrl, ...activity.galleryUrls].filter(Boolean);
+    const current = event.currentTarget.dataset.url;
+    if (urls.includes(current)) wx.previewImage({ current, urls });
   },
   onShareAppMessage() {
     return {

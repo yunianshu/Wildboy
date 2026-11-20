@@ -6,7 +6,8 @@
       <view class="uf-capsule-row" style="height:{{headerLayout.height}}px;padding-right:{{headerLayout.rightInset}}px"><view class="uf-title">活动</view></view>
     </view>
     <view class="page slate-tab-content activities-content">
-      <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
+      <input class="activity-search" type="text" confirm-type="search" maxlength="100" placeholder="搜索活动名称" bindconfirm="search" />
+    <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
         <view class="filter-track" id="activity-filters-track">
           <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" id="activity-category-all" bindtap="select">全部活动</text>
           <text wx:for="{{categories}}" wx:key="code" class="filter {{selected === item.code ? 'active' : ''}}" data-code="{{item.code}}" id="activity-category-{{item.code}}" bindtap="select">{{item.name}}</text>

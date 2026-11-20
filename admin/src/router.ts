@@ -49,6 +49,8 @@ export const router = createRouter({
   ],
 });
 router.beforeEach((to) => {
-  if (to.path !== "/login" && !currentUser.value) return "/login";
-  if (to.path === "/login" && currentUser.value) return "/activities";
+  if (to.path !== "/login" && !currentUser.value)
+    return { path: "/login", query: { redirect: to.fullPath } };
+  if (to.path === "/login" && currentUser.value)
+    return "/activities";
 });

@@ -11,6 +11,7 @@ const paths: Record<string, string[]> = {
   mountain: ["M2 20 9 5l4 8 3-5 6 12H2ZM6.5 10.5 9 13l2.5-2.5"],
   bag: ["M4 7h16l1 14H3L4 7ZM8 8V6a4 4 0 0 1 8 0v2"],
   document: ["M5 3h10l4 4v14H5V3ZM14 3v5h5M8 12h8M8 16h8"],
+  calendar: ["M4 5h16v15H4zM4 9h16M8 3v4M16 3v4"],
   plus: ["M12 5v14M5 12h14"],
   refresh: ["M20 8a8 8 0 1 0 .5 7M20 3v5h-5"],
   arrow: ["M5 12h14M14 7l5 5-5 5"],

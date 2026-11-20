@@ -772,6 +772,13 @@ class BackendIntegrationTest {
     }
     String path = "/api/v1/admin/activities/" + activity.id() + "/registrations";
     String admin = bearer(auth.user("fixture:roster-admin", "Admin", "ADMIN"));
+    mvc.perform(get(path + "/export").param("status", "CONFIRMED").param("query", "member")
+            .header("Authorization", admin))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(2))
+        .andExpect(jsonPath("$[0].maskedPhone").value(org.hamcrest.Matchers.startsWith("138****")))
+        .andExpect(jsonPath("$[0].idNumber").doesNotExist()).andExpect(jsonPath("$[0].phone").doesNotExist());
+    mvc.perform(get(path + "/export").header("Authorization", bearer(user())))
+        .andExpect(status().isForbidden());
     mvc.perform(get(path + "?status=CONFIRMED&size=1&page=0").header("Authorization", admin))
         .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(2))
         .andExpect(jsonPath("$.items.length()").value(1)).andExpect(jsonPath("$.hasMore").value(true))

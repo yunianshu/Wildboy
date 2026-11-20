@@ -1,6 +1,5 @@
 <view class="page page-motion {{pageMotionClass}}">
-  <view><button class="text-button" bindtap="messages">活动消息</button></view>
-  <view class="title">我的报名</view>
+  <view class="registrations-heading"><view class="title">免费活动报名</view><button class="text-button" bindtap="messages">活动消息</button></view>
   <view class="notice">本页显示免费活动报名。收费活动（含会员免支付）请查看<button class="text-button" bindtap="activityOrders">活动订单</button></view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty"
     ><view>登录后查看报名</view

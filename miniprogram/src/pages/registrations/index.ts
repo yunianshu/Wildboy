@@ -18,6 +18,8 @@ type Item = Registration & { dateText: string };
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  _listSession: -1,
+  _listLoaded: false,
   data: {
     pageMotionClass: "",
     loggedIn: false,
@@ -33,13 +35,19 @@ Page({
   },
   onShow() {
     enterPage(this);
-    this.setData({ loggedIn: hasSession() });
-    if (hasSession()) void this.load(true);
-    else this.setData({ items: [], total: 0 });
+    const session = sessionVersion();
+    const loggedIn = hasSession();
+    if (this._listSession !== session || !loggedIn) {
+      this._listSession = session;
+      this._listLoaded = false;
+      this.setData({ items: [], page: 0, hasMore: false, total: 0 });
+    }
+    this.setData({ loggedIn });
+    if (loggedIn && !this._listLoaded) void this.load(true);
   },
   onHide() {
     epoch.invalidate();
-    this.setData({ items: [], total: 0, loading: false, loadingMore: false });
+    this.setData({ loading: false, loadingMore: false });
   },
   onUnload() {
     epoch.invalidate();
@@ -86,6 +94,8 @@ Page({
         `/me/registrations?page=${reset ? 0 : this.data.page + 1}&size=20${this.data.status ? "&status=" + this.data.status : ""}`,
       );
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+      this._listLoaded = true;
+      this._listSession = session;
       const items = p.items.map((x) => ({
         ...x,
         dateText: dateLabel(x.createdAt),

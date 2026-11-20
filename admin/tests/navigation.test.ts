@@ -79,7 +79,7 @@ describe("sensitive navigation", () => {
     ).toBe("第二场活动");
     wrapper.unmount();
   });
-  it("logout clears editor even with unsaved changes, without blocking behind leave confirmation", async () => {
+  it("logout keeps the draft on cancel and clears the editor after confirmation", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -98,9 +98,16 @@ describe("sensitive navigation", () => {
       .find((b) => b.text() === "退出登录")
       ?.trigger("click");
     await flushPromises();
+    expect(router.currentRoute.value.path).toBe("/activities/one/edit");
+    expect((wrapper.get('input[placeholder="活动名称"]').element as HTMLInputElement).value)
+      .toBe("未保存的标题");
+    confirm.mockResolvedValue(true);
+    await wrapper.findAll("button").find((button) => button.text() === "退出登录")!.trigger("click");
+    await flushPromises();
     expect(router.currentRoute.value.path).toBe("/login");
     expect(wrapper.find(".editor-workspace").exists()).toBe(false);
-    expect(confirm).not.toHaveBeenCalled();
+    expect(confirm).toHaveBeenCalledTimes(2);
+    confirm.mockRestore();
     wrapper.unmount();
   });
 });

@@ -108,7 +108,8 @@ describe("operational workflows", () => {
       .findAll("button")
       .find((b) => b.text() === "生成草稿")!
       .trigger("click");
-    await w.get('input[type="datetime-local"]').setValue("2027-05-01T09:00");
+    await w.get('#template-start').setValue("2027-05-01");
+    await w.get('#template-start-time').setValue("09:00");
     const nums = w.findAll('input[type="number"]');
     await nums[0].setValue("2");
     await nums[1].setValue("7");

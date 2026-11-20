@@ -202,3 +202,22 @@ test("unload rejects late view updates and a new instance has an independent epo
   await freshFlight;
   assert.equal(fresh.data.loaded, true);
 });
+
+test("search from a category uses the full catalog, and selecting a category clears the keyword", async () => {
+  const p = page();
+  p.data.categories = [{ id: "bags", name: "背包" }];
+  api.request = async path => {
+    calls.push(path);
+    return path.includes("categoryId") ? [product("bag")] : [product("bag"), product("tent")];
+  };
+  p.selectCategoryId("bags");
+  await p._flight;
+  p.searchProducts({ detail: { value: "tent" } });
+  await p._flight;
+  assert.deepEqual(calls, ["/shop/products?categoryId=bags", "/shop/products"]);
+  assert.equal(p.data.selectedCategory, "all");
+  assert.deepEqual(p.data.searchResults.map(item => item.id), ["tent"]);
+  p.selectCategory({ currentTarget: { dataset: { id: "bags" } } });
+  assert.equal(p.data.searchTerm, "");
+  assert.deepEqual(p.data.items.map(item => item.id), ["bag"]);
+});

@@ -53,6 +53,7 @@ function confirmedRegistration(value: Registration | null, activityId: string): 
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  _hadSession: true,
   _reloadOnShow: false,
   _profileEpoch: 0,
   data: {
@@ -86,18 +87,24 @@ Page({
     recoveryNeeded: false,
     recoveredRegistration: null as Registration | null,
     fieldError: "",
+    needsProfile: false,
   },
   onLoad(o) {
     const id = safeId(o.id);
+    this._hadSession = hasSession();
     this.setData({ id, session: sessionVersion() });
     if (id) void this.load();
     else this.setData({ error: "活动链接无效", loading: false });
   },
   onShow() {
     enterPage(this);
-    if (this.data.session !== -1 && this.data.session !== sessionVersion())
+    const session = sessionVersion();
+    const authenticated = hasSession();
+    const firstLogin = !this._hadSession && authenticated && session === this.data.session + 1;
+    if (this.data.session !== -1 && this.data.session !== session && !firstLogin)
       this.resetPrivateForm();
-    this.setData({ session: sessionVersion() });
+    this._hadSession = authenticated;
+    this.setData({ session });
     if (this._reloadOnShow && this.data.id) {
       this._reloadOnShow = false;
       void this.load();
@@ -107,6 +114,9 @@ Page({
     if (this.data.recoveryNeeded) void this.recoverRegistration();
     else if (!this.data.success) void this.loadProfile();
   },
+  completeProfile() {
+    wx.navigateTo({ url: "/pages/profile/index?from=register" });
+  },
   async loadProfile() {
     const n = ++this._profileEpoch, session = sessionVersion();
     if (!hasSession()) return;
@@ -114,7 +124,10 @@ Page({
       const user = await getCurrentUser();
       if (n === this._profileEpoch && isSessionCurrent(session)
           && !this.data.submitting && !this.data.recoveryNeeded && !this.data.success)
-        this.applyProfile(user);
+        {
+          this.setData({ needsProfile: isActivityUser(user) && !user.profileCompleted });
+          this.applyProfile(user);
+        }
     } catch (_) {
       // Optional prefill must not block browsing or replace the manual draft.
     }
@@ -133,6 +146,7 @@ Page({
       success: false,
       recoveryNeeded: false,
       recoveredRegistration: null,
+      needsProfile: false,
       fieldError: "账号已改变，请重新填写报名信息",
     });
   },
@@ -141,7 +155,6 @@ Page({
     this._reloadOnShow = this.data.loading;
     epoch.invalidate();
     this.clearQuote();
-    this.cancelParticipant();
     this.setData({ submitting: false });
   },
   onUnload() {
@@ -579,7 +592,12 @@ Page({
     });
   },
   done() {
-    wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
+    const id = this.data.id;
+    if (!id) return;
+    const previous = typeof getCurrentPages === "function" ? getCurrentPages().slice(-2, -1)[0] : undefined;
+    if (previous?.route === "pages/detail/index" && previous.options?.id === id)
+      wx.navigateBack();
+    else wx.redirectTo({ url: "/pages/detail/index?id=" + id });
   },
   myActivities() {
     wx.navigateTo({ url: "/pages/registrations/index" });

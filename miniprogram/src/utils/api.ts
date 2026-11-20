@@ -205,6 +205,6 @@ export function login(
 export async function requireSession() {
   if (!hasSession()) {
     wx.navigateTo({ url: "/pages/login/index" });
-    throw new ApiError("请先完成微信登录，再确认报名", 401, "LOGIN_REQUIRED");
+    throw new ApiError("请先完成微信登录", 401, "LOGIN_REQUIRED");
   }
 }

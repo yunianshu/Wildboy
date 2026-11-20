@@ -48,6 +48,7 @@ Page({
   onResize() {
     this.setData({ headerLayout: measureCapsuleHeader() });
   },
+  _viewSession: -1,
   onShow() {
     enterPage(this);
     syncTabBar(this);
@@ -57,9 +58,6 @@ Page({
     resetTabSwipe(this);
     epoch.invalidate();
     this.setData({
-      user: null,
-      avatarUrl: "",
-      activityUser: false,
       loading: false,
       requiresConsent: false,
       legalStatusLoading: false,
@@ -73,19 +71,20 @@ Page({
   },
   async load() {
     const n = epoch.next();
+    const session = sessionVersion();
+    const loggedIn = hasSession();
+    const retain = loggedIn && this._viewSession === session && !!this.data.user;
+    this._viewSession = session;
     this.setData({
-      user: null,
-      avatarUrl: "",
-      activityUser: false,
+      ...(retain ? {} : { user: null, avatarUrl: "", activityUser: false }),
       error: "",
-      loading: hasSession(),
+      loading: loggedIn && !retain,
       requiresConsent: false,
       legalStatusLoading: false,
       legalStatusRetryable: false,
       legalStatusError: "",
     });
-    if (!hasSession()) return;
-    const session = sessionVersion();
+    if (!loggedIn) return;
     let legalStatus: Promise<void> | undefined;
     try {
       const user = await getCurrentUser();
@@ -177,7 +176,7 @@ Page({
       const answer = await wx.showModal({
         title: "退出当前账号？",
         content:
-          "不会取消已报名活动。管理账号与微信账号的报名记录分别归属各自账号。",
+          "退出后仍保留报名记录，可随时重新登录。",
       });
       if (!answer.confirm || !isSessionCurrent(session)) return;
       epoch.invalidate();

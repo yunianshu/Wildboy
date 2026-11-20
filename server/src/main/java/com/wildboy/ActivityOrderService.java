@@ -31,12 +31,14 @@ public class ActivityOrderService {
     this.legal=legal;this.identity=identity;this.memberships=memberships;this.db=db;this.activities=activities;this.pay=pay;this.json=json;this.tx=new TransactionTemplate(tm);this.shipping=shipping;this.shippingReports=shippingReports;
   }
   public Order get(String id,String user) {
-    return db.query("SELECT * FROM activity_order WHERE id=?"+(user==null?"":" AND user_id=?"),(r,n)-> {
+    return db.query("SELECT o.*, (SELECT f.status FROM activity_order_refund f WHERE f.order_id=o.id AND f.is_current) AS refund_status"
+        + " FROM activity_order o WHERE o.id=?"+(user==null?"":" AND user_id=?"),(r,n)-> {
       try {return new Order(r.getString("id"),r.getString("order_no"),r.getString("activity_id"),
           r.getString("activity_title"),r.getString("user_id"),r.getString("status"),r.getInt("party_size"),
           r.getInt("original_total_cents"),r.getInt("total_cents"),r.getString("currency"),
           json.readValue(r.getString("quote_json"),Quote.class),r.getString("payment_transaction_id"),
-          r.getBoolean("payment_attempted"),r.getObject("expires_at",OffsetDateTime.class),r.getLong("version"));}
+          r.getBoolean("payment_attempted"),r.getObject("expires_at",OffsetDateTime.class),r.getLong("version"),
+          r.getObject("created_at", OffsetDateTime.class),r.getString("refund_status"));}
       catch(java.io.IOException e){throw new IllegalStateException("Invalid activity price snapshot",e);}
     },user==null?new Object[]{id}:new Object[]{id,user}).stream().findFirst().orElseThrow(ApiException::notFound);
   }
@@ -418,10 +420,24 @@ public class ActivityOrderService {
     return list(user,activityId,null,page,size);
   }
   public Models.Page<Order> list(String user,String activityId,String orderId,int page,int size) {
+    return list(user, activityId, orderId, page, size, null, null, null);
+  }
+  public Models.Page<Order> list(String user, String activityId, String orderId, int page, int size,
+      String query, String status, String refundStatus) {
     ActivityService.pageCheck(page,size);String where=" WHERE 1=1";
     var args=new ArrayList<Object>();if(user!=null){where+=" AND user_id=?";args.add(user);}
     if(activityId!=null&&!activityId.isBlank()){where+=" AND activity_id=?";args.add(activityId);}
     if(orderId!=null&&!orderId.isBlank()){where+=" AND id=?";args.add(orderId);}
+    if (query != null && !query.isBlank()) {
+      where += " AND (strpos(lower(order_no), lower(?)) > 0 OR strpos(lower(activity_title), lower(?)) > 0)";
+      args.add(query.strip());
+      args.add(query.strip());
+    }
+    if (status != null && !status.isBlank()) { where += " AND status=?"; args.add(status); }
+    if (refundStatus != null && !refundStatus.isBlank()) {
+      where += " AND EXISTS (SELECT 1 FROM activity_order_refund r WHERE r.order_id=activity_order.id AND r.is_current AND r.status=?)";
+      args.add(refundStatus);
+    }
     long total=db.queryForObject("SELECT COUNT(*) FROM activity_order"+where,Long.class,args.toArray());
     args.add(size);args.add(page*size);
     var ids=db.queryForList("SELECT id FROM activity_order"+where+" ORDER BY created_at DESC,id LIMIT ? OFFSET ?",String.class,args.toArray());

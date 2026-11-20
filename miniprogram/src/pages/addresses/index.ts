@@ -64,8 +64,7 @@ Page({
   onHide() {
     this.visible = false;
     epoch.invalidate();
-    // The native map can hide this page until the user returns to the form.
-    if (this.data.locating && isSessionCurrent(this.data.session)) {
+    if (isSessionCurrent(this.data.session)) {
       this.setData({ items: [] });
       return;
     }
@@ -167,6 +166,36 @@ Page({
       this.setData({
         draft: { ...this.data.draft, isDefault: event.detail.value },
       });
+  },
+  importWechatAddress() {
+    const session = this.data.session;
+    if (this.data.busy || this.data.locating || !this.data.editing || !isSessionCurrent(session)) return;
+    if (typeof wx.chooseAddress !== "function") {
+      this.setData({ locationError: "当前微信版本无法导入地址，可手动填写。" });
+      return;
+    }
+    this.setData({ locating: true, locationError: "" });
+    wx.chooseAddress({
+      success: (address) => {
+        if (!this.data.editing || !isSessionCurrent(session)) return;
+        this.setData({
+          draft: {
+            ...this.data.draft,
+            recipientName: address.userName,
+            phone: address.telNumber,
+            address: [address.provinceName, address.cityName, address.countyName, address.detailInfo].join(""),
+          },
+        });
+      },
+      fail: ({ errMsg }) => {
+        if (this.data.editing && isSessionCurrent(session) && !/cancel/i.test(errMsg || "")) {
+          this.setData({ locationError: "未能读取微信地址，可重试或手动填写。" });
+        }
+      },
+      complete: () => {
+        if (isSessionCurrent(session)) this.setData({ locating: false });
+      },
+    });
   },
   async fillFromLocation() {
     if (

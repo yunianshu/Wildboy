@@ -32,8 +32,8 @@ public class NotificationController {
 
   @GetMapping("/admin/notifications")
   Page<NotificationService.Notice> adminNotices(@RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
-    return notifications.list(null, page, size);
+      @RequestParam(defaultValue = "20") int size, @RequestParam(required = false) String status) {
+    return notifications.list(null, page, size, status);
   }
 
   @PostMapping("/admin/notifications/{id}/retry")

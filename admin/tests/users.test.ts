@@ -170,7 +170,6 @@ describe("user management and WeChat admin roles", () => {
       response(list([user], 0, 16)),
     );
     const wrapper = await render(fetcher);
-    await button(wrapper, "筛选用户").trigger("click");
     await wrapper.get('input[name="userQuery"]').setValue(" 小林 & 同行 ");
     await wrapper.get('select[name="profile"]').setValue("COMPLETE");
     await wrapper.get('select[name="role"]').setValue("ADMIN");
@@ -189,7 +188,7 @@ describe("user management and WeChat admin roles", () => {
       role: "ADMIN",
       accountSource: "WECHAT",
     });
-    expect(wrapper.find("form").exists()).toBe(false);
+    expect(wrapper.find("form").exists()).toBe(true);
   });
   it("keeps load failure distinct from empty and offers a working retry", async () => {
     const fetcher = vi
@@ -202,7 +201,7 @@ describe("user management and WeChat admin roles", () => {
     await button(wrapper, "重试").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("没有匹配的用户");
-    await button(wrapper, "调整筛选").trigger("click");
+    await button(wrapper, "重置筛选").trigger("click");
     expect(wrapper.find('input[name="userQuery"]').exists()).toBe(true);
   });
   it("details default to masked profile, history keeps all participants and uses four records per page", async () => {
@@ -369,7 +368,7 @@ describe("user management and WeChat admin roles", () => {
     expect(confirm.text()).toContain(user.id);
     expect(confirm.text()).toContain("活动、报名名单、商品、订单和用户权限");
     expect(confirm.text()).toContain("现有登录会话将失效");
-    await button(wrapper, "返回检查").trigger("click");
+    await button(wrapper, "取消").trigger("click");
     expect(roleWrites(fetcher)).toHaveLength(0);
     await button(wrapper, "设为管理员").trigger("click");
     await button(wrapper, "确认设为管理员").trigger("click");

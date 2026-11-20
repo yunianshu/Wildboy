@@ -2,6 +2,7 @@
 import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router";
+import { displayDate } from "../forms";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import {
   activityOrderLabels,
@@ -11,6 +12,7 @@ import {
 import { activityOrderTone } from "../statusTone";
 import FormModal from "../components/FormModal.vue";
 import AppIcon from "../components/AppIcon.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 const route = useRoute();
 const activityId = computed(() =>
@@ -19,8 +21,19 @@ const activityId = computed(() =>
 const orderId = computed(() =>
   typeof route.query.orderId === "string" ? route.query.orderId : "",
 );
+const searchDraft = ref("");
+const statusDraft = ref("");
+const refundDraft = ref("");
+const appliedFilters = ref({ query: "", status: "", refundStatus: "" });
+const notice = ref("");
+const total = ref(0);
+function applyFilters() {
+  appliedFilters.value = { query: searchDraft.value.trim(), status: statusDraft.value, refundStatus: refundDraft.value };
+  void load(0);
+}
 function listPath(next: number) {
   const params = new URLSearchParams({ page: String(next), size: "20" });
+  for (const [key, value] of Object.entries(appliedFilters.value)) if (value) params.set(key, value);
   if (activityId.value) params.set("activityId", activityId.value);
   if (orderId.value) params.set("orderId", orderId.value);
   return `/admin/activity-orders?${params}`;
@@ -38,6 +51,8 @@ type Order = {
   currency: string;
   paymentTransactionId: string | null;
   version: number;
+  createdAt?: string;
+  refundStatus?: string;
 };
 type Participant = {
   id: string;
@@ -103,7 +118,9 @@ function readRefund(orderId: string) {
   );
 }
 let epoch = 0;
+let peopleRequest = 0;
 function clearDetail() {
+  peopleRequest++;
   participants.value = [];
   revealedParticipants.value = [];
   peopleLoaded.value = false;
@@ -162,6 +179,7 @@ async function load(next = page.value) {
     const r = await request<Page<Order>>(listPath(next));
     if (n !== epoch || actor !== currentUser.value) return;
     items.value = r.items;
+    total.value = r.total;
     more.value = r.hasMore;
     page.value = next;
   } catch (e) {
@@ -189,6 +207,7 @@ async function open(o: Order) {
     if (latest) {
       selected.value = latest;
       refund.value = currentRefund;
+      void loadParticipants(true);
     } else {
       error.value = "该订单已移出当前页，列表已刷新，请重新查找。";
     }
@@ -347,11 +366,13 @@ async function action(
     if (n !== epoch || actor !== currentUser.value) return;
     if (kind === "verify" || kind === "cancel") {
       selected.value = result as Order;
+      notice.value = kind === "verify" ? "支付状态已核对" : "订单已更新";
       items.value = items.value.map((item) =>
         item.id === o.id ? (result as Order) : item,
       );
     } else {
       refund.value = result as Refund;
+      notice.value = "退款状态已更新";
       note.value = "";
       reason.value = "";
       requestConfirmed.value = false;
@@ -386,23 +407,27 @@ async function action(
     if (n === epoch) busy.value = false;
   }
 }
-async function loadParticipants() {
-  if (busy.value || !selected.value || !currentUser.value) return;
+async function loadParticipants(background = false) {
+  if ((!background && busy.value) || !selected.value || !currentUser.value) return;
+  const order = selected.value;
+  const attempt = ++peopleRequest;
   const n = epoch,
     actor = currentUser.value;
-  busy.value = true;
-  error.value = "";
+  if (!background) busy.value = true;
+  if (!background) error.value = "";
   try {
     const rows = await request<Participant[]>(
       `/admin/activity-orders/${encodeURIComponent(selected.value.id)}/participants`,
     );
-    if (n !== epoch || actor !== currentUser.value) return;
+    if (attempt !== peopleRequest || n !== epoch || actor !== currentUser.value || selected.value?.id !== order.id) return;
+    if (!Array.isArray(rows) || rows.some((row) => typeof row.participantName !== "string" || typeof row.phone !== "string"))
+      throw new Error("参加者资料暂不可用，请重试");
     participants.value = rows;
     peopleLoaded.value = true;
   } catch (e) {
-    if (n === epoch) fail(e);
+    if (!background && n === epoch) fail(e);
   } finally {
-    if (n === epoch) busy.value = false;
+    if (!background && n === epoch) busy.value = false;
   }
 }
 async function reload() {
@@ -489,7 +514,20 @@ onMounted(() => void load(0));
         ><AppIcon name="back" :size="16" />查看全部活动订单</RouterLink
       >
     </div>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="error && !selected" role="alert" class="error-box">{{ error }}</p>
+    <form v-if="!orderId" class="activity-order-filters" @submit.prevent="applyFilters">
+      <input v-model="searchDraft" maxlength="100" aria-label="搜索活动订单" placeholder="订单号或活动名称" />
+      <select v-model="statusDraft" aria-label="订单状态">
+        <option value="">全部订单状态</option>
+        <option v-for="(label, value) in activityOrderLabels" :key="value" :value="value">{{ label }}</option>
+      </select>
+      <select v-model="refundDraft" aria-label="退款状态">
+        <option value="">全部退款状态</option>
+        <option v-for="(label, value) in refundLabels" :key="value" :value="value">{{ label }}</option>
+      </select>
+      <button class="secondary" :disabled="busy">查询</button>
+    </form>
     <UiState v-if="busy && !items.length" kind="loading" compact
       >正在读取活动订单…</UiState
     >
@@ -504,6 +542,8 @@ onMounted(() => void load(0));
             <th scope="col" role="columnheader">人数</th>
             <th scope="col" role="columnheader">订单金额</th>
             <th scope="col" role="columnheader">订单状态</th>
+            <th scope="col" role="columnheader">退款状态</th>
+            <th scope="col" role="columnheader">下单时间</th>
             <th scope="col" role="columnheader">操作</th>
           </tr>
         </thead>
@@ -527,6 +567,8 @@ onMounted(() => void load(0));
                 status(o)
               }}</span>
             </td>
+            <td role="cell">{{ o.refundStatus ? (refundLabels[o.refundStatus] || o.refundStatus) : "—" }}</td>
+            <td role="cell">{{ o.createdAt ? displayDate(o.createdAt) : "—" }}</td>
             <td class="order-open" role="cell">
               <button class="text-button" :disabled="busy" @click="open(o)">
                 查看订单
@@ -536,22 +578,7 @@ onMounted(() => void load(0));
         </tbody>
       </table>
     </div>
-    <nav class="activity-order-pager" aria-label="活动订单分页">
-      <span>第 {{ page + 1 }} 页 · 当前 {{ items.length }} 条</span>
-      <button
-        class="secondary"
-        :disabled="busy || page === 0"
-        @click="load(page - 1)"
-      >
-        上一页</button
-      ><button
-        class="secondary"
-        :disabled="busy || !more"
-        @click="load(page + 1)"
-      >
-        下一页
-      </button>
-    </nav>
+    <PaginationBar :page="page" :page-size="20" :total="total" :has-more="more" :busy="busy" label="活动订单分页" @change="load" />
     <p class="activity-order-hint">
       金额为下单时的成交快照。待支付订单尚未确认报名。
     </p>
@@ -600,7 +627,7 @@ onMounted(() => void load(0));
           v-if="!peopleLoaded"
           class="secondary"
           :disabled="busy"
-          @click="loadParticipants"
+          @click="loadParticipants()"
         >
           加载参加者
         </button>
@@ -727,9 +754,8 @@ onMounted(() => void load(0));
         </template>
       </section>
       <div class="activity-order-actions activity-order-footer">
-        <button class="secondary" :disabled="busy" @click="close">关闭</button>
         <button class="secondary" :disabled="busy" @click="reload">
-          重新加载退款资料
+          刷新详情
         </button>
         <template v-if="selected.status === 'PENDING_PAYMENT'">
           <button
@@ -794,6 +820,19 @@ onMounted(() => void load(0));
   </main>
 </template>
 <style scoped>
+.activity-order-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(136px, 1fr)) auto;
+  align-items: end;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.activity-order-filters :is(input, select) { width: 100%; min-width: 0; margin: 0; }
+@media (max-width: 720px) {
+  .activity-order-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .activity-order-filters input { grid-column: 1 / -1; }
+}
+
 .activity-order-pager,
 .activity-order-actions,
 .activity-order-scope,

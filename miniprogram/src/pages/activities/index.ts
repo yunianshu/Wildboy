@@ -43,6 +43,8 @@ Page({
   },
   // Guard for the category strip: one counter invalidates pending native
   // queries, late renderer callbacks and staged animation commits together.
+  _loaded: false,
+  _title: "",
   filterEpoch: 0,
   filterActive: true,
   onLoad() {
@@ -55,6 +57,7 @@ Page({
     this.filterActive = true;
     const category = wx.getStorageSync("wildboy-category");
     if (category) {
+      this._loaded = false;
       wx.removeStorageSync("wildboy-category");
       const selected = validCategory(category) ? category : "";
       this.filterEpoch++;
@@ -64,7 +67,7 @@ Page({
     } else {
       this.revealSelectedFilter();
     }
-    void this.load(true);
+    if (!this._loaded) void this.load(true);
   },
   onHide() {
     resetTabSwipe(this);
@@ -150,6 +153,13 @@ Page({
     this.setData({ filterScrollLeft: visualCurrent });
     this.setData({ filterScrollLeft: target });
   },
+  search(event: WechatMiniprogram.Input) {
+    const title = event.detail.value.trim().slice(0, 100);
+    if (title === this._title) return;
+    this._title = title;
+    this.setData({ items: [] });
+    void this.load(true);
+  },
   async load(reset = true) {
     if (
       !reset &&
@@ -165,9 +175,10 @@ Page({
     });
     try {
       const p = await request<PageResult<Activity>>(
-        `/activities?page=${reset ? 0 : this.data.page + 1}&size=10${this.data.selected ? "&category=" + this.data.selected : ""}`,
+        `/activities?page=${reset ? 0 : this.data.page + 1}&size=10${this.data.selected ? "&category=" + this.data.selected : ""}${this._title ? "&title=" + encodeURIComponent(this._title) : ""}`,
       );
       if (epoch.valid(n)) {
+        this._loaded = true;
         const items = p.items.map((x) =>
           activityView({ ...x, coverUrl: mediaUrl(x.coverUrl) }),
         );

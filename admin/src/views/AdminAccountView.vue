@@ -24,6 +24,7 @@ const username = ref(""),
   currentPassword = ref(""),
   newPassword = ref(""),
   confirmPassword = ref("");
+const showPasswords = ref(false);
 const dirty = computed(
   () =>
     !!(
@@ -35,6 +36,7 @@ const dirty = computed(
 );
 let epoch = 0;
 function clearPasswords() {
+  showPasswords.value = false;
   currentPassword.value = "";
   newPassword.value = "";
   confirmPassword.value = "";
@@ -218,7 +220,7 @@ onUnmounted(() => {
         修改账号
       </button>
     </section>
-    <p v-if="error" class="error-box" role="alert">
+    <p v-if="error && !editing" class="error-box" role="alert">
       {{ error
       }}<button class="text-button" :disabled="busy || loading" @click="reload">
         重新读取
@@ -240,9 +242,6 @@ onUnmounted(() => {
         <h2>当前管理员</h2>
         <p>{{ settings.username || "尚未设置用户名" }}</p>
         <p class="muted">账号密码只在修改弹窗中填写，页面不保留密码输入。</p>
-        <button class="primary" :disabled="busy || loading" @click="openEditor">
-          修改账号
-        </button>
       </section>
       <UiState v-else kind="empty" compact
         ><strong>{{
@@ -281,6 +280,7 @@ onUnmounted(() => {
         class="form-section account-form"
         @submit.prevent="save"
       >
+        <button type="button" class="text-button" :aria-pressed="showPasswords" @click="showPasswords = !showPasswords">{{ showPasswords ? "隐藏密码" : "显示密码" }}</button>
         <p v-if="error" class="error-box" role="alert">{{ error }}</p>
         <div class="field-row">
           <label
@@ -295,7 +295,7 @@ onUnmounted(() => {
             >当前管理员密码 *<input
               v-model="currentPassword"
               name="currentPassword"
-              type="password"
+              :type="showPasswords ? 'text' : 'password'"
               autocomplete="current-password"
               maxlength="200"
               :disabled="busy || loading"
@@ -306,7 +306,7 @@ onUnmounted(() => {
             >新密码 *<input
               v-model="newPassword"
               name="newPassword"
-              type="password"
+              :type="showPasswords ? 'text' : 'password'"
               autocomplete="new-password"
               maxlength="72"
               :disabled="busy || loading" /></label
@@ -314,7 +314,7 @@ onUnmounted(() => {
             >确认新密码 *<input
               v-model="confirmPassword"
               name="confirmPassword"
-              type="password"
+              :type="showPasswords ? 'text' : 'password'"
               autocomplete="new-password"
               maxlength="72"
               :disabled="busy || loading"

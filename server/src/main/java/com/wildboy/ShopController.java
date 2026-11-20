@@ -100,8 +100,10 @@ public class ShopController {
   Page<Order> adminOrders(
       @RequestParam(required = false) OrderStatus status,
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
-    return shop.orders(null, status, page, size);
+      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(required = false) String query,
+      @RequestParam(defaultValue = "false") boolean awaitingShipment) {
+    return shop.orders(null, status, page, size, query, awaitingShipment);
   }
 
   @PostMapping("/admin/orders/{id}/ship")

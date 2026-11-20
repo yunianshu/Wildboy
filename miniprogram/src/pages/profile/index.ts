@@ -68,6 +68,9 @@ Page({
   },
   onHide() {
     this.visible = false;
+    if (this.data.editing && this.data.user && isSessionCurrent(this.loadedSession)) {
+      this.readerDraft = { session: this.loadedSession, userId: this.data.user.id, draft: { ...this.data.draft } };
+    }
     this.loaded = false;
     this.loadedSession = -1;
     this.reloadOnShow = this.data.loading;
@@ -92,6 +95,11 @@ Page({
       consent: false,
       fieldError: "",
     });
+  },
+  copyMemberId() {
+    const id = this.data.membership?.id;
+    if (id && hasSession() && isSessionCurrent(this.loadedSession))
+      wx.setClipboardData({ data: id });
   },
   onUnload() {
     this.onHide();

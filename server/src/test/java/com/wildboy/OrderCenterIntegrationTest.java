@@ -366,6 +366,7 @@ class OrderCenterIntegrationTest {
             .contentType("application/json")
             .content("{\"path\":\"pages/order-detail/index\"}"))
         .andExpect(status().isForbidden());
+    when(wechatOrders.configuredAppId()).thenReturn("wx-test-order-center");
     when(wechatOrders.setMsgJumpPath("pages/order-detail/index"))
         .thenReturn(new WechatOrderCenterService.CallResult(true, 0, "", null));
     mvc.perform(put("/api/v1/admin/wechat-order-center/msg-jump-path")
@@ -375,6 +376,8 @@ class OrderCenterIntegrationTest {
                 new OrderCenterController.MsgJumpPathInput("pages/order-detail/index"))))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.errcode").value(0));
+    assertThat(db.queryForObject("SELECT path FROM wechat_message_jump_path WHERE app_id=?",
+        String.class, "wx-test-order-center")).isEqualTo("pages/order-detail/index");
     // 完整 URL 不是小程序页面路径（校验在服务层，此处以 stub 模拟其拒绝）
     when(wechatOrders.setMsgJumpPath("https://evil.example/x"))
         .thenThrow(new ApiException(400, "INVALID_JUMP_PATH", "跳转路径需为合法的小程序页面路径"));

@@ -9,7 +9,9 @@ test("consent links stay inline and outside native labels to avoid checkbox acti
     const markup = page(name);
     const group = markup.match(/<checkbox-group\b[^>]*>([\s\S]*?)<\/checkbox-group>/)?.[1];
     assert.ok(group, name);
-    assert.doesNotMatch(group, /<label\b|<[^>]+\sbindtap=/);
+    assert.doesNotMatch(group, /<[^>]+\sbindtap=/);
+    assert.match(group, /<label for="legal-consent">我已阅读并同意当前版本<\/label>/);
+    assert.doesNotMatch(group, /<label\b[^>]*>(?:(?!<\/label>)[\s\S])*catchtap=/);
     assert.match(group, /<checkbox\b[^>]*aria-label="[^"]+"/);
     assert.match(group, /我已阅读并同意当前版本/);
     for (const [text, handler, field] of [

@@ -134,7 +134,7 @@ test("cancelled deletion and confirmation after account change send no delete", 
   await pending;
   assert.equal(calls.filter((x) => x.method === "DELETE").length, 0);
 });
-test("hide clears draft and private entries, late fetch cannot repopulate", async () => {
+test("hide retains same-session address draft but ignores late private responses", async () => {
   const p = page("addresses");
   let release;
   api.request = () => new Promise((r) => (release = r));
@@ -145,7 +145,7 @@ test("hide clears draft and private entries, late fetch cannot repopulate", asyn
   release({ items: list });
   await flush();
   assert.deepEqual(p.data.items, []);
-  assert.equal(p.data.draft.recipientName, "");
+  assert.equal(p.data.draft.recipientName, "私人名字");
 });
 test("map selection survives hiding the form and only fills the address draft", async () => {
   const p = page("addresses");

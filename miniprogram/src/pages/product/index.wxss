@@ -17,7 +17,7 @@
 .purchase-bar { display: flex; align-items: center; gap: 24rpx; }
 .purchase-total { display: flex; flex: 1; flex-direction: column; }
 .purchase-total text { color: var(--rf-muted); font-size: 21rpx; }
-.purchase-total strong { color: var(--rf-primary-text); font-size: 34rpx; }
+.purchase-total .amount-strong { font-weight: 600; color: var(--rf-primary-text); font-size: 34rpx; }
 .purchase-bar .primary { flex: 1; }
 
 .step-icon { width: 32rpx; height: 32rpx; }

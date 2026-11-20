@@ -19,9 +19,12 @@ public class RefundController {
   @GetMapping("/me/refunds")
   Models.Page<RefundModels.Refund> mine(@AuthenticationPrincipal Models.User user,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return refunds.list(user.id(),page,size);}
   @GetMapping("/admin/refunds")
-  Models.Page<RefundModels.Refund> list(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return refunds.list(null,page,size);}
+  Models.Page<RefundModels.Refund> list(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,
+      @RequestParam(required=false) String query, @RequestParam(required=false) String status) {
+    return refunds.list(null, page, size, query, status);
+  }
   @PostMapping("/admin/refunds/{id}/approve")
-  RefundModels.Refund approve(@PathVariable String id,@AuthenticationPrincipal Models.User user,@Valid @RequestBody RefundModels.DecisionInput in){return refunds.approve(id,in.version(),user.id(),false);}
+  RefundModels.Refund approve(@PathVariable String id,@AuthenticationPrincipal Models.User user,@Valid @RequestBody RefundModels.DecisionInput in){return refunds.approve(id,in.version(),user.id(),false,in.note());}
   @PostMapping("/admin/refunds/{id}/retry")
   RefundModels.Refund retry(@PathVariable String id,@AuthenticationPrincipal Models.User user,@Valid @RequestBody RefundModels.DecisionInput in){return refunds.approve(id,in.version(),user.id(),true);}
   @PostMapping("/admin/refunds/{id}/reject")

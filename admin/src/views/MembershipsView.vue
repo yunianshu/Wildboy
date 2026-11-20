@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { readListSearch, rememberListSearch } from "../listSearchContext";
+import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
-import { onBeforeRouteLeave } from "vue-router";
+import { inject, computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { routeLocationKey, routerKey, onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Page } from "../types";
 import AppIcon from "../components/AppIcon.vue";
@@ -15,7 +17,7 @@ type PricingRule = {
   pricingValue: number;
   participantPricing: "ACCOUNT_ALL" | "ONE_BENEFIT" | null;
 };
-type RuleForm = Omit<PricingRule, "pricingValue"> & { value: number };
+type RuleForm = Omit<PricingRule, "pricingValue"> & { value: number | "" };
 const scopeLabels = {
   ACTIVITY: "活动",
   SHOP: "商品（每件）",
@@ -42,7 +44,7 @@ function rulePayload(r: RuleForm): PricingRule {
     enabled: r.enabled,
     pricingMode: r.pricingMode,
     pricingValue: Math.round(
-      r.value * (r.pricingMode === "DISCOUNT" ? 1000 : 100),
+      Number(r.value) * (r.pricingMode === "DISCOUNT" ? 1000 : 100),
     ),
   };
 }
@@ -82,7 +84,34 @@ const loading = ref(false),
 const opened = ref<"tier" | "user" | null>(null),
   selectedTier = ref<Tier | null>(null),
   selectedUser = ref<Member | null>(null);
-const section = ref<"tiers" | "users">("tiers");
+const route = inject(routeLocationKey, null);
+const router = inject(routerKey, null);
+const userIdParam = route?.query.userId;
+const initialUserQuery = typeof userIdParam === "string" ? userIdParam.slice(0, 80) : "";
+const rememberedSearch = !initialUserQuery ? readListSearch(currentUser.value, "memberships") : undefined;
+const section = ref<"tiers" | "users">(initialUserQuery || rememberedSearch || route?.query.section === "users" ? "users" : "tiers");
+const wantedType = route?.query.customerType;
+if (typeof wantedType === "string" && Object.keys(labels).includes(wantedType)) {
+  customerType.value = wantedType;
+  applied.customerType = wantedType;
+}
+const wantedPage = Number(route?.query.page);
+const initialPage = rememberedSearch?.page ?? (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001 ? wantedPage - 1 : 0);
+function rememberFilters() {
+  if (!router || !route) return;
+  void router.replace({ query: { ...route.query,
+    section: section.value === "users" ? "users" : undefined,
+    customerType: applied.customerType || undefined,
+    page: page.value && (!applied.query || applied.query === initialUserQuery) ? String(page.value + 1) : undefined,
+    userId: applied.query === initialUserQuery && initialUserQuery ? initialUserQuery : undefined,
+  } });
+}
+function selectSection(value: "tiers" | "users") {
+  section.value = value;
+  rememberFilters();
+}
+query.value = initialUserQuery || rememberedSearch?.query || "";
+applied.query = query.value;
 const tierForm = reactive({
   name: "",
   sortOrder: 0,
@@ -179,6 +208,9 @@ async function load(p = 0, search = false) {
     total.value = u.total;
     more.value = u.hasMore;
     Object.assign(applied, filter);
+    if (actor && (!initialUserQuery || filter.query !== initialUserQuery))
+      rememberListSearch(actor, "memberships", filter.query, p);
+    rememberFilters();
   } catch (e) {
     if (n === epoch) failure(e);
   } finally {
@@ -243,7 +275,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
 }
 onMounted(() => {
   window.addEventListener("beforeunload", beforeUnload);
-  void load();
+  void load(initialPage, !!initialUserQuery);
 });
 onUnmounted(() => {
   window.removeEventListener("beforeunload", beforeUnload);
@@ -303,14 +335,15 @@ async function save() {
         return;
       }
       const discount = r.pricingMode === "DISCOUNT",
-        scaled = r.value * (discount ? 1000 : 100);
+        scaled = Number(r.value) * (discount ? 1000 : 100);
       if (
+        (r.enabled && (r.value === "" || (r.pricingMode === "REDUCTION" && scaled <= 0))) ||
         !Number.isFinite(scaled) ||
         Math.abs(scaled - Math.round(scaled)) > 0.000001 ||
         scaled < (discount ? 1 : 0) ||
         scaled > (discount ? 10000 : 100000000)
       ) {
-        error.value = `${scopeLabels[r.scope]}：${discount ? "请输入 0.001–10 折，最多三位小数" : "请输入 0–1000000 元，最多两位小数"}`;
+        error.value = `${scopeLabels[r.scope]}：${discount ? "请输入 0.001–10 折，最多三位小数" : r.pricingMode === "REDUCTION" ? "请输入大于 0 的减免金额，最多两位小数" : "请输入 0–1000000 元，最多两位小数"}`;
         return;
       }
     }
@@ -326,6 +359,17 @@ async function save() {
   busy.value = true;
   try {
     if (opened.value === "tier") {
+      const freeScopes = tierForm.rules
+        .filter((rule) => tierForm.enabled && rule.enabled && rule.pricingMode === "FIXED" && rule.value === 0)
+        .map((rule) => scopeLabels[rule.scope]);
+      if (freeScopes.length) {
+        const confirmed = await askConfirm({
+          title: "设为免费？",
+          description: "符合条件的用户无需支付该等级的" + freeScopes.join("、") + "固定价格。",
+          confirmLabel: "确认设为免费",
+        });
+        if (!confirmed || n !== epoch || actor !== currentUser.value) return;
+      }
       const saved = await request<Tier>(
         `/admin/membership/tiers${selectedTier.value ? "/" + encodeURIComponent(selectedTier.value.id) : ""}`,
         {
@@ -415,7 +459,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
         class="secondary"
         :aria-pressed="section === 'tiers'"
         aria-controls="member-tiers"
-        @click="section = 'tiers'"
+        @click="selectSection('tiers')"
       >
         会员等级
       </button>
@@ -423,7 +467,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
         class="secondary"
         :aria-pressed="section === 'users'"
         aria-controls="member-users"
-        @click="section = 'users'"
+        @click="selectSection('users')"
       >
         用户业务身份
       </button>
@@ -550,26 +594,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
           </tbody>
         </table>
       </div>
-      <nav
-        v-if="users.length || page > 0"
-        class="pagination member-pagination"
-        aria-label="用户业务身份分页"
-      >
-        <span>共 {{ total }} 位用户 · 第 {{ page + 1 }} 页</span>
-        <button
-          class="secondary"
-          :disabled="page === 0 || busy || loading"
-          @click="load(page - 1)"
-        >
-          上一页</button
-        ><button
-          class="secondary"
-          :disabled="!more || busy || loading"
-          @click="load(page + 1)"
-        >
-          下一页
-        </button>
-      </nav>
+      <PaginationBar v-if="users.length || page > 0" :page-size="userPageSize" :has-more="more" :busy="busy || loading" :page="page" :total="total" label="用户业务身份分页" @change="load" />
     </section>
     <FormModal
       :busy="busy"
@@ -656,7 +681,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
                         v-model="r.pricingMode"
                         :aria-label="`${r.scope}定价方式`"
                         @change="
-                          r.value = r.pricingMode === 'DISCOUNT' ? 10 : 0
+                          r.value = r.pricingMode === 'DISCOUNT' ? 10 : ''
                         "
                       >
                         <option value="DISCOUNT">打折</option>

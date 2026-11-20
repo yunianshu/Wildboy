@@ -15,7 +15,7 @@
 
       <view class="detail-card">
         <view class="card-caption">订单商品</view>
-        <view class="product-line" wx:for="{{detail.items}}" wx:key="id">
+        <view class="product-line" wx:for="{{detail.items}}" wx:key="id" data-id="{{item.productId}}" bindtap="openProduct">
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" />
           <view class="product-info">
             <view class="product-name">{{item.productName}}<text wx:if="{{item.tierName}}" class="muted small"> · {{item.tierName}}会员价</text></view>
@@ -25,8 +25,8 @@
         </view>
         <view class="meta-row"><text class="muted">订单金额</text><text class="amount">{{detail.totalText}}</text></view>
         <view class="meta-row" wx:if="{{detail.hasDiscount}}"><text class="muted">优惠前</text><text class="muted">{{detail.originalTotalText}}</text></view>
-        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text></view>
-        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text></view>
+        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text><button class="text-button" data-kind="order" bindtap="copyNumber">复制</button></view>
+        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text><button class="text-button" data-kind="payment" bindtap="copyNumber">复制</button></view>
         <view class="meta-row"><text class="muted">下单时间</text><text class="meta-value">{{detail.dateText}}</text></view>
         <view class="notice" wx:if="{{detail.order.reconciliationRequired}}">支付状态待核对，请联系管理员。</view>
       </view>
@@ -34,7 +34,7 @@
       <view class="detail-card" wx:if="{{detail.order.status === 'SHIPPED' || detail.shippedText}}">
         <view class="card-caption">物流信息</view>
         <view class="meta-row" wx:if="{{detail.order.shippingCompany}}"><text class="muted">快递公司</text><text class="meta-value">{{detail.order.shippingCompany}}</text></view>
-        <view class="meta-row" wx:if="{{detail.order.shippingTrackingNo}}"><text class="muted">运单号</text><text class="meta-value">{{detail.order.shippingTrackingNo}}</text></view>
+        <view class="meta-row" wx:if="{{detail.order.shippingTrackingNo}}"><text class="muted">运单号</text><text class="meta-value">{{detail.order.shippingTrackingNo}}</text><button class="text-button" data-kind="tracking" bindtap="copyNumber">复制</button></view>
         <view class="meta-row" wx:if="{{detail.shippedText}}"><text class="muted">发货时间</text><text class="meta-value">{{detail.shippedText}}</text></view>
       </view>
 
@@ -49,6 +49,9 @@
         <view class="muted small center">由微信官方组件发起，确认后同步微信订单状态</view>
       </view>
       <view class="detail-actions">
+        <button wx:if="{{detail.order.status === 'PENDING_PAYMENT' && !detail.order.reconciliationRequired}}" class="primary ui-button ui-button-block" bindtap="payShopOrder" disabled="{{busy}}">继续支付</button>
+        <button wx:if="{{detail.order.status === 'PENDING_PAYMENT' || detail.order.status === 'CONFIRMED_FREE'}}" class="secondary ui-button ui-button-block" bindtap="cancelShopOrder" disabled="{{busy}}">取消订单</button>
+        <button wx:if="{{detail.order.status === 'PAID' || detail.order.status === 'REFUNDED'}}" class="secondary ui-button ui-button-block" bindtap="openAfterSales" disabled="{{busy}}">退款 / 售后</button>
         <button class="secondary ui-button ui-button-block" bindtap="backToList">返回订单列表</button>
       </view>
       <view class="error" wx:if="{{confirmError}}" aria-role="alert">{{confirmError}}</view>
@@ -62,17 +65,16 @@
       <view class="detail-card">
         <view class="card-caption">活动订单</view>
         <view class="meta-row"><text class="muted">订单金额</text><text class="amount">{{detail.totalText}}</text></view>
-        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text></view>
-        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text></view>
-        <view class="meta-row"><text class="muted">名额保留至</text><text class="meta-value">{{detail.dateText}}</text></view>
+        <view class="meta-row"><text class="muted">订单号</text><text class="meta-value">{{detail.order.orderNo}}</text><button class="text-button" data-kind="order" bindtap="copyNumber">复制</button></view>
+        <view class="meta-row" wx:if="{{detail.order.paymentTransactionId}}"><text class="muted">微信支付单号</text><text class="meta-value">{{detail.order.paymentTransactionId}}</text><button class="text-button" data-kind="payment" bindtap="copyNumber">复制</button></view>
+        <view class="meta-row" wx:if="{{detail.order.status === 'PENDING_PAYMENT'}}"><text class="muted">名额保留至</text><text class="meta-value">{{detail.dateText}}</text></view>
       </view>
       <view class="virtual-card">
         <view class="virtual-title">虚拟商品订单</view>
         <view class="muted small">无需物流与确认收货，微信按虚拟商品规则结算</view>
       </view>
       <view class="detail-actions">
-        <button class="primary ui-button ui-button-block" bindtap="viewRegistrations">查看我的报名</button>
-        <button class="secondary ui-button ui-button-block" bindtap="backToList">返回订单列表</button>
+        <button class="secondary ui-button ui-button-block" bindtap="backToList">返回活动订单</button>
       </view>
     </block>
   </block>

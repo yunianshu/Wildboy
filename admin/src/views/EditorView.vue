@@ -24,7 +24,7 @@ import AppIcon from "../components/AppIcon.vue";
 import UiState from "../components/UiState.vue";
 import DateTimeField from "../components/DateTimeField.vue";
 const contentOpen = ref(false);
-const contentEditor = ref<{ canLeave: () => boolean } | null>(null);
+const contentEditor = ref<{ canLeave: () => Promise<boolean>; busy: boolean } | null>(null);
 const route = useRoute(),
   router = useRouter(),
   id = computed(() =>
@@ -64,12 +64,26 @@ const sections = [
   { id: "schedule", label: "时间与地点" },
   { id: "detail", label: "活动详情" },
 ] as const;
+const sectionFields = {
+  basic: ["title", "category", "coverUrl", "galleryUrls", "summary", "capacity"],
+  schedule: ["startAt", "endAt", "registrationDeadline", "location", "meetingPoint"],
+  detail: ["description"],
+} as const;
+function sectionErrorCount(section: typeof sections[number]["id"]) {
+  return sectionFields[section].filter((field) => errors.value[field]).length;
+}
+function moveGalleryImage(index: number, direction: -1 | 1) {
+  const target = index + direction;
+  const pictures = fields.galleryUrls;
+  if (target < 0 || target >= pictures.length) return;
+  [pictures[index], pictures[target]] = [pictures[target], pictures[index]];
+}
 const metadataDirty = computed(() => baseline.value !== JSON.stringify(fields));
 const priceDirty = computed(
   () =>
-    !!current.value &&
+    (!current.value || current.value.status === "DRAFT") &&
     (!/^\d+(\.\d{1,2})?$/.test(priceYuan.value) ||
-      Math.round(Number(priceYuan.value) * 100) !== current.value.priceCents),
+      Math.round(Number(priceYuan.value) * 100) !== (current.value?.priceCents ?? 0)),
 );
 const dirty = computed(() => metadataDirty.value || priceDirty.value),
   readonly = computed(() => current.value?.status === "CANCELLED");
@@ -102,14 +116,16 @@ function assign(data: Activity) {
   errors.value = {};
 }
 async function load() {
-  if (!id.value) return;
+  const activityId = id.value || current.value?.id;
+  if (!activityId) return;
+  const actor = currentUser.value;
   loading.value = true;
   error.value = "";
   try {
     const data = await request<Activity>(
-      `/admin/activities/${encodeURIComponent(id.value)}`,
+      `/admin/activities/${encodeURIComponent(activityId)}`,
     );
-    if (alive) assign(data);
+    if (alive && actor === currentUser.value) assign(data);
   } catch (e) {
     if (alive) error.value = errorMessage(e);
   } finally {
@@ -155,26 +171,16 @@ async function save() {
     return;
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
   if (Object.keys(errors.value).length) {
-    const invalid = Object.keys(errors.value);
-    editSection.value = invalid.some((field) =>
-      [
-        "title",
-        "category",
-        "coverUrl",
-        "galleryUrls",
-        "summary",
-        "capacity",
-      ].includes(field),
-    )
-      ? "basic"
-      : invalid.some((field) => field !== "description")
-        ? "schedule"
-        : "detail";
+    editSection.value = sections.find(({ id }) => sectionErrorCount(id))?.id ?? "basic";
     error.value = "请检查标记的内容后再保存。";
     return;
   }
   const pendingPrice = priceDirty.value ? priceYuan.value : null;
   const activityId = id.value || current.value?.id;
+  if (pendingPrice !== null && parseDraftPrice(pendingPrice) === null) {
+    error.value = "价格需为 0–1000000 元，最多两位小数。";
+    return;
+  }
   const actor = currentUser.value;
   let started = false;
   saving.value = true;
@@ -186,7 +192,7 @@ async function save() {
       ...(current.value ? { version: current.value.version } : {}),
     });
     started = true;
-    const data = await request<Activity>(
+    const data = activityId && !metadataDirty.value && current.value ? current.value : await request<Activity>(
       activityId
         ? `/admin/activities/${encodeURIComponent(activityId)}`
         : "/admin/activities",
@@ -197,7 +203,26 @@ async function save() {
     );
     if (!alive || actor !== currentUser.value) return;
     assign(data);
-    if (pendingPrice !== null) priceYuan.value = pendingPrice;
+    if (pendingPrice !== null) {
+      priceYuan.value = pendingPrice;
+      if (data.status === "DRAFT") {
+        try {
+          const updated = await putDraftPrice(data, parseDraftPrice(pendingPrice)!);
+          if (!alive || actor !== currentUser.value) return;
+          assign(updated);
+        } catch (cause) {
+          if (!alive || actor !== currentUser.value) return;
+          writeError(cause);
+          if (!(cause instanceof ApiError) || cause.status === 0 || cause.status >= 500) {
+            conflict.value = true;
+            error.value = "活动资料已保存。价格结果待核对，请重新加载后确认。";
+          } else {
+            error.value = "活动资料已保存，报名价格未确认。 " + error.value;
+          }
+          return;
+        }
+      }
+    }
     success.value = "已保存。未发布的草稿不会展示给用户。";
     if (!id.value) {
       saving.value = false;
@@ -218,6 +243,17 @@ async function save() {
   } finally {
     if (alive) saving.value = false;
   }
+}
+function parseDraftPrice(value: string) {
+  if (!/^\d+(\.\d{1,2})?$/.test(value)) return null;
+  const cents = Math.round(Number(value) * 100);
+  return cents >= 0 && cents <= 100000000 ? cents : null;
+}
+function putDraftPrice(activity: Activity, priceCents: number) {
+  return request<Activity>("/admin/activities/" + encodeURIComponent(activity.id) + "/price", {
+    method: "POST",
+    body: JSON.stringify({ priceCents, version: activity.version }),
+  });
 }
 async function savePrice() {
   if (
@@ -311,7 +347,8 @@ async function reload() {
     void load();
 }
 function closeEditor() {
-  void router.push("/activities");
+  const list = route.query.list;
+  void router.push(typeof list === "string" && list.startsWith("/activities?") ? list : "/activities");
 }
 async function closeContent() {
   if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
@@ -407,6 +444,9 @@ onUnmounted(() => {
           @click="editSection = section.id"
         >
           {{ section.label }}
+          <span v-if="sectionErrorCount(section.id)" class="status-pill tone-danger">
+            {{ sectionErrorCount(section.id) }} 处待修正
+          </span>
         </button>
       </nav>
       <div class="editor-grid">
@@ -485,15 +525,22 @@ onUnmounted(() => {
                 :src="fields.coverUrl"
                 alt="封面预览"
               />
+              <button v-if="fields.coverUrl" type="button" class="text-button" @click="fields.coverUrl = ''">
+                移除封面
+              </button>
               <small class="field-error">{{ errors.coverUrl }}</small>
               <div class="preset-heading">更多图片（可选，最多 8 张）</div>
               <div class="gallery-grid">
                 <div
                   v-for="(url, i) in fields.galleryUrls"
-                  :key="url"
+                  :key="i"
                   class="gallery-item"
                 >
                   <img :src="url" alt="更多图片" loading="lazy" />
+                  <div class="action-row">
+                    <button type="button" class="text-button" :disabled="i === 0" @click="moveGalleryImage(i, -1)">上移</button>
+                    <button type="button" class="text-button" :disabled="i === fields.galleryUrls.length - 1" @click="moveGalleryImage(i, 1)">下移</button>
+                  </div>
                   <button
                     type="button"
                     class="gallery-remove"
@@ -511,7 +558,6 @@ onUnmounted(() => {
                 />
               </div>
               <small class="field-error">{{ errors.galleryUrls }}</small>
-              >
             </fieldset>
           </section>
           <section v-show="editSection === 'schedule'" class="form-section">
@@ -573,6 +619,9 @@ onUnmounted(() => {
               <div>
                 <h2>活动详情</h2>
               </div>
+              <button v-if="id" type="button" class="secondary" :disabled="saving" @click="contentOpen = true">
+                编辑图文详情
+              </button>
             </div>
             <fieldset :disabled="saving || readonly">
               <label
@@ -581,7 +630,7 @@ onUnmounted(() => {
                   v-model="fields.description"
                   rows="13"
                   maxlength="20000"
-                  placeholder="【活动行程】\n\n【适合人群与路线难度】\n\n【装备建议】\n\n【天气与安全提示】\n\n【取消与变更说明】"
+                  placeholder="填写行程、路线难度、装备及安全提示"
                 /><small class="field-error">{{
                   errors.description
                 }}</small></label
@@ -613,13 +662,13 @@ onUnmounted(() => {
           </section>
           <div class="editor-tip">
             <h2>报名价格</h2>
-            <label v-if="current"
+            <label
               >报名原价（元 / 人）<input
                 v-model="priceYuan"
                 aria-label="活动报名原价"
                 inputmode="decimal"
                 maxlength="10"
-                :disabled="saving || conflict || current.status !== 'DRAFT'"
+                :disabled="saving || conflict || (!!current && current.status !== 'DRAFT')"
             /></label>
             <p v-if="current">
               0
@@ -635,7 +684,7 @@ onUnmounted(() => {
               保存报名价格
             </button>
             <p v-if="!current">
-              新建草稿默认免费报名；保存草稿后，可在此设置报名价格。
+              0 元为免费报名。价格随草稿保存。
             </p>
             <RouterLink
               v-if="current && current.priceCents > 0"
@@ -645,6 +694,9 @@ onUnmounted(() => {
               }"
               >查看此活动订单</RouterLink
             >
+            <RouterLink v-else-if="current" :to="'/activities/' + current.id + '/registrations'">
+              查看报名名单
+            </RouterLink>
           </div>
         </aside>
       </div>
@@ -660,14 +712,6 @@ onUnmounted(() => {
         >
         <div>
           <button
-            v-if="id"
-            type="button"
-            class="secondary"
-            :disabled="saving"
-            @click="contentOpen = true"
-          >
-            编辑图文详情</button
-          ><button
             v-if="current?.status === 'PUBLISHED'"
             type="button"
             class="danger-outline"
@@ -697,7 +741,7 @@ onUnmounted(() => {
     </form>
   </main>
   <FormModal
-    :busy="saving"
+    :busy="saving || !!contentEditor?.busy"
     v-if="id && contentOpen"
     size="lg"
     @close="closeContent"

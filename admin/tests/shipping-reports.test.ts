@@ -78,7 +78,8 @@ it("labels each report row by source, logistics type and outcome", async () => {
   expect(text).toContain("虚拟发货");
   expect(text).toContain("上报失败");
   expect(text).toContain("已上报");
-  expect(text).toContain("errcode 9400001");
+  expect(text).toContain("错误码 9400001");
+  expect(text).toContain("upload_shipping_info");
   expect(text).toContain("非微信支付订单，无交易记录");
   expect(
     w.findAll("button").filter((b: any) => b.text() === "补报").length,

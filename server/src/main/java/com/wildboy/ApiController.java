@@ -48,8 +48,9 @@ public class ApiController {
   Page<Activity> list(
       @RequestParam(required = false) Category category,
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "10") int size) {
-    return activities.list(category, page, size, false);
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(required = false) String title) {
+    return activities.list(category, null, title, page, size, false);
   }
 
   @GetMapping("/activities/{id}")
@@ -93,9 +94,10 @@ public class ApiController {
       @RequestParam(required = false) Category category,
       @RequestParam(required = false) ActivityStatus status,
       @RequestParam(required = false) String title,
+      @RequestParam(defaultValue = "false") boolean upcomingFull,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return activities.list(category, status, title, page, size, true);
+    return activities.list(category, status, title, page, size, true, upcomingFull);
   }
 
   @GetMapping("/admin/activities/{id}")
@@ -138,9 +140,18 @@ public class ApiController {
       @PathVariable String id,
       @RequestParam(required = false) RegistrationStatus status,
       @RequestParam(defaultValue = "0") int page,
-      @RequestParam(defaultValue = "20") int size) {
+      @RequestParam(defaultValue = "20") int size,
+      @RequestParam(required = false) String query) {
     activities.get(id, true);
-    return activities.registrations(null, id, status, page, size);
+    return activities.registrations(null, id, status, page, size, query);
+  }
+
+  @GetMapping("/admin/activities/{id}/registrations/export")
+  ResponseEntity<List<ActivityService.RosterExportRow>> exportAttendees(
+      @PathVariable String id, @RequestParam(required = false) RegistrationStatus status,
+      @RequestParam(required = false) String query) {
+    return ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+        .body(activities.exportRoster(id, status, query));
   }
 
   @PostMapping("/admin/privacy/encrypt-legacy-identities")

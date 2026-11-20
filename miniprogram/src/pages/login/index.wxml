@@ -8,14 +8,14 @@
     <block wx:if="{{current}}">
       <checkbox-group bindchange="agreement">
         <view class="agreement">
-          <checkbox
+          <checkbox id="legal-consent"
             value="yes"
             checked="{{agreed}}"
             disabled="{{busy}}"
             color="#1D6342"
             aria-label="我已阅读并同意当前版本隐私政策和用户协议"
           />
-          <view class="agreement-copy">我已阅读并同意当前版本<text class="legal-link" catchtap="readPrivacy" aria-role="link" aria-label="隐私政策，版本 {{current.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="readTerms" aria-role="link" aria-label="用户协议，版本 {{current.terms.version}}">《用户协议》</text></view>
+          <view class="agreement-copy"><label for="legal-consent">我已阅读并同意当前版本</label><text class="legal-link" catchtap="readPrivacy" aria-role="link" aria-label="隐私政策，版本 {{current.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="readTerms" aria-role="link" aria-label="用户协议，版本 {{current.terms.version}}">《用户协议》</text></view>
         </view>
       </checkbox-group>
     </block>
@@ -29,7 +29,7 @@
     </button>
     <button
       class="primary"
-      disabled="{{loading || busy || !current || !agreed}}"
+      disabled="{{loading || busy || !current}}"
       loading="{{busy}}"
       bindtap="submit"
     >

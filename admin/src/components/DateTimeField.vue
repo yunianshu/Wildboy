@@ -36,7 +36,8 @@ const timePart = computed({
     );
   },
 });
-const picker = ref<"date" | "time" | null>(null);
+const picker = ref(false);
+const draftDate = ref("");
 const today = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Shanghai",
   year: "numeric",
@@ -49,12 +50,19 @@ const draftMinute = ref("00");
 const hours = Array.from({ length: 24 }, (_, hour) =>
   String(hour).padStart(2, "0"),
 );
-const minuteOptions = computed(() => {
-  const values = ["00", "15", "30", "45"];
-  if (!values.includes(draftMinute.value)) values.push(draftMinute.value);
-  return values.sort();
-});
+const minuteOptions = Array.from({ length: 60 }, (_, minute) =>
+  String(minute).padStart(2, "0"),
+);
 const draftTime = computed(() => `${draftHour.value}:${draftMinute.value}`);
+const years = computed(() => {
+  const current = Number(today.slice(0, 4)), chosen = Number(visibleMonth.value.slice(0, 4));
+  return [...new Set([...Array.from({ length: 11 }, (_, i) => current - 5 + i), chosen])].sort((a, b) => a - b);
+});
+function jumpMonth(event: Event, unit: "year" | "month") {
+  const value = (event.target as HTMLSelectElement).value;
+  visibleMonth.value = unit === "year" ? value + visibleMonth.value.slice(4)
+    : visibleMonth.value.slice(0, 5) + value;
+}
 const monthLabel = computed(() => {
   const [year, month] = visibleMonth.value.split("-").map(Number);
   return `${year} 年 ${month} 月`;
@@ -74,14 +82,12 @@ const calendarDays = computed(() => {
     };
   });
 });
-function openDate() {
-  visibleMonth.value = (datePart.value || today).slice(0, 7);
-  picker.value = "date";
-}
-function openTime() {
+function openPicker() {
+  draftDate.value = datePart.value;
+  visibleMonth.value = (draftDate.value || today).slice(0, 7);
   const current = timePart.value || props.presets[0] || "09:00";
   [draftHour.value, draftMinute.value] = current.split(":");
-  picker.value = "time";
+  picker.value = true;
 }
 function changeMonth(offset: number) {
   const [year, month] = visibleMonth.value.split("-").map(Number);
@@ -90,12 +96,16 @@ function changeMonth(offset: number) {
     .slice(0, 7);
 }
 function selectDate(value: string) {
-  datePart.value = value;
-  picker.value = null;
+  draftDate.value = value;
+  visibleMonth.value = value.slice(0, 7);
 }
 function selectTime(value: string) {
-  timePart.value = value;
-  picker.value = null;
+  [draftHour.value, draftMinute.value] = value.split(":");
+}
+function apply() {
+  if (!draftDate.value) return;
+  emit("update:modelValue", `${draftDate.value}T${draftTime.value}`);
+  picker.value = false;
 }
 </script>
 <template>
@@ -117,9 +127,9 @@ function selectTime(value: string) {
         aria-haspopup="dialog"
         :aria-required="required ? 'true' : undefined"
         @mousedown.prevent
-        @click.prevent="openDate"
-        @keydown.enter.prevent="openDate"
-        @keydown.space.prevent="openDate"
+        @click.prevent="openPicker"
+        @keydown.enter.prevent="openPicker"
+        @keydown.space.prevent="openPicker"
       />
       <input
         :id="`${id}-time`"
@@ -132,9 +142,9 @@ function selectTime(value: string) {
         :aria-label="`${label}的具体时间`"
         :aria-required="required ? 'true' : undefined"
         @mousedown.prevent
-        @click.prevent="openTime"
-        @keydown.enter.prevent="openTime"
-        @keydown.space.prevent="openTime"
+        @click.prevent="openPicker"
+        @keydown.enter.prevent="openPicker"
+        @keydown.space.prevent="openPicker"
       />
     </div>
     <div v-if="presets.length" class="time-presets" aria-label="常用时间">
@@ -152,12 +162,11 @@ function selectTime(value: string) {
       </button>
     </div>
     <small class="field-error">{{ error }}</small>
-    <FormModal v-if="picker" :label="`${label}选择弹窗`" @close="picker = null">
-      <header class="picker-heading">
-        <p>{{ label }} · 北京时间</p>
-        <h2>{{ picker === "date" ? "选择日期" : "选择时间" }}</h2>
-      </header>
-      <div v-if="picker === 'date'" class="calendar-picker">
+    <FormModal v-if="picker" size="lg" @close="picker = false">
+      <template #title><h2>选择日期和时间</h2></template>
+      <p class="muted">{{ label.includes("北京时间") ? label : label + "（北京时间）" }}</p>
+      <div class="date-time-picker">
+      <div class="calendar-picker">
         <div class="calendar-toolbar">
           <button
             type="button"
@@ -167,7 +176,14 @@ function selectTime(value: string) {
           >
             <AppIcon name="back" :size="16" />
           </button>
-          <strong aria-live="polite">{{ monthLabel }}</strong>
+          <div class="action-row" :aria-label="monthLabel">
+            <select aria-label="年份" :value="visibleMonth.slice(0, 4)" @change="jumpMonth($event, 'year')">
+              <option v-for="year in years" :key="year" :value="year">{{ year }} 年</option>
+            </select>
+            <select aria-label="月份" :value="visibleMonth.slice(5)" @change="jumpMonth($event, 'month')">
+              <option v-for="month in 12" :key="month" :value="String(month).padStart(2, '0')">{{ month }} 月</option>
+            </select>
+          </div>
           <button
             type="button"
             class="secondary month-button"
@@ -193,11 +209,11 @@ function selectTime(value: string) {
             class="calendar-day"
             :class="{
               'is-outside': !day.inMonth,
-              'is-selected': datePart === day.value,
+              'is-selected': draftDate === day.value,
               'is-today': today === day.value,
             }"
             :aria-label="day.value"
-            :aria-pressed="datePart === day.value"
+            :aria-pressed="draftDate === day.value"
             @click="selectDate(day.value)"
           >
             {{ day.day }}
@@ -207,22 +223,21 @@ function selectTime(value: string) {
           <button
             type="button"
             class="text-button"
-            @click="visibleMonth = today.slice(0, 7)"
+            @click="selectDate(today)"
           >
-            回到本月
+            今天
           </button>
-          <span>点击日期即可选中</span>
         </div>
       </div>
-      <div v-else class="time-picker">
-        <p class="picker-section-label">常用时间</p>
-        <div class="time-choice-grid">
+      <div class="time-picker">
+        <p v-if="presets.length" class="picker-section-label">常用时间</p>
+        <div v-if="presets.length" class="time-choice-grid">
           <button
             v-for="preset in presets"
             :key="preset"
             type="button"
             class="time-choice"
-            :class="{ 'is-active': timePart === preset }"
+            :class="{ 'is-active': draftTime === preset }"
             @click="selectTime(preset)"
           >
             {{ preset }}
@@ -253,14 +268,12 @@ function selectTime(value: string) {
               </select>
             </label>
           </div>
-          <button
-            type="button"
-            class="primary full confirm-time"
-            @click="selectTime(draftTime)"
-          >
-            确定 {{ draftTime }}
-          </button>
         </div>
+      </div>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" @click="picker = false">取消</button>
+        <button type="button" class="primary" :disabled="!draftDate" @click="apply">应用</button>
       </div>
     </FormModal>
   </div>
@@ -345,19 +358,13 @@ function selectTime(value: string) {
 .datetime-field .field-error {
   margin-top: 6px;
 }
-.picker-heading {
-  padding-right: 38px;
-  margin-bottom: 22px;
+.date-time-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 24px;
 }
-.picker-heading p {
-  margin: 0 0 4px;
-  color: var(--admin-muted);
-  font-size: 11px;
-}
-.picker-heading h2 {
-  margin: 0;
-  color: var(--admin-ink);
-  font-size: 21px;
+@media (max-width: 700px) {
+  .date-time-picker { grid-template-columns: minmax(0, 1fr); gap: 16px; }
 }
 .calendar-toolbar {
   display: grid;
@@ -497,9 +504,12 @@ function selectTime(value: string) {
   .calendar-grid {
     gap: 3px;
   }
-  .calendar-day {
-    font-size: 11px;
-  }
+  .calendar-toolbar { gap: 8px; margin-bottom: 8px; }
+  .calendar-toolbar .action-row select { margin-bottom: 0; }
+  .calendar-day { min-height: 37px; font-size: 11px; }
+  .calendar-footer { padding-top: 4px; margin-top: 6px; }
+  .date-time-picker { gap: 10px; }
+  .custom-time { padding-top: 8px; margin-top: 8px; }
   .time-choice-grid {
     gap: 8px;
   }

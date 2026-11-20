@@ -66,7 +66,7 @@ export function validateActivity(input: ActivityInput, registered = 0) {
   )
     errors.capacity = `人数上限须为 ${Math.max(1, registered)}–10,000 的整数，且不能少于已报名人数`;
   if (input.priceCents !== 0)
-    errors.priceCents = "微信支付尚未启用，仅支持免费报名";
+    errors.priceCents = "请在报名价格区设置金额";
   return errors;
 }
 export function displayDate(value: string) {

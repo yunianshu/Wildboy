@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { readListSearch, rememberListSearch } from "../listSearchContext";
+import PaginationBar from "../components/PaginationBar.vue";
+import { computed, inject, onMounted, onUnmounted, ref, watch } from "vue";
+import { routeLocationKey, routerKey } from "vue-router";
 import {
   ApiError,
   clearSession,
@@ -34,6 +37,17 @@ const sourceLabels: Record<AdminUser["accountSource"], string> = {
   OTHER: "其他来源",
 };
 const roleLabels = { USER: "普通用户", ADMIN: "管理员" };
+const route = inject(routeLocationKey, null);
+const router = inject(routerKey, null);
+function allowedFilter(value: unknown, options: string[]) {
+  return typeof value === "string" && options.includes(value) ? value : "";
+}
+const rememberedSearch = readListSearch(currentUser.value, "users");
+const initialProfile = allowedFilter(route?.query.profile, ["COMPLETE", "INCOMPLETE"]);
+const initialRole = allowedFilter(route?.query.role, Object.keys(roleLabels));
+const initialSource = allowedFilter(route?.query.source, Object.keys(sourceLabels));
+const wantedPage = Number(route?.query.page);
+const initialPage = rememberedSearch?.page ?? (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001 ? wantedPage - 1 : 0);
 function registrationLabel(registration: Registration) {
   if (registration.source === "ACTIVITY_ORDER" && registration.orderStatus)
     return activityOrderLabels[registration.orderStatus];
@@ -52,15 +66,14 @@ const items = ref<AdminUser[]>([]),
   page = ref(0),
   total = ref(0),
   hasMore = ref(false),
-  query = ref(""),
-  profile = ref(""),
-  role = ref(""),
-  accountSource = ref(""),
-  filterOpen = ref(false),
-  queryDraft = ref(""),
-  profileDraft = ref(""),
-  roleDraft = ref(""),
-  sourceDraft = ref("");
+  query = ref(rememberedSearch?.query ?? ""),
+  profile = ref(initialProfile),
+  role = ref(initialRole),
+  accountSource = ref(initialSource),
+  queryDraft = ref(query.value),
+  profileDraft = ref(initialProfile),
+  roleDraft = ref(initialRole),
+  sourceDraft = ref(initialSource);
 const detail = ref<AdminUserDetail | null>(null),
   detailId = ref(""),
   detailLoading = ref(false),
@@ -134,7 +147,7 @@ function clear() {
   detailId.value = "";
   pendingRole.value = null;
   loading.value = detailLoading.value = roleBusy.value = false;
-  roleBlocked.value = filterOpen.value = false;
+  roleBlocked.value = false;
   error.value = detailError.value = roleError.value = notice.value = "";
   query.value = queryDraft.value = profile.value = profileDraft.value = "";
   role.value = roleDraft.value = accountSource.value = sourceDraft.value = "";
@@ -153,7 +166,7 @@ onUnmounted(() => {
   alive = false;
   clear();
 });
-onMounted(() => void load());
+onMounted(() => void load(initialPage));
 
 async function load(next = 0) {
   const actor = currentUser.value,
@@ -181,12 +194,17 @@ async function load(next = 0) {
     page.value = result.page;
     total.value = result.total;
     hasMore.value = result.hasMore;
+    if (actor) rememberListSearch(actor, "users", query.value, result.page);
     // 页码超界时收敛回最后一页（对齐商品分类的做法，避免停留在空白页）。
     const lastPage = Math.max(
       0,
       Math.ceil(result.total / Math.max(1, result.size || 8)) - 1,
     );
     if (!result.items.length && next > lastPage) clampTo = lastPage;
+    else if (router && route) {
+      void router.replace({ query: { ...route.query, profile: profile.value || undefined, role: role.value || undefined,
+        source: accountSource.value || undefined, page: !query.value && result.page ? String(result.page + 1) : undefined } });
+    }
   } catch (reason) {
     if (n === epoch && active(identity, actor) && !accessFailed(reason))
       error.value = errorMessage(reason);
@@ -196,21 +214,12 @@ async function load(next = 0) {
   if (clampTo !== null && n === epoch && active(identity, actor))
     void load(clampTo);
 }
-function openFilters() {
-  if (loading.value || interactionLocked.value) return;
-  queryDraft.value = query.value;
-  profileDraft.value = profile.value;
-  roleDraft.value = role.value;
-  sourceDraft.value = accountSource.value;
-  filterOpen.value = true;
-}
 function applyFilters() {
   if (loading.value || interactionLocked.value) return;
   query.value = queryDraft.value.trim();
   profile.value = profileDraft.value;
   role.value = roleDraft.value;
   accountSource.value = sourceDraft.value;
-  filterOpen.value = false;
   void load();
 }
 function resetFilters() {
@@ -219,6 +228,7 @@ function resetFilters() {
     roleDraft.value =
     sourceDraft.value =
       "";
+  applyFilters();
 }
 function openUser(user: AdminUser) {
   if (!active(session, currentUser.value) || interactionLocked.value) return;
@@ -403,16 +413,50 @@ function dateTime(value: string | null) {
         <h1>用户管理</h1>
         <p class="muted">查看用户资料、报名历史与真实微信账号的管理权限。</p>
       </div>
-      <button :disabled="loading || interactionLocked" @click="load(page)">
+      <button class="secondary" :disabled="loading || interactionLocked" @click="load(page)">
         刷新用户
       </button>
     </header>
-    <div class="range-label users-range">
-      <span class="muted">{{ filterSummary }}</span
-      ><button :disabled="loading || interactionLocked" @click="openFilters">
-        筛选用户
-      </button>
-    </div>
+      <form class="filterbar" @submit.prevent="applyFilters">
+        <label
+          >昵称、姓名、用户编号或完整手机号<input
+            v-model="queryDraft"
+            name="userQuery"
+            maxlength="80"
+            placeholder="输入查找内容"
+        /></label>
+        <div class="action-row">
+          <label
+            >资料状态<select v-model="profileDraft" name="profile">
+              <option value="">全部状态</option>
+              <option value="COMPLETE">资料已完善</option>
+              <option value="INCOMPLETE">资料未完善</option>
+            </select></label
+          ><label
+            >角色<select v-model="roleDraft" name="role">
+              <option value="">全部角色</option>
+              <option value="USER">普通用户</option>
+              <option value="ADMIN">管理员</option>
+            </select></label
+          >
+        </div>
+        <label
+          >账号来源<select v-model="sourceDraft" name="accountSource">
+            <option value="">全部来源</option>
+            <option
+              v-for="(label, key) in sourceLabels"
+              :key="key"
+              :value="key"
+            >
+              {{ label }}
+            </option>
+          </select></label
+        >
+        <div class="action-row">
+          <button type="button" class="secondary" :disabled="loading" @click="resetFilters">重置并查询</button
+          ><button class="primary" :disabled="loading">查询用户</button>
+        </div>
+      </form>
     <p class="privacy-note">
       姓名、手机号与报名资料默认脱敏。不能代替用户修改资料；完整联系方式请在对应活动名单中按用途核验。
     </p>
@@ -433,8 +477,8 @@ function dateTime(value: string | null) {
       >正在读取用户…</UiState
     >
     <UiState v-else-if="!items.length && !error" kind="empty" compact
-      >没有匹配的用户。可调整筛选条件后重新查询。<button @click="openFilters">
-        调整筛选
+      >没有匹配的用户。可调整筛选条件后重新查询。<button class="secondary" @click="resetFilters">
+        重置筛选
       </button></UiState
     >
     <div v-if="items.length" class="table-scroll" :aria-busy="loading">
@@ -493,66 +537,7 @@ function dateTime(value: string | null) {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="用户分页">
-      <span>第 {{ page + 1 }} 页 · 共 {{ total }} 位</span>
-      <div class="action-row">
-        <button
-          :disabled="loading || interactionLocked || page === 0"
-          @click="load(page - 1)"
-        >
-          上一页</button
-        ><button
-          :disabled="loading || interactionLocked || !hasMore"
-          @click="load(page + 1)"
-        >
-          下一页
-        </button>
-      </div>
-    </nav>
-
-    <FormModal v-if="filterOpen" @close="filterOpen = false"
-      ><template #title><h2>筛选用户</h2></template>
-      <form class="form-section" @submit.prevent="applyFilters">
-        <label
-          >昵称、姓名、用户编号或完整手机号<input
-            v-model="queryDraft"
-            name="userQuery"
-            maxlength="80"
-            placeholder="输入查找内容"
-        /></label>
-        <div class="field-row">
-          <label
-            >资料状态<select v-model="profileDraft" name="profile">
-              <option value="">全部状态</option>
-              <option value="COMPLETE">资料已完善</option>
-              <option value="INCOMPLETE">资料未完善</option>
-            </select></label
-          ><label
-            >角色<select v-model="roleDraft" name="role">
-              <option value="">全部角色</option>
-              <option value="USER">普通用户</option>
-              <option value="ADMIN">管理员</option>
-            </select></label
-          >
-        </div>
-        <label
-          >账号来源<select v-model="sourceDraft" name="accountSource">
-            <option value="">全部来源</option>
-            <option
-              v-for="(label, key) in sourceLabels"
-              :key="key"
-              :value="key"
-            >
-              {{ label }}
-            </option>
-          </select></label
-        >
-        <div class="dialog-actions">
-          <button type="button" @click="resetFilters">清空条件</button
-          ><button class="primary" :disabled="loading">查询用户</button>
-        </div>
-      </form>
-    </FormModal>
+    <PaginationBar :page-size="8" :has-more="hasMore" :busy="loading || interactionLocked" :page="page" :total="total" label="用户分页" @change="load" />
 
     <FormModal v-if="detailId" size="lg" @close="closeUser"
       ><template #title><h2>用户详情</h2></template>
@@ -562,6 +547,7 @@ function dateTime(value: string | null) {
             detailId
           }}
         </p>
+        <RouterLink v-if="detail" class="text-button" :to="{ path: '/memberships', query: { userId: detailId } }">管理会员身份</RouterLink>
         <nav class="user-detail-tabs" aria-label="用户详情视图">
           <button
             :class="{ primary: detailTab === 'profile' }"

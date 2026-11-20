@@ -1,12 +1,13 @@
 import { request } from "../../utils/api";
 import { LegalCurrent, LegalDocument, versionsOf } from "../../utils/legal";
-import { message } from "../../utils/domain";
+import { dateLabel, message } from "../../utils/domain";
 import { enterPage } from "../../utils/page-motion";
 
 Page({
   data: {
     pageMotionClass: "",
     document: null as LegalDocument | null,
+    publishedText: "",
     kind: "PRIVACY",
     version: 0,
     loading: true,
@@ -34,6 +35,8 @@ Page({
       return;
     }
     this.setData({ kind, version });
+    if (typeof wx.setNavigationBarTitle === "function")
+      wx.setNavigationBarTitle({ title: kind === "TERMS" ? "用户协议" : "隐私政策" });
     void this.load();
   },
   onUnload() {
@@ -62,7 +65,7 @@ Page({
       )
         throw new Error("该协议尚未发布，请稍后再试");
       if (n !== this._epoch) return;
-      this.setData({ document });
+      this.setData({ document, publishedText: dateLabel(document.publishedAt) });
       if (typeof this.getOpenerEventChannel === "function")
         this.getOpenerEventChannel()?.emit?.("legalDocumentLoaded", {
           kind: document.kind,

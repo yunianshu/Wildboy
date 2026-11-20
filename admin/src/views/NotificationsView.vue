@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { request, errorMessage, currentUser } from "../api";
+import { displayDate } from "../forms";
 import { notificationTone } from "../statusTone";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import type { NotificationConfig, NotificationNotice } from "../types";
 const items = ref<NotificationNotice[]>([]),
@@ -10,9 +12,11 @@ const items = ref<NotificationNotice[]>([]),
   error = ref(""),
   notice = ref(""),
   page = ref(0),
+  total = ref<number>(),
   hasMore = ref(false),
   configReady = ref(false),
   configError = ref(false);
+const filter = ref("");
 const pendingRetry = ref<{
   item: NotificationNotice;
   authorize: boolean;
@@ -53,11 +57,14 @@ async function load(next = 0) {
   busy.value = true;
   error.value = "";
   try {
+    const params = new URLSearchParams({ page: String(next), size: "20" });
+    if (filter.value) params.set("status", filter.value);
     const r = await request<{
       items: NotificationNotice[];
+      total?: number;
       page: number;
       hasMore: boolean;
-    }>(`/admin/notifications?page=${next}&size=20`, { cache: "no-store" });
+    }>(`/admin/notifications?${params}`, { cache: "no-store" });
     if (
       n !== loadEpoch ||
       started !== generation ||
@@ -66,6 +73,7 @@ async function load(next = 0) {
       return;
     items.value = r.items || [];
     page.value = r.page;
+    total.value = r.total;
     hasMore.value = r.hasMore;
   } catch (e) {
     if (
@@ -157,7 +165,13 @@ async function confirmRetry() {
       </button>
     </section>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-    <p v-if="error" class="error-box" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-box" role="alert">{{ error }} <button class="text-button" :disabled="busy" @click="load(page)">重试</button></p>
+    <label class="action-row">状态
+      <select v-model="filter" :disabled="busy" @change="load(0)">
+        <option value="">全部</option>
+        <option v-for="(label, value) in labels" :key="value" :value="value">{{ label }}</option>
+      </select>
+    </label>
     <p v-if="configError && items.length" class="privacy-note">
       暂无法核对微信消息配置，订阅与配置类通知暂时不可重试。
       <button class="text-button" :disabled="busy" @click="checkConfig">
@@ -178,6 +192,7 @@ async function confirmRetry() {
             <th>内容</th>
             <th>状态</th>
             <th>发送次数</th>
+            <th>创建时间</th>
             <th>异常</th>
             <th>操作</th>
           </tr>
@@ -196,6 +211,7 @@ async function confirmRetry() {
               >
             </td>
             <td>{{ item.attempts }}</td>
+            <td>{{ item.createdAt ? displayDate(item.createdAt) : "—" }}</td>
             <td>{{ item.lastError || "—" }}</td>
             <td>
               <template v-if="item.status === 'FAILED'">
@@ -216,7 +232,7 @@ async function confirmRetry() {
                 >
                   确认授权</button
                 ><template v-else>
-                  <button disabled>暂不可重试</button>
+                  <button class="secondary" disabled>暂不可重试</button>
                   <span class="muted retry-block-reason">{{
                     blockReason(item)
                   }}</span></template
@@ -231,7 +247,7 @@ async function confirmRetry() {
                 >
                   重新排队</button
                 ><template v-else>
-                  <button disabled>暂不可重试</button>
+                  <button class="secondary" disabled>暂不可重试</button>
                   <span class="muted retry-block-reason">{{
                     blockReason(item)
                   }}</span></template
@@ -242,14 +258,7 @@ async function confirmRetry() {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="通知分页">
-      <button :disabled="busy || page === 0" @click="load(page - 1)">
-        上一页</button
-      ><span>第 {{ page + 1 }} 页</span
-      ><button :disabled="busy || !hasMore" @click="load(page + 1)">
-        下一页
-      </button>
-    </nav>
+    <PaginationBar :page="page" :page-size="20" :total="total" :has-more="hasMore" :busy="busy" label="通知分页" @change="load" />
     <ConfirmDialog
       v-if="pendingRetry"
       :title="

@@ -96,7 +96,7 @@ describe("editor workflow", () => {
     const { wrapper } = await render("/activities/new");
     expect(wrapper.get("h1").text()).toBe("新建活动");
     expect(wrapper.text()).toContain("核验身份证（仅必要时开启，须说明用途）");
-    expect(wrapper.text()).toContain("新建草稿默认免费报名");
+    expect(wrapper.text()).toContain("价格随草稿保存");
     expect(wrapper.text()).toContain("时间均为北京时间");
     expect(wrapper.find(".eyebrow").exists()).toBe(false);
     await wrapper.get("form").trigger("submit");
@@ -124,7 +124,7 @@ describe("editor workflow", () => {
     ).toBe("true");
     wrapper.unmount();
   });
-  it("opens explicit calendar and time dialogs and fills the selected values", async () => {
+  it("opens one calendar and time dialog and fills the selected values", async () => {
     vi.stubGlobal("fetch", vi.fn());
     const { wrapper } = await render("/activities/new");
     await wrapper.get("#activity-start").trigger("click");
@@ -132,18 +132,15 @@ describe("editor workflow", () => {
     const day = wrapper.get(".calendar-day:not(.is-outside)");
     const selectedDate = day.attributes("aria-label");
     await day.trigger("click");
-    expect(
-      (wrapper.get("#activity-start").element as HTMLInputElement).value,
-    ).toBe(selectedDate);
-    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
-
-    await wrapper.get("#activity-start-time").trigger("click");
-    expect(wrapper.get("[role=dialog]").text()).toContain("选择时间");
     await wrapper
       .get(".time-choice-grid")
       .findAll("button")
       .find((button) => button.text() === "09:00")!
       .trigger("click");
+    await wrapper.get("[role=dialog] .dialog-actions .primary").trigger("click");
+    expect(
+      (wrapper.get("#activity-start").element as HTMLInputElement).value,
+    ).toBe(selectedDate);
     expect(
       (wrapper.get("#activity-start-time").element as HTMLInputElement).value,
     ).toBe("09:00");
@@ -298,6 +295,7 @@ describe("editor workflow", () => {
       version: 2,
     });
     expect(fetch.mock.calls.some((c) => c[0].endsWith("/publish"))).toBe(false);
+    await wrapper.get('input[placeholder="活动名称"]').setValue("调整活动标题");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(JSON.parse(fetch.mock.calls[2][1].body)).toMatchObject({
@@ -310,11 +308,13 @@ describe("editor workflow", () => {
     ).toBe("12.34");
     wrapper.unmount();
   });
-  it("keeps unsaved pricing on metadata save and validates monetary precision", async () => {
-    const fetch = vi.fn(async () => ({
+  it("saves metadata and then price with the latest version, and validates monetary precision", async () => {
+    const fetch = vi.fn(async (path: string, options?: RequestInit) => ({
       ok: true,
       status: 200,
-      json: async () => base,
+      json: async () => path.endsWith("/price")
+        ? { ...base, version: 4, priceCents: 2500 }
+        : options?.method === "PUT" ? { ...base, version: 3 } : base,
     }));
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
@@ -326,12 +326,15 @@ describe("editor workflow", () => {
     expect(wrapper.text()).toContain("最多两位小数");
     expect(fetch).toHaveBeenCalledTimes(1);
     await wrapper.get('[aria-label="活动报名原价"]').setValue("25");
+    await wrapper.get('input[placeholder="活动名称"]').setValue("调整活动标题");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
+    expect(fetch.mock.calls[2][0]).toMatch(/\/price$/);
+    expect(JSON.parse(String(fetch.mock.calls[2][1]?.body))).toEqual({ priceCents: 2500, version: 3 });
     expect(
       (wrapper.get('[aria-label="活动报名原价"]').element as HTMLInputElement)
         .value,
-    ).toBe("25");
+    ).toBe("25.00");
     wrapper.unmount();
   });
   it("version conflict requires reload and disables overwrite retry", async () => {
@@ -345,6 +348,7 @@ describe("editor workflow", () => {
       });
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
+    await wrapper.get('input[placeholder="活动名称"]').setValue("新标题");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -367,7 +371,7 @@ describe("editor workflow", () => {
     expect(wrapper.find("[role=dialog]").exists()).toBe(true);
     await wrapper
       .findAll("button")
-      .find((b) => b.text() === "返回检查")
+      .find((b) => b.text() === "取消")
       ?.trigger("click");
     expect(wrapper.text()).not.toContain("发布这场活动？");
     expect(fetch).toHaveBeenCalledTimes(1);

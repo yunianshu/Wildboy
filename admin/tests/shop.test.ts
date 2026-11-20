@@ -91,7 +91,7 @@ describe("shop administration", () => {
       .find((button) => button.text() === "查看收货信息");
     await reveal?.trigger("click");
     expect(wrapper.text()).not.toContain(order.address);
-    await click(wrapper, "返回检查");
+    await click(wrapper, "取消");
     expect(wrapper.text()).not.toContain(order.address);
     await reveal?.trigger("click");
     await click(wrapper, "确认查看");
@@ -139,7 +139,7 @@ describe("shop administration", () => {
     expect(card.text()).toContain("会员优惠前 ¥199.00");
     await card
       .findAll("button")
-      .find((b) => b.text() === "查看")!
+      .find((b) => b.text() === "展开商品明细")!
       .trigger("click");
     expect(card.text()).toContain("黄金优惠价 ¥0.00 / 件");
     expect(card.text()).not.toContain("已支付");
@@ -298,8 +298,8 @@ describe("shop administration", () => {
     // A catalog request already in flight finishes after the edit draft opens.
     finishRefresh([{ ...product, stock: 4, version: 3 }]);
     await flushPromises();
-    await wrapper.get("form input").setValue("新的商品名称");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form input").setValue("新的商品名称");
+    await wrapper.get(".form-modal form").trigger("submit");
     await flushPromises();
     const call = fetchMock.mock.calls.find(([, o]) => o?.method === "PUT")!;
     expect(JSON.parse(String(call[1]!.body))).toMatchObject({
@@ -325,7 +325,7 @@ describe("shop administration", () => {
       await click(wrapper, "编辑");
       await wrapper.get('input[name="originalPrice"]').setValue("1");
       await wrapper.get('input[name="currentPrice"]').setValue("2");
-      await wrapper.get("form").trigger("submit");
+      await wrapper.get(".form-modal form").trigger("submit");
       await flushPromises();
       const alert = wrapper.get('.form-modal [role="alert"]');
       expect(alert.text()).toBe("原价不能低于现价");
@@ -335,7 +335,7 @@ describe("shop administration", () => {
         fetchMock.mock.calls.some(([, options]) => options?.method === "PUT"),
       ).toBe(false);
       await wrapper.get('input[name="originalPrice"]').setValue("3");
-      await wrapper.get("form").trigger("submit");
+      await wrapper.get(".form-modal form").trigger("submit");
       await flushPromises();
       expect(
         fetchMock.mock.calls.some(([, options]) => options?.method === "PUT"),
@@ -363,13 +363,13 @@ describe("shop administration", () => {
     try {
       await flushPromises();
       await click(wrapper, "编辑");
-      await wrapper.get("form input").setValue("保留的商品名称");
-      await wrapper.get("form").trigger("submit");
+      await wrapper.get(".form-modal form input").setValue("保留的商品名称");
+      await wrapper.get(".form-modal form").trigger("submit");
       await flushPromises();
       const alert = wrapper.get('.form-modal [role="alert"]');
       expect(alert.text()).toContain("内容冲突");
       expect(document.activeElement).toBe(alert.element);
-      expect(wrapper.get<HTMLInputElement>("form input").element.value).toBe(
+      expect(wrapper.get<HTMLInputElement>(".form-modal form input").element.value).toBe(
         "保留的商品名称",
       );
       const call = fetchMock.mock.calls.find(

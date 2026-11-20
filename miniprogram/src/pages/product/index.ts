@@ -12,6 +12,7 @@ Page({
   _contentGeneration: 0,
   _quoteGeneration: 0,
   _visible: true,
+  _quoteTimer: undefined as ReturnType<typeof setTimeout> | undefined,
   data: {
     pageMotionClass: "",
     id: "",
@@ -23,6 +24,7 @@ Page({
     totalText: "",
     quantity: 1,
     quoteLoading: false,
+    loggedIn: false,
     quoteError: "",
     memberPriceText: "",
     memberTotalText: "",
@@ -33,6 +35,7 @@ Page({
   onShow() {
     enterPage(this);
     this._visible = true;
+    this.setData({ loggedIn: hasSession() });
     if (this.data.product) void this.refreshQuote();
   },
   onLoad(options: Record<string, string>) {
@@ -51,6 +54,7 @@ Page({
     this.clearQuote();
   },
   clearQuote() {
+    clearTimeout(this._quoteTimer);
     this._quoteGeneration++;
     this.setData({ quoteLoading: false, quoteError: "", memberPriceText: "", memberTotalText: "", tierName: "" });
   },
@@ -122,7 +126,19 @@ Page({
       quantity,
       totalText: priceText(this.data.product.priceCents * quantity),
     });
-    void this.refreshQuote();
+    this.clearQuote();
+    this._quoteTimer = setTimeout(() => void this.refreshQuote(), 250);
+  },
+  previewImage() {
+    const url = this.data.product?.imageUrl;
+    if (url) wx.previewImage({ urls: [url] });
+  },
+  onShareAppMessage() {
+    return {
+      title: this.data.product?.name || "野小子装备",
+      path: "/pages/product/index?id=" + encodeURIComponent(this.data.id),
+      imageUrl: this.data.product?.imageUrl,
+    };
   },
   buy() {
     if (this.data.product?.stock)

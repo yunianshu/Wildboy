@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import PaginationBar from "../components/PaginationBar.vue";
+import { askConfirm } from "../confirm";
+import DateTimeField from "../components/DateTimeField.vue";
+import { statuses } from "../types";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Activity, ActivityInput, Page } from "../types";
@@ -17,6 +21,7 @@ const items = ref<Template[]>([]),
   busy = ref(false),
   loading = ref(false),
   page = ref(0),
+  pageTotal = ref<number>(),
   hasMore = ref(false),
   sourcePage = ref(0),
   sourceMore = ref(false);
@@ -24,6 +29,7 @@ const editor = ref(false),
   editing = ref<Template | null>(null),
   name = ref(""),
   sourceId = ref("");
+const scheduleErrors = ref<{ date?: string; source?: string; count?: string; interval?: string }>({});
 const schedule = ref<Template | null>(null),
   copying = ref(false),
   start = ref(""),
@@ -50,19 +56,19 @@ watch(currentUser, (u, old) => {
   }
 });
 onUnmounted(clear);
-async function load(more = false) {
+async function load(p = 0) {
   const n = ++epoch,
     actor = currentUser.value;
   if (!actor) return;
   loading.value = true;
   error.value = "";
   try {
-    const p = more ? page.value + 1 : 0;
     const r = await request<Page<Template>>(
       `/admin/templates?page=${p}&size=20`,
     );
     if (n !== epoch || actor !== currentUser.value) return;
-    items.value = more ? [...items.value, ...r.items] : r.items;
+    items.value = r.items;
+    pageTotal.value = r.total;
     page.value = p;
     hasMore.value = r.hasMore;
   } catch (e) {
@@ -96,8 +102,11 @@ function openEditor(t: Template | null = null) {
   error.value = "";
   void loadSources();
 }
-function close() {
+async function close() {
   if (busy.value) return;
+  const dirty = editor.value ? name.value !== (editing.value?.name || "") || !!sourceId.value
+    : !!start.value || (copying.value && !!sourceId.value) || count.value !== 1 || interval.value !== 7;
+  if (dirty && !(await askConfirm("模板操作尚未保存，确定放弃吗？"))) return;
   editor.value = false;
   schedule.value = null;
   copying.value = false;
@@ -106,7 +115,7 @@ function close() {
 async function save() {
   if (busy.value) return;
   const source = sources.value.find((x) => x.id === sourceId.value);
-  if (!name.value.trim() || !source) {
+  if (!name.value.trim() || (!source && (!editing.value || sourceId.value))) {
     error.value = "请选择来源活动并填写模板名称";
     return;
   }
@@ -121,8 +130,8 @@ async function save() {
         method: editing.value ? "PUT" : "POST",
         body: JSON.stringify({
           name: name.value.trim(),
-          sourceId: source.id,
-          sourceVersion: source.version,
+          sourceId: source?.id,
+          sourceVersion: source?.version,
           version: editing.value?.version,
         }),
       },
@@ -137,11 +146,33 @@ async function save() {
     busy.value = false;
   }
 }
+async function removeTemplate(template: Template) {
+  const actor = currentUser.value, n = epoch;
+  if (!actor || loading.value || busy.value || !(await askConfirm({
+    title: "删除活动模板？",
+    description: "已生成的活动草稿会保留。",
+    confirmLabel: "删除模板",
+    danger: true,
+  })) || actor !== currentUser.value || n !== epoch) return;
+  busy.value = true;
+  error.value = "";
+  try {
+    await request("/admin/templates/" + encodeURIComponent(template.id) + "?version=" + template.version, { method: "DELETE" });
+    if (n !== epoch || actor !== currentUser.value) return;
+    items.value = items.value.filter((item) => item.id !== template.id);
+    success.value = "模板已删除";
+  } catch (e) {
+    if (n === epoch) error.value = errorMessage(e);
+  } finally {
+    if (n === epoch) busy.value = false;
+  }
+}
 function openSchedule(t: Template | null) {
   if (busy.value) return;
   schedule.value = t;
   copying.value = !t;
   start.value = "";
+  scheduleErrors.value = {};
   count.value = 1;
   interval.value = 7;
   generated.value = [];
@@ -156,23 +187,21 @@ function openSchedule(t: Template | null) {
 }
 async function generate() {
   if (busy.value) return;
+  scheduleErrors.value = {};
+  error.value = "";
   const date = new Date(start.value + "+08:00");
   const source = sources.value.find((x) => x.id === sourceId.value);
-  if (
-    !start.value ||
-    !Number.isFinite(date.getTime()) ||
-    date.getTime() <= Date.now() ||
-    !Number.isInteger(count.value) ||
-    count.value < 1 ||
-    count.value > 12 ||
-    !Number.isInteger(interval.value) ||
-    interval.value < 1 ||
-    interval.value > 365 ||
-    (!schedule.value && !source)
-  ) {
-    error.value = "请检查来源活动、未来时间及生成数量";
-    return;
+  const invalid = scheduleErrors.value;
+  if (!Number.isFinite(date.getTime()) || date.getTime() <= Date.now())
+    invalid.date = "请选择未来的开始时间";
+  if (!schedule.value && !source) invalid.source = "请选择来源活动";
+  if (schedule.value) {
+    if (!Number.isInteger(count.value) || count.value < 1 || count.value > 12)
+      invalid.count = "请输入 1–12 的整数";
+    if (!Number.isInteger(interval.value) || interval.value < 1 || interval.value > 365)
+      invalid.interval = "请输入 1–365 的整数";
   }
+  if (Object.keys(invalid).length) return;
   const starts = Array.from(
     { length: schedule.value ? count.value : 1 },
     (_, i) => new Date(+date + i * interval.value * 86400000).toISOString(),
@@ -218,6 +247,7 @@ onMounted(() => void load());
     <section class="page-heading">
       <h1>活动模板</h1>
       <div class="template-actions">
+        <button class="secondary" :disabled="busy || loading" @click="load()">刷新</button>
         <button class="secondary" @click="openSchedule(null)">复制活动</button>
         <button class="primary" @click="openEditor()">新建模板</button>
       </div>
@@ -227,9 +257,23 @@ onMounted(() => void load());
       class="error-box"
       role="alert"
     >
-      {{ error }}
+      {{ error }} <button class="text-button" :disabled="busy || loading" @click="load()">重试</button>
     </p>
     <p v-if="success" class="success-box" role="status">{{ success }}</p>
+    <div v-if="generated.length" class="generated">
+      <RouterLink
+        v-for="a in generated"
+        :key="a.id"
+        :to="`/activities/${a.id}/edit`"
+        >{{ a.title }} ·
+        {{
+          new Date(a.startAt).toLocaleString("zh-CN", {
+            timeZone: "Asia/Shanghai",
+          })
+        }}
+        · 编辑</RouterLink
+      >
+    </div>
     <UiState v-if="loading && !items.length" kind="loading" compact
       >正在加载模板…</UiState
     >
@@ -252,32 +296,12 @@ onMounted(() => void load());
         </p>
       </div>
       <div class="template-actions">
+        <button class="text-button" @click="removeTemplate(t)">删除模板</button>
         <button class="text-button" @click="openEditor(t)">更新模板</button
         ><button class="primary" @click="openSchedule(t)">生成草稿</button>
       </div>
     </section>
-    <button
-      v-if="hasMore"
-      class="secondary"
-      :disabled="loading"
-      @click="load(true)"
-    >
-      加载更多
-    </button>
-    <div v-if="generated.length" class="generated">
-      <RouterLink
-        v-for="a in generated"
-        :key="a.id"
-        :to="`/activities/${a.id}/edit`"
-        >{{ a.title }} ·
-        {{
-          new Date(a.startAt).toLocaleString("zh-CN", {
-            timeZone: "Asia/Shanghai",
-          })
-        }}
-        · 编辑</RouterLink
-      >
-    </div>
+    <PaginationBar v-if="pageTotal != null || hasMore || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="hasMore" :busy="loading" label="模板分页" @change="load" />
     <FormModal :busy="busy" v-if="editor || schedule || copying" @close="close"
       ><template #title
         ><h2 class="modal-heading">
@@ -291,11 +315,11 @@ onMounted(() => void load());
         /></label>
         <label v-if="editor || copying"
           >来源活动<select v-model="sourceId" :disabled="busy">
-            <option value="">选择活动</option>
+            <option value="">{{ editing ? "保留原活动内容" : "选择活动" }}</option>
             <option v-for="a in sources" :key="a.id" :value="a.id">
-              {{ a.title }} · {{ a.status }}
+              {{ a.title }} · {{ statuses[a.status] }}
             </option>
-          </select></label
+          </select><small v-if="copying && scheduleErrors.source" class="field-error" role="alert">{{ scheduleErrors.source }}</small></label
         >
         <button
           v-if="(editor || copying) && sourceMore"
@@ -306,27 +330,23 @@ onMounted(() => void load());
           更多来源活动
         </button>
         <template v-if="!editor"
-          ><label
-            >开始时间（北京时间）<input
-              v-model="start"
-              type="datetime-local"
-              required
-              :disabled="busy" /></label
-          ><template v-if="schedule"
+          ><fieldset :disabled="busy">
+            <DateTimeField id="template-start" v-model="start" label="开始时间（北京时间）" :error="scheduleErrors.date" required />
+          </fieldset><template v-if="schedule"
             ><label
               >生成场次<input
                 v-model.number="count"
                 type="number"
                 min="1"
                 max="12"
-                :disabled="busy" /></label
+                :disabled="busy" /><small v-if="scheduleErrors.count" class="field-error" role="alert">{{ scheduleErrors.count }}</small></label
             ><label
               >间隔天数<input
                 v-model.number="interval"
                 type="number"
                 min="1"
                 max="365"
-                :disabled="busy" /></label
+                :disabled="busy" /><small v-if="scheduleErrors.interval" class="field-error" role="alert">{{ scheduleErrors.interval }}</small></label
           ></template>
           <p class="muted">
             仅生成草稿，时长和报名提前量沿用来源活动。

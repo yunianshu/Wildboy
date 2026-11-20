@@ -6,6 +6,7 @@ defineProps<{
   description: string;
   busy?: boolean;
   confirmLabel: string;
+  cancelLabel?: string;
   danger?: boolean;
   error?: string;
   confirmDisabled?: boolean;
@@ -33,7 +34,7 @@ onMounted(() => cancelButton.value?.focus());
             :disabled="busy"
             @click="emit('cancel')"
           >
-            返回检查
+            {{ cancelLabel || "取消" }}
           </button>
           <button
             :class="danger ? 'danger' : 'primary'"

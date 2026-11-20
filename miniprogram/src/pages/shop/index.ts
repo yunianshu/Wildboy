@@ -48,6 +48,9 @@ Page({
     topInset: 48,
     headerLayout: null as ReturnType<typeof capsuleHeaderLayout> | null,
     items: [] as CatalogItem[],
+    searchInput: "",
+    searchTerm: "",
+    searchResults: [] as CatalogItem[],
     loading: true,
     loaded: false,
     refreshing: false,
@@ -100,7 +103,9 @@ Page({
     this._unloaded = true;
   },
   onPullDownRefresh(): Promise<void> {
-    return this.load(true).finally(() => wx.stopPullDownRefresh());
+    return Promise.all([this.loadCategories(true), this.load(true)])
+      .then(() => undefined)
+      .finally(() => wx.stopPullDownRefresh());
   },
   /** Load the catalog of the active selection; force bypasses only the TTL cache. */
   load(force = false): Promise<void> {
@@ -147,7 +152,7 @@ Page({
         this._catalogs = { ...(this._catalogs || {}), [id]: { items, at } };
         if ((this.data.selectedCategory || ALL_CATEGORY) === id) {
           this._lastLoadedAt = at;
-          this.setData({ items, loading: false, loaded: true, refreshing: false, error: "" });
+          this.setData({ items, searchResults: this.matchProducts(items, this.data.searchTerm), loading: false, loaded: true, refreshing: false, error: "" });
         }
       } catch (error) {
         if (this._unloaded || this._visible === false) return;
@@ -162,7 +167,10 @@ Page({
     return flight;
   },
   selectCategory(event: WechatMiniprogram.TouchEvent) {
-    this.selectCategoryId(safeId(event.currentTarget.dataset.id));
+    const id = safeId(event.currentTarget.dataset.id);
+    if (!id) return;
+    this.setData({ searchInput: "", searchTerm: "", searchResults: [] });
+    this.selectCategoryId(id);
   },
   selectCategoryId(id: string) {
     if (!id || (id !== ALL_CATEGORY && !this.data.categories.some((c) => c.id === id))) return;
@@ -183,13 +191,14 @@ Page({
       this._flight = this.fetchCatalog(id);
       // Switching to a stale category shows its cached rows while revalidating.
       if (changed && cache)
-        this.setData({ items: cache.items, loading: false, loaded: true, refreshing: true });
+        this.setData({ items: cache.items, searchResults: this.matchProducts(cache.items, this.data.searchTerm), loading: false, loaded: true, refreshing: true });
     }
     this.centerCategory(id);
   },
   showCachedCategory(entry: CatalogEntry, revalidating: boolean) {
     this.setData({
       items: entry.items,
+      searchResults: this.matchProducts(entry.items, this.data.searchTerm),
       loading: false,
       loaded: true,
       refreshing: revalidating,
@@ -246,7 +255,24 @@ Page({
   revealSelectedCategory() {
     this.centerCategory(this.data.selectedCategory || ALL_CATEGORY);
   },
+  searchProducts(event: WechatMiniprogram.Input) {
+    const searchInput = event.detail.value.slice(0, 80);
+    const searchTerm = searchInput.trim();
+    this.setData({ searchInput, searchTerm });
+    if (searchTerm && this.data.selectedCategory && this.data.selectedCategory !== ALL_CATEGORY) {
+      this.setData({ searchResults: [] });
+      this.selectCategoryId(ALL_CATEGORY);
+      return;
+    }
+    this.setData({ searchResults: this.matchProducts(this.data.items, searchTerm) });
+  },
+  matchProducts(items: CatalogItem[], term: string) {
+    if (!term) return [];
+    const query = term.toLocaleLowerCase();
+    return items.filter((item) => item.name.toLocaleLowerCase().includes(query));
+  },
   onCategoryTouchStart() {
+    resetTabSwipe(this);
     this._categoryTouching = true;
   },
   onCategoryTouchEnd() {

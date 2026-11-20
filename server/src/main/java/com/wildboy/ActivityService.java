@@ -141,6 +141,14 @@ public class ActivityService {
 
   public Page<Activity> list(
       Category category, ActivityStatus status, String title, int page, int size, boolean admin) {
+    return list(category, status, title, page, size, admin, false);
+  }
+
+  static final String FULL_CAPACITY_FILTER = "registered_count>=capacity";
+
+  public Page<Activity> list(
+      Category category, ActivityStatus status, String title, int page, int size, boolean admin,
+      boolean upcomingFull) {
     pageCheck(page, size);
     var args = new ArrayList<Object>();
     String where = admin ? " WHERE 1=1" : " WHERE status='PUBLISHED'";
@@ -148,11 +156,14 @@ public class ActivityService {
       where += " AND status=?";
       args.add(status.name());
     }
+    if (admin && upcomingFull) {
+      where += " AND status='PUBLISHED' AND start_at>=CURRENT_TIMESTAMP AND " + FULL_CAPACITY_FILTER;
+    }
     if (category != null) {
       where += " AND category=?";
       args.add(category.name());
     }
-    if (admin && title != null && !title.isBlank()) {
+    if (title != null && !title.isBlank()) {
       String term = title.strip();
       if (term.length() > 100)
         throw new ApiException(400, "INVALID_ACTIVITY_TITLE_FILTER", "标题筛选最多 100 个字符");
@@ -478,14 +489,14 @@ public class ActivityService {
 
   public Page<Registration> registrations(
       String user, String activity, RegistrationStatus status, int page, int size) {
+    return registrations(user, activity, status, page, size, null);
+  }
+
+  public Page<Registration> registrations(
+      String user, String activity, RegistrationStatus status, int page, int size, String participantQuery) {
     pageCheck(page, size);
-    String where = user != null ? "r.user_id=?" : "r.activity_id=?";
     var args = new ArrayList<Object>();
-    args.add(user != null ? user : activity);
-    if (status != null) {
-      where += " AND r.status=?";
-      args.add(status.name());
-    }
+    String where = registrationFilter(user, activity, status, participantQuery, args);
     long total =
         db.queryForObject(
             "SELECT COUNT(*) FROM registration r WHERE " + where, Long.class, args.toArray());
@@ -501,6 +512,42 @@ public class ActivityService {
             args.toArray());
     return new Page<>(
         attachParticipants(items), total, page, size, (long) (page + 1) * size < total);
+  }
+
+  private String registrationFilter(
+      String user, String activity, RegistrationStatus status, String participantQuery, List<Object> args) {
+    String where = user != null ? "r.user_id=?" : "r.activity_id=?";
+    args.add(user != null ? user : activity);
+    if (status != null) {
+      where += " AND r.status=?";
+      args.add(status.name());
+    }
+    if (user == null && participantQuery != null && !participantQuery.isBlank()) {
+      String term = participantQuery.strip();
+      if (term.length() > 80) throw new ApiException(400, "INVALID_PARTICIPANT_QUERY", "搜索最多 80 个字");
+      where += " AND EXISTS (SELECT 1 FROM registration_participant p WHERE p.registration_id=r.id"
+          + " AND (strpos(lower(p.participant_name), lower(?)) > 0 OR p.phone=?))";
+      args.add(term);
+      args.add(term);
+    }
+    return where;
+  }
+
+  public record RosterExportRow(String name, String maskedPhone, String status, OffsetDateTime createdAt) {}
+
+  public List<RosterExportRow> exportRoster(String activity, RegistrationStatus status, String query) {
+    if (get(activity, true).priceCents() > 0)
+      throw ApiException.conflict("PAID_ACTIVITY_ROSTER", "收费活动名单请在活动订单查看");
+    var args = new ArrayList<Object>();
+    String where = registrationFilter(null, activity, status, query, args);
+    return db.query(
+        "SELECT p.participant_name, p.phone, r.status, r.created_at"
+            + " FROM registration r JOIN registration_participant p ON p.registration_id=r.id"
+            + " WHERE " + where + " ORDER BY r.created_at DESC,r.id,p.position",
+        (row, i) -> new RosterExportRow(row.getString("participant_name"),
+            UserService.maskPhone(row.getString("phone")), row.getString("status"),
+            row.getObject("created_at", OffsetDateTime.class)),
+        args.toArray());
   }
 
   /** Explicit operator-run, bounded migration. No background data deletion. */

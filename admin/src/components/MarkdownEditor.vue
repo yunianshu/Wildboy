@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import UiState from "./UiState.vue";
 import { askConfirm } from "../confirm";
 import { nextTick, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
@@ -74,7 +75,7 @@ function syncDisabled() {
 async function handleUpload(files: File[]): Promise<string | null> {
   const file = files?.[0];
   if (!file) return null;
-  if (file.size > 4 * 1024 * 1024) {
+  if (!["image/jpeg", "image/png"].includes(file.type) || file.size > 4 * 1024 * 1024) {
     error.value = "请选择 4MB 内 JPG/PNG 图片";
     return null;
   }
@@ -193,7 +194,7 @@ async function save() {
 async function canLeave() {
   return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
-defineExpose({ canLeave, dirty, busy, loaded, save });
+defineExpose({ canLeave, dirty, busy, loaded, save, load });
 onBeforeRouteLeave(
   async (to) =>
     props.managedNavigation || to.path === "/login" || (await canLeave()),
@@ -207,8 +208,9 @@ onUnmounted(() => {
 <template>
   <section class="md-editor">
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
+    <UiState v-if="!loaded && busy" kind="loading" compact>正在读取正文…</UiState>
     <button
-      v-if="!loaded"
+      v-if="!loaded && !busy"
       class="secondary button"
       :disabled="busy"
       @click="load"

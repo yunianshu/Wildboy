@@ -39,7 +39,7 @@ it("requires explicit confirmation before refund and labels processing accuratel
   await button(w, "确认").trigger("click");
   await flushPromises();
   expect(w.text()).toContain("退款中");
-  expect(w.text()).not.toContain("已退款");
+  expect(w.get("table").text()).not.toContain("已退款");
   expect(fetcher.mock.calls[1][0]).toBe("/api/v1/admin/refunds/r/approve");
   w.unmount();
 });
@@ -85,7 +85,7 @@ it("keeps the refund dialog and its error visible through a pending or failed re
   });
   await flushPromises();
   expect(w.get('[role="dialog"] [role="alert"]').text()).toContain(
-    "退款状态已更新",
+    "请重新加载最新版本",
   );
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
   await flushPromises();

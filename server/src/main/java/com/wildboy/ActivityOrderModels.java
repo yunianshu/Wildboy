@@ -35,5 +35,14 @@ public final class ActivityOrderModels {
   public record Order(String id, String orderNo, String activityId, String activityTitle,
                       String userId, String status, int partySize, int originalTotalCents,
                       int totalCents, String currency, Quote quote, String paymentTransactionId,
-                      boolean paymentAttempted, OffsetDateTime expiresAt, long version) {}
+                      boolean paymentAttempted, OffsetDateTime expiresAt, long version,
+                      OffsetDateTime createdAt, String refundStatus) {
+    public Order(String id, String orderNo, String activityId, String activityTitle,
+        String userId, String status, int partySize, int originalTotalCents, int totalCents,
+        String currency, Quote quote, String paymentTransactionId, boolean paymentAttempted,
+        OffsetDateTime expiresAt, long version) {
+      this(id, orderNo, activityId, activityTitle, userId, status, partySize, originalTotalCents,
+          totalCents, currency, quote, paymentTransactionId, paymentAttempted, expiresAt, version, null, null);
+    }
+  }
 }

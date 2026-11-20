@@ -7,7 +7,7 @@
   <block wx:elif="{{document}}">
     <view class="title">{{document.title}}</view>
     <view class="muted">
-      版本 {{document.version}} · 发布于 {{document.publishedAt}}
+      版本 {{document.version}} · 发布于 {{publishedText}}
     </view>
     <view class="legal-content">{{document.content}}</view>
     <view class="notice">

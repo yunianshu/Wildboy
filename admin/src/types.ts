@@ -133,6 +133,7 @@ export interface NotificationNotice {
   detail: string;
   lastError: string;
   attempts: number;
+  createdAt?: string;
 }
 export interface NotificationConfig {
   ready: boolean;
@@ -168,6 +169,8 @@ export interface Order {
   address: string;
   paymentTransactionId: string | null;
   paymentInitiated: boolean;
+  shippingCompany?: string;
+  shippingTrackingNo?: string;
   paidAt: string | null;
   version: number;
   createdAt: string;

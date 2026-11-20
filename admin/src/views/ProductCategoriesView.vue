@@ -321,7 +321,7 @@ onUnmounted(() => {
               >
             </td>
             <td class="table-number">{{ category.sortOrder }}</td>
-            <td class="table-number">{{ category.productCount }} 件</td>
+            <td class="table-number"><RouterLink class="text-button" :to="{ path: '/shop', query: { category: category.id } }">{{ category.productCount }} 件</RouterLink></td>
             <td>
               <button
                 class="text-button"

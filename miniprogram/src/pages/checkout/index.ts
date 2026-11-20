@@ -34,6 +34,7 @@ const addressEpoch = new RequestEpoch();
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  _hadSession: true,
   _loading: false,
   data: {
     pageMotionClass: "",
@@ -78,14 +79,20 @@ Page({
     const quantity = Number.isInteger(parsed)
       ? Math.min(99, Math.max(1, parsed))
       : 1;
+    this._hadSession = hasSession();
     this.setData({ id, quantity, session: sessionVersion() });
     if (id) void this.load();
     else this.setData({ loading: false, error: "商品链接无效" });
   },
   onShow() {
     enterPage(this);
-    const changed = this.data.session !== -1 && this.data.session !== sessionVersion();
-    if (changed) {
+    const session = sessionVersion();
+    const authenticated = hasSession();
+    const changed = this.data.session !== -1 && this.data.session !== session;
+    const firstLogin = !this._hadSession && authenticated && session === this.data.session + 1;
+    this._hadSession = authenticated;
+    if (changed && firstLogin) this.setData({ session, error: "" });
+    else if (changed) {
       epoch.invalidate();
       addressEpoch.invalidate();
       quoteEpoch.invalidate();
@@ -186,6 +193,16 @@ Page({
     this.setData({ recoveredOrder: true, awaitingConfirmation: false, recoveryError: "", quoteLoading: false, addressLoading: false });
     finishCheckoutIntent(user.id, id, quantity, key);
     return true;
+  },
+  changeQuantity(event: WechatMiniprogram.TouchEvent) {
+    const { product, quantity, busy, recoveringOrder, recoveryError, order } = this.data;
+    const delta = Number(event.currentTarget.dataset.delta);
+    if (!product || ![1, -1].includes(delta) || busy || recoveringOrder || recoveryError || order) return;
+    const next = Math.min(99, product.stock, Math.max(1, quantity + delta));
+    if (next < 1 || next === quantity) return;
+    epoch.invalidate();
+    this.setData({ quantity: next, error: "", quote: null, quoteSession: -1, totalText: "" });
+    void this.resumeCheckout();
   },
   async resumeCheckout() {
     if (!this.data.id || this.data.order || this.data.busy || this._loading || this.data.recoveringOrder) return;

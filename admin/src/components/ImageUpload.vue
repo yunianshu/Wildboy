@@ -57,6 +57,7 @@ async function upload(event: Event) {
         :disabled="disabled || busy"
         @change="upload" /></label
     ><span v-if="busy">上传中…</span>
+    <small class="muted">JPG / PNG，最大 4 MB</small>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
   </div>
 </template>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { inject, ref, onMounted, onUnmounted, watch } from "vue";
+import { routeLocationKey, routerKey } from "vue-router";
 import { request, currentUser, errorMessage } from "../api";
 import type { Page } from "../types";
 type ShippingReport = {
@@ -17,10 +19,18 @@ type ShippingReport = {
   reported_at: string | null;
   updated_at: string;
 };
+const route = inject(routeLocationKey, null);
+const router = inject(routerKey, null);
+const wantedStatus = route?.query.status;
+const initialStatus = typeof wantedStatus === "string" && ["PENDING", "REPORTED", "FAILED", "SKIPPED"].includes(wantedStatus)
+  ? wantedStatus : "";
+const wantedPage = Number(route?.query.page);
+const initialPage = Number.isSafeInteger(wantedPage) && wantedPage > 0 ? wantedPage - 1 : 0;
 const data = ref<ShippingReport[]>([]),
   errors = ref(""),
+  notice = ref(""),
   loading = ref(false),
-  status = ref(""),
+  status = ref(initialStatus),
   retrying = ref("");
 let epoch = 0;
 function clear() {
@@ -28,6 +38,7 @@ function clear() {
   data.value = [];
   loading.value = false;
   errors.value = "";
+  notice.value = "";
   retrying.value = "";
 }
 watch(
@@ -41,21 +52,24 @@ watch(
   { flush: "sync" },
 );
 onUnmounted(clear);
-async function load(more = false) {
+async function load(p = 0) {
   const n = ++epoch,
     actor = currentUser.value;
   if (!actor) return;
   loading.value = true;
   errors.value = "";
   try {
-    const p = more ? page.value + 1 : 0;
     const value = await request<Page<ShippingReport>>(
       `/admin/shipping-reports?page=${p}&size=20${status.value ? "&status=" + status.value : ""}`,
     );
     if (n !== epoch || actor !== currentUser.value) return;
-    data.value = more ? [...data.value, ...value.items] : value.items;
+    data.value = value.items;
+    pageTotal.value = value.total;
     hasMore.value = value.hasMore;
     page.value = p;
+    if (router && route) {
+      void router.replace({ query: { ...route.query, status: status.value || undefined, page: p ? String(p + 1) : undefined } });
+    }
   } catch (e) {
     if (n === epoch) errors.value = errorMessage(e);
   } finally {
@@ -63,6 +77,7 @@ async function load(more = false) {
   }
 }
 const page = ref(0),
+  pageTotal = ref<number>(),
   hasMore = ref(false);
 function filter(value: string) {
   status.value = value;
@@ -81,7 +96,10 @@ async function retry(id: string) {
     await request(`/admin/shipping-reports/${encodeURIComponent(id)}/retry`, {
       method: "POST",
     });
-    if (n === epoch && actor === currentUser.value) await load();
+    if (n === epoch && actor === currentUser.value) {
+      notice.value = "已提交补报，请查看最新上报状态。";
+      await load();
+    }
   } catch (e) {
     if (n === epoch) errors.value = errorMessage(e);
   } finally {
@@ -116,17 +134,17 @@ const skipReason = (value: string) =>
           : value || "—";
 const pillClass = (value: string) =>
   value === "PENDING"
-    ? "pill-warning"
+    ? "tone-warning"
     : value === "FAILED"
-      ? "pill-danger"
+      ? "tone-danger"
       : value === "REPORTED"
-        ? "pill-success"
-        : "pill-neutral";
+        ? "tone-success"
+        : "tone-neutral";
 // 无交易记录/无微信身份的订单永远无法上报；其余“无需上报”（如功能未启用）保留人工补报入口。
 const unreportable = (r: ShippingReport) =>
   r.status === "SKIPPED" &&
   ["missing_transaction", "no_wechat_identity"].includes(r.last_error);
-onMounted(() => void load());
+onMounted(() => void load(initialPage));
 import UiState from "../components/UiState.vue";
 </script>
 <template>
@@ -155,6 +173,7 @@ import UiState from "../components/UiState.vue";
         {{ label }}
       </button>
     </nav>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="errors" class="error-box" role="alert">{{ errors }}</p>
     <UiState v-if="!loading && !errors && !data.length" compact
       >暂无上报记录</UiState
@@ -179,15 +198,20 @@ import UiState from "../components/UiState.vue";
             <td class="mono">{{ r.order_no }}</td>
             <td>{{ logisticsLabel(r.logistics_type) }}</td>
             <td>
-              <span class="pill" :class="pillClass(r.status)">{{
+              <span class="status-pill" :class="pillClass(r.status)">{{
                 statusLabel(r.status)
               }}</span>
             </td>
             <td>{{ r.attempts }}</td>
             <td>
               <template v-if="r.status === 'FAILED'"
-                >errcode {{ r.last_errcode ?? "—" }}</template
               >
+                <span>错误码 {{ r.last_errcode ?? "—" }}</span>
+                <details v-if="r.last_error">
+                  <summary>查看原因</summary>
+                  <p>{{ r.last_error }}</p>
+                </details>
+              </template>
               <template v-else-if="r.status === 'SKIPPED'">{{
                 skipReason(r.last_error)
               }}</template>
@@ -208,14 +232,7 @@ import UiState from "../components/UiState.vue";
         </tbody>
       </table>
     </div>
-    <button
-      v-if="hasMore"
-      class="secondary"
-      :disabled="loading"
-      @click="load(true)"
-    >
-      加载更多
-    </button>
+    <PaginationBar v-if="pageTotal != null || hasMore || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="hasMore" :busy="loading" label="发货上报分页" @change="load" />
     <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
   </main>
 </template>
@@ -228,30 +245,5 @@ import UiState from "../components/UiState.vue";
 }
 .mono {
   font-variant-numeric: tabular-nums;
-}
-.pill {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-.pill-success {
-  background: #ffffff;
-  color: var(--rf-primary-text);
-}
-.pill-warning {
-  background: var(--rf-warning-bg);
-  color: var(--rf-danger);
-}
-.pill-danger {
-  background: #ffffff;
-  color: var(--rf-danger);
-}
-.pill-neutral {
-  background: #ffffff;
-  color: var(--rf-primary-text);
 }
 </style>

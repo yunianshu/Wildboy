@@ -33,8 +33,8 @@ test("add opens isolated draft, repeated open and typing never append a row", ()
   type(p, "unexpected", "bad");
   assert.deepEqual(p.data.participantDraft, second);
 });
-test("cancel, close or background discards draft without changing participants", () => {
-  for (const close of ["cancelParticipant", "onHide", "onUnload"]) {
+test("cancel and unload discard the draft without changing participants", () => {
+  for (const close of ["cancelParticipant", "onUnload"]) {
     const p = page();
     p.addParticipant(); fill(p); p[close]();
     assert.equal(p.data.participantModalOpen, false);
@@ -45,6 +45,15 @@ test("cancel, close or background discards draft without changing participants",
     p.addParticipant();
     assert.deepEqual(p.data.participantDraft, blank);
   }
+});
+test("backgrounding preserves the pending participant draft", () => {
+  const p = page();
+  p.addParticipant();
+  fill(p);
+  p.onHide();
+  assert.equal(p.data.participantModalOpen, true);
+  assert.deepEqual(p.data.participantDraft, second);
+  assert.deepEqual(p.data.participants, [first]);
 });
 test("confirm validates before appending and repeated confirm adds only once", () => {
   const p = page(); p.addParticipant(); p.confirmParticipant();
@@ -92,11 +101,10 @@ test("submitting and success block participant mutation and modal blocks submit"
   assert.equal(p.data.fieldError, "");
   assert.equal(p.data.participants.length, 1);
 });
-test("markup connects modal buttons and uses isolated draft inputs", () => {
+test("markup connects inline draft buttons and uses isolated draft inputs", () => {
   const html = fs.readFileSync(path.join(__dirname, "../src/pages/register/index.wxml"), "utf8");
-  assert.match(html, /<ui-dialog wx:if="{{participantModalOpen}}"[^>]+bindclose="cancelParticipant"/);
-  const shell = fs.readFileSync(path.join(__dirname, "../src/components/ui-dialog/index.wxml"), "utf8");
-  assert.match(shell, /class="ui-dialog-panel motion-dialog-enter"[^>]+catchtap="stopEvent"/);
+  assert.match(html, /<view wx:if="{{participantModalOpen}}" class="participant-card participant-draft"/);
+  assert.match(html, /bindtap="cancelParticipant">取消/);
   assert.match(html, /bindtap="confirmParticipant">确认添加/);
   assert.match(html, /participantDraft\.participantName/);
   assert.match(html, /participantDraft\.phone/);

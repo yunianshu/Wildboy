@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PaginationBar from "../components/PaginationBar.vue";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
@@ -20,6 +21,7 @@ type Article = {
 const router = useRouter();
 const items = ref<Article[]>([]),
   page = ref(0),
+  pageTotal = ref<number>(),
   more = ref(false),
   loading = ref(false),
   error = ref("");
@@ -42,11 +44,10 @@ watch(currentUser, (u, old) => {
   }
 });
 onUnmounted(reset);
-async function load(append = false) {
+async function load(p = 0) {
   if (loading.value || !currentUser.value) return;
   const n = epoch,
-    actor = currentUser.value,
-    p = append ? page.value + 1 : 0;
+    actor = currentUser.value;
   loading.value = true;
   error.value = "";
   try {
@@ -54,7 +55,8 @@ async function load(append = false) {
       `/admin/articles?page=${p}&size=20`,
     );
     if (n !== epoch || actor !== currentUser.value) return;
-    items.value = append ? [...items.value, ...result.items] : result.items;
+    items.value = result.items;
+    pageTotal.value = result.total;
     page.value = p;
     more.value = result.hasMore;
   } catch (e) {
@@ -150,14 +152,7 @@ onMounted(() => void load());
         </table>
       </div>
     </template>
-    <button
-      v-if="more"
-      class="secondary article-more"
-      :disabled="loading"
-      @click="load(true)"
-    >
-      加载更多文章
-    </button>
+    <PaginationBar v-if="pageTotal != null || more || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="more" :busy="loading" label="文章分页" @change="load" />
     <p class="article-hint">只有已发布文章可以设为官方介绍。</p>
   </main>
 </template>

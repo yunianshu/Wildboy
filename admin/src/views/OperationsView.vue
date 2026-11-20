@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PaginationBar from "../components/PaginationBar.vue";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Page } from "../types";
@@ -51,8 +52,60 @@ const data = ref<Dashboard | null>(null),
   exceptions = ref<Exception[]>([]),
   audits = ref<Audit[]>([]),
   page = ref(0),
+  pageTotal = ref<number>(),
   hasMore = ref(false),
-  filter = ref("");
+  filter = ref(""),
+  actionDraft = ref(""),
+  auditQuery = ref("");
+const auditLabels: Record<string, string> = {
+  ACTIVITY_CREATE: "创建活动", ACTIVITY_EDIT: "编辑活动", ACTIVITY_PUBLISH: "发布活动",
+  ACTIVITY_CANCEL: "取消活动", ACTIVITY_COPY: "复制活动", TEMPLATE_SAVE: "保存模板",
+  TEMPLATE_GENERATE: "生成草稿", TEMPLATE_DELETE: "删除模板", ARTICLE_CREATE: "创建文章",
+  ARTICLE_UPDATE: "编辑文章", ARTICLE_CONTENT_UPDATE: "保存文章正文",
+  ARTICLE_PUBLISHED: "发布文章", ARTICLE_DRAFT: "撤回文章", CONTENT_UPDATE: "保存图文",
+  HOME_SHORTCUTS_UPDATE: "保存首页入口", NOTIFICATION_RETRY: "重试通知",
+  USER_PROFILE_UPDATE: "更新联系资料", USER_ROLE_ADMIN: "设为管理员", USER_ROLE_USER: "设为普通用户",
+  REGISTER: "活动报名", UNREGISTER: "取消报名", ACTIVITY_PRICE_SET: "设置活动报名价格",
+  PARTICIPANT_IDENTITY_REVEAL: "查看参加者证件", ACTIVITY_CONTACTS_VIEW: "查看活动联系资料",
+  ACTIVITY_ORDER_CREATE: "创建活动订单", ACTIVITY_ORDER_PAID: "确认活动付款",
+  ACTIVITY_ORDER_CLOSE: "关闭活动订单", ACTIVITY_ZERO_CANCEL: "取消免付报名",
+  ACTIVITY_REFUND_REQUEST: "申请活动退款", ACTIVITY_REFUND_VERIFY: "核对活动退款",
+  ACTIVITY_REFUND_RETRY: "重试活动退款", PRODUCT_CREATE: "创建商品", PRODUCT_EDIT: "编辑商品",
+  PRODUCT_CATEGORY_CREATE: "创建商品分类", PRODUCT_CATEGORY_EDIT: "编辑商品分类",
+  ORDER_CREATE: "创建装备订单", ORDER_PAID: "确认装备付款", ORDER_SHIP: "确认发货",
+  REFUND_REQUEST: "申请装备退款", REFUND_REJECT: "拒绝装备退款",
+  MEMBERSHIP_TIER_CREATE: "创建会员等级", MEMBERSHIP_TIER_EDIT: "编辑会员等级",
+  MEMBERSHIP_ASSIGN: "调整会员身份", LEGAL_DRAFT_SAVE: "保存协议草稿", LEGAL_PUBLISH: "发布协议",
+  ARTICLE_PUBLISH: "发布文章", ARTICLE_UNPUBLISH: "撤回文章",
+  ADMIN_ACCOUNT_CONFIGURE: "配置管理员账号", ADMIN_ACCOUNT_UPDATE: "更新管理员账号",
+  IDENTITY_ENCRYPT_LEGACY_BATCH: "加密历史证件号", PROFILE_DISPLAY_UPDATE: "更新展示资料",
+  PROFILE_DISPLAY_AVATAR: "更新头像", ACTIVITY_REFUND_APPROVE: "批准活动退款",
+  ACTIVITY_REFUND_REJECT: "拒绝活动退款", REFUND_APPROVE: "批准装备退款", REFUND_RETRY: "重试装备退款",
+  SHIPPING_DUE_24H: "发货超 24 小时", SHIPPING_DUE_40H: "发货超 40 小时",
+  WX_PUSH_REMIND_API: "微信通知接入提醒", WX_PUSH_CONTROLLED: "微信交易管控",
+  WX_PUSH_REMIND_SHIPPING: "微信发货提醒", WX_PUSH_SETTLEMENT: "微信结算通知",
+  WAITLIST_JOIN: "加入候补", WAITLIST_CANCEL: "取消候补",
+};
+const refundAuditResults: Record<string, string> = {
+  SUCCESS: "成功", PROCESSING: "处理中", UNKNOWN: "待核对", ABNORMAL: "异常", CLOSED: "已关闭",
+};
+for (const [status, label] of Object.entries(refundAuditResults)) {
+  auditLabels["ACTIVITY_REFUND_" + status] = "活动退款 · " + label;
+  auditLabels["REFUND_" + status] = "装备退款 · " + label;
+}
+const exceptionStates: Record<string, string> = {
+  UNKNOWN: "待核对", PAID: "待发货", REQUESTED: "待审核",
+  ABNORMAL: "异常", PROCESSING: "处理中", FAILED: "发送失败",
+  UNCONFIGURED: "未配置", NO_PERMISSION: "无发送权限",
+};
+function applyAudit(reset = false) {
+  if (reset) { filter.value = ""; actionDraft.value = ""; }
+  const query = new URLSearchParams();
+  if (filter.value.trim()) query.set("entityId", filter.value.trim());
+  if (actionDraft.value) query.set("action", actionDraft.value);
+  auditQuery.value = query.size ? "&" + query : "";
+  void load();
+}
 let epoch = 0;
 function clear() {
   epoch++;
@@ -61,6 +114,12 @@ function clear() {
   audits.value = [];
   loading.value = false;
   filter.value = "";
+  actionDraft.value = "";
+  auditQuery.value = "";
+  notice.value = "";
+  page.value = 0;
+  pageTotal.value = undefined;
+  hasMore.value = false;
   checking.value = "";
   errors.value = "";
 }
@@ -75,14 +134,13 @@ watch(
   { flush: "sync" },
 );
 onUnmounted(clear);
-async function load(more = false) {
+async function load(p = 0) {
   const n = ++epoch,
     actor = currentUser.value;
   if (!actor) return;
   loading.value = true;
   errors.value = "";
   try {
-    const p = more ? page.value + 1 : 0;
     if (tab.value === "overview") {
       const value = await request<Dashboard>(
         `/admin/dashboard?days=${days.value}`,
@@ -95,16 +153,16 @@ async function load(more = false) {
         `/admin/exceptions?page=${p}&size=20`,
       );
       if (n !== epoch || actor !== currentUser.value) return;
-      exceptions.value = more
-        ? [...exceptions.value, ...value.items]
-        : value.items;
+      exceptions.value = value.items;
+      pageTotal.value = value.total;
       hasMore.value = value.hasMore;
     } else {
       const value = await request<Page<Audit>>(
-        `/admin/audit?page=${p}&size=20${filter.value.trim() ? "&entityId=" + encodeURIComponent(filter.value.trim()) : ""}`,
+        `/admin/audit?page=${p}&size=20${auditQuery.value}`,
       );
       if (n !== epoch || actor !== currentUser.value) return;
-      audits.value = more ? [...audits.value, ...value.items] : value.items;
+      audits.value = value.items;
+      pageTotal.value = value.total;
       hasMore.value = value.hasMore;
     }
     page.value = p;
@@ -117,6 +175,7 @@ async function load(more = false) {
 function select(value: string) {
   tab.value = value;
   page.value = 0;
+  pageTotal.value = undefined;
   exceptions.value = [];
   audits.value = [];
   void load();
@@ -131,7 +190,10 @@ async function verify(id: string) {
     await request(`/admin/orders/${encodeURIComponent(id)}/verify`, {
       method: "POST",
     });
-    if (n === epoch && actor === currentUser.value) await load();
+    if (n === epoch && actor === currentUser.value) {
+      notice.value = "支付状态已核对";
+      await load();
+    }
   } catch (e) {
     if (n === epoch) errors.value = errorMessage(e);
   } finally {
@@ -153,6 +215,7 @@ function exceptionDestination(row: Exception) {
   if (row.kind === "NOTIFICATION") return "/notifications";
   return "/shop";
 }
+const notice = ref("");
 const money = (v: number) => `¥${(Number(v || 0) / 100).toFixed(2)}`;
 onMounted(() => void load());
 import UiState from "../components/UiState.vue";
@@ -190,6 +253,7 @@ import UiState from "../components/UiState.vue";
         </select>
       </label>
     </div>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="errors" class="error-box" role="alert">{{ errors }}</p>
     <template v-if="tab === 'overview'">
       <template v-if="data"
@@ -207,7 +271,7 @@ import UiState from "../components/UiState.vue";
             </small>
           </article>
           <article>
-            <span>满员活动</span
+            <RouterLink :to="{ path: '/activities', query: { upcomingFull: '1' } }">满员活动</RouterLink
             ><strong
               >{{ data.activities.full }} / {{ data.activities.total }}</strong
             >
@@ -222,27 +286,24 @@ import UiState from "../components/UiState.vue";
             }}</strong>
           </article>
           <article>
-            <span>待发货</span><strong>{{ data.pendingShipping }}</strong>
+            <RouterLink :to="{ path: '/shop', query: { tab: 'orders', orderStatus: 'AWAITING_SHIPMENT' } }">待发货</RouterLink><strong>{{ data.pendingShipping }}</strong>
           </article>
           <article>
-            <span>发货预警（24h/40h）</span
+            <button type="button" class="text-button" @click="select('exceptions')">发货预警（24h/40h）</button
             ><strong
               >{{ data.shippingDueSoon ?? 0 }} /
               {{ data.shippingOverdue ?? 0 }}</strong
             >
           </article>
           <article>
-            <span>发货上报待处理</span
+            <RouterLink to="/shipping-reports">发货上报待处理</RouterLink
             ><strong>{{ data.shippingReportFailures ?? 0 }}</strong>
           </article>
         </div>
         <p class="muted">
           订单按付款时间统计，净额扣除已确认退款；待发货不含售后处理中订单；
           发货预警为微信支付单超 24/40 小时未发货的本地两级告警（平台 48 小时催办前置），
-          超时订单同时进入下方异常列表；发货上报待处理含失败与待上报记录，可在<a
-            href="#/shipping-reports"
-            >发货上报</a
-          >页补报。
+          超时订单同时进入下方异常列表；发货上报待处理含失败与待上报记录，可在<RouterLink to="/shipping-reports">发货上报</RouterLink>页补报。
         </p>
         <div class="overview-panels">
           <section>
@@ -261,7 +322,7 @@ import UiState from "../components/UiState.vue";
                 <tbody>
                   <tr v-for="p in data.lowStock" :key="p.id">
                     <td>
-                      <RouterLink to="/shop">{{ p.name }}</RouterLink>
+                      <RouterLink :to="{ path: '/shop', query: { productId: p.id } }">{{ p.name }}</RouterLink>
                     </td>
                     <td>{{ p.stock }}</td>
                   </tr>
@@ -311,7 +372,7 @@ import UiState from "../components/UiState.vue";
           <tbody>
             <tr v-for="e in exceptions" :key="e.kind + e.id">
               <td>{{ e.message }}</td>
-              <td>{{ e.status }}</td>
+              <td><span class="status-pill" :class="e.status === 'ABNORMAL' || e.status === 'FAILED' ? 'tone-danger' : 'tone-warning'">{{ exceptionStates[e.status] || e.status }}</span></td>
               <td>
                 {{
                   new Date(e.updated_at).toLocaleString("zh-CN", {
@@ -335,13 +396,18 @@ import UiState from "../components/UiState.vue";
       </div></template
     >
     <template v-else
-      ><form class="audit-filter" @submit.prevent="load()">
+      ><form class="audit-filter" @submit.prevent="applyAudit()">
         <label
           >记录编号<input
             v-model="filter"
             maxlength="80"
             placeholder="活动、商品或订单编号" /></label
-        ><button class="secondary">查询</button>
+        ><label>操作<select v-model="actionDraft">
+          <option value="">全部操作</option>
+          <option v-for="(label, value) in auditLabels" :key="value" :value="value">{{ label }}</option>
+        </select></label>
+        <button class="secondary" :disabled="loading">查询</button>
+        <button type="button" class="secondary" :disabled="loading" @click="applyAudit(true)">重置</button>
       </form>
       <UiState v-if="!loading && !errors && !audits.length" compact
         >暂无操作记录</UiState
@@ -359,7 +425,7 @@ import UiState from "../components/UiState.vue";
           <tbody>
             <tr v-for="a in audits" :key="a.id">
               <td>{{ a.actor }}</td>
-              <td>{{ a.action }}</td>
+              <td><span v-if="Object.prototype.hasOwnProperty.call(auditLabels, a.action)">{{ auditLabels[a.action] }}</span><span v-else :title="a.action">其他历史操作</span></td>
               <td>{{ a.entity_id }}</td>
               <td>
                 {{
@@ -373,14 +439,7 @@ import UiState from "../components/UiState.vue";
         </table>
       </div></template
     >
-    <button
-      v-if="hasMore"
-      class="secondary"
-      :disabled="loading"
-      @click="load(true)"
-    >
-      加载更多
-    </button>
+    <PaginationBar v-if="tab !== 'overview' && (pageTotal != null || hasMore || page > 0)" :page="page" :page-size="20" :total="pageTotal" :has-more="hasMore" :busy="loading" label="运营记录分页" @change="load" />
     <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
   </main>
 </template>

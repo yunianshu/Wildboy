@@ -5,7 +5,7 @@ import { money } from '../../utils/shop';
 import { ActivityOrder, ActivityRefund, activityOrderStatus, activityRefundStatus, payActivityOrder, verifyActivityPayment, priceLines } from '../../utils/activity-orders';
 type Row=ActivityOrder & {statusText:string;totalText:string;originalText:string;expiresText:string;lines:ReturnType<typeof priceLines>};
 Page({
-  data: { pageMotionClass: "",items:[] as Row[],loggedIn:false,loading:false,loadingMore:false,error:'',paymentNotice:null as {orderId:string;text:string}|null,page:0,hasMore:false,selectedId:'',activityId:'',busyId:'',confirmId:'',confirmAction:'',refundId:'',refund:null as ActivityRefund|null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[] as {id:string;participantName:string;idNumber:string;phone:string}[]},
+  data: { pageMotionClass: "",items:[] as Row[],loggedIn:false,status:'',loading:false,loadingMore:false,error:'',paymentNotice:null as {orderId:string;text:string}|null,page:0,hasMore:false,selectedId:'',activityId:'',busyId:'',confirmId:'',confirmAction:'',refundId:'',refund:null as ActivityRefund|null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[] as {id:string;participantName:string;idNumber:string;phone:string}[]},
   _epoch:0,_session:-1,
   onLoad(o:Record<string,string>){this.setData({selectedId:safeId(o.id),activityId:safeId(o.activityId)});},
   onShow() { enterPage(this); void this.load();},
@@ -38,7 +38,8 @@ Page({
     if(!hasSession()){this.setData({loading:false,loadingMore:false});return;}
     try {
       const filter = this.data.activityId ? `&activityId=${this.data.activityId}` : '';
-      const result=await request<{items:ActivityOrder[];page:number;hasMore:boolean}>(`/me/activity-orders?page=${page}&size=20${filter}`);
+      const status = this.data.status ? '&status=' + encodeURIComponent(this.data.status) : '';
+      const result=await request<{items:ActivityOrder[];page:number;hasMore:boolean}>(`/me/activity-orders?page=${page}&size=20${filter}${status}`);
       if(!this.current(n,s))return;
       let rows=result.items.map(o=>this.row(o));
       if(!more&&this.data.selectedId&&!rows.some(o=>o.id===this.data.selectedId)){
@@ -51,6 +52,26 @@ Page({
     }catch(e){if(this.checkAccess(n,s,e))this.setData({error:message(e)});}
     finally{if(this.checkAccess(n,s))this.setData({loading:false,loadingMore:false});}
   },
+  filterStatus(event: WechatMiniprogram.TouchEvent) {
+    const status = String(event.currentTarget.dataset.status || "");
+    if (!["", "PENDING_PAYMENT", "PAID", "REFUND_PENDING"].includes(status) || this.data.busyId) return;
+    this.setData({ status, selectedId: "" });
+    void this.load();
+  },
+  onPullDownRefresh() {
+    return this.load().finally(() => wx.stopPullDownRefresh());
+  },
+  onReachBottom() {
+    this.more();
+  },
+  openActivity(event: WechatMiniprogram.TouchEvent) {
+    const id = safeId(event.currentTarget.dataset.id);
+    if (id) wx.navigateTo({ url: "/pages/detail/index?id=" + id });
+  },
+  copyOrderNumber(event: WechatMiniprogram.TouchEvent) {
+    const row = this.data.items.find((item) => item.id === event.currentTarget.dataset.id);
+    if (row?.orderNo && this.canAct()) wx.setClipboardData({ data: row.orderNo });
+  },
   more(){void this.load(true);},retry(){void this.load();},login(){wx.navigateTo({url:'/pages/login/index'});},
   update(o:ActivityOrder){this.setData({items:this.data.items.map(x=>x.id===o.id?this.row(o):x)});},
   async pay(e:WechatMiniprogram.TouchEvent){
@@ -62,6 +83,8 @@ Page({
       this.update(result);
       if (result.status === 'PENDING_PAYMENT') {
         this.setData({paymentNotice:{orderId:row.id,text:'付款尚未确认，请刷新订单核对，不要重复报名。'}});
+      } else if (result.status === "PAID") {
+        wx.showToast?.({ title: "付款已确认", icon: "success" });
       }
     } catch (e) {
       if (this.checkAccess(n,s,e)) this.setData({paymentNotice:{orderId:row.id,text:message(e)}});
@@ -88,10 +111,14 @@ Page({
     }
     const n=this._epoch,s=this._session;this.setData({busyId:id,error:'',refundError:'',confirmId:'',confirmAction:''});
     try{
-      if(action==='cancel') {const order=await request<ActivityOrder>(`/activity-orders/${encodeURIComponent(id)}/cancel`,'POST');if(this.current(n,s))this.update(order);}
+      if(action==='cancel') {const order=await request<ActivityOrder>(`/activity-orders/${encodeURIComponent(id)}/cancel`,'POST');if (this.current(n,s)) {
+        this.update(order);
+        wx.showToast?.({ title: "已取消报名", icon: "success" });
+      }}
       else if(action==='refund'){
         const refund=await request<ActivityRefund>(`/activity-orders/${encodeURIComponent(id)}/refund`,'POST',{reason:this.data.reason.trim()});
         if(!this.current(n,s))return;this.setData({refund,refundStatus:activityRefundStatus(refund.status),reason:''});
+        wx.showToast?.({ title: '退款申请已提交', icon: 'success' });
         const order=await request<ActivityOrder>(`/activity-orders/${encodeURIComponent(id)}`);if(this.current(n,s))this.update(order);
       }
     }catch(e){if(this.checkAccess(n,s,e))this.setData({error:message(e),refundError:action==='refund'?message(e):''});}

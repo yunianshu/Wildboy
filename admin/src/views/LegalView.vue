@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { displayDate } from "../forms";
 import { askConfirm } from "../confirm";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
@@ -225,7 +226,9 @@ onUnmounted(() => {
     <section class="page-heading">
       <div>
         <h1>协议管理</h1>
-        <p>保存草稿不影响线上协议，发布后生效。</p>
+        <p v-if="conflict">草稿版本有变更，请重新加载。</p>
+        <p v-else-if="dirty">请先保存草稿，再发布。</p>
+        <p v-else-if="state && !valid">请填写标题与有效的纯文本正文。</p>
       </div>
       <button
         v-if="state"
@@ -254,8 +257,8 @@ onUnmounted(() => {
         用户协议
       </button>
     </nav>
-    <p v-if="error" role="alert" class="legal-alert">{{ error }}</p>
-    <p v-if="notice" role="status">{{ notice }}</p>
+    <p v-if="error" role="alert" class="error-box">{{ error }}</p>
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <UiState v-if="loading" kind="loading" compact>正在读取协议…</UiState>
     <section v-if="state" class="legal-editor">
       <div class="legal-toolbar">
@@ -295,7 +298,7 @@ onUnmounted(() => {
           <button
             class="secondary"
             type="submit"
-            :disabled="busy || loading || conflict"
+            :disabled="busy || loading || conflict || !dirty"
           >
             保存草稿</button
           ><button class="secondary" type="button" @click="preview = !preview">
@@ -327,15 +330,16 @@ onUnmounted(() => {
         <button
           v-for="version in history"
           :key="version.version"
-          class="secondary"
-          @click="selected = version"
+          :class="selected?.version === version.version ? 'primary' : 'secondary'"
+          :aria-pressed="selected?.version === version.version"
+          @click="selected = selected?.version === version.version ? null : version"
         >
           v{{ version.version }} · {{ version.title }}
         </button>
       </div>
       <article v-if="selected" class="legal-preview">
         <h3>{{ selected.title }} · v{{ selected.version }}</h3>
-        <p class="muted">{{ selected.publishedAt }} · 只读历史</p>
+        <p class="muted">{{ displayDate(selected.publishedAt) }} · 只读历史</p>
         <p>{{ selected.content }}</p>
       </article>
     </section>

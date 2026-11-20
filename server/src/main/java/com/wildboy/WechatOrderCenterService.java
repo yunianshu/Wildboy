@@ -53,6 +53,8 @@ public class WechatOrderCenterService {
     client = RestClient.builder().baseUrl("https://api.weixin.qq.com").requestFactory(f).build();
   }
 
+  String configuredAppId() { return gateway.appId; }
+
   /** 一次外呼的结果：attempted=false 表示未外呼（未启用/缺配置），errcode=0 表示微信已受理；body 保留响应供调用方解析（如 order_state）。 */
   public record CallResult(boolean attempted, int errcode, String error, JsonNode body) {
     static CallResult skipped(String reason) { return new CallResult(false, 0, reason, null); }

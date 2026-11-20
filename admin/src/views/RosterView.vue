@@ -5,6 +5,7 @@ import { request, errorMessage, currentUser } from "../api";
 import { displayDate } from "../forms";
 import AppIcon from "../components/AppIcon.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import type { Activity, Registration, Page } from "../types";
 import { registrationTone } from "../statusTone";
@@ -22,11 +23,64 @@ const route = useRoute(),
   error = ref(""),
   revealed = ref(new Set<string>()),
   revealTarget = ref<{ id: string; name: string } | null>(null);
+const searchDraft = ref("");
+const statusDraft = ref("");
+const filters = ref({ query: "", status: "" });
+function applyFilters() {
+  filters.value = { query: searchDraft.value.trim(), status: statusDraft.value };
+  if (page.value) page.value = 0;
+  else void load();
+}
+const exporting = ref(false);
+const exportError = ref("");
+async function downloadRoster() {
+  const actor = currentUser.value;
+  if (exporting.value || busy.value || actor?.role !== "ADMIN" || activity.value?.priceCents !== 0) return;
+  const attempt = generation;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value);
+  const id = encodeURIComponent(String(route.params.id));
+  exporting.value = true;
+  exportError.value = "";
+  try {
+    const entries = await request<{ name: string; maskedPhone: string; status: string; createdAt: string }[]>(
+      "/admin/activities/" + id + "/registrations/export?" + params,
+      { signal: controller?.signal, cache: "no-store" },
+    );
+    if (attempt !== generation || actor !== currentUser.value) return;
+    if (!entries.length) { exportError.value = "没有符合条件的报名记录。"; return; }
+    saveRosterCsv(entries);
+  } catch (e) {
+    if (attempt === generation && actor === currentUser.value) exportError.value = errorMessage(e);
+  } finally {
+    if (attempt === generation) exporting.value = false;
+  }
+}
+function saveRosterCsv(entries: { name: string; maskedPhone: string; status: string; createdAt: string }[]) {
+  const quote = (value: string) => {
+    const safe = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/.test(value) ? "'" + value : value;
+    return '"' + safe.replaceAll('"', '""') + '"';
+  };
+  const rows = [["姓名", "手机号（脱敏）", "报名状态", "报名时间"]];
+  for (const entry of entries) {
+    rows.push([entry.name, entry.maskedPhone,
+      entry.status === "CONFIRMED" ? "已报名" : "已取消", displayDate(entry.createdAt)]);
+  }
+  const url = URL.createObjectURL(new Blob(["\uFEFF", rows.map(row => row.map(quote).join(",")).join("\r\n")],
+    { type: "text/csv;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "报名名单-脱敏.csv";
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 let generation = 0,
   controller: AbortController | undefined;
 async function load() {
   const current = ++generation;
   controller?.abort();
+  exporting.value = false;
+  exportError.value = "";
   controller = new AbortController();
   busy.value = true;
   error.value = "";
@@ -44,8 +98,10 @@ async function load() {
       data.value = { items: [], total: 0, page: 0, size: 20, hasMore: false };
       return;
     }
+    const params = new URLSearchParams({ page: String(page.value), size: "20" });
+    for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value);
     const list = await request<Page<Registration>>(
-      `/admin/activities/${id}/registrations?page=${page.value}&size=20`,
+      `/admin/activities/${id}/registrations?${params}`,
       { signal: controller.signal },
     );
     if (current === generation) {
@@ -65,24 +121,24 @@ async function load() {
 const revealedDetails = ref<
   Record<string, { phone: string; idNumber: string }>
 >({});
-const revealing = new Set<string>();
+const revealing = ref(new Set<string>());
 function toggle(id: string, name: string) {
   if (revealed.value.has(id)) {
     revealed.value = new Set([...revealed.value].filter((x) => x !== id));
     delete revealedDetails.value[id];
     return;
   }
-  if (revealing.has(id)) return;
+  if (revealing.value.has(id)) return;
   revealTarget.value = { id, name };
 }
 async function confirmReveal() {
   const id = revealTarget.value?.id;
   revealTarget.value = null;
-  if (!id || revealing.has(id)) return;
+  if (!id || revealing.value.has(id)) return;
   const current = generation;
   const actor = currentUser.value;
   if (!actor || actor.role !== "ADMIN") return;
-  revealing.add(id);
+  revealing.value.add(id);
   try {
     const result = await request<{ phone: string; idNumber: string }>(
       `/admin/activities/${encodeURIComponent(String(route.params.id))}/participants/${encodeURIComponent(id)}/reveal`,
@@ -94,7 +150,7 @@ async function confirmReveal() {
   } catch (e) {
     if (current === generation) error.value = errorMessage(e);
   } finally {
-    revealing.delete(id);
+    revealing.value.delete(id);
   }
 }
 function maskPhone(phone: string) {
@@ -116,8 +172,10 @@ watch(currentUser, () => {
   revealedDetails.value = {};
   data.value.items = [];
   activity.value = null;
+  exporting.value = false;
+  exportError.value = "";
 });
-watch(page, load);
+watch([page, () => route.params.id], load);
 onMounted(load);
 onUnmounted(() => {
   generation++;
@@ -129,6 +187,17 @@ onUnmounted(() => {
 </script>
 <template>
   <main class="workspace">
+    <form v-if="activity?.priceCents === 0" class="action-row" @submit.prevent="applyFilters">
+      <input v-model="searchDraft" maxlength="80" aria-label="搜索报名人" placeholder="姓名或完整手机号" />
+      <select v-model="statusDraft" aria-label="报名状态">
+        <option value="">全部状态</option>
+        <option value="CONFIRMED">已报名</option>
+        <option value="CANCELLED">已取消</option>
+      </select>
+      <button class="secondary" :disabled="busy">查询</button>
+      <button type="button" class="secondary" :disabled="busy || exporting || !data.total" @click="downloadRoster">{{ exporting ? "正在导出…" : "导出筛选结果（脱敏）" }}</button>
+    </form>
+    <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <RouterLink class="back-link" to="/activities"
       ><AppIcon name="back" :size="16" /> 返回活动目录</RouterLink
     >
@@ -172,7 +241,7 @@ onUnmounted(() => {
       >
     </div>
     <UiState v-else-if="!data.items.length && !error" compact
-      >还没有人报名</UiState
+      >{{ filters.query || filters.status ? "没有符合条件的报名记录" : "还没有人报名" }}</UiState
     >
     <div v-else-if="!error" class="table-scroll">
       <table>
@@ -199,7 +268,7 @@ onUnmounted(() => {
             <td>
               {{
                 revealed.has(participant.id)
-                  ? revealedDetails[participant.id]?.idNumber
+                  ? (revealedDetails[participant.id]?.idNumber || "未登记")
                   : maskIdNumber(participant.idNumber)
               }}
             </td>
@@ -211,9 +280,10 @@ onUnmounted(() => {
               }}</span
               ><button
                 class="text-button phone-toggle"
+                :disabled="revealing.has(participant.id)"
                 @click="toggle(participant.id, participant.participantName)"
               >
-                {{ revealed.has(participant.id) ? "隐藏" : "查看" }}
+                {{ revealing.has(participant.id) ? "读取中…" : revealed.has(participant.id) ? "隐藏" : "查看" }}
               </button>
             </td>
             <td v-if="index === 0" :rowspan="item.participants.length">
@@ -230,22 +300,7 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <nav
-      v-if="activity && activity.priceCents === 0"
-      class="pagination"
-      aria-label="名单分页"
-    >
-      <button class="secondary" :disabled="busy || page === 0" @click="page--">
-        上一页</button
-      ><span>第 {{ page + 1 }} 页 · 共 {{ data.total }} 笔报名</span
-      ><button
-        class="secondary"
-        :disabled="busy || !data.hasMore"
-        @click="page++"
-      >
-        下一页
-      </button>
-    </nav>
+    <PaginationBar v-if="activity && activity.priceCents === 0" :page="page" :page-size="data.size" :total="data.total" :has-more="data.hasMore" :busy="busy" label="名单分页" @change="(next) => page = next" />
     <ConfirmDialog
       v-if="revealTarget"
       title="查看参加者资料？"

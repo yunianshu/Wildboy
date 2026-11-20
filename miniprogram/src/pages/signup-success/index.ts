@@ -102,8 +102,12 @@ Page({
     void this.load();
   },
   details() {
-    if (this.data.id)
-      wx.redirectTo({ url: `/pages/detail/index?id=${this.data.id}` });
+    const id = this.data.id;
+    if (!id) return;
+    const previous = typeof getCurrentPages === "function" ? getCurrentPages().slice(-2, -1)[0] : undefined;
+    if (previous?.route === "pages/detail/index" && previous.options?.id === id)
+      wx.navigateBack();
+    else wx.redirectTo({ url: "/pages/detail/index?id=" + id });
   },
   registrations() {
     wx.redirectTo({ url: "/pages/registrations/index" });

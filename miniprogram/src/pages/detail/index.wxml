@@ -3,7 +3,7 @@
   <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
   <block wx:elif="{{activity}}">
     <view class="article-cover-wrap">
-      <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" />
+      <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" data-url="{{activity.coverUrl}}" bindtap="previewPhoto" />
       <button open-type="share" class="share" aria-label="分享活动" hover-class="share-pressed"><image class="share-icon" src="/assets/icons-slate/share.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
     <view class="article-head">
@@ -13,12 +13,11 @@
     </view>
     <view class="article-intro">{{activity.summary}}</view>
     <view class="article-gallery" wx:if="{{activity.galleryUrls.length}}">
-      <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load />
+      <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load data-url="{{item}}" bindtap="previewPhoto" />
     </view>
     <view class="notice" wx:if="{{activity.status === 'CANCELLED'}}">该活动已被主理人取消，请勿按原计划前往。</view>
     <view class="notice" wx:if="{{activity.priceCents > 0}}">
       标准费用 {{activity.priceLabel}}，会员优惠以报名报价为准。
-      <button wx:if="{{!activeOrder}}" class="secondary" bindtap="activityOrders">查看本活动订单</button>
     </view>
     <view class="article-section">
       <view class="section-bar">活动安排</view>
@@ -33,7 +32,7 @@
     </view>
     <view class="article-section">
       <view class="section-bar">线路与流程</view>
-      <view class="section-body"><content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}"/><text wx:else class="body-copy">{{activity.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view></view>
+      <view class="section-body"><content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}" preview-images="{{true}}"/><text wx:else class="body-copy">{{activity.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view></view>
     </view>
     <view class="article-section" wx:if="{{registration && registration.status === 'CONFIRMED'}}">
       <view class="section-bar">我的报名</view>

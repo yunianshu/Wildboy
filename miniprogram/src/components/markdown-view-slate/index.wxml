@@ -27,7 +27,7 @@
       >
     </view>
     <view wx:elif="{{item.type === 'image'}}" class="md-figure">
-      <image class="md-img" src="{{item.url}}" mode="widthFix" lazy-load />
+      <image class="md-img" src="{{item.url}}" mode="widthFix" lazy-load data-url="{{item.url}}" bindtap="previewImage" />
       <text wx:if="{{item.caption}}" class="md-caption">{{item.caption}}</text>
     </view>
     <view

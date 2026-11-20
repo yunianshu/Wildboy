@@ -109,7 +109,7 @@ test("normal My page navigates to registrations", async () => {
   p.registrations();
   assert.deepEqual(navigations, ["/pages/registrations/index"]);
   p.onHide();
-  assert.equal(p.data.user, null);
+  assert.equal(p.data.user.id, "u");
 });
 test("My failed account load cannot retain identity", async () => {
   role = "USER";
@@ -213,6 +213,21 @@ test("register discards personal draft and consent after switching accounts", ()
   assert.equal(p.data.participants[0].idNumber, "");
   assert.equal(p.data.consent, false);
   assert.equal(p.data.privacyRead, false);
+});
+
+test("registration keeps a guest draft after the first login", () => {
+  const p = filled();
+  signedIn = false;
+  api.sessionVersion = () => 1;
+  p.onLoad({ id: "" });
+  p.setData({ loading: false, fieldError: "" });
+  const draft = structuredClone(p.data.participants);
+  p.onHide();
+  signedIn = true;
+  api.sessionVersion = () => 2;
+  p.onShow();
+  assert.deepEqual(p.data.participants, draft);
+  assert.equal(p.data.fieldError, "");
 });
 
 test("register cannot send an earlier user's draft after identity changes during legal refresh", async () => {

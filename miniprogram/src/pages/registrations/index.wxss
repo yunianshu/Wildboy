@@ -46,3 +46,5 @@
 }
 
 @import "../../styles/slate-components.wxss";
+
+.registrations-heading { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; }

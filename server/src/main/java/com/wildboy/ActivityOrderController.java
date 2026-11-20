@@ -57,9 +57,16 @@ public class ActivityOrderController {
   @PostMapping("/admin/activities/{id}/price")
   Models.Activity price(@PathVariable String id,@AuthenticationPrincipal Models.User user,@Valid @RequestBody PriceInput in){return orders.setPrice(id,in.priceCents(),in.version(),user.id());}
   @GetMapping("/me/activity-orders")
-  Models.Page<ActivityOrderModels.Order> mine(@AuthenticationPrincipal Models.User user,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(required=false) String activityId){return orders.list(user.id(),activityId,page,size);}
+  Models.Page<ActivityOrderModels.Order> mine(@AuthenticationPrincipal Models.User user,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(required=false) String activityId,
+      @RequestParam(required=false) String status) {
+    return orders.list(user.id(), activityId, null, page, size, null, status, null);
+  }
   @GetMapping("/admin/activity-orders")
-  Models.Page<ActivityOrderModels.Order> list(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(required=false) String activityId,@RequestParam(required=false) String orderId){return orders.list(null,activityId,orderId,page,size);}
+  Models.Page<ActivityOrderModels.Order> list(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,@RequestParam(required=false) String activityId,@RequestParam(required=false) String orderId,
+      @RequestParam(required=false) String query, @RequestParam(required=false) String status,
+      @RequestParam(required=false) String refundStatus) {
+    return orders.list(null, activityId, orderId, page, size, query, status, refundStatus);
+  }
   @PostMapping("/activity-orders/{id}/verify")
   ActivityOrderModels.Order verifyPayment(@PathVariable String id,@AuthenticationPrincipal Models.User user){return orders.verifyPayment(id,user.id());}
   @PostMapping("/admin/activity-orders/{id}/verify")

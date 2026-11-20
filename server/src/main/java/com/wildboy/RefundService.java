@@ -26,10 +26,19 @@ public class RefundService {
     this.db=db;this.shop=shop;this.pay=pay;this.activities=activities;this.tx=new TransactionTemplate(tm);
   }
   public Models.Page<Refund> list(String user,int page,int size) {
+    return list(user, page, size, null, null);
+  }
+  public Models.Page<Refund> list(String user, int page, int size, String query, String status) {
     if(page<0 || page>100000 || size<1 || size>100) throw new ApiException(400,"INVALID_PAGE","分页参数无效");
-    String where=user==null?"":"WHERE r.user_id=? ";
-    List<Object> args=new ArrayList<>();if(user!=null)args.add(user);
-    Long count=db.queryForObject("SELECT COUNT(*) FROM refund_request r "+where,Long.class,args.toArray());
+    String where = "WHERE 1=1 ";
+    List<Object> args = new ArrayList<>();
+    if (user != null) { where += "AND r.user_id=? "; args.add(user); }
+    if (query != null && !query.isBlank()) {
+      where += "AND strpos(lower(o.order_no), lower(?)) > 0 ";
+      args.add(query.strip());
+    }
+    if (status != null && !status.isBlank()) { where += "AND r.status=? "; args.add(status); }
+    Long count=db.queryForObject("SELECT COUNT(*) FROM refund_request r JOIN shop_order o ON o.id=r.order_id "+where,Long.class,args.toArray());
     args.add(size);args.add(page*size);
     var rows=db.query(SELECT+where+"ORDER BY r.created_at DESC,r.id LIMIT ? OFFSET ?",mapper,args.toArray());
     return new Models.Page<>(rows,count,page,size,(long)(page+1)*size<count);
@@ -81,6 +90,9 @@ public class RefundService {
       activities.audit(actor,id,"REFUND_REJECT");return get(id);});
   }
   public Refund approve(String id,long version,String actor,boolean retry) {
+    return approve(id, version, actor, retry, null);
+  }
+  public Refund approve(String id, long version, String actor, boolean retry, String note) {
     // Configuration failures must leave the request actionable rather than pretending it was sent.
     pay.requireConfigured();
     Refund r=tx.execute(s->{var current=lock(id);version(current,version);
@@ -88,7 +100,8 @@ public class RefundService {
         throw ApiException.conflict("REFUND_STATE","退款状态已改变，请刷新");
       var order=shop.order(current.orderId(),null,true);
       if(!order.status().equals("PAID"))throw ApiException.conflict("REFUND_STATE","订单不支持退款");
-      db.update("UPDATE refund_request SET status='PROCESSING',last_error='',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",id);
+      db.update("UPDATE refund_request SET status='PROCESSING',last_error='',decision_note=COALESCE(?,decision_note),"
+          + "version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?", retry || note == null ? null : note.strip(), id);
       activities.audit(actor,id,retry?"REFUND_RETRY":"REFUND_APPROVE");return get(id);});
     try {
       var order=shop.order(r.orderId(),null,true);

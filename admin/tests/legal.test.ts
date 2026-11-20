@@ -100,7 +100,7 @@ describe("legal management", () => {
       "历史同意记录不会被覆盖",
     );
     expect(wrapper.get("[role=dialog]").text()).toContain("运营方审核");
-    await button(wrapper, "返回检查").trigger("click");
+    await button(wrapper, "取消").trigger("click");
     expect(fetch.mock.calls.some((x) => x[1]?.method === "POST")).toBe(false);
     wrapper.unmount();
   });

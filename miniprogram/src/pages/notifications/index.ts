@@ -4,7 +4,7 @@ import {
   sessionVersion,
   isSessionCurrent,
 } from "../../utils/api";
-import { message, RequestEpoch, safeId, mergeUnique } from "../../utils/domain";
+import { dateLabel, message, RequestEpoch, safeId, mergeUnique } from "../../utils/domain";
 import { PageResult } from "../../utils/models";
 import {
   subscribeNotifications,
@@ -17,6 +17,7 @@ type Notice = {
   title: string;
   detail: string;
   status: string;
+  createdAt?: string;
   statusText?: string;
 };
 import { enterPage } from "../../utils/page-motion";
@@ -63,6 +64,7 @@ Page({
             p.items.map((i) => ({
               ...i,
               statusText: notificationStatus[i.status] || i.status,
+              timeText: i.createdAt ? dateLabel(i.createdAt) : "",
             }))),
           page: p.page,
           hasMore: p.hasMore,
@@ -80,6 +82,12 @@ Page({
   },
   retry() {
     void this.load(true);
+  },
+  onPullDownRefresh() {
+    return this.load(true).finally(() => wx.stopPullDownRefresh());
+  },
+  onReachBottom() {
+    this.more();
   },
   more() {
     if (this.data.hasMore) void this.load(false);

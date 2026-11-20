@@ -34,9 +34,13 @@ public class NotificationService {
     for(String user:db.queryForList("SELECT user_id FROM registration WHERE activity_id=? AND status='CONFIRMED' UNION SELECT user_id FROM activity_order WHERE activity_id=? AND ("+orderRecipients+")",String.class,a.id(),a.id())) enqueue(user,a,kind,kind+":"+a.id()+":"+(kind.equals("PRETRIP")?a.startAt().toString():a.version())+":"+user,detail,a.startAt());
   }
   public Page<Notice> list(String user,int page,int size){
+    return list(user, page, size, null);
+  }
+  public Page<Notice> list(String user, int page, int size, String status) {
     ActivityService.pageCheck(page,size);
     String where=user==null?" WHERE "+UNREACHABLE:" WHERE user_id=? AND "+UNREACHABLE;
     var args=new ArrayList<Object>();if(user!=null)args.add(user);
+    if (status != null && !status.isBlank()) { where += " AND status=?"; args.add(status); }
     long count=db.queryForObject("SELECT COUNT(*) FROM notification_outbox"+where,Long.class,args.toArray());args.add(size);args.add(page*size);
     return new Page<>(db.query("SELECT * FROM notification_outbox"+where+" ORDER BY created_at DESC,id LIMIT ? OFFSET ?",this::map,args.toArray()),count,page,size,(long)(page+1)*size<count);
   }

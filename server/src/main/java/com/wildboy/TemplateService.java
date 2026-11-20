@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TemplateService {
   public record Template(String id, String name, ActivityInput activity, long version) {}
-  public record Input(@NotBlank @Size(max=120) String name, @NotBlank String sourceId, @NotNull @Min(0) Long sourceVersion, Long version) {}
+  public record Input(@NotBlank @Size(max=120) String name, String sourceId, @Min(0) Long sourceVersion, Long version) {}
   public record Generate(@NotEmpty @Size(max=12) List<@NotNull OffsetDateTime> starts, @NotNull @Min(0) Long version) {}
   public record Copy(@NotNull OffsetDateTime startAt, @NotBlank @Size(max=80) String requestId, @NotNull @Min(0) Long version) {}
   final JdbcTemplate db; final ActivityService activities; final ObjectMapper json;
@@ -25,10 +25,24 @@ public class TemplateService {
   Template get(String id,boolean lock) { var rows=db.query("SELECT * FROM activity_template WHERE id=?"+(lock?" FOR UPDATE":""),this::map,id);if(rows.isEmpty())throw ApiException.notFound();return rows.getFirst(); }
   @Transactional public Template save(String id,Input input,String actor) {
     if(id!=null && get(id,true).version()!=Objects.requireNonNullElse(input.version(),-1L))throw ApiException.conflict("STALE_VERSION","模板已更新，请刷新");
+    if (input.sourceId() == null || input.sourceId().isBlank()) {
+      if (id == null) throw new ApiException(400, "SOURCE_REQUIRED", "请选择来源活动");
+      db.update("UPDATE activity_template SET name=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+          input.name().strip(), id);
+      activities.audit(actor,id,"TEMPLATE_SAVE");
+      return get(id,false);
+    }
+    if (input.sourceVersion() == null) throw new ApiException(400, "SOURCE_VERSION_REQUIRED", "请重新读取来源活动");
     Activity source=activities.get(input.sourceId(),true);activities.checkVersion(source,input.sourceVersion());
     if(id==null){id=UUID.randomUUID().toString();db.update("INSERT INTO activity_template(id,name,payload,rich_blocks) VALUES (?,?,?,?)",id,input.name().strip(),encode(snapshot(source)),rich(source.id()));}
     else db.update("UPDATE activity_template SET name=?,payload=?,rich_blocks=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.name().strip(),encode(snapshot(source)),rich(source.id()),id);
     activities.audit(actor,id,"TEMPLATE_SAVE");return get(id,false);
+  }
+  @Transactional public void delete(String id, long version, String actor) {
+    if (get(id, true).version() != version)
+      throw ApiException.conflict("STALE_VERSION", "模板已更新，请刷新");
+    db.update("DELETE FROM activity_template WHERE id=?", id);
+    activities.audit(actor, id, "TEMPLATE_DELETE");
   }
   String rich(String id) { var rows=db.queryForList("SELECT blocks FROM rich_content WHERE entity_type='activity' AND entity_id=?",String.class,id);return rows.isEmpty()?"[]":rows.getFirst(); }
   void copyRich(String target,String blocks) { if(!"[]".equals(blocks)) db.update("INSERT INTO rich_content(entity_type,entity_id,blocks,version) VALUES ('activity',?,?,1)",target,blocks); }

@@ -13,7 +13,7 @@
     <view wx:if="{{reviewing}}" class="uf-note">正在等待微信审核昵称。未响应时可重新输入或跳过。<button class="secondary ui-button ui-button-block" bindtap="resetNicknameReview" disabled="{{saving}}">重新输入昵称</button></view>
     <view class="uf-caption">未填写的项目会保留原资料。手机号与活动联系人信息仍在「联系资料」中设置。</view>
     <view wx:if="{{error}}" class="error" role="alert">{{error}}</view>
-    <view class="uf-actions"><button class="ui-button ui-button-block" bindtap="save" loading="{{saving}}" disabled="{{saving}}">{{saving ? '正在保存' : '保存资料'}}</button><button class="secondary ui-button ui-button-block" bindtap="skip" disabled="{{saving}}">{{onboarding ? '暂时跳过' : '暂不修改'}}</button></view>
+    <view class="uf-actions"><button class="primary ui-button ui-button-block" bindtap="save" loading="{{saving}}" disabled="{{saving}}">{{saving ? '正在保存' : '保存资料'}}</button><button class="secondary ui-button ui-button-block" bindtap="skip" disabled="{{saving}}">{{onboarding ? '暂时跳过' : '暂不修改'}}</button></view>
   </view>
   <view wx:else><ui-state kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重新读取</button></ui-state><button class="secondary ui-button ui-button-block" bindtap="skip">返回</button></view>
 </view>

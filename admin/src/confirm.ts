@@ -5,7 +5,16 @@ import { currentUser } from "./api";
 let pending = false;
 
 /** The same confirmation shell for actions and unsaved-change guards. */
-export function askConfirm(description: string): Promise<boolean> {
+type ConfirmationOptions = {
+  title: string;
+  description: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  danger?: boolean;
+};
+
+export function askConfirm(options: string | ConfirmationOptions): Promise<boolean> {
+  const description = typeof options === "string" ? options : options.description;
   if (pending) return Promise.resolve(false);
   pending = true;
   return new Promise((resolve) => {
@@ -47,6 +56,7 @@ export function askConfirm(description: string): Promise<boolean> {
         description,
         confirmLabel: label,
         danger: discard || /取消|下架|关闭/.test(label),
+        ...(typeof options === "string" ? {} : options),
         onConfirm: () => finish(true),
         onCancel: () => finish(false),
       }),

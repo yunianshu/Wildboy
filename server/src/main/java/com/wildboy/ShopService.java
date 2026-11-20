@@ -285,6 +285,21 @@ public class ShopService {
   }
 
   public Page<Order> orders(String userId, OrderStatus status, int page, int size) {
+    return orders(userId, status, page, size, null);
+  }
+
+  static final String AWAITING_SHIPMENT_FILTER = """
+      status IN ('PAID','CONFIRMED_FREE') AND NOT EXISTS(
+        SELECT 1 FROM refund_request r WHERE r.order_id=shop_order.id
+        AND r.status IN ('REQUESTED','PROCESSING','UNKNOWN','ABNORMAL'))
+      """;
+
+  public Page<Order> orders(String userId, OrderStatus status, int page, int size, String query) {
+    return orders(userId, status, page, size, query, false);
+  }
+
+  public Page<Order> orders(
+      String userId, OrderStatus status, int page, int size, String query, boolean awaitingShipment) {
     ActivityService.pageCheck(page, size);
     var args = new ArrayList<>();
     String where = userId == null ? "1=1" : "user_id=?";
@@ -292,6 +307,11 @@ public class ShopService {
     if (status != null) {
       where += " AND status=?";
       args.add(status.name());
+    }
+    if (userId == null && awaitingShipment) where += " AND " + AWAITING_SHIPMENT_FILTER;
+    if (query != null && !query.isBlank()) {
+      where += " AND strpos(lower(order_no), lower(?)) > 0";
+      args.add(query.strip());
     }
     long total =
         db.queryForObject("SELECT COUNT(*) FROM shop_order WHERE " + where, Long.class, args.toArray());

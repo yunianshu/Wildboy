@@ -267,7 +267,7 @@ describe("single-level product categories", () => {
     await flushPromises();
     expect(button(wrapper, "保存分类").attributes("disabled")).toBeDefined();
     await button(wrapper, "重新读取").trigger("click");
-    await button(wrapper, "返回检查").trigger("click");
+    await button(wrapper, "取消").trigger("click");
     expect(
       (wrapper.get('[name="categoryName"]').element as HTMLInputElement).value,
     ).toBe("本地草稿");
@@ -379,7 +379,7 @@ describe("product category and original/current prices", () => {
     const calls = fetcher.mock.calls.length;
     await button(wrapper, "筛选商品").trigger("click");
     await wrapper.get('[name="categoryFilter"]').setValue(gear.id);
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.get("tbody").findAll("tr")).toHaveLength(1);
     expect(wrapper.get("table").text()).toContain(discounted.name);
     expect(wrapper.get("table").text()).not.toContain(product.name);
@@ -405,7 +405,7 @@ describe("product category and original/current prices", () => {
     await wrapper.get('[name="originalPrice"]').setValue("249.99");
     await wrapper.get('[name="currentPrice"]').setValue("199.50");
     await wrapper.get('input[type="number"]').setValue("12");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.get(".dialog").text()).toContain("徒步装备");
     expect(wrapper.get(".dialog").text()).toContain("原价 ¥249.99");
     expect(wrapper.get(".dialog").text()).toContain("现价 ¥199.50");
@@ -420,7 +420,7 @@ describe("product category and original/current prices", () => {
     });
     await button(wrapper, "订单与发货").trigger("click");
     await flushPromises();
-    await button(wrapper, "查看").trigger("click");
+    await button(wrapper, "展开商品明细").trigger("click");
     expect(
       wrapper.get('[aria-label="订单 historical-order"]').text(),
     ).toContain("¥199.00");
@@ -434,14 +434,14 @@ describe("product category and original/current prices", () => {
     const { wrapper } = await render(fetcher, "/shop");
     await button(wrapper, "编辑").trigger("click");
     await wrapper.get('[name="originalPrice"]').setValue("100.00");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.text()).toContain("原价不能低于现价");
     await wrapper.get('[name="originalPrice"]').setValue("199.001");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.text()).toContain("请输入有效商品原价");
     await wrapper.get('[name="originalPrice"]').setValue("199.00");
     await wrapper.get('[name="productCategory"]').setValue("");
-    await wrapper.get("form").trigger("submit");
+    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.text()).toContain("选择有效的商品分类");
     expect(writes(fetcher)).toHaveLength(0);
   });
@@ -460,13 +460,13 @@ describe("product category and original/current prices", () => {
     await button(wrapper, "商品与库存").trigger("click");
     await flushPromises();
     await button(wrapper, "编辑").trigger("click");
-    await wrapper.get("form input").setValue("保留新名称");
+    await wrapper.get(".form-modal form input").setValue("保留新名称");
     expect(wrapper.text()).toContain("分类网络断开");
     expect(button(wrapper, "确认并保存").attributes("disabled")).toBeDefined();
     fail = false;
     await button(wrapper, "重新加载分类").trigger("click");
     await flushPromises();
-    expect((wrapper.get("form input").element as HTMLInputElement).value).toBe(
+    expect((wrapper.get(".form-modal form input").element as HTMLInputElement).value).toBe(
       "保留新名称",
     );
     expect(

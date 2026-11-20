@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import FormModal from "../components/FormModal.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 type Refund = {
   id: string;
@@ -16,12 +17,21 @@ type Refund = {
 };
 const items = ref<Refund[]>([]),
   page = ref(0),
+  total = ref<number>(),
   hasMore = ref(false),
   busy = ref(false),
   error = ref(""),
+  notice = ref(""),
   selected = ref<Refund | null>(null),
   action = ref(""),
-  note = ref("");
+  note = ref(""),
+  searchDraft = ref(""),
+  statusDraft = ref(""),
+  filters = ref({ query: "", status: "" });
+function applyFilters() {
+  filters.value = { query: searchDraft.value.trim(), status: statusDraft.value };
+  void load(0);
+}
 let generation = 0;
 const labels: Record<string, string> = {
   REQUESTED: "待审核",
@@ -39,12 +49,15 @@ async function load(next = 0) {
   busy.value = true;
   error.value = "";
   try {
-    const r = await request<{ items: Refund[]; hasMore: boolean }>(
-      `/admin/refunds?page=${next}&size=20`,
+    const params = new URLSearchParams({ page: String(next), size: "20" });
+    for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value);
+    const r = await request<{ items: Refund[]; total?: number; hasMore: boolean }>(
+      `/admin/refunds?${params}`,
     );
     if (n === generation && actor === currentUser.value) {
       items.value = r.items;
-      hasMore.value = r.hasMore;
+      total.value = r.total;
+    hasMore.value = r.hasMore;
       page.value = next;
     }
   } catch (e) {
@@ -87,10 +100,10 @@ async function confirm() {
     if (n === generation && actor === currentUser.value) {
       items.value = items.value.map((r) => (r.id === updated.id ? updated : r));
       selected.value = null;
+      notice.value = "退款状态：" + (labels[updated.status] || "已更新");
     }
   } catch (e) {
-    if (n === generation)
-      error.value = e instanceof Error ? e.message : "操作失败";
+    if (n === generation) error.value = errorMessage(e);
   } finally {
     if (n === generation) busy.value = false;
   }
@@ -98,6 +111,7 @@ async function confirm() {
 watch(currentUser, () => {
   generation++;
   items.value = [];
+  notice.value = "";
   selected.value = null;
   note.value = "";
   busy.value = false;
@@ -122,6 +136,15 @@ onUnmounted(() => {
     <UiState v-else-if="!items.length && !busy && !error" kind="empty" compact
       >暂无退款申请</UiState
     >
+    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
+    <form class="action-row" @submit.prevent="applyFilters">
+      <input v-model="searchDraft" maxlength="100" aria-label="搜索退款订单号" placeholder="订单号" />
+      <select v-model="statusDraft" aria-label="退款状态">
+        <option value="">全部退款状态</option>
+        <option v-for="(label, value) in labels" :key="value" :value="value">{{ label }}</option>
+      </select>
+      <button class="secondary" :disabled="busy">查询</button>
+    </form>
     <div v-if="items.length" class="table-scroll" :aria-busy="busy">
       <table>
         <thead>
@@ -135,13 +158,13 @@ onUnmounted(() => {
         </thead>
         <tbody>
           <tr v-for="row in items" :key="row.id">
-            <td>{{ row.orderNo }}</td>
+            <td><RouterLink class="text-button" :to="{ path: '/shop', query: { tab: 'orders', orderQuery: row.orderNo } }">{{ row.orderNo }}</RouterLink></td>
             <td class="nowrap">¥{{ (row.amountCents / 100).toFixed(2) }}</td>
             <td class="refund-details">
               {{ row.reason }}
               <p class="muted">{{ row.decisionNote || row.lastError }}</p>
             </td>
-            <td class="nowrap">{{ labels[row.status] || row.status }}</td>
+            <td class="nowrap"><span class="status-pill" :class="row.status === 'SUCCESS' ? 'tone-success' : row.status === 'ABNORMAL' ? 'tone-danger' : row.status === 'REQUESTED' ? 'tone-warning' : 'tone-neutral'">{{ labels[row.status] || row.status }}</span></td>
             <td>
               <div class="refund-actions">
                 <template v-if="row.status === 'REQUESTED'"
@@ -181,22 +204,7 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="退款分页">
-      <button
-        class="secondary"
-        :disabled="busy || page === 0"
-        @click="load(page - 1)"
-      >
-        上一页</button
-      ><span>第 {{ page + 1 }} 页</span
-      ><button
-        class="secondary"
-        :disabled="busy || !hasMore"
-        @click="load(page + 1)"
-      >
-        下一页
-      </button>
-    </nav>
+    <PaginationBar :page="page" :page-size="20" :total="total" :has-more="hasMore" :busy="busy" label="退款分页" @change="load" />
     <FormModal :busy="busy" v-if="selected" @close="close"
       ><template #title
         ><h2 class="modal-heading">
@@ -205,7 +213,7 @@ onUnmounted(() => {
               ? "拒绝退款"
               : action === "verify"
                 ? "核对退款结果"
-                : "确认全额退款"
+                : action === "retry" ? "重试原退款单" : "确认全额退款"
           }}
         </h2></template
       >
@@ -216,12 +224,11 @@ onUnmounted(() => {
       <p v-if="action === 'approve' || action === 'retry'">
         将向微信发起原路退款，成功后不可撤回。结果未确认前不恢复库存。
       </p>
-      <label v-if="action === 'reject'"
-        >拒绝原因<textarea
+      <label v-if="action === 'reject' || action === 'approve'"
+        >{{ action === "reject" ? "拒绝原因" : "审核备注（选填）" }}<textarea
           v-model="note"
           maxlength="200"
           :disabled="busy"
-          placeholder="拒绝原因"
         />
       </label>
       <p v-if="error" class="error-box" role="alert">{{ error }}</p>

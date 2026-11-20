@@ -143,7 +143,10 @@ Page({
           || (path && !displayAvatar(user))) throw new Error("资料保存结果未确认，请重试或返回查看");
       markDisplayProfileSeen(userId);
       this.setData({ user, nickname: user.nickname, avatarPreview: displayAvatar(user), avatarPath: "", saved: true });
-      if (this.visible) this.finish();
+      if (this.visible) {
+        wx.showToast?.({ title: "资料已保存", icon: "success" });
+        this.finish();
+      }
     } catch (error) {
       if (valid()) this.setData({ error: message(error) });
       else if (this.alive && n === this.epoch) this.clearAccount();

@@ -24,6 +24,9 @@ type OrderView = Order & {
 import { enterPage } from "../../utils/page-motion";
 
 Page({
+  _listSession: -1,
+  _listLoaded: false,
+  _afterSalesId: "",
   data: {
     pageMotionClass: "",
     loggedIn: false,
@@ -46,14 +49,30 @@ Page({
     refundOrderId: "", refundRecord: null as Refund | null, refundReRequestable: false, refundAmountText: "", refundStatusText: "", refundReason: "", refundError: "",
     error: "",
   },
-  onShow() {
+  onLoad(query: Record<string, string | undefined>) {
+    this._afterSalesId = safeId(query.afterSales);
+  },
+  async onShow() {
     enterPage(this);
-    this.setData({ loggedIn: hasSession() });
-    void this.load();
+    const session = sessionVersion();
+    const loggedIn = hasSession();
+    if (this._listSession !== session || !loggedIn) {
+      this._listSession = session;
+      this._listLoaded = false;
+      this.setData({ items: [], page: 0, hasMore: false });
+    }
+    this.setData({ loggedIn });
+    if (!loggedIn) return;
+    if (!this._listLoaded) await this.load(true);
+    if (!this._afterSalesId || !isSessionCurrent(session)) return;
+    const id = this._afterSalesId;
+    this._afterSalesId = "";
+    await this.loadRefund(id);
   },
   onHide() {
+    this._afterSalesId = "";
     epoch.invalidate();
-    this.setData({ items: [], busyId: "", refundOrderId:"",refundRecord:null,refundReRequestable:false,refundAmountText:"",refundReason:"",refundError:"" });
+    this.setData({ loading: false, loadingMore: false, busyId: "", refundOrderId:"",refundRecord:null,refundReRequestable:false,refundAmountText:"",refundReason:"",refundError:"" });
   },
   onReachBottom() {
     void this.load(false);
@@ -115,6 +134,8 @@ Page({
         `/orders?page=${page}&size=20${this.data.selected ? "&status=" + this.data.selected : ""}`,
       );
       if (epoch.valid(current) && isSessionCurrent(session)) {
+        this._listLoaded = true;
+        this._listSession = session;
         const rows = result.items.map((order) => this.view(order));
         const previous = reset ? [] : this.data.items;
         const ids = new Set(previous.map((item) => item.id));
@@ -153,9 +174,21 @@ Page({
     void this.load();
   },
   openDetail(event: WechatMiniprogram.TouchEvent) {
+    if (this.data.busyId || this.data.loading) return;
     const id = safeId(event.currentTarget.dataset.id);
     if (!id) return;
-    wx.navigateTo({ url: `/pages/order-detail/index?id=${id}&type=shop` });
+    const session = sessionVersion();
+    wx.navigateTo({
+      url: `/pages/order-detail/index?id=${id}&type=shop`,
+      events: {
+        orderUpdated: (order: Order) => {
+          if (isSessionCurrent(session) && order.id === id) this.updateOrder(order);
+        },
+        afterSales: () => {
+          if (isSessionCurrent(session)) this._afterSalesId = id;
+        },
+      },
+    });
   },
   signIn() {
     wx.navigateTo({ url: "/pages/login/index" });
@@ -172,6 +205,7 @@ Page({
       const order = await payOrder(id, () => epoch.valid(current));
       if (!epoch.valid(current) || !isSessionCurrent(session)) return;
       this.updateOrder(order);
+      if (order.status === "PAID") wx.showToast?.({ title: "付款已确认", icon: "success" });
       if (order.status === "PENDING_PAYMENT")
         wx.showModal({
           title: "支付结果确认中",
@@ -209,8 +243,10 @@ Page({
     }
   },
   async openRefund(event:WechatMiniprogram.TouchEvent) {
-    const id=safeId(event.currentTarget.dataset.id);
-    if(!id||this.data.busyId||this.data.loading||this.data.loadingMore)return;
+    await this.loadRefund(safeId(event.currentTarget.dataset.id));
+  },
+  async loadRefund(id: string) {
+    if (!id || !hasSession() || this.data.busyId || this.data.loading || this.data.loadingMore) return;
     const current=epoch.next(),session=sessionVersion();
     this.setData({busyId:id,error:""});
     try {
@@ -230,7 +266,10 @@ Page({
     const current=epoch.next(),session=sessionVersion();this.setData({busyId:id,refundError:""});
     try {
       const record=await request<Refund>(`/orders/${id}/refund`,"POST",{reason});
-      if(epoch.valid(current)&&isSessionCurrent(session))this.setData({refundRecord:record,refundReRequestable:refundReRequestable(record),refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
+      if (epoch.valid(current) && isSessionCurrent(session)) {
+        this.setData({refundRecord:record,refundReRequestable:refundReRequestable(record),refundStatusText:refundLabels[record.status]||record.status,refundReason:""});
+        wx.showToast?.({ title: "申请已提交", icon: "success" });
+      }
     } catch(error){if(epoch.valid(current))this.setData({refundError:message(error),...(!hasSession()?{items:[],loggedIn:false,refundOrderId:"",refundRecord:null,refundReRequestable:false}:{})});}
     finally{if(epoch.valid(current))this.setData({busyId:""});}
   },

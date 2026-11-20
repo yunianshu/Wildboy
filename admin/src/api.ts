@@ -9,6 +9,7 @@ import type {
 // Keep credentials in memory, not localStorage/sessionStorage. Reload requires sign-in.
 let token = "";
 let sessionVersion = 0;
+export const sessionExpired = ref(false);
 export const currentUser = ref<User | null>(null);
 export class ApiError extends Error {
   constructor(
@@ -19,7 +20,8 @@ export class ApiError extends Error {
     super(message);
   }
 }
-export function clearSession() {
+export function clearSession(expired = false) {
+  sessionExpired.value = expired;
   sessionVersion++;
   token = "";
   currentUser.value = null;
@@ -52,7 +54,7 @@ export async function request<T>(
   if (startedSession !== sessionVersion)
     throw new ApiError(0, "SESSION_CHANGED", "登录身份已变化，请重新操作。");
   if (!response.ok) {
-    if (response.status === 401) clearSession();
+    if (response.status === 401 && token) clearSession(true);
     const fallback =
       response.status === 409
         ? "记录已被其他人修改或状态发生变化，请重新加载后再操作。"

@@ -19,14 +19,18 @@
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
     <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">已付款请刷新结果，勿重复下单；未付款可继续支付。</view>
     <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="payment-actions">
-      <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
-      <button class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="payExisting">继续支付</button>
+      <button class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
+      <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="payExisting">继续支付</button>
     </view>
     <button class="secondary orders-link" bindtap="orders">查看我的订单</button>
   </block>
   <block wx:elif="{{product}}">
     <view class="title">确认订单</view>
-    <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="muted">数量 × {{quantity}}</view><view class="price">{{totalText}}</view></view></view>
+    <view class="order-product"><image src="{{product.imageUrl}}" mode="aspectFill" /><view class="order-product-info"><view class="product-name">{{product.name}}</view><view class="action-row">
+      <button class="secondary" size="mini" data-delta="-1" bindtap="changeQuantity" disabled="{{busy || quantity <= 1 || recoveringOrder || !!recoveryError}}" aria-label="减少数量">减少</button>
+      <text>数量 × {{quantity}}</text>
+      <button class="secondary" size="mini" data-delta="1" bindtap="changeQuantity" disabled="{{busy || quantity >= product.stock || quantity >= 99 || recoveringOrder || !!recoveryError}}" aria-label="增加数量">增加</button>
+    </view><view class="price">{{totalText}}</view></view></view>
     <ui-state wx:if="{{quoteLoading}}" kind="loading" compact="{{true}}">正在核对订单金额…</ui-state>
     <view wx:elif="{{quoteLoginRequired}}" class="notice">登录后确认当前报价<button class="secondary" bindtap="login">微信登录</button></view>
     <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="resumeCheckout" disabled="{{busy || recoveringOrder}}">重新获取价格</button></view>
@@ -38,7 +42,7 @@
       <block wx:if="{{selectedAddressId}}"><view class="shipping-name">{{recipientName}} · {{phone}}</view><view class="shipping-detail">{{address}}</view><view class="shipping-change">更换地址<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view></block>
       <view wx:else class="shipping-select">选择收货地址<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
     </view>
-    <checkbox-group bindchange="consentChange"><view class="consent"><checkbox value="yes" checked="{{consent}}" color="#1D6342" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view>我已阅读并同意当前版本<text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
+    <checkbox-group bindchange="consentChange"><view class="consent"><checkbox id="legal-consent" value="yes" checked="{{consent}}" color="#1D6342" disabled="{{busy}}" aria-label="同意当前协议及订单信息使用" /><view><label for="legal-consent">我已阅读并同意当前版本</label><text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意为订单履约处理收货与支付信息。</view></view></checkbox-group>
     <view class="notice">价格与库存以下单确认为准。取消支付后，可在“我的订单”继续付款。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
     <view wx:if="{{recoveryError || recoveringOrder}}" class="notice" aria-role="status">
@@ -46,7 +50,7 @@
       <button class="secondary" bindtap="resumeCheckout" loading="{{recoveringOrder}}" disabled="{{busy || recoveringOrder}}">核对原订单</button>
     </view>
     <button wx:if="{{!legal}}" class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="retry">重新加载协议</button>
-    <button class="primary submit" loading="{{busy}}" disabled="{{busy || recoveringOrder || !!recoveryError || !quote || quoteLoading || !legal || addressLoading || !selectedAddressId || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : (quote ? (quote.totalCents === 0 ? '提交免支付订单' : '提交订单并支付 ' + totalText) : '等待确认价格')}}</button>
+    <button class="primary submit" loading="{{busy}}" disabled="{{busy || recoveringOrder || !!recoveryError || !quote || quoteLoading || !legal || addressLoading || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : (quote ? (quote.totalCents === 0 ? '提交免支付订单' : '提交订单并支付 ' + totalText) : '等待确认价格')}}</button>
   </block>
   <ui-state wx:if="{{error && !product && !order}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
 </view>

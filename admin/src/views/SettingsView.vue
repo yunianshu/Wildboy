@@ -5,6 +5,8 @@ import { onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import AppIcon from "../components/AppIcon.vue";
 import FormModal from "../components/FormModal.vue";
+import PaginationBar from "../components/PaginationBar.vue";
+import DateTimeField from "../components/DateTimeField.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import UiState from "../components/UiState.vue";
 // Match ContentService.safeImage: do not preview an image the API will reject.
@@ -153,12 +155,23 @@ async function loadArticles(n: number, actor: typeof currentUser.value) {
     if (n === epoch) sourceError.value = "文章选项加载失败：" + errorMessage(e);
   }
 }
+const settingsTab = ref<"home" | "paths" | "reconcile">("home");
+const settingsTabs = [
+  { key: "home", label: "首页入口" },
+  { key: "paths", label: "微信订单路径" },
+  { key: "reconcile", label: "微信订单对账" },
+] as const;
+function protectSettingsDraft(event: BeforeUnloadEvent) {
+  if (dirty.value || busy.value) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
+}
+onMounted(() => window.addEventListener("beforeunload", protectSettingsDraft));
+onUnmounted(() => window.removeEventListener("beforeunload", protectSettingsDraft));
 function changeType(entry: Entry) {
-  entry.page = entry.type === "PAGE" ? "ACTIVITIES" : "";
-  entry.articleId = entry.type === "ARTICLE" ? "OFFICIAL" : "";
-  entry.popupTitle = "";
-  entry.popupText = "";
-  entry.popupImageUrl = "";
+  if (entry.type === "PAGE" && !entry.page) entry.page = "ACTIVITIES";
+  if (entry.type === "ARTICLE" && !entry.articleId) entry.articleId = "OFFICIAL";
   success.value = "";
 }
 function uploaded(entry: Entry, url: string) {
@@ -229,6 +242,7 @@ type OrderCenterStatus = {
   enabled: boolean;
   orderDetailPathConfigured: boolean;
   orderDetailPath: string;
+  savedMsgJumpPath?: string;
   confirmationCompleted: boolean;
   pathErrcode: number;
   confirmationErrcode: number;
@@ -295,10 +309,17 @@ async function saveOrderPath() {
 onMounted(() => void loadOrderCenter());
 
 // 发货消息跳转路径：用户点微信发货/确认收货消息直达小程序订单页（set_msg_jump_path）。
+const DEFAULT_MSG_PATH = "pages/order-detail/index";
 const jumpDialog = ref(false),
-  jumpValue = ref("pages/order-detail/index"),
+  jumpValue = ref(DEFAULT_MSG_PATH),
   jumpSaving = ref(false),
-  jumpError = ref("");
+  jumpError = ref(""),
+  jumpNotice = ref("");
+function openJumpDialog() {
+  jumpValue.value = orderCenter.value?.savedMsgJumpPath || DEFAULT_MSG_PATH;
+  jumpError.value = "";
+  jumpDialog.value = true;
+}
 async function saveJumpPath() {
   const path = jumpValue.value.trim();
   if (!path || path.includes("://")) {
@@ -320,7 +341,9 @@ async function saveJumpPath() {
       jumpError.value = `微信返回错误码 ${result.errcode}；需先接入确认收货组件。`;
       return;
     }
+    if (orderCenter.value) orderCenter.value.savedMsgJumpPath = path;
     jumpDialog.value = false;
+    jumpNotice.value = "消息跳转路径已配置。";
   } catch (e) {
     jumpError.value = errorMessage(e);
   } finally {
@@ -346,37 +369,47 @@ const wxOrders = ref<WechatOrderRow[]>([]),
   wxOpenid = ref(""),
   wxBegin = ref(""),
   wxEnd = ref(""),
-  wxLastIndex = ref(""),
+  wxPage = ref(0),
   wxHasMore = ref(false);
+let wxCursors = [""];
+let wxAppliedParams = "";
 function epochOf(local: string): number | null {
   if (!local) return null;
-  const ms = Date.parse(local);
+  const ms = Date.parse(local + ":00+08:00");
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
 }
-async function queryWechatOrders(carry = "") {
+async function queryWechatOrders() {
   if (wxLoading.value) return;
   const begin = epochOf(wxBegin.value);
   const end = epochOf(wxEnd.value);
-  if (!carry) {
-    if (wxBegin.value && begin === null) {
-      wxError.value = "开始时间格式无效。";
-      return;
-    }
-    if (wxEnd.value && end === null) {
-      wxError.value = "结束时间格式无效。";
-      return;
-    }
+  if (wxBegin.value && begin === null || wxEnd.value && end === null) {
+    wxError.value = "支付时间格式无效。";
+    return;
   }
+  if (begin !== null && end !== null && begin > end) {
+    wxError.value = "开始时间不能晚于结束时间。";
+    return;
+  }
+  const params = new URLSearchParams({ size: "20" });
+  if (begin !== null) params.set("begin", String(begin));
+  if (end !== null) params.set("end", String(end));
+  if (wxState.value !== "") params.set("orderState", String(wxState.value));
+  if (wxOpenid.value.trim()) params.set("openid", wxOpenid.value.trim());
+  await loadWechatPage(0, params.toString(), true);
+}
+async function changeWechatPage(page: number) {
+  if (wxCursors[page] === undefined) return;
+  await loadWechatPage(page, wxAppliedParams, false);
+}
+async function loadWechatPage(page: number, appliedParams: string, newQuery: boolean) {
+  if (wxLoading.value) return;
+  const actor = currentUser.value;
   wxLoading.value = true;
   wxError.value = "";
   try {
-    const params = new URLSearchParams();
-    if (begin !== null) params.set("begin", String(begin));
-    if (end !== null) params.set("end", String(end));
-    if (wxState.value !== "") params.set("orderState", String(wxState.value));
-    if (wxOpenid.value.trim()) params.set("openid", wxOpenid.value.trim());
-    if (carry) params.set("lastIndex", carry);
-    else params.set("size", "20");
+    const params = new URLSearchParams(appliedParams);
+    const cursor = newQuery ? "" : wxCursors[page];
+    if (cursor) params.set("lastIndex", cursor);
     const result = await request<{
       attempted: boolean;
       errcode: number;
@@ -385,6 +418,7 @@ async function queryWechatOrders(carry = "") {
       hasMore: boolean;
       orders: WechatOrderRow[];
     }>(`/admin/wechat-order-center/wechat-orders?${params.toString()}`);
+    if (actor !== currentUser.value) return;
     if (!result.attempted) {
       wxError.value = "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
       return;
@@ -393,9 +427,16 @@ async function queryWechatOrders(carry = "") {
       wxError.value = `微信返回错误码 ${result.errcode}。`;
       return;
     }
-    wxOrders.value = carry ? wxOrders.value.concat(result.orders) : result.orders;
-    wxLastIndex.value = result.lastIndex;
-    wxHasMore.value = result.hasMore;
+    if (newQuery) {
+      wxCursors = [""];
+      wxAppliedParams = appliedParams;
+    }
+    const nextCursor = result.lastIndex;
+    wxCursors = wxCursors.slice(0, page + 1);
+    wxHasMore.value = !!(result.hasMore && nextCursor && !wxCursors.includes(nextCursor));
+    if (wxHasMore.value) wxCursors.push(nextCursor);
+    wxOrders.value = result.orders;
+    wxPage.value = page;
     wxQueried.value = true;
   } catch (e) {
     wxError.value = errorMessage(e);
@@ -411,7 +452,7 @@ function wechatOrderStateLabel(state: number | undefined): string {
   <main class="workspace settings-workspace">
     <div class="page-heading">
       <h1>基础配置</h1>
-      <div class="settings-actions">
+      <div v-show="settingsTab === 'home'" class="settings-actions">
         <button class="secondary" :disabled="busy" @click="load">
           <AppIcon name="refresh" :size="16" />重新加载配置
         </button>
@@ -426,13 +467,21 @@ function wechatOrderStateLabel(state: number | undefined): string {
         </button>
       </div>
     </div>
-    <UiState v-if="loading && !config" kind="loading" compact
+    <nav class="task-tabs" aria-label="配置类型">
+      <button v-for="tab in settingsTabs" :key="tab.key" type="button"
+        :class="settingsTab === tab.key ? 'primary' : 'secondary'"
+        :aria-pressed="settingsTab === tab.key" @click="settingsTab = tab.key">
+        {{ tab.label }}
+      </button>
+    </nav>
+    <UiState v-if="loading && !config && settingsTab === 'home'" kind="loading" compact
       >正在读取首页配置…</UiState
     >
     <UiState v-if="error" kind="error" compact>{{ error }}</UiState>
     <p v-if="success" class="settings-notice" role="status">{{ success }}</p>
     <form
       v-if="config"
+      v-show="settingsTab === 'home'"
       id="home-shortcut-settings"
       class="settings-form"
       novalidate
@@ -577,9 +626,10 @@ function wechatOrderStateLabel(state: number | undefined): string {
               alt="弹窗图片预览"
               referrerpolicy="no-referrer"
             />
-            <p v-else class="shortcut-note">
-              尚未配置二维码/图片。小程序会显示未配置提示。
-            </p>
+            <button v-if="entry.popupImageUrl" type="button" class="text-button"
+              :disabled="saving || uploads[entry.slot]" @click="entry.popupImageUrl = ''">
+              移除图片
+            </button>
           </div>
           <UiState
             v-if="entry.type === 'ARTICLE' && sourceError"
@@ -608,7 +658,7 @@ function wechatOrderStateLabel(state: number | undefined): string {
         }}
       </p>
     </form>
-    <section class="order-center-card" aria-labelledby="order-center-heading">
+    <section v-show="settingsTab === 'paths'" class="order-center-card" aria-labelledby="order-center-heading">
       <h2 id="order-center-heading">微信电商订单</h2>
       <p class="order-center-note">
         订单数据由微信支付交易自动同步；配置订单详情路径后，用户可在微信「小程序购物订单」中跳回小程序订单详情页。需先在小程序后台签署订单中心授权协议。
@@ -635,6 +685,9 @@ function wechatOrderStateLabel(state: number | undefined): string {
           {{ orderCenter.orderDetailPath }}
         </li>
       </ul>
+      <p class="muted">消息跳转路径（后台最近保存） {{ orderCenter?.savedMsgJumpPath || "暂无记录" }}</p>
+      <p v-if="jumpNotice" class="success-box" role="status">{{ jumpNotice }}</p>
+      <p v-if="pathSuccess" class="success-box" role="status">{{ pathSuccess }}</p>
       <div class="order-center-actions">
         <button
           class="secondary"
@@ -649,7 +702,7 @@ function wechatOrderStateLabel(state: number | undefined): string {
           @click="openPathDialog"
           >配置订单路径</button
         >
-        <button class="secondary" type="button" @click="jumpDialog = true"
+        <button class="secondary" type="button" @click="openJumpDialog"
           >设置消息跳转路径</button
         >
       </div>
@@ -658,7 +711,6 @@ function wechatOrderStateLabel(state: number | undefined): string {
       ><template #title><h2>配置订单详情路径</h2></template>
       <form id="order-path-form" class="form-section" @submit.prevent="saveOrderPath">
         <p v-if="pathError" class="error-box" role="alert">{{ pathError }}</p>
-        <p v-if="pathSuccess" role="status">{{ pathSuccess }}</p>
         <label
           >跳转路径（需包含 ${商品订单号} 占位符）
           <input
@@ -716,20 +768,14 @@ function wechatOrderStateLabel(state: number | undefined): string {
         </div>
       </form>
     </FormModal>
-    <section class="order-center-card" aria-labelledby="wechat-orders-heading">
+    <section v-show="settingsTab === 'reconcile'" class="order-center-card" aria-labelledby="wechat-orders-heading">
       <h2 id="wechat-orders-heading">微信订单对账</h2>
       <p class="order-center-note">
         按微信侧发货管理维度查询支付单（get_order_list），用于核对发货/确认收货/结算状态；数据来自微信，仅作对账用途。
       </p>
       <form class="wechat-orders-filters" @submit.prevent="queryWechatOrders()">
-        <label
-          >支付开始
-          <input v-model="wxBegin" type="datetime-local" name="wxBegin"
-        /></label>
-        <label
-          >支付结束
-          <input v-model="wxEnd" type="datetime-local" name="wxEnd"
-        /></label>
+        <DateTimeField id="wxBegin" v-model="wxBegin" label="支付开始（北京时间）" />
+        <DateTimeField id="wxEnd" v-model="wxEnd" label="支付结束（北京时间）" />
         <label
           >状态
           <select v-model="wxState" name="wxState">
@@ -746,9 +792,12 @@ function wechatOrderStateLabel(state: number | undefined): string {
         <button class="primary" type="submit" :disabled="wxLoading">{{
           wxLoading ? "查询中…" : "查询"
         }}</button>
+        <button type="button" class="secondary" :disabled="wxLoading"
+          @click="wxBegin = ''; wxEnd = ''; wxState = ''; wxOpenid = ''; queryWechatOrders()">重置</button>
       </form>
       <p v-if="wxError" class="error-box" role="alert">{{ wxError }}</p>
-      <table v-if="wxOrders.length" class="wechat-orders-table">
+      <div v-if="wxOrders.length" class="table-scroll">
+      <table class="wechat-orders-table">
         <thead>
           <tr>
             <th>微信交易单号</th>
@@ -762,10 +811,13 @@ function wechatOrderStateLabel(state: number | undefined): string {
         <tbody>
           <tr v-for="(row, i) in wxOrders" :key="row.transaction_id || i">
             <td>{{ row.transaction_id || "—" }}</td>
-            <td>{{ row.merchant_trade_no || "—" }}</td>
+            <td>
+              <RouterLink v-if="row.merchant_trade_no" :to="{ path: '/shop', query: { tab: 'orders', orderQuery: row.merchant_trade_no } }">{{ row.merchant_trade_no }}</RouterLink>
+              <span v-else>—</span>
+            </td>
             <td>{{ wechatOrderStateLabel(row.order_state) }}</td>
             <td>{{
-              row.pay_time ? new Date(row.pay_time * 1000).toLocaleString() : "—"
+              row.pay_time ? new Date(row.pay_time * 1000).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" }) : "—"
             }}</td>
             <td>{{
               typeof row.paid_amount === "number"
@@ -776,21 +828,15 @@ function wechatOrderStateLabel(state: number | undefined): string {
           </tr>
         </tbody>
       </table>
+      </div>
       <UiState
         v-else-if="wxQueried && !wxLoading"
         kind="empty"
         compact
         >没有符合条件的微信支付单</UiState
       >
-      <div v-if="wxHasMore" class="order-center-actions">
-        <button
-          class="secondary"
-          type="button"
-          :disabled="wxLoading"
-          @click="queryWechatOrders(wxLastIndex)"
-          >加载更多</button
-        >
-      </div>
+      <PaginationBar v-if="wxQueried" :page="wxPage" :page-size="20" :has-more="wxHasMore"
+        :busy="wxLoading" label="微信订单对账分页" @change="changeWechatPage" />
     </section>
   </main>
 </template>

@@ -234,6 +234,7 @@ async function save() {
       if (rich.value.dirty) return; // 图文保存失败，编辑器内已展示错误
     }
     if (dirty.value) await saveMetaRequest();
+    else success.value = "正文已保存。";
   } finally {
     if (alive) saving.value = false;
   }
@@ -241,11 +242,12 @@ async function save() {
 async function reload() {
   if (!id.value || saving.value || rich.value?.busy) return;
   if (
-    dirty.value &&
+    (dirty.value || rich.value?.dirty) &&
     !(await askConfirm("重新加载会丢弃未保存的修改，是否继续？"))
   )
     return;
   await load();
+  if (current.value) await rich.value?.load?.();
 }
 // 封面与正文图片一律上传到 /admin/media，与 ImageUpload / MarkdownEditor 同源。
 const coverInput = ref<HTMLInputElement | null>(null),
@@ -360,6 +362,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 </script>
 <template>
   <main class="workspace article-editor">
+    <h1 class="sr-only">{{ id ? "编辑文章" : "新建文章" }}</h1>
     <div class="article-topbar">
       <div class="article-topbar-left">
         <RouterLink class="article-back" to="/articles">
@@ -464,6 +467,7 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
       </button>
     </p>
     <p v-if="success" role="status" class="success-box">{{ success }}</p>
+    <p v-if="current?.status === 'DRAFT' && (dirty || rich?.dirty)" class="muted">请先保存修改，再发布。</p>
     <UiState v-if="loading" kind="loading" compact>正在加载文章…</UiState>
     <template v-else>
       <!-- 工作台模式（Linear 式）：左侧文章资料栏 + 右侧编辑画布 -->
@@ -564,6 +568,15 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
                     {{ a.title }}
                   </option>
                 </select>
+                <button
+                  v-if="!form.activityId && sourceMore"
+                  type="button"
+                  class="text-button"
+                  :disabled="locked || saving || sourceBusy"
+                  @click="loadSources(true)"
+                >
+                  {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
+                </button>
               </div>
             </section>
           </template>
@@ -655,6 +668,15 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
                     {{ a.title }}
                   </option>
                 </select>
+                <button
+                  v-if="!form.activityId && sourceMore"
+                  type="button"
+                  class="text-button"
+                  :disabled="locked || saving || sourceBusy"
+                  @click="loadSources(true)"
+                >
+                  {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
+                </button>
               </span>
             </div>
           </div>

@@ -219,7 +219,7 @@ it("requires a cancellable subscription confirmation and does not claim a retry 
   await w
     .get('[role="dialog"]')
     .findAll("button")
-    .find((b) => b.text() === "返回检查")!
+    .find((b) => b.text() === "取消")!
     .trigger("click");
   expect(f.mock.calls.filter(([, o]) => o?.method === "POST")).toHaveLength(0);
   await open();

@@ -23,11 +23,11 @@ Page({
   },
   onShow() {
     enterPage(this);
-    if (this._path) void this.load();
+    if (this._path && !this.data.article) void this.load();
   },
   onHide() {
     this._epoch++;
-    this.setData({ article: null });
+    this.setData({ loading: false });
   },
   onUnload() {
     this._epoch++;
@@ -70,6 +70,22 @@ Page({
     } finally {
       if (n === this._epoch) this.setData({ loading: false });
     }
+  },
+  previewCover() {
+    const cover = this.data.article?.coverUrl;
+    if (cover) wx.previewImage({ urls: [cover] });
+  },
+  openActivity() {
+    const id = safeId(this.data.article?.activityId);
+    if (id) wx.navigateTo({ url: "/pages/detail/index?id=" + id });
+  },
+  onShareAppMessage() {
+    const article = this.data.article;
+    return article ? {
+      title: article.title,
+      path: "/pages/article/index?id=" + encodeURIComponent(article.id),
+      imageUrl: article.coverUrl,
+    } : { path: "/pages/article/index?official=1" };
   },
   retry() {
     void this.load();

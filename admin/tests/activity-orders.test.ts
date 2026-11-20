@@ -72,6 +72,7 @@ beforeEach(() => {
       order.status = "REFUND_PENDING";
       return ok(refund);
     }
+    if (url.endsWith("/participants")) return ok([]);
     if (url.endsWith("/refund")) return ok(refund);
     if (options.method) return ok({ ...order, status: "PENDING_PAYMENT" });
     return ok({
@@ -146,7 +147,7 @@ describe("activity order management", () => {
     expect(wrapper.text()).not.toContain(base.userId);
     await button("查看用户标识").trigger("click");
     expect(wrapper.text()).toContain(base.userId);
-    await button("关闭").trigger("click");
+    await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
     await open();
     expect(wrapper.text()).not.toContain(base.userId);
   });
@@ -166,13 +167,13 @@ describe("activity order management", () => {
     await open();
     expect(wrapper.text()).toContain("免支付已确认");
     expect(wrapper.text()).toContain("免支付订单，无微信支付交易");
-    expect(wrapper.text()).not.toContain("已支付");
-    await button("关闭").trigger("click");
+    expect(wrapper.get("table").text()).not.toContain("已支付");
+    await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
     order.status = "CLOSED";
     await button("刷新订单").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("免费报名已取消");
-    expect(wrapper.text()).not.toContain("已退款");
+    expect(wrapper.get("table").text()).not.toContain("已退款");
   });
   it("approves only after confirmation, passes refund version and keeps processing distinct from success", async () => {
     await view();
@@ -191,7 +192,7 @@ describe("activity order management", () => {
       version: 4,
     });
     expect(wrapper.text()).toContain("退款处理中");
-    expect(wrapper.text()).not.toContain("已退款");
+    expect(wrapper.get("table").text()).not.toContain("已退款");
     await button("核对退款结果").trigger("click");
     await flushPromises();
     expect(JSON.parse(writes()[1][1].body)).toEqual({
@@ -217,7 +218,7 @@ describe("activity order management", () => {
     expect(wrapper.text()).toContain("不会自动覆盖");
     expect(button("拒绝退款").attributes("disabled")).toBeDefined();
     refund.version = 7;
-    await button("重新加载退款资料").trigger("click");
+    await button("刷新详情").trigger("click");
     await flushPromises();
     await wrapper.get('[aria-label="退款审核备注"]').setValue("复核原因");
     await button("拒绝退款").trigger("click");
@@ -248,7 +249,7 @@ describe("activity order management", () => {
     expect(button("批准全额退款").attributes("disabled")).toBeDefined();
     await button("批准全额退款").trigger("click");
     expect(writes()).toHaveLength(1);
-    await button("重新加载退款资料").trigger("click");
+    await button("刷新详情").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("新申请原因");
     expect(writes()).toHaveLength(1);
@@ -276,7 +277,7 @@ describe("activity order management", () => {
 
     refund = { ...refund, status: "SUCCESS", version: 6 };
     order.status = "REFUNDED";
-    await button("重新加载退款资料").trigger("click");
+    await button("刷新详情").trigger("click");
     await flushPromises();
     const dialog = wrapper.get('[role="dialog"]');
     expect(dialog.text()).toContain("订单编号ACT-001");
@@ -295,32 +296,19 @@ describe("activity order management", () => {
     await flushPromises();
     expect(writes()[0][0]).toBe("/api/v1/admin/activity-orders/ao1/verify");
     expect(wrapper.text()).toContain("待支付");
-    expect(wrapper.text()).not.toContain("已支付");
+    expect(wrapper.get("table").text()).not.toContain("已支付");
   });
-  it("loads participant details only on request, masks them and clears them on close", async () => {
+  it("loads masked participant details when opening and clears them on close", async () => {
     await view();
+    const defaults = fetcher.getMockImplementation() as (url: string, options?: RequestInit) => Promise<unknown>;
+    fetcher.mockImplementation((url, options) => url.endsWith("/participants")
+      ? Promise.resolve(ok([
+          { id: "p1", participantName: "参***", phone: "138****5678", idNumber: "350***********1234" },
+          { id: "p2", participantName: "另一个人", phone: "123-4567", idNumber: "" },
+        ]))
+      : defaults(url, options));
     await open();
-    expect(fetcher.mock.calls.some((c) => c[0].endsWith("/participants"))).toBe(
-      false,
-    );
-    fetcher.mockResolvedValueOnce(
-      ok([
-        {
-          id: "p1",
-          participantName: "参***",
-          phone: "138****5678",
-          idNumber: "350***********1234",
-        },
-        {
-          id: "p2",
-          participantName: "另一个人",
-          phone: "123-4567",
-          idNumber: "",
-        },
-      ]),
-    );
-    await button("加载参加者").trigger("click");
-    await flushPromises();
+    expect(fetcher.mock.calls.some((c) => c[0].endsWith("/participants"))).toBe(true);
     expect(wrapper.text()).not.toContain("13812345678");
     expect(wrapper.text()).not.toContain("参加者姓名");
     expect(wrapper.text()).toContain("350***********1234");
@@ -349,10 +337,10 @@ describe("activity order management", () => {
     expect(wrapper.text()).toContain("13812345678");
     await button("隐藏姓名电话").trigger("click");
     expect(wrapper.text()).not.toContain("13812345678");
-    await button("关闭").trigger("click");
+    await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
     await open();
     expect(wrapper.text()).not.toContain("13812345678");
-    expect(button("加载参加者").exists()).toBe(true);
+    expect(wrapper.text()).toContain("138****5678");
   });
   it("retries only the existing unknown refund after confirmation with its version", async () => {
     refund.status = "UNKNOWN";
@@ -375,7 +363,7 @@ describe("activity order management", () => {
       refundId: "r1",
       version: 4,
     });
-    expect(wrapper.text()).not.toContain("已退款");
+    expect(wrapper.get("table").text()).not.toContain("已退款");
   });
   it("requires reason and inline confirmation before an administrator requests a full refund", async () => {
     refund = {};
@@ -397,7 +385,7 @@ describe("activity order management", () => {
     expect(JSON.parse(writes()[0][1].body)).toEqual({ reason: "活动取消" });
     expect(wrapper.text()).toContain("待审核");
     expect(button("批准全额退款").exists()).toBe(true);
-    expect(wrapper.text()).not.toContain("已退款");
+    expect(wrapper.get("table").text()).not.toContain("已退款");
     expect(order.totalCents).toBe(16000);
   });
   it("accepts a 200-character refund reason and blocks 201 characters", async () => {
@@ -443,7 +431,7 @@ describe("activity order management", () => {
     await view();
     await open();
     expect(wrapper.find('[aria-label="发起退款原因"]').exists()).toBe(false);
-    await button("关闭").trigger("click");
+    await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
     order.status = "PAID";
     await button("刷新订单").trigger("click");
     await flushPromises();

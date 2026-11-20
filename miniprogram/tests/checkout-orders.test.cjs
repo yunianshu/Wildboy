@@ -657,5 +657,5 @@ test('free merchandise orders expose cancellation without implying payment or re
  api.request=async(path,method)=>{requests.push({path,method});return {...baseOrder,status:'CANCELLED',totalCents:0};};
  await p.cancel(event(baseOrder.id));assert.match(prompt.content,/免支付.*不涉及支付退款/);assert.equal(requests[0].path,'/orders/order-1/cancel');assert.equal(p.data.items[0].status,'CANCELLED');
  p.data.items=[{...baseOrder,status:'PAID'}];await p.cancel(event(baseOrder.id));assert.equal(requests.length,1);
- const markup=fs.readFileSync('src/pages/orders/index.wxml','utf8');assert.match(markup,/PENDING_PAYMENT' \|\| item.status === 'CONFIRMED_FREE'[\s\S]*?bindtap="cancel"/);
+ const markup=fs.readFileSync('src/pages/orders/index.wxml','utf8');assert.match(markup,/PENDING_PAYMENT' \|\| item.status === 'CONFIRMED_FREE'[\s\S]*?(?:bind|catch)tap="cancel"/);
 });

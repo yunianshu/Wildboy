@@ -4,7 +4,6 @@
   "navigationBarBackgroundColor": "#F6F8F3",
   "navigationBarTextStyle": "black",
   "usingComponents": {
-    "ui-state": "/components/ui-state-slate/index",
-    "ui-dialog": "../../components/ui-dialog/index"
+    "ui-state": "/components/ui-state-slate/index"
   }
 }

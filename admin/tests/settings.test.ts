@@ -357,6 +357,7 @@ it("configures the wechat message jump path with local URL validation", async ()
           enabled: true,
           orderDetailPathConfigured: true,
           orderDetailPath: "pages/a",
+          savedMsgJumpPath: "pages/orders/index",
           confirmationCompleted: true,
           pathErrcode: 0,
           confirmationErrcode: 0,
@@ -382,6 +383,7 @@ it("configures the wechat message jump path with local URL validation", async ()
   await jumpButton.trigger("click");
   const dialog = w.get(".form-modal");
   const input = dialog.get('input[name="msgJumpPath"]');
+  expect((input.element as HTMLInputElement).value).toBe("pages/orders/index");
   // 完整网址不是小程序页面路径 → 本地拦截
   await input.setValue("https://evil.example/x");
   await dialog.get("#msg-jump-form").trigger("submit");
@@ -477,15 +479,23 @@ it("queries wechat order list with filters and pagination", async () => {
   expect(card2.text()).toContain("42000000000000000000000000000081");
   expect(card2.text()).toContain("已发货");
   expect(card2.text()).toContain("¥199.00");
-  // 加载更多携带 lastIndex
+  // 下一页沿用已提交的条件及微信游标
+  await form.get("select").setValue("3");
   const more = card2
     .findAll("button")
-    .find((b) => b.text().includes("加载更多"))!;
+    .find((b) => b.text() === "下一页")!;
   await more.trigger("click");
   await flushPromises();
   const second = calls.filter(([u]) => u.includes("/wechat-orders?"))[1];
   expect(second[0]).toContain("lastIndex=idx-1");
+  expect(second[0]).toContain("orderState=2");
+  expect(card2.text()).not.toContain("42000000000000000000000000000081");
   expect(card2.text()).toContain("资金待结算");
   expect(card2.text()).toContain("纠纷中");
+  await card2.findAll("button").find((b) => b.text() === "上一页")!.trigger("click");
+  await flushPromises();
+  const third = calls.filter(([u]) => u.includes("/wechat-orders?"))[2];
+  expect(third[0]).not.toContain("lastIndex");
+  expect(third[0]).toContain("orderState=2");
   w.unmount();
 });

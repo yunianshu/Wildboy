@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from "vue";
+import { routeLocationKey, routerKey } from "vue-router";
+import { inject } from "vue";
 import { request, errorMessage } from "../api";
 import { categories, statuses, type Activity, type Page } from "../types";
 import { activityStatusTone } from "../statusTone";
 import { displayDate } from "../forms";
 import AppIcon from "../components/AppIcon.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 const result = ref<Page<Activity>>({
     items: [],
@@ -16,10 +19,35 @@ const result = ref<Page<Activity>>({
   page = ref(0),
   category = ref(""),
   status = ref(""),
+  upcomingFull = ref(false),
   query = ref(""),
   appliedQuery = ref(""),
   busy = ref(false),
   error = ref("");
+const route = inject(routeLocationKey, null);
+const router = inject(routerKey, null);
+function restoreFilters() {
+  const values = route?.query;
+  if (!values) return;
+  category.value = typeof values.category === "string" && values.category in categories ? values.category : "";
+  status.value = typeof values.status === "string" && values.status in statuses ? values.status : "";
+  upcomingFull.value = values.upcomingFull === "1";
+  query.value = appliedQuery.value = typeof values.title === "string" ? values.title.slice(0, 100) : "";
+  const current = Number(values.page ?? 0);
+  page.value = Number.isSafeInteger(current) && current >= 0 && current <= 100000 ? current : 0;
+}
+function rememberFilters() {
+  if (!router || !route) return;
+  void router.replace({ query: {
+    ...route.query,
+    title: appliedQuery.value || undefined,
+    category: category.value || undefined,
+    status: status.value || undefined,
+    upcomingFull: upcomingFull.value ? "1" : undefined,
+    page: page.value || undefined,
+  } });
+}
+restoreFilters();
 let generation = 0,
   controller: AbortController | undefined;
 async function load() {
@@ -35,6 +63,7 @@ async function load() {
     });
     if (category.value) params.set("category", category.value);
     if (status.value) params.set("status", status.value);
+    if (upcomingFull.value) params.set("upcomingFull", "true");
     if (appliedQuery.value) params.set("title", appliedQuery.value);
     const data = await request<Page<Activity>>(`/admin/activities?${params}`, {
       signal: controller.signal,
@@ -53,12 +82,13 @@ async function load() {
 function applyFilters() {
   appliedQuery.value = query.value.trim();
   if (page.value !== 0) page.value = 0;
-  else void load();
+  else { rememberFilters(); void load(); }
 }
 function resetFilters() {
   query.value = "";
   category.value = "";
   status.value = "";
+  upcomingFull.value = false;
   applyFilters();
 }
 function rosterLink(item: Activity) {
@@ -66,7 +96,7 @@ function rosterLink(item: Activity) {
     ? { path: "/activity-orders", query: { activityId: item.id } }
     : `/activities/${item.id}/registrations`;
 }
-watch(page, load);
+watch(page, () => { rememberFilters(); void load(); });
 onMounted(load);
 onUnmounted(() => {
   generation++;
@@ -103,7 +133,8 @@ onUnmounted(() => {
         <option v-for="(label, key) in statuses" :key="key" :value="key">
           {{ label }}
         </option></select
-      ><button class="secondary" type="submit" :disabled="busy">筛选</button
+      ><label class="filter-checkbox"><input v-model="upcomingFull" type="checkbox" @change="applyFilters" />即将开始且满员</label>
+      <button class="secondary" type="submit" :disabled="busy">筛选</button
       ><button
         class="secondary"
         type="button"
@@ -123,7 +154,7 @@ onUnmounted(() => {
     <UiState v-else-if="!result.items.length" compact>
       暂无匹配活动
       <button
-        v-if="appliedQuery || category || status"
+        v-if="appliedQuery || category || status || upcomingFull"
         class="secondary"
         @click="resetFilters"
       >
@@ -154,7 +185,7 @@ onUnmounted(() => {
               />
               <div>
                 <RouterLink
-                  :to="`/activities/${item.id}/edit`"
+                  :to="{ path: '/activities/' + item.id + '/edit', query: route?.fullPath.includes('?') ? { list: route.fullPath } : undefined }"
                   class="activity-title"
                   >{{ item.title }}</RouterLink
                 >
@@ -190,7 +221,7 @@ onUnmounted(() => {
             </td>
             <td class="activity-actions">
               <RouterLink
-                :to="`/activities/${item.id}/edit`"
+                :to="{ path: '/activities/' + item.id + '/edit', query: route?.fullPath.includes('?') ? { list: route.fullPath } : undefined }"
                 class="table-action"
                 >编辑</RouterLink
               ><RouterLink :to="rosterLink(item)" class="table-action">{{
@@ -201,20 +232,7 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="活动分页">
-      <span class="pagination-summary"
-        >第 {{ page + 1 }} 页 · 共 {{ result.total }} 场</span
-      >
-      <button class="secondary" :disabled="busy || page === 0" @click="page--">
-        上一页</button
-      ><button
-        class="secondary"
-        :disabled="busy || !result.hasMore"
-        @click="page++"
-      >
-        下一页
-      </button>
-    </nav>
+    <PaginationBar :page="page" :page-size="result.size" :total="result.total" :has-more="result.hasMore" :busy="busy" label="活动分页" @change="(next) => page = next" />
   </main>
 </template>
 <style scoped>
@@ -243,6 +261,8 @@ onUnmounted(() => {
   min-width: 180px;
   flex: 1 1 220px;
 }
+.filter-checkbox { display: flex; gap: 8px; align-items: center; margin: 0; white-space: nowrap; }
+.filter-checkbox input { width: auto; margin: 0; }
 .filter-count {
   margin-left: auto;
   color: var(--admin-muted);

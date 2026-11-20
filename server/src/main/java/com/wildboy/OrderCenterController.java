@@ -122,6 +122,7 @@ public class OrderCenterController {
         && confirmation.body() != null
         && (confirmation.body().path("completed").asBoolean(false)
             || confirmation.body().path("is_completed").asBoolean(false)));
+    out.put("savedMsgJumpPath", savedMsgJumpPath());
     out.put("pathErrcode", path.errcode());
     out.put("confirmationErrcode", confirmation.errcode());
     return out;
@@ -144,15 +145,30 @@ public class OrderCenterController {
         "error", result.error());
   }
 
+  private String savedMsgJumpPath() {
+    String appId = wechatOrders.configuredAppId();
+    if (appId == null || appId.isBlank()) return "";
+    return db.query("SELECT path FROM wechat_message_jump_path WHERE app_id=?", (row, i) -> row.getString("path"), appId)
+        .stream().findFirst().orElse("");
+  }
+
   /** 设置发货消息/确认收货消息点击后的跳转路径（微信会在路径后追加订单参数）。 */
   public record MsgJumpPathInput(
       @NotBlank @Size(max = 256) String path) {}
 
   @PutMapping("/api/v1/admin/wechat-order-center/msg-jump-path")
   Map<String, Object> updateMsgJumpPath(@Valid @RequestBody MsgJumpPathInput input) {
-    var result = wechatOrders.setMsgJumpPath(input.path());
+    String path = input.path().strip();
+    var result = wechatOrders.setMsgJumpPath(path);
     if (result == null)
       throw ApiException.conflict("WECHAT_ORDER_CENTER_UNAVAILABLE", "微信订单服务不可用");
+    String appId = wechatOrders.configuredAppId();
+    if (result.attempted() && result.errcode() == 0 && appId != null && !appId.isBlank()) {
+      db.update("""
+          INSERT INTO wechat_message_jump_path(app_id,path) VALUES (?,?)
+          ON CONFLICT (app_id) DO UPDATE SET path=EXCLUDED.path, updated_at=CURRENT_TIMESTAMP
+          """, appId, path);
+    }
     return Map.of(
         "attempted", result.attempted(),
         "errcode", result.errcode(),

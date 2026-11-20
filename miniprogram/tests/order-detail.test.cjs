@@ -15,10 +15,14 @@ function loadPageModule() {
   PageDefinition = undefined;
   const context = vm.createContext({
     Page(value) { PageDefinition = value; },
+    getCurrentPages() { return state.previousRoute ? [{ route: state.previousRoute }, {}] : [{}]; },
     wx: wxStubs,
   });
   const apiStub = {
     hasSession: () => true,
+    sessionVersion: () => 1,
+    isSessionCurrent: session => session === 1,
+    mediaUrl: value => value.startsWith("/media/") ? "https://api.example" + value : value,
     request: async (p, method) => {
       state.requests.push({ path: p, method: method || 'GET' });
       if (p.startsWith('/order-center/resolve')) return state.resolved;
@@ -35,6 +39,7 @@ function loadPageModule() {
       return {
         message: e => String(e && e.message ? e.message : e),
         dateLabel: () => '时间',
+        safeId: value => typeof value === 'string' && /^[\w-]+$/.test(value) ? value : '',
         RequestEpoch: class { next() { return 1; } valid() { return true; } invalidate() {} },
       };
     if (request.endsWith('/shop'))
@@ -90,8 +95,27 @@ beforeEach(() => {
       options.success({ extraData: { status: state.componentStatus || 'success' } });
     },
     navigateTo(options) { state.navigations.push(options.url); },
+    redirectTo(options) { state.navigations.push(options.url); },
+    navigateBack() { state.navigations.push('back'); },
     showToast(options) { state.toasts.push(options.title); },
   };
+});
+
+test('已付款订单从详情打开售后，恢复原列表而不增加页面栈', async () => {
+  const definition = loadPageModule();
+  const instance = makeInstance(definition, { orderId: 'order-1', orderType: 'shop' });
+  state.shopOrder = shopOrderFixture({ status: 'PAID' });
+  await instance.load();
+  instance.openAfterSales();
+  assert.deepEqual(state.navigations, ['/pages/orders/index?afterSales=order-1']);
+
+  state.previousRoute = 'pages/orders/index';
+  state.navigations = [];
+  const events = [];
+  instance.getOpenerEventChannel = () => ({ emit: topic => events.push(topic) });
+  instance.openAfterSales();
+  assert.deepEqual(events, ['afterSales']);
+  assert.deepEqual(state.navigations, ['back']);
 });
 
 test('微信深链按订单号解析并渲染装备订单详情', async () => {

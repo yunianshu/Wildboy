@@ -89,48 +89,21 @@
   margin-top: 24rpx;
 }
 
-.participant-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.participant-draft {
+  padding: 24rpx 20rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid var(--rf-line);
+  border-radius: 20rpx;
+}
+.participant-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32rpx;
-  background: rgba(17, 31, 22, 0.48);
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 20rpx;
 }
-.participant-dialog {
-  width: 100%;
-  max-width: 620rpx;
-  border-radius: 24rpx;
-  background: #FFFFFF;
-  padding: 28rpx;
-  box-shadow: 0 24rpx 80rpx rgba(17, 31, 22, 0.18);
-}
-.dialog-head, .dialog-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20rpx;
-}
-.dialog-close {
-  margin: 0;
-  padding: 0;
-  width: 72rpx;
-  height: 72rpx;
-  line-height: 1;
-  background: transparent;
-  color: var(--rf-muted);
-  font-size: 44rpx;
-}
-.dialog-close::after { border: 0; }
-.dialog-body { max-height: 52vh; }
-.dialog-actions { margin-top: 12rpx; }
-.dialog-actions button { flex: 1; margin: 0; }
-.dialog-error { padding: 12rpx 0; font-size: 25rpx; }
+.participant-actions button { flex: 1; margin: 0; }
 
 .status-icon { width: 56rpx; height: 56rpx; }
-.dialog-close-icon { width: 30rpx; height: 30rpx; }
 .success-symbol { display: flex; align-items: center; justify-content: center; }
 
 @import "../../styles/slate-components.wxss";

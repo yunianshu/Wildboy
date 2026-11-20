@@ -170,7 +170,10 @@ Page({
   },
   browse() {
     this._epoch++;
-    wx.switchTab({ url: "/pages/home/index" });
+    const home = () => wx.switchTab({ url: "/pages/home/index" });
+    if (typeof getCurrentPages === "function" && getCurrentPages().length > 1)
+      wx.navigateBack({ delta: 1, fail: home });
+    else home();
   },
   retry() {
     void this.load();
