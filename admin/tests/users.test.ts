@@ -197,11 +197,13 @@ describe("user management and WeChat admin roles", () => {
       .mockResolvedValueOnce(response(list([])));
     const wrapper = await render(fetcher);
     expect(wrapper.get('[role="alert"]').text()).toContain("用户读取失败");
-    expect(wrapper.text()).not.toContain("没有匹配的用户");
+    expect(wrapper.text()).not.toContain("暂无用户");
     await button(wrapper, "重试").trigger("click");
     await flushPromises();
-    expect(wrapper.text()).toContain("没有匹配的用户");
-    await button(wrapper, "重置筛选").trigger("click");
+    expect(wrapper.text()).toContain("暂无用户");
+    expect(
+      wrapper.findAll("button").some((button) => button.text() === "清除筛选"),
+    ).toBe(false);
     expect(wrapper.find('input[name="userQuery"]').exists()).toBe(true);
   });
   it("details default to masked profile, history keeps all participants and uses four records per page", async () => {
@@ -456,11 +458,11 @@ describe("user management and WeChat admin roles", () => {
     expect(button(wrapper, "设为管理员").attributes("disabled")).toBeDefined();
     await button(wrapper, "设为管理员").trigger("click");
     expect(roleWrites(fetcher)).toHaveLength(1);
-    await button(wrapper, "重新读取并核对").trigger("click");
+    await button(wrapper, "核对角色状态").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("网络断开");
     expect(button(wrapper, "设为管理员").attributes("disabled")).toBeDefined();
-    await button(wrapper, "重新读取并核对").trigger("click");
+    await button(wrapper, "核对角色状态").trigger("click");
     await flushPromises();
     expect(
       button(wrapper, "设为管理员").attributes("disabled"),
@@ -536,7 +538,7 @@ describe("user management and WeChat admin roles", () => {
       const wrapper = await render(fetcher);
       await openDetail(wrapper);
       denied = true;
-      await button(wrapper, "刷新资料").trigger("click");
+      window.dispatchEvent(new Event("focus"));
       await flushPromises();
       expect(currentUser.value).toBeNull();
       expect(wrapper.text()).not.toContain(user.nickname);

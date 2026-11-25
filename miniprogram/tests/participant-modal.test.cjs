@@ -78,6 +78,21 @@ test("required identity remains mandatory and duplicates cannot be added", () =>
   fill(p, second); p.confirmParticipant();
   assert.deepEqual(p.data.participants, [first, second]);
 });
+test("each participant selects their own boarding stop", () => {
+  const p = page(true);
+  p.data.activity.boardingPoints = ["North gate", "South gate"];
+  p.data.boardingChoices = ["请选择上车地点", ...p.data.activity.boardingPoints];
+  const choose = (value, index) =>
+    p.chooseBoardingPoint({ currentTarget: { dataset: { index } }, detail: { value } });
+  choose("1", 0);
+  p.addParticipant();
+  fill(p);
+  p.confirmParticipant();
+  assert.match(p.data.participantError, /上车地点/);
+  choose("2");
+  p.confirmParticipant();
+  assert.deepEqual(p.data.participants.map((person) => person.boardingPoint), ["North gate", "South gate"]);
+});
 test("capacity is rechecked at open and confirm, disabled activity blocks addition", () => {
   const p = page(); p.data.activity.available = 1; p.addParticipant();
   assert.equal(p.data.participantModalOpen, false);

@@ -63,6 +63,45 @@ class ArticleIntegrationTest {
   mvc.perform(put(path).header("Authorization",admin).contentType("application/json").content("{\"title\":\"非法改公开\",\"version\":3}")).andExpect(status().isConflict());
   mvc.perform(put(path+"/content").header("Authorization",admin).contentType("application/json").content("{\"version\":3,\"markdown\":\"\"}")).andExpect(status().isConflict());
  }
+ @Test void publishedArticleUpdatesAtomicallyAndKeepsItsOfficialEntry() throws Exception {
+  var published = published();
+  var official = articles.action(published.id(), published.version(), "official", actor);
+  String adminPath = "/api/v1/admin/articles/" + official.id();
+  String publicPath = "/api/v1/articles/" + official.id();
+  var update = new ArticleModels.Input(
+      "更新标题", "新版摘要", "/assets/updated.jpg", null, official.version(), "新版正文");
+  String payload = json.writeValueAsString(update);
+
+  mvc.perform(put(adminPath).header("Authorization", user).contentType("application/json").content(payload))
+      .andExpect(status().isForbidden());
+  mvc.perform(put(adminPath).header("Authorization", admin).contentType("application/json")
+      .content(json.writeValueAsString(new ArticleModels.Input(
+          "未保存的标题", "未保存的摘要", "/assets/updated.jpg", null, official.version(), " "))))
+      .andExpect(status().isBadRequest());
+  mvc.perform(get(publicPath))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.title").value(official.title()))
+      .andExpect(jsonPath("$.version").value(official.version()))
+      .andExpect(jsonPath("$.contentNodes[0].spans[0].s").value("文章正文"));
+
+  mvc.perform(put(adminPath).header("Authorization", admin).contentType("application/json").content(payload))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.status").value("PUBLISHED"))
+      .andExpect(jsonPath("$.isOfficial").value(true))
+      .andExpect(jsonPath("$.version").value(official.version() + 1));
+  mvc.perform(get("/api/v1/articles/official"))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.id").value(official.id()))
+      .andExpect(jsonPath("$.title").value("更新标题"))
+      .andExpect(jsonPath("$.summary").value("新版摘要"))
+      .andExpect(jsonPath("$.coverUrl").value("/assets/updated.jpg"))
+      .andExpect(jsonPath("$.contentNodes[0].spans[0].s").value("新版正文"));
+  assertThat(articles.get(official.id(), false).publishedAt()).isEqualTo(official.publishedAt());
+  mvc.perform(put(adminPath).header("Authorization", admin).contentType("application/json").content(payload))
+      .andExpect(status().isConflict());
+  mvc.perform(get(publicPath)).andExpect(status().isOk())
+      .andExpect(jsonPath("$.version").value(official.version() + 1))
+      .andExpect(jsonPath("$.contentNodes[0].spans[0].s").value("新版正文"));
+ }
  @Test void markdownRendersSafeNodesOnly()throws Exception{
   var a=create();
   String md="# 标题\n\n**加粗** 与 [外链](https://example.com)\n\n<script>alert(1)</script>\n\n![坏图](javascript:alert(1))\n";

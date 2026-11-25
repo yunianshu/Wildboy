@@ -20,7 +20,15 @@ declare namespace WechatMiniprogram {
     complete?: () => void;
   }
 
+  interface WxOpenOfficialAccountArticleOption {
+    url: string;
+    success?: (res: { errMsg?: string }) => void;
+    fail?: (res: { errMsg?: string; errCode?: number }) => void;
+    complete?: () => void;
+  }
+
   interface Wx {
     openBusinessView(option: WxOpenBusinessViewOption): void;
+    openOfficialAccountArticle?(option: WxOpenOfficialAccountArticleOption): void;
   }
 }

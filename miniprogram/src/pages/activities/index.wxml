@@ -7,26 +7,28 @@
     </view>
     <view class="page slate-tab-content activities-content">
       <input class="activity-search" type="text" confirm-type="search" maxlength="100" placeholder="搜索活动名称" bindconfirm="search" />
-    <scroll-view scroll-x class="filters" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
-        <view class="filter-track" id="activity-filters-track">
-          <text class="filter {{selected === '' ? 'active' : ''}}" data-code="" id="activity-category-all" bindtap="select">全部活动</text>
-          <text wx:for="{{categories}}" wx:key="code" class="filter {{selected === item.code ? 'active' : ''}}" data-code="{{item.code}}" id="activity-category-{{item.code}}" bindtap="select">{{item.name}}</text>
+      <scroll-view scroll-x class="section-tabs activity-category-tabs" enhanced show-scrollbar="{{false}}" scroll-left="{{filterScrollLeft}}" id="activity-filters-viewport" mark:tabSwipeIgnore="{{true}}" bindtouchstart="onFilterTouchStart">
+        <view class="section-tab-list" id="activity-filters-track">
+          <button class="section-tab {{selected === '' ? 'section-tab-current' : ''}}" data-code="" id="activity-category-all" bindtap="select" hover-class="section-tab-pressed" aria-label="全部活动{{selected === '' ? '，已选中' : ''}}">全部活动</button>
+          <button wx:for="{{categories}}" wx:key="code" class="section-tab {{selected === item.code ? 'section-tab-current' : ''}}" data-code="{{item.code}}" id="activity-category-{{item.code}}" bindtap="select" hover-class="section-tab-pressed" aria-label="{{item.name}}{{selected === item.code ? '，已选中' : ''}}">{{item.name}}</button>
         </view>
       </scroll-view>
-      <ui-state wx:if="{{loading}}" kind="loading">正在加载活动…</ui-state>
-      <ui-state wx:elif="{{!items.length && !error}}" kind="empty">该分类暂无活动</ui-state>
-      <view class="grid">
-        <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
-          <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
-          <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
-          <view class="card-title">{{item.title}}</view>
-          <view class="card-detail">{{item.location}}</view>
-          <view class="card-footer"><text class="free">{{item.priceLabel}}</text><text class="muted">{{item.available}} 个余位</text></view>
+      <view class="section-tab-panel">
+        <ui-state wx:if="{{loading}}" kind="loading">正在加载活动…</ui-state>
+        <ui-state wx:elif="{{!items.length && !error}}" kind="empty">该分类暂无活动</ui-state>
+        <view class="grid">
+          <view class="activity-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openActivity">
+            <image class="activity-image" src="{{item.coverUrl}}" mode="aspectFill" lazy-load />
+            <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
+            <view class="card-title">{{item.title}}</view>
+            <view class="card-detail">{{item.location}}</view>
+            <view class="card-footer"><text class="free">{{item.priceLabel}}</text><text class="muted">{{item.available}} 个余位</text></view>
+          </view>
         </view>
+        <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
+        <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
+        <view wx:elif="{{items.length}}" class="loading-line">{{hasMore ? '上拉加载更多' : '已显示全部活动'}}</view>
       </view>
-      <ui-state wx:if="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
-      <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
-      <view wx:elif="{{items.length}}" class="loading-line">{{hasMore ? '上拉加载更多' : '已显示全部活动'}}</view>
     </view>
   </view>
 </view>

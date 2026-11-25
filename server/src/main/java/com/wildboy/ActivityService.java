@@ -56,7 +56,7 @@ public class ActivityService {
                     r.getString("id"),
                     r.getString("participant_name"),
                     identity.masked(r.getString("id_number")),
-                    r.getString("phone")),
+                    r.getString("phone"), r.getString("boarding_point")),
             registration.id());
     return withParticipants(registration, participants);
   }
@@ -75,7 +75,7 @@ public class ActivityService {
                   rs.getString("id"),
                   rs.getString("participant_name"),
                   identity.masked(rs.getString("id_number")),
-                  rs.getString("phone"));
+                  rs.getString("phone"), rs.getString("boarding_point"));
           byRegistration
               .computeIfAbsent(rs.getString("registration_id"), key -> new ArrayList<>())
               .add(participant);
@@ -114,7 +114,9 @@ public class ActivityService {
           r.getLong("version"),
           r.getObject("created_at", OffsetDateTime.class),
           r.getObject("updated_at", OffsetDateTime.class), r.getBoolean("identity_required"),
-          occupied-pending,pending);
+          occupied-pending,pending,
+          json.readValue(r.getString("boarding_points"), new TypeReference<List<String>>() {}),
+          json.readValue(r.getString("navigation_points"), new TypeReference<List<NavigationPoint>>() {}));
     } catch (java.io.IOException e) {
       throw new IllegalStateException("Invalid persisted gallery", e);
     }
@@ -228,14 +230,133 @@ public class ActivityService {
     }
   }
 
+  private String boardingPointsJson(List<String> points) {
+    var normalized = new LinkedHashSet<String>();
+    for (String point : points) {
+      if (point == null || point.isBlank() || point.length() > 200 || !normalized.add(point.strip()))
+        throw new ApiException(400, "INVALID_BOARDING_POINTS", "上车地点须为不重复的有效名称，每项最多 200 字");
+    }
+    if (normalized.size() > 20)
+      throw new ApiException(400, "INVALID_BOARDING_POINTS", "最多可设置 20 个上车地点");
+    try {
+      return json.writeValueAsString(normalized);
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  public List<String> listBoardingPoints() {
+    return db.queryForList("SELECT name FROM activity_boarding_point ORDER BY name", String.class);
+  }
+
+  public List<BoardingPointLocation> listBoardingPointLocations() {
+    return db.query(
+        "SELECT name, address, latitude, longitude FROM activity_boarding_point ORDER BY name",
+        (r, n) -> new BoardingPointLocation(
+            r.getString("name"),
+            r.getString("address") == null ? "" : r.getString("address"),
+            r.getObject("latitude", Double.class),
+            r.getObject("longitude", Double.class)));
+  }
+
+  public String saveBoardingPoint(String name) {
+    String point = name.strip();
+    db.update("INSERT INTO activity_boarding_point(name) VALUES (?) ON CONFLICT (name) DO NOTHING",
+        point);
+    return point;
+  }
+
+  public BoardingPointLocation saveBoardingPointLocation(BoardingPointLocation input) {
+    String point = input.name().strip();
+    String address = input.address() == null ? "" : input.address().strip();
+    validateCoordinates(input.latitude(), input.longitude());
+    db.update("""
+        INSERT INTO activity_boarding_point(name, address, latitude, longitude)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT (name) DO UPDATE SET
+          address = CASE WHEN EXCLUDED.address <> '' THEN EXCLUDED.address ELSE activity_boarding_point.address END,
+          latitude = COALESCE(EXCLUDED.latitude, activity_boarding_point.latitude),
+          longitude = COALESCE(EXCLUDED.longitude, activity_boarding_point.longitude)
+        """, point, address, input.latitude(), input.longitude());
+    return db.query(
+        "SELECT name, address, latitude, longitude FROM activity_boarding_point WHERE name=?",
+        (r, n) -> new BoardingPointLocation(
+            r.getString("name"),
+            r.getString("address") == null ? "" : r.getString("address"),
+            r.getObject("latitude", Double.class),
+            r.getObject("longitude", Double.class)),
+        point).getFirst();
+  }
+
+  private void validateCoordinates(Double lat, Double lng) {
+    if ((lat == null) != (lng == null))
+      throw new ApiException(400, "INVALID_NAVIGATION_POINT", "导航经纬度须同时填写或同时留空");
+    if (lat != null && (!Double.isFinite(lat) || !Double.isFinite(lng)
+        || lat < -90.0 || lat > 90.0 || lng < -180.0 || lng > 180.0))
+      throw new ApiException(400, "INVALID_NAVIGATION_POINT", "导航经纬度超出有效范围");
+  }
+
+  private List<NavigationPoint> normalizeNavigationPoints(List<NavigationPoint> points) {
+    if (points == null || points.isEmpty()) return List.of();
+    if (points.size() > 30)
+      throw new ApiException(400, "INVALID_NAVIGATION_POINT", "最多可设置 30 个导航地点");
+    var result = new ArrayList<NavigationPoint>();
+    for (NavigationPoint p : points) {
+      if (p == null || p.kind() == null || !Set.of("DESTINATION", "MEETING", "BOARDING").contains(p.kind()))
+        throw new ApiException(400, "INVALID_NAVIGATION_POINT", "导航地点类型无效");
+      String label = p.label() == null ? "" : p.label().strip();
+      if (label.isEmpty() || label.length() > 200)
+        throw new ApiException(400, "INVALID_NAVIGATION_POINT", "导航地点名称须为 1–200 字");
+      String address = p.address() == null ? "" : p.address().strip();
+      if (address.length() > 300)
+        throw new ApiException(400, "INVALID_NAVIGATION_POINT", "导航详细地址最多 300 字");
+      validateCoordinates(p.latitude(), p.longitude());
+      String pid = (p.id() == null || p.id().isBlank())
+          ? UUID.randomUUID().toString()
+          : p.id().strip();
+      if (pid.length() > 64) pid = pid.substring(0, 64);
+      result.add(new NavigationPoint(pid, p.kind(), label, address, p.latitude(), p.longitude()));
+    }
+    return result;
+  }
+
+  private String navigationPointsJson(List<NavigationPoint> normalized) {
+    try {
+      return json.writeValueAsString(normalized);
+    } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  private void rememberNavigationBoardingPoints(List<NavigationPoint> normalized) {
+    for (NavigationPoint p : normalized) {
+      if ("BOARDING".equals(p.kind())) {
+        saveBoardingPointLocation(new BoardingPointLocation(p.label(), p.address(), p.latitude(), p.longitude()));
+      }
+    }
+  }
+
+  private void rememberBoardingPoints(String pointsJson) {
+    db.update("""
+        INSERT INTO activity_boarding_point(name)
+        SELECT name FROM json_array_elements_text(?::json) AS point(name)
+        ORDER BY name
+        ON CONFLICT (name) DO NOTHING
+        """, pointsJson);
+  }
+
   @Transactional
   public Activity create(ActivityInput i, String actor) {
     validate(i);
     String id = UUID.randomUUID().toString();
+    List<String> points = i.boardingPoints() == null ? List.of() : i.boardingPoints();
+    String pointsJson = boardingPointsJson(points);
+    List<NavigationPoint> navPoints = normalizeNavigationPoints(i.navigationPoints());
+    String navJson = navigationPointsJson(navPoints);
     db.update(
         "INSERT INTO"
-            + " activity(id,title,category,cover_url,gallery_urls,summary,description,location,meeting_point,start_at,end_at,registration_deadline,capacity,status,price_cents,identity_required)"
-            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'DRAFT',0,?)",
+            + " activity(id,title,category,cover_url,gallery_urls,summary,description,location,meeting_point,start_at,end_at,registration_deadline,capacity,status,price_cents,identity_required,boarding_points,navigation_points)"
+            + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'DRAFT',0,?,?,?)",
         id,
         i.title().strip(),
         i.category().name(),
@@ -248,9 +369,25 @@ public class ActivityService {
         i.startAt(),
         i.endAt(),
         i.registrationDeadline(),
-        i.capacity(), Boolean.TRUE.equals(i.identityRequired()));
+        i.capacity(), Boolean.TRUE.equals(i.identityRequired()),
+        pointsJson,
+        navJson);
+    if (!points.isEmpty()) rememberBoardingPoints(pointsJson);
+    if (!navPoints.isEmpty()) rememberNavigationBoardingPoints(navPoints);
     audit(actor, id, "ACTIVITY_CREATE");
     return get(id, true);
+  }
+
+  public boolean hasEnrollmentHistory(String activityId, int registeredCount) {
+    if (registeredCount > 0) return true;
+    Integer freeCount = db.queryForObject(
+        "SELECT COUNT(*) FROM registration WHERE activity_id=? AND status='CONFIRMED'",
+        Integer.class, activityId);
+    if (freeCount != null && freeCount > 0) return true;
+    Integer orderCount = db.queryForObject(
+        "SELECT COUNT(*) FROM activity_order WHERE activity_id=? AND status IN ('PENDING_PAYMENT','PAID','CONFIRMED_FREE','REFUND_PENDING','REFUNDED')",
+        Integer.class, activityId);
+    return orderCount != null && orderCount > 0;
   }
 
   @Transactional
@@ -258,20 +395,35 @@ public class ActivityService {
     validate(i);
     Activity a = lock(id);
     checkVersion(a, i.version());
-    if (a.status().equals("CANCELLED"))
-      throw ApiException.conflict("ACTIVITY_CANCELLED", "已取消活动不能编辑");
     // Capacity includes confirmed participants and unpaid reservations.
     if (a.registeredCount() > i.capacity())
       throw ApiException.conflict("CAPACITY_BELOW_ENROLLED", "人数上限不能小于已报名人数");
     if(a.registeredCount()>0&&i.identityRequired()!=null&&i.identityRequired()!=a.identityRequired())
       throw ApiException.conflict("ACTIVITY_IDENTITY_LOCKED","活动已有报名或待付款占位，暂不能更改实名要求");
-    if (a.status().equals("PUBLISHED")
-        && (!a.startAt().isAfter(OffsetDateTime.now())
-            || !i.startAt().isAfter(OffsetDateTime.now())))
-      throw ApiException.conflict("ACTIVITY_STARTED", "已开始活动不能修改");
+    if (a.status().equals("PUBLISHED")) {
+      OffsetDateTime now = OffsetDateTime.now();
+      boolean upcoming = a.startAt().isAfter(now);
+      if (upcoming && !i.startAt().isAfter(now)) {
+        throw ApiException.conflict("ACTIVITY_STARTED", "未开始活动的开始时间必须晚于当前时间");
+      }
+      if (!upcoming && i.startAt().isAfter(now)) {
+        if (hasEnrollmentHistory(id, a.registeredCount())) {
+          throw ApiException.conflict("ACTIVITY_HAS_HISTORY", "已开始的活动已有往期报名或订单记录，请点击「换时间重开一期」以保留往期名单");
+        }
+        if (!i.registrationDeadline().isAfter(now)) {
+          throw ApiException.conflict("ACTIVITY_EXPIRED", "改期复用时，请将报名截止时间也调整到未来时间");
+        }
+      }
+    }
+    List<String> points = i.boardingPoints() == null ? a.boardingPoints() : i.boardingPoints();
+    String pointsJson = boardingPointsJson(points);
+    List<NavigationPoint> navPoints = i.navigationPoints() == null
+        ? a.navigationPoints()
+        : normalizeNavigationPoints(i.navigationPoints());
+    String navJson = navigationPointsJson(navPoints);
     db.update(
         "UPDATE activity SET"
-            + " title=?,category=?,cover_url=?,gallery_urls=?,summary=?,description=?,location=?,meeting_point=?,start_at=?,end_at=?,registration_deadline=?,capacity=?,identity_required=?,version=version+1,updated_at=CURRENT_TIMESTAMP"
+            + " title=?,category=?,cover_url=?,gallery_urls=?,summary=?,description=?,location=?,meeting_point=?,start_at=?,end_at=?,registration_deadline=?,capacity=?,identity_required=?,boarding_points=?,navigation_points=?,version=version+1,updated_at=CURRENT_TIMESTAMP"
             + " WHERE id=?",
         i.title().strip(),
         i.category().name(),
@@ -285,11 +437,62 @@ public class ActivityService {
         i.endAt(),
         i.registrationDeadline(),
         i.capacity(), i.identityRequired() == null ? a.identityRequired() : i.identityRequired(),
+        pointsJson,
+        navJson,
         id);
+    if (!points.isEmpty() && !points.equals(a.boardingPoints())) rememberBoardingPoints(pointsJson);
+    if (!navPoints.isEmpty()) rememberNavigationBoardingPoints(navPoints);
     audit(actor, id, "ACTIVITY_EDIT");
     Activity edited = get(id, true);
     if (a.status().equals("PUBLISHED") && (!a.startAt().equals(edited.startAt()) || !a.meetingPoint().equals(edited.meetingPoint()) || !a.location().equals(edited.location()))) notifications.activityNotice(edited, "ACTIVITY_CHANGED", "时间或集合地点已更新，请查看活动");
     return edited;
+  }
+
+  @Transactional
+  public Activity reopenToDraft(String id, long version, String actor) {
+    Activity a = lock(id);
+    checkVersion(a, version);
+    if (a.status().equals("DRAFT")) return a;
+    if (hasEnrollmentHistory(id, a.registeredCount())) {
+      throw ApiException.conflict("ACTIVITY_HAS_HISTORY", "该活动已有报名或订单记录，请使用「换时间重开一期」生成新活动");
+    }
+    db.update(
+        "UPDATE activity SET status='DRAFT',version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        id);
+    audit(actor, id, "ACTIVITY_REOPEN_DRAFT");
+    return get(id, true);
+  }
+
+  public AttendeeSummary publicAttendees(String id) {
+    get(id, false);
+    var items = db.query("""
+        SELECT u.nickname, COALESCE(u.avatar_url, '') AS avatar_url,
+          SUM(s.party_size)::int AS party_size, MIN(s.joined_at) AS joined_at
+        FROM (
+          SELECT r.user_id, GREATEST((SELECT COUNT(*) FROM registration_participant p WHERE p.registration_id=r.id), 1)::int AS party_size, r.created_at AS joined_at
+          FROM registration r
+          WHERE r.activity_id=? AND r.status='CONFIRMED'
+          UNION ALL
+          SELECT o.user_id, o.party_size, o.created_at AS joined_at
+          FROM activity_order o
+          WHERE o.activity_id=? AND o.status IN ('PAID', 'CONFIRMED_FREE')
+        ) s
+        JOIN app_user u ON u.id = s.user_id
+        GROUP BY u.id, u.nickname, u.avatar_url
+        ORDER BY MIN(s.joined_at) ASC, u.id ASC
+        """,
+        (r, n) -> {
+          String nick = r.getString("nickname");
+          String cleanNick = (nick == null || nick.isBlank()) ? "山野同行者" : nick.strip();
+          return new AttendeeView(
+              cleanNick,
+              r.getString("avatar_url"),
+              r.getInt("party_size"),
+              r.getObject("joined_at", OffsetDateTime.class));
+        },
+        id, id);
+    int totalParticipants = items.stream().mapToInt(AttendeeView::partySize).sum();
+    return new AttendeeSummary(items, totalParticipants, items.size());
   }
 
   void checkVersion(Activity a, Long v) {
@@ -367,7 +570,8 @@ public class ActivityService {
       throw new ApiException(403, "USER_PROFILE_REQUIRED", "请先完善联系资料后再报名");
   }
 
-  List<ParticipantInput> validatedParticipants(RegistrationInput input, boolean required) {
+  List<ParticipantInput> validatedParticipants(RegistrationInput input, Activity activity) {
+    boolean required = activity.identityRequired();
     if (input.participants() == null || input.participants().isEmpty())
       throw new ApiException(400, "PARTICIPANTS_REQUIRED", "请至少填写一位参与人");
     var normalized = new ArrayList<ParticipantInput>();
@@ -388,7 +592,10 @@ public class ActivityService {
         throw new ApiException(400, "INVALID_ID_NUMBER", "请填写有效的 18 位身份证号");
       if (!idNumber.isEmpty() && !idNumbers.add(idNumber))
         throw new ApiException(400, "DUPLICATE_PARTICIPANT", "同一报名中身份证号不能重复");
-      normalized.add(new ParticipantInput(name, idNumber, phone));
+      String point = participant.boardingPoint() == null ? "" : participant.boardingPoint().strip();
+      if (activity.boardingPoints().isEmpty() ? !point.isEmpty() : !activity.boardingPoints().contains(point))
+        throw new ApiException(400, "INVALID_BOARDING_POINT", "每位参与人须选择当前活动提供的上车地点，请刷新报名页后重试");
+      normalized.add(new ParticipantInput(name, idNumber, phone, point.isEmpty() ? null : point));
     }
     return normalized;
   }
@@ -416,7 +623,7 @@ public class ActivityService {
     Activity a = lock(id);
     if (a.status().equals("DRAFT")) throw ApiException.notFound();
     if (a.priceCents()>0) throw ApiException.conflict("PAID_ACTIVITY_ORDER_REQUIRED", "收费活动请使用报名订单入口");
-    var participants = validatedParticipants(input, a.identityRequired());
+    var participants = validatedParticipants(input, a);
     Registration existing = own(id, user);
     if (existing != null) {
       legal.accept(user, input.privacyVersion(), input.termsVersion(), "REGISTRATION");
@@ -448,13 +655,14 @@ public class ActivityService {
     for (int index = 0; index < participants.size(); index++) {
       ParticipantInput participant = participants.get(index);
       db.update(
-          "INSERT INTO registration_participant(id,registration_id,participant_name,id_number,phone,position) VALUES(?,?,?,?,?,?)",
+          "INSERT INTO registration_participant(id,registration_id,participant_name,id_number,phone,position,boarding_point) VALUES(?,?,?,?,?,?,?)",
           UUID.randomUUID().toString(),
           registrationId,
           participant.participantName(),
           identity.encrypt(participant.idNumber()),
           participant.phone(),
-          index);
+          index,
+          participant.boardingPoint());
     }
     db.update(
         "UPDATE activity SET registered_count=registered_count+?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -533,7 +741,7 @@ public class ActivityService {
     return where;
   }
 
-  public record RosterExportRow(String name, String maskedPhone, String status, OffsetDateTime createdAt) {}
+  public record RosterExportRow(String name, String maskedPhone, String status, OffsetDateTime createdAt, String boardingPoint) {}
 
   public List<RosterExportRow> exportRoster(String activity, RegistrationStatus status, String query) {
     if (get(activity, true).priceCents() > 0) {
@@ -541,25 +749,25 @@ public class ActivityService {
         throw new ApiException(400, "INVALID_PAID_ROSTER_FILTER", "收费活动导出仅包含已确认报名");
       }
       return db.query("""
-          SELECT p.participant_name, p.phone, o.created_at
+          SELECT p.participant_name, p.phone, p.boarding_point, o.created_at
           FROM activity_order o JOIN activity_order_participant p ON p.order_id=o.id
           WHERE o.activity_id=? AND o.status IN ('PAID', 'CONFIRMED_FREE')
           ORDER BY o.created_at DESC, o.id, p.position
           """,
           (row, i) -> new RosterExportRow(row.getString("participant_name"),
               UserService.maskPhone(row.getString("phone")), RegistrationStatus.CONFIRMED.name(),
-              row.getObject("created_at", OffsetDateTime.class)),
+              row.getObject("created_at", OffsetDateTime.class), row.getString("boarding_point")),
           activity);
     }
     var args = new ArrayList<Object>();
     String where = registrationFilter(null, activity, status, query, args);
     return db.query(
-        "SELECT p.participant_name, p.phone, r.status, r.created_at"
+        "SELECT p.participant_name, p.phone, p.boarding_point, r.status, r.created_at"
             + " FROM registration r JOIN registration_participant p ON p.registration_id=r.id"
             + " WHERE " + where + " ORDER BY r.created_at DESC,r.id,p.position",
         (row, i) -> new RosterExportRow(row.getString("participant_name"),
             UserService.maskPhone(row.getString("phone")), row.getString("status"),
-            row.getObject("created_at", OffsetDateTime.class)),
+            row.getObject("created_at", OffsetDateTime.class), row.getString("boarding_point")),
         args.toArray());
   }
 
@@ -577,7 +785,7 @@ public class ActivityService {
 
   @Transactional
   public Participant revealParticipant(String activityId, String participantId, String actor) {
-    var rows = db.query("SELECT p.* FROM registration_participant p JOIN registration r ON r.id=p.registration_id WHERE r.activity_id=? AND p.id=?", (r,n) -> new Participant(r.getString("id"),r.getString("participant_name"),identity.reveal(r.getString("id_number")),r.getString("phone")), activityId, participantId);
+    var rows = db.query("SELECT p.* FROM registration_participant p JOIN registration r ON r.id=p.registration_id WHERE r.activity_id=? AND p.id=?", (r,n) -> new Participant(r.getString("id"),r.getString("participant_name"),identity.reveal(r.getString("id_number")),r.getString("phone"), r.getString("boarding_point")), activityId, participantId);
     if (rows.isEmpty()) throw ApiException.notFound();
     audit(actor, participantId, "PARTICIPANT_IDENTITY_REVEAL");
     return rows.getFirst();

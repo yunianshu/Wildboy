@@ -41,7 +41,7 @@
           <view wx:if="{{quote.participantPricing}}" class="muted">{{quote.participantPricing === 'ACCOUNT_ALL' ? '同行按报名账号等级优惠' : '每单最多 1 个优惠名额'}}</view>
         </view>
         <view wx:elif="{{quoteLoginRequired}}">登录后确认报价<button class="secondary" bindtap="login">微信登录</button></view>
-        <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="refreshQuote" disabled="{{submitting}}">重新获取费用</button></view>
+        <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="refreshQuote" disabled="{{submitting}}">重试</button></view>
         <view class="muted">请以活动订单中的报名与支付状态为准。</view>
         <button class="text-button" bindtap="paidOrders" disabled="{{submitting}}">查看本活动订单</button>
       </view>
@@ -107,6 +107,12 @@
             disabled="{{submitting || recoveryNeeded}}"
           />
         </view>
+        <view wx:if="{{activity.boardingPoints.length}}" class="field">
+          <text class="label">上车地点</text>
+          <picker mode="selector" range="{{boardingChoices}}" value="{{item.boardingChoice || 0}}" data-index="{{index}}" bindchange="chooseBoardingPoint" disabled="{{submitting || recoveryNeeded || participantModalOpen}}">
+            <view class="boarding-picker"><text>{{item.boardingPoint || "请选择上车地点"}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
+          </picker>
+        </view>
       </view>
       <view wx:if="{{participantModalOpen}}" class="participant-card participant-draft">
         <view class="participant-head">新增参与人</view>
@@ -121,6 +127,12 @@
           <view class="field">
             <text class="label">手机号</text>
             <input value="{{participantDraft.phone}}" type="number" maxlength="11" placeholder="用于活动联系" data-field="phone" bindinput="inputParticipantDraft" confirm-type="done" bindconfirm="confirmParticipant" />
+          </view>
+          <view wx:if="{{activity.boardingPoints.length}}" class="field">
+            <text class="label">上车地点</text>
+            <picker mode="selector" range="{{boardingChoices}}" value="{{participantDraft.boardingChoice || 0}}" bindchange="chooseBoardingPoint" disabled="{{submitting}}">
+              <view class="boarding-picker"><text>{{participantDraft.boardingPoint || "请选择上车地点"}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
+            </picker>
           </view>
           <view wx:if="{{participantError}}" class="error form-error">{{participantError}}</view>
         <view class="participant-actions">
@@ -143,12 +155,12 @@
             aria-label="同意当前协议及参与人信息使用"
             disabled="{{submitting || recoveryNeeded}}"
           />
-          <view><label for="legal-consent">我已阅读并同意当前版本</label><text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号用于本次活动身份核验、组织与联系。</view>
+          <view><label for="legal-consent">我已阅读并同意当前版本</label><text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text>，同意将所有参与人的姓名、{{activity.identityRequired ? "身份证号和" : ""}}手机号{{activity.boardingPoints.length ? "及上车地点" : ""}}用于本次活动身份核验、组织与联系。</view>
         </view>
       </checkbox-group>
       <view wx:if="{{legalError}}" class="error">
         {{legalError}}
-        <button class="secondary" bindtap="retry" disabled="{{submitting}}">重新读取协议</button>
+        <button class="secondary" bindtap="retry" disabled="{{submitting}}">重试</button>
       </view>
       <view class="notice">
         每个账号每场活动限一笔有效报名，可添加多位参与人。

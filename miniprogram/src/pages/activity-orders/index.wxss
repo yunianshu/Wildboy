@@ -1,4 +1,5 @@
 @import "../../styles/slate-theme.wxss";
+@import "../../styles/section-tabs.wxss";
 /* 我的活动订单 · 对照 Pen 画板「小程序 / 活动订单」(3yIfJ) */
 .activity-orders-page .title { margin-bottom: 8rpx; }
 .activity-orders-page .page-intro { margin-bottom: 20rpx; }
@@ -34,5 +35,18 @@
 .confirm-panel .order-actions button { margin-top: 0; }
 
 .activity-orders-page .more { margin-top: 26rpx; }
+.activity-orders-page .order-head .order-title { justify-content: flex-start; padding: 4px 0; font-size: 16px; line-height: 1.45; text-align: left; }
+.activity-orders-page .order-head .badge { max-width: 46%; white-space: normal; text-align: center; }
+.activity-orders-page .order-number { display: flex; align-items: center; gap: 8px; font-size: 12px; line-height: 1.5; }
+.activity-orders-page .order-number > text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.activity-orders-page .order-number > .text-button { flex-shrink: 0; padding-right: 0; }
+.activity-orders-page .sub-actions { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+.activity-orders-page .sub-actions > button:only-child { grid-column: 1 / -1; }
+.activity-orders-page .expand-panel { padding: 12px; margin-top: 12px; border-radius: 8px; }
+.activity-orders-page .participant-row { gap: 4px 12px; padding: 8px 0; border-bottom: 1px solid var(--rf-line); }
+.activity-orders-page .participant-row:last-child { border-bottom: 0; }
+.activity-orders-page .expand-panel > button { width: 100%; }
 
 @import "../../styles/slate-components.wxss";
+
+.activity-order-tabs { margin-top: 16px; }

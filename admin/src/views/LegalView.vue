@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { displayDate } from "../forms";
 import { askConfirm } from "../confirm";
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { request, currentUser, ApiError } from "../api";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import FormModal from "../components/FormModal.vue";
 import UiState from "../components/UiState.vue";
 type Kind = "PRIVACY" | "TERMS";
 type Document = {
@@ -31,6 +33,7 @@ const history = ref<Document[]>([]),
   notice = ref(""),
   conflict = ref(false),
   preview = ref(false),
+  focusMode = ref(false),
   confirmPublish = ref(false);
 let epoch = 0;
 const label = computed(() =>
@@ -60,6 +63,7 @@ function clear() {
   content.value = "";
   history.value = [];
   selected.value = null;
+  preview.value = false;
   confirmPublish.value = false;
   loading.value = false;
   busy.value = false;
@@ -220,129 +224,180 @@ onUnmounted(() => {
   epoch++;
   window.removeEventListener("beforeunload", beforeUnload);
 });
+useForegroundRefresh(() => {
+  if (
+    !dirty.value &&
+    !busy.value &&
+    !loading.value &&
+    !preview.value &&
+    !selected.value &&
+    !confirmPublish.value
+  )
+    void load();
+});
 </script>
 <template>
   <main class="workspace legal-workspace">
-    <section class="page-heading">
-      <div>
-        <h1>协议管理</h1>
-        <p v-if="conflict">草稿版本有变更，请重新加载。</p>
-        <p v-else-if="dirty">请先保存草稿，再发布。</p>
-        <p v-else-if="state && !valid">请填写标题与有效的纯文本正文。</p>
-      </div>
-      <button
-        v-if="state"
-        class="primary"
-        type="button"
-        :disabled="busy || loading || dirty || conflict || !valid"
-        @click="openPublish"
-      >
-        发布新版本
-      </button>
-    </section>
-    <nav class="task-tabs" aria-label="协议类型">
-      <button
-        :class="kind === 'PRIVACY' ? 'primary' : 'secondary'"
-        :aria-pressed="kind === 'PRIVACY'"
-        :disabled="busy || loading"
-        @click="changeKind('PRIVACY')"
-      >
-        隐私政策</button
-      ><button
-        :class="kind === 'TERMS' ? 'primary' : 'secondary'"
-        :aria-pressed="kind === 'TERMS'"
-        :disabled="busy || loading"
-        @click="changeKind('TERMS')"
-      >
-        用户协议
-      </button>
-    </nav>
-    <p v-if="error" role="alert" class="error-box">{{ error }}</p>
-    <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-    <UiState v-if="loading" kind="loading" compact>正在读取协议…</UiState>
-    <section v-if="state" class="legal-editor">
-      <div class="legal-toolbar">
-        <h2>{{ label }}</h2>
-        <span
-          >{{
-            state.published
-              ? `当前发布 v${state.published.version}`
-              : "尚未发布"
-          }}
-          · 草稿修订 {{ state.draft.revision }}</span
+    <header class="page-heading legal-head">
+      <h1>协议管理</h1>
+      <nav class="task-tabs" aria-label="协议类型">
+        <button
+          type="button"
+          :class="kind === 'PRIVACY' ? 'primary' : 'secondary'"
+          :aria-pressed="kind === 'PRIVACY'"
+          :disabled="busy || loading"
+          @click="changeKind('PRIVACY')"
         >
-      </div>
-      <p class="legal-help">发布前须由运营方审核，并另行配置微信隐私声明。</p>
-      <form @submit.prevent="save">
-        <label
-          >协议标题<input
+          隐私政策
+        </button>
+        <button
+          type="button"
+          :class="kind === 'TERMS' ? 'primary' : 'secondary'"
+          :aria-pressed="kind === 'TERMS'"
+          :disabled="busy || loading"
+          @click="changeKind('TERMS')"
+        >
+          用户协议
+        </button>
+      </nav>
+    </header>
+    <p v-if="error" role="alert" class="error-box">{{ error }}</p>
+    <UiState v-if="loading && !state" kind="loading" compact
+      >正在读取协议…</UiState
+    >
+    <div v-if="state" class="legal-layout" :class="{ 'is-focused': focusMode }">
+      <form
+        class="legal-editor"
+        aria-label="编辑协议草稿"
+        @submit.prevent="save"
+      >
+        <label class="legal-field">
+          协议标题
+          <input
             v-model="title"
             maxlength="120"
             :disabled="busy || loading"
             placeholder="协议标题"
-        /></label>
-        <label
-          >协议正文（纯文本）<textarea
+          />
+        </label>
+        <label class="legal-field">
+          协议正文（纯文本）
+          <textarea
             v-model="content"
             maxlength="50000"
-            rows="10"
             :disabled="busy || loading"
             placeholder="经审核的协议正文"
           />
         </label>
-        <p class="muted">
-          {{ content.length }} / 50000 ·
-          {{ dirty ? "有未保存修改" : "草稿已保存" }}
-        </p>
-        <div class="legal-actions">
+        <footer class="legal-footer">
+          <p class="footer-status">
+            <span aria-live="polite">{{
+              dirty ? "有未保存修改" : notice || "草稿已保存"
+            }}</span>
+            <span>{{ content.length }} / 50000</span>
+          </p>
+          <div class="legal-actions footer-actions">
+            <button
+              type="button"
+              class="secondary focus-toggle"
+              :aria-pressed="focusMode"
+              @click="focusMode = !focusMode"
+            >
+              {{ focusMode ? "退出专注" : "专注编辑" }}
+            </button>
+            <button type="button" class="secondary" @click="preview = true">
+              预览草稿
+            </button>
+            <button
+              type="submit"
+              class="primary"
+              :disabled="busy || loading || conflict || !dirty"
+            >
+              保存草稿
+            </button>
+            <button
+              v-if="conflict"
+              type="button"
+              class="secondary"
+              :disabled="busy || loading"
+              @click="reload"
+            >
+              采用最新草稿
+            </button>
+          </div>
+        </footer>
+      </form>
+      <aside v-show="!focusMode" class="legal-sidebar" aria-label="版本与发布">
+        <section>
+          <h2>版本与发布</h2>
+          <p class="legal-version">
+            {{
+              state.published
+                ? `当前发布 v${state.published.version}`
+                : "尚未发布"
+            }}
+          </p>
+          <p class="muted">草稿修订 {{ state.draft.revision }}</p>
           <button
             class="secondary"
-            type="submit"
-            :disabled="busy || loading || conflict || !dirty"
-          >
-            保存草稿</button
-          ><button class="secondary" type="button" @click="preview = !preview">
-            {{ preview ? "收起预览" : "预览草稿" }}</button
-          ><button
-            class="secondary"
             type="button"
-            :disabled="busy || loading"
-            @click="reload"
+            :disabled="busy || loading || dirty || conflict || !valid"
+            @click="openPublish"
           >
-            重新加载
+            发布新版本
           </button>
-        </div>
-      </form>
-      <section v-if="preview" class="legal-preview">
-        <h3>{{ title || "未填写标题" }}</h3>
-        <p>{{ content || "未填写正文" }}</p>
-      </section>
-    </section>
-    <button v-else-if="!loading" class="secondary" @click="load">
-      重新加载
+          <p v-if="conflict" class="legal-help">请先处理版本冲突。</p>
+          <p v-else-if="dirty" class="legal-help">保存草稿后可发布。</p>
+          <p v-else-if="!valid" class="legal-help">请填写标题与纯文本正文。</p>
+          <p v-else-if="kind === 'PRIVACY'" class="legal-help">
+            发布前请审核内容，并配置微信隐私声明。
+          </p>
+        </section>
+        <section class="legal-history">
+          <h2>已发布历史</h2>
+          <p v-if="!history.length" class="muted">暂无发布记录</p>
+          <ul v-else class="legal-versions">
+            <li v-for="version in history" :key="version.version">
+              <button
+                type="button"
+                class="text-button"
+                @click="selected = version"
+              >
+                v{{ version.version }} · {{ version.title }}
+              </button>
+            </li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+    <button v-else-if="!loading" class="secondary" type="button" @click="load">
+      重试
     </button>
-    <section class="legal-history">
-      <h2>已发布历史</h2>
-      <UiState v-if="!history.length && !loading && !error" compact
-        >暂无发布记录</UiState
-      >
-      <div class="legal-versions">
-        <button
-          v-for="version in history"
-          :key="version.version"
-          :class="selected?.version === version.version ? 'primary' : 'secondary'"
-          :aria-pressed="selected?.version === version.version"
-          @click="selected = selected?.version === version.version ? null : version"
-        >
-          v{{ version.version }} · {{ version.title }}
-        </button>
-      </div>
-      <article v-if="selected" class="legal-preview">
-        <h3>{{ selected.title }} · v{{ selected.version }}</h3>
-        <p class="muted">{{ displayDate(selected.publishedAt) }} · 只读历史</p>
-        <p>{{ selected.content }}</p>
+    <FormModal
+      v-if="preview || selected"
+      size="lg"
+      @close="
+        preview = false;
+        selected = null;
+      "
+    >
+      <template #title>
+        <h2>
+          {{
+            selected ? `v${selected.version} · ${selected.title}` : "草稿预览"
+          }}
+        </h2>
+      </template>
+      <article class="legal-preview">
+        <p v-if="selected" class="muted">
+          {{ displayDate(selected.publishedAt) }} · 只读历史
+        </p>
+        <h3 v-else>{{ title || "未填写标题" }}</h3>
+        <p class="legal-preview-text">
+          {{ selected ? selected.content : content || "未填写正文" }}
+        </p>
       </article>
-    </section>
+    </FormModal>
     <ConfirmDialog
       v-if="confirmPublish"
       title="确认发布协议新版本？"
@@ -355,83 +410,172 @@ onUnmounted(() => {
   </main>
 </template>
 <style scoped>
-.legal-actions,
-.legal-versions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 12px 0 0;
+.legal-workspace {
+  padding-block-end: max(32px, env(safe-area-inset-bottom));
 }
-.legal-editor,
-.legal-history {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-line);
-  border-radius: var(--admin-radius);
-  padding: 16px;
-  margin: 12px 0;
+.legal-head {
+  justify-content: flex-start;
+  gap: 8px 24px;
+  margin-bottom: 16px;
 }
-.legal-editor h2,
-.legal-history h2 {
-  font-size: 16px;
+.legal-head .task-tabs {
   margin: 0;
 }
-.legal-toolbar {
+.legal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  align-items: start;
+  gap: 24px;
+}
+.legal-layout.is-focused {
+  grid-template-columns: minmax(0, 1fr);
+}
+.legal-editor {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.legal-field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  font-weight: 600;
+}
+.legal-field input,
+.legal-field textarea {
+  margin: 0;
+}
+.legal-field textarea {
+  min-height: max(22rem, calc(100dvh - 246px));
+  padding: 14px 16px;
+  resize: vertical;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.8;
+}
+.legal-footer {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  justify-content: flex-end;
+  padding: 12px 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: 14px;
+  background: #ffffffed;
+  box-shadow: 0 14px 36px #183c2914;
+  backdrop-filter: blur(14px);
+}
+.legal-footer p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-block: 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.focus-toggle[aria-pressed="true"] {
+  --button-border: var(--rf-primary);
+}
+.legal-sidebar {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-bg);
+}
+.legal-sidebar h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+.legal-sidebar p {
+  margin: 0 0 8px;
+}
+.legal-version {
+  font-weight: 600;
+}
+.legal-sidebar .legal-help {
+  margin: 8px 0 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.legal-history {
+  padding-top: 14px;
+  border-top: 1px solid var(--rf-line);
+}
+.legal-versions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 .legal-versions button {
   max-width: 100%;
+  padding: 4px 0;
+  text-align: left;
   white-space: normal;
   overflow-wrap: anywhere;
-  text-align: left;
-}
-.legal-help {
-  color: var(--admin-muted);
-  font-size: 12px;
-}
-.legal-editor label {
-  display: block;
-  margin: 12px 0;
-  font-weight: 600;
-}
-.legal-editor input,
-.legal-editor textarea {
-  display: block;
-  width: 100%;
-}
-.legal-editor textarea {
-  line-height: 1.8;
-  resize: vertical;
 }
 .legal-preview {
-  border-top: 1px solid var(--rf-line);
-  padding: 20px 0;
   overflow-wrap: anywhere;
 }
-.legal-preview p {
+.legal-preview-text {
+  margin: 0;
   white-space: pre-wrap;
-  line-height: 1.9;
+  line-height: 1.8;
 }
-.legal-alert {
-  background: var(--rf-bg);
-  color: var(--rf-danger);
-  padding: 16px;
-  border-radius: 8px;
-}
-.legal-toolbar span {
-  color: var(--admin-muted);
-  font-size: 12px;
-}
-@media (max-width: 600px) {
-  .legal-editor,
-  .legal-history {
-    padding: 16px;
+@media (min-width: 1200px) {
+  .legal-workspace {
+    display: flex;
+    flex-direction: column;
+    min-block-size: 100dvh;
   }
-  .legal-actions button {
-    flex: 1 1 45%;
+  .legal-layout {
+    flex: 1;
+    align-items: stretch;
+  }
+  .legal-editor {
+    grid-template-rows: auto 1fr auto;
+  }
+  .legal-field {
+    grid-template-rows: auto 1fr;
+  }
+  .legal-field textarea {
+    min-height: 22rem;
+  }
+  .legal-sidebar {
+    align-self: start;
+    max-block-size: max(18rem, calc(100dvh - 120px));
+    overflow-y: auto;
+  }
+}
+@media (max-width: 1199px) {
+  .legal-field textarea {
+    min-height: max(22rem, calc(100dvh - 360px));
+  }
+}
+@media (max-width: 760px) {
+  .legal-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .legal-footer {
+    bottom: 8px;
+    padding: 10px;
+  }
+  .legal-footer .footer-status {
+    flex-basis: 100%;
+  }
+  .legal-footer .footer-actions {
+    width: 100%;
+  }
+  .legal-footer .footer-actions button {
+    flex: 1 1 calc(50% - 8px);
   }
 }
 </style>

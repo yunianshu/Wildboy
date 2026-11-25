@@ -11,8 +11,13 @@ const a = {
   priceCents: 0,
 };
 test("category labels preserve requested wording and exactly four entries", () => {
-  assert.equal(d.categories.length, 4);
-  assert.equal(d.categoryName("DOMESTIC"), "国内游行");
+  assert.deepEqual(d.categories.map(({ code, name }) => [code, name]), [
+    ["WEEKLY", "户外活动"],
+    ["DOMESTIC", "户外旅行"],
+    ["HOLIDAY", "重装露营"],
+    ["LEISURE", "休闲活动"],
+  ]);
+  assert.equal(d.categoryName("DOMESTIC"), "户外旅行");
   assert.equal(d.validCategory("ADMIN"), false);
 });
 test("dates display Asia/Shanghai independent of host zone", () => {
@@ -74,6 +79,13 @@ test("multiple participants require valid identity, phone and consent", () => {
   );
   assert.notEqual(d.validateParticipants([first, first], true), "");
   assert.notEqual(d.validateParticipants([first], false), "");
+  const stops = ["北门", "南门"];
+  assert.match(d.validateParticipants([{ ...first, boardingPoint: "北门" }, second], true, true, stops), /第 2 位参与人的上车地点/);
+  assert.match(d.validateParticipants([{ ...first, boardingPoint: "旧站" }], true, true, stops), /上车地点/);
+  assert.equal(d.validateParticipants([
+    { ...first, boardingPoint: "北门" },
+    { ...second, boardingPoint: "南门" },
+  ], true, true, stops), "");
   assert.equal(d.maskIdNumber(first.idNumber), "110105********002X");
   assert.equal(d.maskIdNumber(""), "历史记录未登记");
 });

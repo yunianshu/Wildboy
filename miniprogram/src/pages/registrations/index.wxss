@@ -1,22 +1,6 @@
 @import "../../styles/slate-theme.wxss";
+@import "../../styles/section-tabs.wxss";
 @import "../../styles/user-flow.wxss";
-.filters {
-  display: flex;
-  gap: 14rpx;
-  margin: 34rpx 0;
-}
-.filter {
-  flex: 1;
-  text-align: center;
-  border-radius: 36rpx;
-  padding: 16rpx 24rpx;
-  background: var(--rf-soft);
-  color: var(--rf-muted);
-}
-.filter.active {
-  background: var(--rf-primary);
-  color: var(--rf-on-primary);
-}
 .record {
   background: #FFFFFF;
   padding: 30rpx;
@@ -29,10 +13,11 @@
   align-items: center;
 }
 .record-title {
-  font-weight: 650;
-  font-size: 34rpx;
+  font-weight: 600;
+  font-size: 16px;
   line-height: 1.5;
-  margin: 24rpx 0 14rpx;
+  margin: 12px 0 8px;
+  overflow-wrap: anywhere;
 }
 .record button {
   margin-top: 28rpx;
@@ -47,4 +32,8 @@
 
 @import "../../styles/slate-components.wxss";
 
-.registrations-heading { display: flex; justify-content: space-between; align-items: center; gap: 16rpx; }
+.registrations-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.registrations-heading .text-button { flex-shrink: 0; padding-right: 0; }
+.registrations-page .record > button { width: 100%; }
+
+.registration-tabs { margin-top: 16px; }

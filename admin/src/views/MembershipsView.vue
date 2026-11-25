@@ -1,8 +1,17 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { readListSearch, rememberListSearch } from "../listSearchContext";
 import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
-import { inject, computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import {
+  inject,
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
 import { routeLocationKey, routerKey, onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Page } from "../types";
@@ -87,24 +96,47 @@ const opened = ref<"tier" | "user" | null>(null),
 const route = inject(routeLocationKey, null);
 const router = inject(routerKey, null);
 const userIdParam = route?.query.userId;
-const initialUserQuery = typeof userIdParam === "string" ? userIdParam.slice(0, 80) : "";
-const rememberedSearch = !initialUserQuery ? readListSearch(currentUser.value, "memberships") : undefined;
-const section = ref<"tiers" | "users">(initialUserQuery || rememberedSearch || route?.query.section === "users" ? "users" : "tiers");
+const initialUserQuery =
+  typeof userIdParam === "string" ? userIdParam.slice(0, 80) : "";
+const rememberedSearch = !initialUserQuery
+  ? readListSearch(currentUser.value, "memberships")
+  : undefined;
+const section = ref<"tiers" | "users">(
+  initialUserQuery || rememberedSearch || route?.query.section === "users"
+    ? "users"
+    : "tiers",
+);
 const wantedType = route?.query.customerType;
-if (typeof wantedType === "string" && Object.keys(labels).includes(wantedType)) {
+if (
+  typeof wantedType === "string" &&
+  Object.keys(labels).includes(wantedType)
+) {
   customerType.value = wantedType;
   applied.customerType = wantedType;
 }
 const wantedPage = Number(route?.query.page);
-const initialPage = rememberedSearch?.page ?? (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001 ? wantedPage - 1 : 0);
+const initialPage =
+  rememberedSearch?.page ??
+  (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001
+    ? wantedPage - 1
+    : 0);
 function rememberFilters() {
   if (!router || !route) return;
-  void router.replace({ query: { ...route.query,
-    section: section.value === "users" ? "users" : undefined,
-    customerType: applied.customerType || undefined,
-    page: page.value && (!applied.query || applied.query === initialUserQuery) ? String(page.value + 1) : undefined,
-    userId: applied.query === initialUserQuery && initialUserQuery ? initialUserQuery : undefined,
-  } });
+  void router.replace({
+    query: {
+      ...route.query,
+      section: section.value === "users" ? "users" : undefined,
+      customerType: applied.customerType || undefined,
+      page:
+        page.value && (!applied.query || applied.query === initialUserQuery)
+          ? String(page.value + 1)
+          : undefined,
+      userId:
+        applied.query === initialUserQuery && initialUserQuery
+          ? initialUserQuery
+          : undefined,
+    },
+  });
 }
 function selectSection(value: "tiers" | "users") {
   section.value = value;
@@ -337,7 +369,8 @@ async function save() {
       const discount = r.pricingMode === "DISCOUNT",
         scaled = Number(r.value) * (discount ? 1000 : 100);
       if (
-        (r.enabled && (r.value === "" || (r.pricingMode === "REDUCTION" && scaled <= 0))) ||
+        (r.enabled &&
+          (r.value === "" || (r.pricingMode === "REDUCTION" && scaled <= 0))) ||
         !Number.isFinite(scaled) ||
         Math.abs(scaled - Math.round(scaled)) > 0.000001 ||
         scaled < (discount ? 1 : 0) ||
@@ -360,12 +393,21 @@ async function save() {
   try {
     if (opened.value === "tier") {
       const freeScopes = tierForm.rules
-        .filter((rule) => tierForm.enabled && rule.enabled && rule.pricingMode === "FIXED" && rule.value === 0)
+        .filter(
+          (rule) =>
+            tierForm.enabled &&
+            rule.enabled &&
+            rule.pricingMode === "FIXED" &&
+            rule.value === 0,
+        )
         .map((rule) => scopeLabels[rule.scope]);
       if (freeScopes.length) {
         const confirmed = await askConfirm({
           title: "设为免费？",
-          description: "符合条件的用户无需支付该等级的" + freeScopes.join("、") + "固定价格。",
+          description:
+            "符合条件的用户无需支付该等级的" +
+            freeScopes.join("、") +
+            "固定价格。",
           confirmLabel: "确认设为免费",
         });
         if (!confirmed || n !== epoch || actor !== currentUser.value) return;
@@ -431,29 +473,24 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
   if (!rule.participantPricing) return amount;
   return `${amount} · ${rule.participantPricing === "ONE_BENEFIT" ? "每单最多 1 个优惠名额" : "同行全部"}`;
 }
+useForegroundRefresh(() => {
+  if (!busy.value && !loading.value && !opened.value) void load(page.value);
+});
 </script>
 <template>
   <main class="workspace member-workspace">
-    <div class="page-heading">
+    <header class="page-heading">
       <h1>会员管理</h1>
-      <div class="member-actions">
-        <button
-          class="secondary"
-          :disabled="busy || loading"
-          @click="load(page)"
-        >
-          <AppIcon name="refresh" :size="16" />刷新列表
-        </button>
-        <button
-          v-show="section === 'tiers'"
-          class="primary"
-          :disabled="busy || loading"
-          @click="openTier(null)"
-        >
-          <AppIcon name="plus" :size="16" />新建等级
-        </button>
-      </div>
-    </div>
+      <button
+        v-if="section === 'tiers'"
+        class="primary"
+        type="button"
+        :disabled="busy || loading"
+        @click="openTier(null)"
+      >
+        <AppIcon name="plus" :size="16" />新建等级
+      </button>
+    </header>
     <nav class="task-tabs" aria-label="会员管理视图">
       <button
         class="secondary"
@@ -485,31 +522,39 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
         >暂无会员等级。可新建等级设置活动和商品优惠。</UiState
       >
       <div v-if="tiers.length" class="table-scroll" :aria-busy="loading">
-        <table class="membership-table">
-          <thead>
-            <tr>
-              <th>等级</th>
-              <th class="member-number">排序</th>
-              <th class="member-status-cell">状态</th>
-              <th>活动优惠</th>
-              <th>商品优惠</th>
-              <th>操作</th>
+        <table class="membership-table record-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader">等级</th>
+              <th role="columnheader" class="member-number">排序</th>
+              <th role="columnheader" class="member-status-cell">状态</th>
+              <th role="columnheader">活动优惠</th>
+              <th role="columnheader">商品优惠</th>
+              <th role="columnheader">操作</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="t in tiers" :key="t.id">
-              <td class="member-name">{{ t.name }}</td>
-              <td class="member-number">{{ t.sortOrder }}</td>
-              <td class="member-status-cell">
+          <tbody role="rowgroup">
+            <tr role="row" v-for="t in tiers" :key="t.id">
+              <td role="cell" data-cell="title" class="member-name">
+                {{ t.name }}
+              </td>
+              <td role="cell" data-label="排序" class="member-number">
+                {{ t.sortOrder }}
+              </td>
+              <td role="cell" data-label="状态" class="member-status-cell">
                 <span
                   class="member-tag"
                   :class="{ 'member-tag-muted': !t.enabled }"
                   >{{ t.enabled ? "启用" : "停用" }}</span
                 >
               </td>
-              <td>{{ tierPrice(t, "ACTIVITY") }}</td>
-              <td>{{ tierPrice(t, "SHOP") }}</td>
-              <td>
+              <td role="cell" data-label="活动优惠">
+                {{ tierPrice(t, "ACTIVITY") }}
+              </td>
+              <td role="cell" data-label="商品优惠">
+                {{ tierPrice(t, "SHOP") }}
+              </td>
+              <td role="cell" data-cell="actions">
                 <button
                   class="text-button"
                   :disabled="busy || loading"
@@ -531,57 +576,71 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
       id="member-users"
       aria-label="用户业务身份"
     >
-      <form class="member-filters" @submit.prevent="load(0, true)">
-        <label
-          >昵称或完整用户 ID<input
-            v-model="query"
-            aria-label="搜索用户"
-            maxlength="80" /></label
-        ><label
-          >业务身份<select v-model="customerType" aria-label="筛选身份">
-            <option value="">全部身份</option>
-            <option v-for="(label, key) in labels" :key="key" :value="key">
-              {{ label }}
-            </option>
-          </select></label
-        ><button class="secondary" :disabled="busy || loading">搜索</button>
+      <form
+        class="list-filters"
+        role="search"
+        aria-label="筛选会员"
+        @submit.prevent="load(0, true)"
+      >
+        <input
+          v-model="query"
+          aria-label="搜索用户"
+          type="search"
+          placeholder="昵称或完整用户 ID"
+          maxlength="80"
+        />
+        <select
+          v-model="customerType"
+          aria-label="筛选身份"
+          @change="load(0, true)"
+        >
+          <option value="">全部身份</option>
+          <option v-for="(label, key) in labels" :key="key" :value="key">
+            {{ label }}
+          </option>
+        </select>
+        <button type="submit" class="secondary" :disabled="busy || loading">
+          搜索
+        </button>
       </form>
       <UiState v-if="loading && !users.length" kind="loading" compact
         >正在读取用户业务身份…</UiState
       >
-      <UiState v-else-if="!users.length && !error" kind="empty" compact
-        >暂无匹配用户。可修改昵称或身份条件重新搜索。</UiState
-      >
+      <UiState v-else-if="!users.length && !error" kind="empty" compact>
+        {{
+          applied.query || applied.customerType ? "暂无匹配用户" : "暂无用户"
+        }}
+      </UiState>
       <div v-if="users.length" class="table-scroll" :aria-busy="loading">
-        <table class="membership-user-table">
-          <thead>
-            <tr>
-              <th>昵称 / ID</th>
-              <th>业务身份</th>
-              <th>会员等级</th>
-              <th>操作</th>
+        <table class="membership-user-table record-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader">昵称 / ID</th>
+              <th role="columnheader">业务身份</th>
+              <th role="columnheader">会员等级</th>
+              <th role="columnheader">操作</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="u in users" :key="u.id">
-              <td>
+          <tbody role="rowgroup">
+            <tr role="row" v-for="u in users" :key="u.id">
+              <td role="cell" data-cell="title">
                 <strong>{{ u.nickname }}</strong
                 ><br /><small>{{ u.id }}</small>
               </td>
-              <td class="member-status-cell">
+              <td role="cell" data-label="业务身份" class="member-status-cell">
                 <span
                   class="member-tag"
                   :class="{ 'member-tag-muted': u.customerType === 'GUEST' }"
                   >{{ labels[u.customerType] }}</span
                 >
               </td>
-              <td>
+              <td role="cell" data-label="会员等级">
                 {{ u.tierName || "—"
                 }}{{
                   u.tierId && !u.tierEnabled ? "（已停用，不享受优惠）" : ""
                 }}
               </td>
-              <td>
+              <td role="cell" data-cell="actions">
                 <button
                   class="text-button"
                   :disabled="busy || loading"
@@ -594,7 +653,16 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
           </tbody>
         </table>
       </div>
-      <PaginationBar v-if="users.length || page > 0" :page-size="userPageSize" :has-more="more" :busy="busy || loading" :page="page" :total="total" label="用户业务身份分页" @change="load" />
+      <PaginationBar
+        v-if="users.length || page > 0"
+        :page-size="userPageSize"
+        :has-more="more"
+        :busy="busy || loading"
+        :page="page"
+        :total="total"
+        label="用户业务身份分页"
+        @change="load"
+      />
     </section>
     <FormModal
       :busy="busy"
@@ -621,7 +689,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
         :disabled="busy"
         @click="reloadEditor"
       >
-        重新加载最新资料
+        采用最新资料
       </button>
       <form @submit.prevent="save">
         <fieldset :disabled="busy || conflict">
@@ -753,7 +821,7 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
             </p>
           </template>
         </fieldset>
-        <div class="member-footer">
+        <div class="footer-actions member-footer">
           <button
             class="secondary"
             type="button"
@@ -773,8 +841,10 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
 <style scoped>
 .rule-card {
   border: 1px solid var(--admin-line);
-  border-radius: var(--admin-radius);
-  padding: 12px;
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--admin-surface);
+  box-shadow: var(--rf-shadow-sm);
   display: grid;
   align-content: start;
   gap: 10px;
@@ -811,10 +881,6 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
 .member-workspace .checkbox-field input {
   flex: 0 0 18px;
 }
-.member-workspace .task-tabs [aria-pressed="true"] {
-  background: var(--admin-tint);
-  border-color: var(--admin-primary);
-}
 .membership-table {
   min-width: 640px;
 }
@@ -835,11 +901,11 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
 }
 .member-tag {
   display: inline-block;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
   background: var(--admin-tint);
   color: var(--rf-primary-text);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
 }
 .member-tag-muted {
@@ -869,26 +935,8 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
 .member-workspace > :deep(.ui-state) {
   margin-bottom: 12px;
 }
-.member-filters,
-.member-actions,
-.member-footer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
 .member-reload {
   margin-bottom: 10px;
-}
-.member-filters {
-  align-items: end;
-  margin-bottom: 12px;
-}
-.member-filters label:first-child {
-  flex: 0 1 248px;
-}
-.member-filters label:nth-child(2) {
-  flex: 0 1 140px;
 }
 .member-pagination {
   justify-content: flex-end;
@@ -901,7 +949,6 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
   font-size: 12px;
 }
 .member-footer {
-  justify-content: flex-end;
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--admin-line);
@@ -909,9 +956,6 @@ function tierPrice(tier: Tier, scope: PricingRule["scope"]) {
 @media (max-width: 600px) {
   .member-rules {
     grid-template-columns: 1fr;
-  }
-  .member-filters label:first-child {
-    flex-basis: 100%;
   }
 }
 </style>

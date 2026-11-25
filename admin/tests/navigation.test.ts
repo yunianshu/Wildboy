@@ -99,10 +99,15 @@ describe("sensitive navigation", () => {
       ?.trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.path).toBe("/activities/one/edit");
-    expect((wrapper.get('input[placeholder="活动名称"]').element as HTMLInputElement).value)
-      .toBe("未保存的标题");
+    expect(
+      (wrapper.get('input[placeholder="活动名称"]').element as HTMLInputElement)
+        .value,
+    ).toBe("未保存的标题");
     confirm.mockResolvedValue(true);
-    await wrapper.findAll("button").find((button) => button.text() === "退出登录")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "退出登录")!
+      .trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.path).toBe("/login");
     expect(wrapper.find(".editor-workspace").exists()).toBe(false);

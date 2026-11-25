@@ -1,9 +1,5 @@
 #!/bin/sh
-# Wildboy 生产部署第 2-5 步（服务器端执行）。
-# 与 deploy/deploy.sh 的差异：不含第 1 步代码同步（由 release.sh 通过 SSH 直推
-# + ff-merge 完成，绕开服务器到 GitHub 不稳定的问题）；凭据变量从凭据文件
-# 导出，修正了 deploy.sh 中 ANYSERVICE_AUTHORIZATION_HEADER 未定义的引用。
-# 在服务器上以 root 运行：sh /root/deploy-steps.sh
+# Run the admin and gateway deployment after the API JAR is deployed.
 set -eu
 APP_DIR=/root/Wildboy
 cd "$APP_DIR"
@@ -12,21 +8,6 @@ if [ ! -f .env ]; then
   echo "ERROR: $APP_DIR/.env missing (copy .env.example and fill secrets)" >&2
   exit 1
 fi
-
-echo "==> 2/5 build & start db + api (compose)"
-docker compose up -d --build db api
-
-echo "==> wait for api health"
-i=0
-until curl -sf http://127.0.0.1:8080/actuator/health >/dev/null 2>&1; do
-  i=$((i + 1))
-  if [ "$i" -gt 90 ]; then
-    echo "ERROR: api not healthy after 180s" >&2
-    docker logs --tail 60 wildboy-api-1 >&2 || true
-    exit 1
-  fi
-  sleep 2
-done
 
 echo "==> 3/5 build admin bundle (node container)"
 ADMIN_REVISION=$(git rev-parse --short HEAD)

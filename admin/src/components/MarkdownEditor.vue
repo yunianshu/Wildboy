@@ -8,8 +8,8 @@ import Vditor from "vditor";
 import "vditor/dist/index.css";
 import { ApiError, request, currentUser, errorMessage } from "../api";
 
-// 有道云风格的 Markdown 编辑器（Vditor WYSIWYG 模式），内嵌在文章编辑页文档流中。
-// 保存动作由页面顶栏触发（expose save），组件只负责正文内容的加载、编辑与上传。
+// Markdown 编辑器（Vditor WYSIWYG 模式），内嵌在内容编辑页文档流中。
+// 保存动作由所属编辑页触发（expose save），组件只负责正文内容的加载、编辑与上传。
 // 服务端把 Markdown 转成小程序原生渲染使用的结构化节点。
 const props = defineProps<{
   path: string;
@@ -17,12 +17,14 @@ const props = defineProps<{
   managedNavigation?: boolean;
   /** 编辑器高度（px），默认 520。 */
   height?: number;
+  placeholder?: string;
   components?: boolean;
 }>();
 const emit = defineEmits<{ saved: [version: number] }>();
 
 const host = ref<HTMLElement | null>(null);
 const version = ref(0);
+const loading = ref(false);
 const busy = ref(false);
 const error = ref("");
 const versionConflict = ref(false);
@@ -30,21 +32,27 @@ const loaded = ref(false);
 const dirty = ref(false);
 const ready = ref(false);
 const choosingImage = ref(false);
-const workflowBusy = computed(() => busy.value || choosingImage.value);
+const writeBusy = computed(() => busy.value || choosingImage.value);
+const workflowBusy = computed(() => loading.value || writeBusy.value);
 const body = ref<HTMLElement>();
 const imageInput = ref<HTMLInputElement>();
 const markerTop = ref<number>();
 const componentMime = "application/x-wildboy-article-component";
 const contentComponents = [
-  { kind: "text", label: "段落" }, { kind: "image", label: "图片" },
-  { kind: "table", label: "表格" }, { kind: "quote", label: "引用" },
+  { kind: "text", label: "段落" },
+  { kind: "image", label: "图片" },
+  { kind: "table", label: "表格" },
+  { kind: "quote", label: "引用" },
   { kind: "line", label: "分隔线" },
 ] as const;
 const shapeComponents = [
-  { kind: "circle", label: "圆形" }, { kind: "square", label: "方形" },
+  { kind: "circle", label: "圆形" },
+  { kind: "square", label: "方形" },
   { kind: "triangle", label: "三角形" },
 ] as const;
-type ComponentKind = (typeof contentComponents | typeof shapeComponents)[number]["kind"];
+type ComponentKind = (
+  typeof contentComponents | typeof shapeComponents
+)[number]["kind"];
 type ShapeKind = (typeof shapeComponents)[number]["kind"];
 type Placement = { editor: HTMLElement; before: Element | null };
 const snippets: Partial<Record<ComponentKind, string>> = {
@@ -67,7 +75,7 @@ async function load() {
   dirty.value = false;
   error.value = "";
   versionConflict.value = false;
-  busy.value = true;
+  loading.value = true;
   try {
     const d = await request<{ markdown: string; version: number }>(props.path);
     if (n === generation && actor === currentUser.value) {
@@ -86,7 +94,7 @@ async function load() {
   } catch (e) {
     if (n === generation) error.value = errorMessage(e);
   } finally {
-    if (n === generation) busy.value = false;
+    if (n === generation) loading.value = false;
   }
 }
 watch(
@@ -106,7 +114,9 @@ function syncDisabled() {
 function activeEditor() {
   if (!vditor || !ready.value) return;
   const mode = vditor.getCurrentMode();
-  return host.value?.querySelector<HTMLElement>(mode === "sv" ? "pre.vditor-sv" : `.vditor-${mode} pre.vditor-reset`);
+  return host.value?.querySelector<HTMLElement>(
+    mode === "sv" ? "pre.vditor-sv" : `.vditor-${mode} pre.vditor-reset`,
+  );
 }
 function canInsert() {
   return ready.value && loaded.value && !workflowBusy.value && !props.disabled;
@@ -115,13 +125,18 @@ function selectedPlacement(): Placement | undefined {
   const editor = activeEditor();
   if (!editor) return;
   const anchor = window.getSelection()?.anchorNode;
-  const block = Array.from(editor.children).find((child) => child.contains(anchor ?? null));
+  const block = Array.from(editor.children).find((child) =>
+    child.contains(anchor ?? null),
+  );
   return { editor, before: block?.nextElementSibling ?? null };
 }
 function placeMarkdown(value: string, placement?: Placement) {
   const editor = activeEditor();
   if (!editor || !vditor) return;
-  const before = placement?.editor === editor && placement.before?.parentElement === editor ? placement.before : null;
+  const before =
+    placement?.editor === editor && placement.before?.parentElement === editor
+      ? placement.before
+      : null;
   const range = document.createRange();
   const selection = window.getSelection();
   if (!selection) return;
@@ -143,7 +158,8 @@ function placeMarkdown(value: string, placement?: Placement) {
     selection.removeAllRanges();
     selection.addRange(range);
     vditor.insertMD(value);
-    if (!anchor.textContent && anchor.firstElementChild?.tagName === "BR") anchor.remove();
+    if (!anchor.textContent && anchor.firstElementChild?.tagName === "BR")
+      anchor.remove();
   }
   dirty.value = true;
 }
@@ -170,9 +186,17 @@ function shapePng(kind: ShapeKind) {
   context.stroke();
   return canvas.toDataURL("image/png").split(",")[1];
 }
-async function uploadImage(image: File | string, placement?: Placement, caption = "") {
+async function uploadImage(
+  image: File | string,
+  placement?: Placement,
+  caption = "",
+) {
   if (!canInsert()) return;
-  if (typeof image !== "string" && (!["image/jpeg", "image/png"].includes(image.type) || image.size > 4 * 1024 * 1024)) {
+  if (
+    typeof image !== "string" &&
+    (!["image/jpeg", "image/png"].includes(image.type) ||
+      image.size > 4 * 1024 * 1024)
+  ) {
     error.value = "请选择 4MB 内 JPG/PNG 图片";
     return;
   }
@@ -181,24 +205,33 @@ async function uploadImage(image: File | string, placement?: Placement, caption 
   busy.value = true;
   error.value = "";
   try {
-    const data = typeof image === "string" ? image : await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(",")[1]);
-      reader.onerror = () => reject(new Error("读取图片失败"));
-      reader.readAsDataURL(image);
-    });
+    const data =
+      typeof image === "string"
+        ? image
+        : await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1]);
+            reader.onerror = () => reject(new Error("读取图片失败"));
+            reader.readAsDataURL(image);
+          });
     if (generation !== n || currentUser.value !== actor) return;
     const result = await request<{ url: string }>("/admin/media", {
       method: "POST",
       body: JSON.stringify({ dataBase64: data }),
     });
-    if (generation !== n || currentUser.value !== actor || props.disabled) return;
-    if (!/^\/assets\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.(?:png|jpe?g|webp)$/.test(result.url)) {
+    if (generation !== n || currentUser.value !== actor || props.disabled)
+      return;
+    if (
+      !/^\/assets\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.(?:png|jpe?g|webp)$/.test(
+        result.url,
+      )
+    ) {
       throw new Error("图片地址无效，请重试。");
     }
     placeMarkdown(`![${caption}](${result.url})`, placement);
   } catch (e) {
-    if (generation === n && currentUser.value === actor) error.value = errorMessage(e);
+    if (generation === n && currentUser.value === actor)
+      error.value = errorMessage(e);
   } finally {
     if (generation === n) busy.value = false;
   }
@@ -245,14 +278,17 @@ function dragPlacement(event: DragEvent): Placement | undefined {
   const editor = activeEditor();
   if (!editor) return;
   const blocks = Array.from(editor.children);
-  const before = blocks.find((block) => {
-    const rect = block.getBoundingClientRect();
-    return event.clientY < rect.top + rect.height / 2;
-  }) ?? null;
+  const before =
+    blocks.find((block) => {
+      const rect = block.getBoundingClientRect();
+      return event.clientY < rect.top + rect.height / 2;
+    }) ?? null;
   return { editor, before };
 }
 function acceptsDrag(event: DragEvent) {
-  return event.dataTransfer?.types.some((type) => type === "Files" || (props.components && type === componentMime));
+  return event.dataTransfer?.types.some(
+    (type) => type === "Files" || (props.components && type === componentMime),
+  );
 }
 function stopDrag() {
   markerTop.value = undefined;
@@ -261,17 +297,26 @@ function dragOver(event: DragEvent) {
   if (!acceptsDrag(event)) return;
   event.preventDefault();
   event.stopPropagation();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = canInsert() ? "copy" : "none";
+  if (event.dataTransfer)
+    event.dataTransfer.dropEffect = canInsert() ? "copy" : "none";
   if (!canInsert() || !body.value) return;
   const target = dragPlacement(event);
   if (!target) return;
   const canvas = body.value.getBoundingClientRect();
   const editor = target.editor.getBoundingClientRect();
-  const edge = target.before?.getBoundingClientRect().top ?? target.editor.lastElementChild?.getBoundingClientRect().bottom ?? event.clientY;
-  markerTop.value = Math.min(editor.bottom - 4, Math.max(editor.top + 4, edge)) - canvas.top;
+  const edge =
+    target.before?.getBoundingClientRect().top ??
+    target.editor.lastElementChild?.getBoundingClientRect().bottom ??
+    event.clientY;
+  markerTop.value =
+    Math.min(editor.bottom - 4, Math.max(editor.top + 4, edge)) - canvas.top;
 }
 function dragLeave(event: DragEvent) {
-  if (!(event.relatedTarget instanceof Node) || !body.value?.contains(event.relatedTarget)) stopDrag();
+  if (
+    !(event.relatedTarget instanceof Node) ||
+    !body.value?.contains(event.relatedTarget)
+  )
+    stopDrag();
 }
 function drop(event: DragEvent) {
   stopDrag();
@@ -286,7 +331,9 @@ function drop(event: DragEvent) {
     return;
   }
   const kind = event.dataTransfer.getData(componentMime);
-  const component = [...contentComponents, ...shapeComponents].find((item) => item.kind === kind);
+  const component = [...contentComponents, ...shapeComponents].find(
+    (item) => item.kind === kind,
+  );
   if (component) insertComponent(component.kind, target);
 }
 function maybeInit() {
@@ -300,7 +347,8 @@ function maybeInit() {
       mode: "wysiwyg",
       value: markdown,
       height: props.height ?? 520,
-      placeholder: "开始写正文…输入 / 呼出格式菜单，或直接粘贴图片",
+      placeholder:
+        props.placeholder || "开始写正文…输入 / 呼出格式菜单，或直接粘贴图片",
       cache: { enable: false },
       toolbar: [
         "headings",
@@ -337,9 +385,7 @@ function maybeInit() {
           return null;
         },
       },
-      input: () => {
-        if (!applying && vditor) dirty.value = vditor.getValue() !== markdown;
-      },
+      input: syncDirty,
       after: () => {
         applying = true;
         vditor?.setValue(markdown);
@@ -353,11 +399,18 @@ function maybeInit() {
     });
   });
 }
+function syncDirty() {
+  if (!applying && loaded.value && vditor)
+    dirty.value = vditor.getValue() !== markdown;
+}
 function readContent() {
   if (!loaded.value || !vditor) return null;
   return { markdown: vditor.getValue(), version: version.value };
 }
-function markSaved(content: { markdown?: string; version: number }, previousVersion: number) {
+function markSaved(
+  content: { markdown?: string; version: number },
+  previousVersion: number,
+) {
   if (version.value !== previousVersion) return;
   version.value = content.version;
   if (content.markdown !== undefined) {
@@ -391,9 +444,22 @@ async function save() {
   }
 }
 async function canLeave() {
+  syncDirty();
   return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
-defineExpose({ canLeave, dirty, busy: workflowBusy, loaded, ready, save, load, readContent, markSaved, versionConflict });
+defineExpose({
+  canLeave,
+  dirty,
+  busy: workflowBusy,
+  writeBusy,
+  loaded,
+  ready,
+  save,
+  load,
+  readContent,
+  markSaved,
+  versionConflict,
+});
 onBeforeRouteLeave(
   async (to) =>
     props.managedNavigation || to.path === "/login" || (await canLeave()),
@@ -407,9 +473,11 @@ onUnmounted(() => {
 <template>
   <section class="md-editor">
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
-    <UiState v-if="!loaded && busy" kind="loading" compact>正在读取正文…</UiState>
+    <UiState v-if="!loaded && loading" kind="loading" compact
+      >正在读取正文…</UiState
+    >
     <button
-      v-if="!loaded && !busy"
+      v-if="!loaded && !loading"
       class="secondary button"
       :disabled="busy"
       @click="load"
@@ -455,11 +523,34 @@ onUnmounted(() => {
             <AppIcon :name="item.kind" />{{ item.label }}
           </button>
         </div>
-        <input ref="imageInput" type="file" hidden accept="image/png,image/jpeg" @change="pickImage" @cancel="cancelImage" />
+        <input
+          ref="imageInput"
+          type="file"
+          hidden
+          accept="image/png,image/jpeg"
+          @change="pickImage"
+          @cancel="cancelImage"
+        />
       </aside>
-      <div ref="body" class="md-body" @dragover.capture="dragOver" @dragleave="dragLeave" @drop.capture="drop">
-        <div ref="host" class="md-canvas" aria-label="图文正文（Markdown 编辑器）"></div>
-        <span v-if="markerTop !== undefined" class="component-insertion" :style="{ top: markerTop + 'px' }" aria-hidden="true"></span>
+      <div
+        ref="body"
+        class="md-body"
+        @input="syncDirty"
+        @dragover.capture="dragOver"
+        @dragleave="dragLeave"
+        @drop.capture="drop"
+      >
+        <div
+          ref="host"
+          class="md-canvas"
+          aria-label="图文正文（Markdown 编辑器）"
+        ></div>
+        <span
+          v-if="markerTop !== undefined"
+          class="component-insertion"
+          :style="{ top: markerTop + 'px' }"
+          aria-hidden="true"
+        ></span>
       </div>
     </div>
   </section>

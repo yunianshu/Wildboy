@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -73,6 +74,7 @@ class BackendIntegrationTest {
     db.update("DELETE FROM shop_order");
     db.update("DELETE FROM product");
     db.update("DELETE FROM activity");
+    db.update("DELETE FROM activity_boarding_point");
     db.update("DELETE FROM auth_session");
     db.update("DELETE FROM app_user");
     for (var kind : LegalModels.Kind.values()) {
@@ -420,14 +422,74 @@ class BackendIntegrationTest {
   }
 
   @Test
-  void startedActivityCannotBeMovedIntoFuture() {
-    Activity a = publish(1);
+  void adminCanEditStartedActivityWhileRegistrationStaysClosed() throws Exception {
+    Activity activity = publish(2);
+    activities.register(activity.id(), user().id(), registrationInput("QA attendee", "13800000000"));
+    db.update("""
+        UPDATE activity SET start_at=CURRENT_TIMESTAMP-INTERVAL '1 hour',
+            end_at=CURRENT_TIMESTAMP+INTERVAL '1 hour',
+            registration_deadline=CURRENT_TIMESTAMP-INTERVAL '2 hours' WHERE id=?
+        """, activity.id());
+    Activity started = activities.get(activity.id(), true);
+    var changes = json.<ObjectNode>valueToTree(input(2))
+        .put("title", "Updated hiking notes")
+        .put("startAt", started.startAt().toString())
+        .put("endAt", started.endAt().plusHours(1).toString())
+        .put("registrationDeadline", started.registrationDeadline().toString())
+        .put("version", started.version());
+    String token = bearer(auth.user("fixture:started-editor", "Admin", "ADMIN"));
+    mvc.perform(put("/api/v1/admin/activities/" + started.id()).header("Authorization", token)
+            .contentType("application/json").content(changes.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("Updated hiking notes"))
+        .andExpect(jsonPath("$.status").value("PUBLISHED"))
+        .andExpect(jsonPath("$.registeredCount").value(1))
+        .andExpect(jsonPath("$.version").value(started.version() + 1));
+    assertThat(activities.get(started.id(), true).startAt()).isEqualTo(started.startAt());
+    assertThatThrownBy(() -> activities.register(started.id(), user().id(),
+        registrationInput("Late attendee", "13800000001")))
+        .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code).isEqualTo("REGISTRATION_CLOSED"));
+  }
+
+  @Test
+  void startedActivityCanRescheduleWhenEmptyAndProtectsRosterWhenEnrolled() {
+    Activity emptyStarted = publish(2);
+    db.update(
+        "UPDATE activity SET start_at=CURRENT_TIMESTAMP-INTERVAL '2 hours',"
+            + "end_at=CURRENT_TIMESTAMP-INTERVAL '1 hour',"
+            + "registration_deadline=CURRENT_TIMESTAMP-INTERVAL '3 hours' WHERE id=?",
+        emptyStarted.id());
+    var in = input(2);
+    var rescheduled =
+        activities.edit(
+            emptyStarted.id(),
+            new ActivityInput(
+                in.title(),
+                in.category(),
+                in.coverUrl(),
+                in.galleryUrls(),
+                in.summary(),
+                in.description(),
+                in.location(),
+                in.meetingPoint(),
+                in.startAt(),
+                in.endAt(),
+                in.registrationDeadline(),
+                2,
+                0,
+                emptyStarted.version()),
+            "fixture");
+    assertThat(rescheduled.startAt().toInstant())
+        .isEqualTo(in.startAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS).toInstant());
+
+    Activity enrolled = publish(2);
+    activities.register(enrolled.id(), user().id(), registrationInput("已有报名人", "13800000088"));
+    var afterReg = activities.get(enrolled.id(), true);
     db.update(
         "UPDATE activity SET start_at=CURRENT_TIMESTAMP-INTERVAL '1"
             + " hour',end_at=CURRENT_TIMESTAMP+INTERVAL '1"
             + " hour',registration_deadline=CURRENT_TIMESTAMP-INTERVAL '2 hours' WHERE id=?",
-        a.id());
-    var in = input(1);
+        enrolled.id());
     var updated =
         new ActivityInput(
             in.title(),
@@ -441,11 +503,47 @@ class BackendIntegrationTest {
             in.startAt(),
             in.endAt(),
             in.registrationDeadline(),
-            1,
+            2,
             0,
-            a.version());
-    assertThatThrownBy(() -> activities.edit(a.id(), updated, "fixture"))
-        .hasMessageContaining("已开始");
+            afterReg.version(),
+            true);
+    assertThatThrownBy(() -> activities.edit(enrolled.id(), updated, "fixture"))
+        .hasMessageContaining("重开一期");
+  }
+
+  @Test
+  void adminCanSaveAndReuseBoardingPointsAcrossActivities() throws Exception {
+    String path = "/api/v1/admin/activity-boarding-points";
+    String token = bearer(auth.user("fixture:boarding-editor", "Admin", "ADMIN"));
+    String ordinary = bearer(user());
+    String point = "{\"name\":\"  North station  \"}";
+    mvc.perform(get(path).header("Authorization", ordinary)).andExpect(status().isForbidden());
+    mvc.perform(post(path).header("Authorization", ordinary)
+            .contentType("application/json").content(point))
+        .andExpect(status().isForbidden());
+    mvc.perform(post(path).header("Authorization", token)
+            .contentType("application/json").content("{\"name\":\"  \"}"))
+        .andExpect(status().isBadRequest());
+    for (int attempt = 0; attempt < 2; attempt++) {
+      mvc.perform(post(path).header("Authorization", token)
+              .contentType("application/json").content(point))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.name").value("North station"));
+    }
+    mvc.perform(get(path).header("Authorization", token))
+        .andExpect(status().isOk())
+        .andExpect(content().json("[\"North station\"]"));
+
+    var activity = json.<ObjectNode>valueToTree(input(2));
+    activity.putArray("boardingPoints").add("South gate").add("North station");
+    mvc.perform(post("/api/v1/admin/activities").header("Authorization", token)
+            .contentType("application/json").content(activity.toString()))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.boardingPoints[0]").value("South gate"))
+        .andExpect(jsonPath("$.boardingPoints[1]").value("North station"));
+    mvc.perform(get(path).header("Authorization", token))
+        .andExpect(status().isOk())
+        .andExpect(content().json("[\"North station\", \"South gate\"]"));
   }
 
   @Test

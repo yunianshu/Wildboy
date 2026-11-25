@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
@@ -7,6 +8,7 @@ import type { ProductCategory } from "../types";
 import FormModal from "../components/FormModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import UiState from "../components/UiState.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import AppIcon from "../components/AppIcon.vue";
 
 const items = ref<ProductCategory[]>([]),
@@ -258,14 +260,16 @@ onUnmounted(() => {
   clear();
   window.removeEventListener("beforeunload", beforeUnload);
 });
+useForegroundRefresh(() => {
+  if (!loading.value && !busy.value && !editing.value) void load();
+});
 </script>
 <template>
   <main class="workspace">
     <header class="page-heading">
       <h1>商品分类</h1>
       <div class="action-row">
-        <button :disabled="loading || busy" @click="load">刷新分类</button
-        ><button class="primary" :disabled="loading || busy" @click="open()">
+        <button class="primary" :disabled="loading || busy" @click="open()">
           <AppIcon name="plus" />新分类
         </button>
       </div>
@@ -282,37 +286,32 @@ onUnmounted(() => {
         >商品分类</RouterLink
       >
     </nav>
-    <p class="privacy-note">
-      单层分类用于商城筛选。数值越小越靠前；已有商品默认归入未分类，可修改分类名称和排序，历史订单商品及成交金额保留。
-    </p>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="error && !editing" class="error-box" role="alert">
       {{ error
       }}<button class="text-button" :disabled="loading || busy" @click="load">
-        重新加载
+        重试
       </button>
     </p>
     <UiState v-if="loading && !items.length" kind="loading" compact
       >正在加载商品分类…</UiState
     >
     <UiState v-else-if="!items.length && !error" kind="empty" compact
-      >还没有商品分类。<button :disabled="busy" @click="open()">
-        创建分类
-      </button></UiState
+      >暂无商品分类</UiState
     >
     <div v-if="items.length" class="table-scroll">
-      <table class="product-categories-table">
-        <thead>
-          <tr>
-            <th>分类名称</th>
-            <th>排序</th>
-            <th>关联商品</th>
-            <th>操作</th>
+      <table class="product-categories-table record-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader">分类名称</th>
+            <th role="columnheader">排序</th>
+            <th role="columnheader">关联商品</th>
+            <th role="columnheader">操作</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="category in visible" :key="category.id">
-            <td>
+        <tbody role="rowgroup">
+          <tr role="row" v-for="category in visible" :key="category.id">
+            <td role="cell" data-cell="title">
               <strong class="cell-summary" :title="category.name">{{
                 category.name
               }}</strong
@@ -320,9 +319,17 @@ onUnmounted(() => {
                 >默认分类</span
               >
             </td>
-            <td class="table-number">{{ category.sortOrder }}</td>
-            <td class="table-number"><RouterLink class="text-button" :to="{ path: '/shop', query: { category: category.id } }">{{ category.productCount }} 件</RouterLink></td>
-            <td>
+            <td role="cell" data-label="排序" class="table-number">
+              {{ category.sortOrder }}
+            </td>
+            <td role="cell" data-label="关联商品" class="table-number">
+              <RouterLink
+                class="text-button"
+                :to="{ path: '/shop', query: { category: category.id } }"
+                >{{ category.productCount }} 件</RouterLink
+              >
+            </td>
+            <td role="cell" data-cell="actions">
               <button
                 class="text-button"
                 :disabled="loading || busy"
@@ -335,19 +342,16 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <nav class="pagination" aria-label="商品分类分页">
-      <span>第 {{ page + 1 }} 页 · 共 {{ items.length }} 个分类</span>
-      <div class="action-row">
-        <button :disabled="loading || busy || page === 0" @click="page--">
-          上一页</button
-        ><button
-          :disabled="loading || busy || (page + 1) * 8 >= items.length"
-          @click="page++"
-        >
-          下一页
-        </button>
-      </div>
-    </nav>
+    <PaginationBar
+      :page="page"
+      :page-size="8"
+      :total="items.length"
+      :has-more="(page + 1) * 8 < items.length"
+      :busy="loading || busy"
+      label="商品分类分页"
+      count-unit="个分类"
+      @change="page = $event"
+    />
     <FormModal :busy="busy" v-if="editing" @close="close"
       ><template #title
         ><h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2></template
@@ -385,7 +389,7 @@ onUnmounted(() => {
             :disabled="busy || loading"
             @click="requestReload"
           >
-            重新读取</button
+            采用最新版本</button
           ><button
             class="primary"
             :disabled="busy || loading || conflict || uncertain"

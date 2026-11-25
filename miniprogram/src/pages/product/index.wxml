@@ -16,9 +16,11 @@
       <view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view>
       <view class="notice">价格与库存以下单确认为准。</view>
       <view class="quantity-row"><view><view class="section-title small-title">购买数量</view><view class="muted">单种商品最多 99 件</view></view><view class="stepper"><button data-delta="-1" bindtap="changeQuantity" disabled="{{quantity <= 1}}" aria-label="减少购买数量"><image class="step-icon" src="/assets/icons-slate/minus.svg" mode="aspectFit" aria-hidden="{{true}}" /></button><text>{{quantity}}</text><button data-delta="1" bindtap="changeQuantity" disabled="{{quantity >= product.stock || quantity >= 99}}" aria-label="增加购买数量"><image class="step-icon" src="/assets/icons-slate/plus.svg" mode="aspectFit" aria-hidden="{{true}}" /></button></view></view>
+      <view class="product-share">
+        <view wx:if="{{!loggedIn}}" class="muted">登录后查看会员价</view>
+        <button class="secondary ui-button ui-button-block" open-type="share">分享商品</button>
+      </view>
     </view>
-    <view wx:if="{{!loggedIn}}" class="muted">登录后查看会员价</view>
-    <button class="secondary ui-button ui-button-block" open-type="share">分享商品</button>
     <view class="sticky-action purchase-bar"><view class="purchase-total"><text>{{memberTotalText ? '优惠后合计' : '合计'}}</text><text class="amount-strong">{{memberTotalText || totalText}}</text></view><button class="primary" disabled="{{!product.stock}}" bindtap="buy">{{product.stock ? '立即购买' : '暂时售罄'}}</button></view>
   </block>
 </view>

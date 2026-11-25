@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { useRouter } from "vue-router";
@@ -72,48 +73,59 @@ function create() {
   void router.push("/articles/new");
 }
 onMounted(() => void load());
+useForegroundRefresh(() => {
+  if (!loading.value) void load(page.value);
+});
 </script>
 <template>
   <main class="workspace articles-workspace">
     <div class="page-heading">
       <h1>文章管理</h1>
       <div class="article-actions">
-        <button class="secondary" :disabled="loading" @click="load()">
-          <AppIcon name="refresh" :size="16" />
-          {{ loading ? "加载中…" : "刷新文章" }}
-        </button>
         <button class="primary" @click="create">
           <AppIcon name="plus" :size="16" />
           新建文章
         </button>
       </div>
     </div>
-    <p v-if="error" class="error-box" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-box" role="alert">
+      {{ error }}
+      <button
+        v-if="!items.length"
+        type="button"
+        class="text-button"
+        :disabled="loading"
+        @click="load(page)"
+      >
+        重试
+      </button>
+    </p>
     <UiState v-if="loading && !items.length" kind="loading" compact
       >正在读取文章…</UiState
     >
     <UiState v-else-if="!items.length && !error" kind="empty" compact
-      >暂无文章，创建草稿并发布后即可展示。</UiState
+      >暂无文章</UiState
     >
     <template v-if="items.length">
       <div class="table-scroll article-table">
-        <table aria-label="文章">
-          <thead>
-            <tr>
-              <th scope="col">标题</th>
-              <th scope="col">状态</th>
-              <th scope="col">公开入口</th>
-              <th scope="col">操作</th>
+        <table class="record-table" role="table" aria-label="文章">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader" scope="col">标题</th>
+              <th role="columnheader" scope="col">状态</th>
+              <th role="columnheader" scope="col">公开入口</th>
+              <th role="columnheader" scope="col">操作</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             <tr
+              role="row"
               v-for="article in items"
               :key="article.id"
               class="article-row"
               @click="edit(article)"
             >
-              <td class="article-title">
+              <td role="cell" data-cell="title" class="article-title">
                 {{ article.title
                 }}<span
                   v-if="article.isOfficial"
@@ -121,7 +133,7 @@ onMounted(() => void load());
                   >官方介绍</span
                 >
               </td>
-              <td>
+              <td role="cell" data-label="状态">
                 <span
                   class="status-pill inline"
                   :class="`tone-${articleStatusTone(article.status)}`"
@@ -129,7 +141,7 @@ onMounted(() => void load());
                   {{ article.status === "PUBLISHED" ? "已发布" : "草稿" }}
                 </span>
               </td>
-              <td class="article-entry">
+              <td role="cell" data-label="公开入口" class="article-entry">
                 {{
                   article.status === "DRAFT"
                     ? "—"
@@ -138,13 +150,13 @@ onMounted(() => void load());
                       : "探索页文章"
                 }}
               </td>
-              <td>
+              <td role="cell" data-cell="actions">
                 <RouterLink
                   class="text-button"
                   :to="`/articles/${article.id}/edit`"
                   @click.stop
                 >
-                  {{ article.status === "PUBLISHED" ? "查看文章" : "编辑文章" }}
+                  编辑文章
                 </RouterLink>
               </td>
             </tr>
@@ -152,8 +164,16 @@ onMounted(() => void load());
         </table>
       </div>
     </template>
-    <PaginationBar v-if="pageTotal != null || more || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="more" :busy="loading" label="文章分页" @change="load" />
-    <p class="article-hint">只有已发布文章可以设为官方介绍。</p>
+    <PaginationBar
+      v-if="pageTotal != null || more || page > 0"
+      :page="page"
+      :page-size="20"
+      :total="pageTotal"
+      :has-more="more"
+      :busy="loading"
+      label="文章分页"
+      @change="load"
+    />
   </main>
 </template>
 <style scoped>
@@ -163,7 +183,6 @@ onMounted(() => void load());
   flex-wrap: wrap;
 }
 .article-table table {
-  min-width: 495px;
   table-layout: fixed;
 }
 .article-table th:nth-child(2) {
@@ -190,11 +209,6 @@ onMounted(() => void load());
 }
 .article-row:hover .article-title {
   color: var(--rf-primary-text);
-}
-.article-hint {
-  margin: 10px 0 0;
-  color: var(--admin-muted);
-  font-size: 13px;
 }
 .article-more {
   margin-top: 12px;

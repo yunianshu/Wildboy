@@ -51,6 +51,8 @@ wildboy:
     username: ${ADMIN_USERNAME:}
     password-hash: ${ADMIN_PASSWORD_HASH:}
   cors-origins: ${CORS_ORIGINS:http://localhost:5173}
+  map:
+    tencent-key: ${TENCENT_MAP_KEY:}
   dev-login-enabled: false
   demo-data: false
   pay:

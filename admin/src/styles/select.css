@@ -1,0 +1,122 @@
+select:not([multiple], [size]) {
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%231D6543' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  appearance: none;
+  padding: 6px 38px 6px 12px;
+  border: 1px solid var(--rf-field-line);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-surface) var(--select-chevron) right 12px center / 16px
+    no-repeat;
+  color: var(--rf-ink);
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+
+select:not([multiple], [size]):hover:enabled {
+  border-color: var(--rf-primary);
+  background-color: var(--rf-bg);
+}
+
+select:not([multiple], [size]):focus-visible {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: 2px;
+  border-color: var(--rf-primary);
+}
+
+select:not([multiple], [size]):disabled {
+  background-color: var(--rf-neutral-bg);
+  border-color: var(--rf-line);
+  color: var(--rf-muted);
+  cursor: not-allowed;
+}
+
+@supports (appearance: base-select) and selector(select::picker(select)) {
+  select:not([multiple], [size]),
+  select:not([multiple], [size])::picker(select) {
+    appearance: base-select;
+  }
+
+  select:not([multiple], [size]) {
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  /* Keep the arrow anchored to the field edge even when its selected label is long. */
+  select:not([multiple], [size])::picker-icon {
+    display: none;
+  }
+
+  select:not([multiple], [size]):open {
+    --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 10 4-4 4 4' stroke='%231D6543' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    border-color: var(--rf-primary);
+  }
+
+  select:not([multiple], [size])::picker(select) {
+    min-inline-size: anchor-size(width);
+    max-inline-size: calc(100dvw - 24px);
+    max-block-size: calc(100dvh - 24px);
+    max-block-size: stretch;
+    margin-block: 4px;
+    padding: 4px;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--rf-line);
+    border-radius: var(--rf-modal-radius);
+    background: var(--rf-surface);
+    color: var(--rf-ink);
+    box-shadow: 0 10px 28px #20372c24;
+    scrollbar-width: none;
+  }
+
+  select:not([multiple], [size]) option {
+    min-block-size: 38px;
+    padding: 8px 10px;
+    gap: 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  select:not([multiple], [size]) option:checked {
+    background-color: var(--rf-soft);
+    color: var(--rf-primary-text);
+    font-weight: 650;
+  }
+
+  select:not([multiple], [size]) option:enabled:is(:hover, :focus-visible) {
+    background-color: var(--rf-info-bg);
+    outline: 1px solid var(--rf-field-line);
+    outline-offset: -1px;
+  }
+
+  select:not([multiple], [size]) option:disabled {
+    color: var(--rf-muted);
+    cursor: not-allowed;
+  }
+
+  select:not([multiple], [size]) option::checkmark {
+    order: 1;
+    margin-inline-start: auto;
+    color: var(--rf-primary-text);
+  }
+
+  @media (pointer: coarse) {
+    select:not([multiple], [size]) option {
+      min-block-size: 44px;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  select:not([multiple], [size]) {
+    appearance: auto;
+    background-image: none;
+    border-color: ButtonText;
+    padding-inline-end: 12px;
+  }
+
+  select:not([multiple], [size]):focus-visible {
+    outline-color: Highlight;
+  }
+}

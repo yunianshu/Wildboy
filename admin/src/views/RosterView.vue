@@ -28,11 +28,19 @@ const searchDraft = ref("");
 const statusDraft = ref("");
 const filters = ref({ query: "", status: "" });
 function applyFilters() {
-  filters.value = { query: searchDraft.value.trim(), status: statusDraft.value };
+  filters.value = {
+    query: searchDraft.value.trim(),
+    status: statusDraft.value,
+  };
   if (page.value) page.value = 0;
   else void load();
 }
-const { exporting, exportError, downloadRoster, resetExport } = useRosterExport();
+function clearFilters() {
+  searchDraft.value = statusDraft.value = "";
+  applyFilters();
+}
+const { exporting, exportError, downloadRoster, resetExport } =
+  useRosterExport();
 let generation = 0,
   controller: AbortController | undefined;
 async function load() {
@@ -56,8 +64,12 @@ async function load() {
       data.value = { items: [], total: 0, page: 0, size: 20, hasMore: false };
       return;
     }
-    const params = new URLSearchParams({ page: String(page.value), size: "20" });
-    for (const [key, value] of Object.entries(filters.value)) if (value) params.set(key, value);
+    const params = new URLSearchParams({
+      page: String(page.value),
+      size: "20",
+    });
+    for (const [key, value] of Object.entries(filters.value))
+      if (value) params.set(key, value);
     const list = await request<Page<Registration>>(
       `/admin/activities/${id}/registrations?${params}`,
       { signal: controller.signal },
@@ -143,27 +155,25 @@ onUnmounted(() => {
 </script>
 <template>
   <main class="workspace">
-    <RouterLink class="back-link" to="/activities"
-      ><AppIcon name="back" :size="16" /> 返回活动目录</RouterLink
-    >
     <section class="page-heading">
       <div>
         <h1>报名名单</h1>
-        <p class="muted">
-          {{ activity?.title || "报名名单" }}
-          <span v-if="activity"
-            >· {{ activity.priceCents > 0 ? "名额占用 " : ""
-            }}{{ activity.registeredCount }} / {{ activity.capacity }} 人</span
-          >
+        <p v-if="activity" class="muted">
+          {{ activity.title }} · {{ activity.priceCents > 0 ? "名额占用 " : ""
+          }}{{ activity.registeredCount }} / {{ activity.capacity }} 人
         </p>
       </div>
       <div class="action-row">
-      <RouterLink
-        v-if="activity"
-        class="secondary button"
-        :to="`/activities/${activity.id}/edit`"
-        >查看活动</RouterLink
-      >
+        <RouterLink class="secondary button" to="/activities">
+          <AppIcon name="back" :size="16" /> 返回活动目录
+        </RouterLink>
+        <RouterLink
+          v-if="activity"
+          class="secondary button"
+          :to="`/activities/${activity.id}/edit`"
+        >
+          查看活动
+        </RouterLink>
         <button
           v-if="activity?.priceCents === 0 && currentUser?.role === 'ADMIN'"
           type="button"
@@ -175,20 +185,44 @@ onUnmounted(() => {
         </button>
       </div>
     </section>
-    <form v-if="activity?.priceCents === 0" class="action-row" @submit.prevent="applyFilters">
-      <input v-model="searchDraft" maxlength="80" aria-label="搜索报名人" placeholder="姓名或完整手机号" />
-      <select v-model="statusDraft" aria-label="报名状态">
-        <option value="">全部状态</option>
+    <form
+      v-if="activity?.priceCents === 0"
+      class="list-filters"
+      role="search"
+      aria-label="筛选报名名单"
+      @submit.prevent="applyFilters"
+    >
+      <input
+        v-model="searchDraft"
+        type="search"
+        maxlength="80"
+        aria-label="搜索报名人"
+        placeholder="姓名或完整手机号"
+      />
+      <select
+        v-model="statusDraft"
+        aria-label="报名状态"
+        @change="applyFilters"
+      >
+        <option value="">全部报名状态</option>
         <option value="CONFIRMED">已报名</option>
         <option value="CANCELLED">已取消</option>
       </select>
-      <button class="secondary" :disabled="busy">查询</button>
-
+      <button type="submit" class="secondary" :disabled="busy">查询</button>
+      <button
+        v-if="(filters.query || filters.status) && (data.items.length || error)"
+        type="button"
+        class="text-button"
+        :disabled="busy"
+        @click="clearFilters"
+      >
+        清除筛选
+      </button>
     </form>
     <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
-    <div class="privacy-note">
+    <p v-if="data.items.length" class="privacy-note">
       报名资料仅用于活动核验与联系。请勿公开、截图或用于无关营销。
-    </div>
+    </p>
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
@@ -197,49 +231,67 @@ onUnmounted(() => {
       v-else-if="activity && activity.priceCents > 0 && !error"
       class="empty-state"
     >
-      <h3>收费活动名单在活动订单</h3>
-      <p>
-        名额包含待付款订单，请在活动订单中区分未付款与已确认，并查看各单参加者。
-      </p>
+      <h2>收费活动名单在活动订单</h2>
+      <p>前往活动订单，区分未付款与已确认的报名。</p>
       <RouterLink
         class="primary button"
         :to="{ path: '/activity-orders', query: { activityId: activity.id } }"
         >查看此活动收费名单</RouterLink
       >
     </div>
-    <UiState v-else-if="!data.items.length && !error" compact
-      >{{ filters.query || filters.status ? "没有符合条件的报名记录" : "还没有人报名" }}</UiState
-    >
+    <UiState v-else-if="!data.items.length && !error" compact>
+      {{
+        filters.query || filters.status
+          ? "没有符合条件的报名记录"
+          : "还没有人报名"
+      }}
+      <button
+        v-if="filters.query || filters.status"
+        type="button"
+        class="text-button"
+        @click="clearFilters"
+      >
+        清除筛选
+      </button>
+    </UiState>
     <div v-else-if="!error" class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>参与者</th>
-            <th>身份证号</th>
-            <th>联系方式</th>
-            <th>报名时间 / 北京时间</th>
-            <th>状态</th>
+      <table
+        class="record-table roster-table"
+        role="table"
+        aria-label="报名记录"
+      >
+        <thead role="rowgroup">
+          <tr role="row">
+            <th scope="col" role="columnheader">参与者</th>
+            <th scope="col" role="columnheader">身份证号</th>
+            <th scope="col" role="columnheader">联系方式</th>
+            <th scope="col" role="columnheader">报名时间 / 北京时间</th>
+            <th scope="col" role="columnheader">状态</th>
           </tr>
         </thead>
-        <tbody v-for="item in data.items" :key="item.id">
+        <tbody v-for="item in data.items" :key="item.id" role="rowgroup">
           <tr
             v-for="(participant, index) in item.participants"
             :key="participant.id"
+            role="row"
           >
-            <td>
+            <td role="cell" data-cell="title">
               <strong>{{ participant.participantName }}</strong>
               <span v-if="index === 0" class="muted">
                 · 本单 {{ item.participants.length }} 人</span
               >
+              <div v-if="participant.boardingPoint" class="muted">
+                上车地点 · {{ participant.boardingPoint }}
+              </div>
             </td>
-            <td>
+            <td role="cell" data-label="身份证号">
               {{
                 revealed.has(participant.id)
-                  ? (revealedDetails[participant.id]?.idNumber || "未登记")
+                  ? revealedDetails[participant.id]?.idNumber || "未登记"
                   : maskIdNumber(participant.idNumber)
               }}
             </td>
-            <td>
+            <td role="cell" data-label="联系方式">
               <span>{{
                 revealed.has(participant.id)
                   ? revealedDetails[participant.id]?.phone
@@ -250,13 +302,28 @@ onUnmounted(() => {
                 :disabled="revealing.has(participant.id)"
                 @click="toggle(participant.id, participant.participantName)"
               >
-                {{ revealing.has(participant.id) ? "读取中…" : revealed.has(participant.id) ? "隐藏" : "查看" }}
+                {{
+                  revealing.has(participant.id)
+                    ? "读取中…"
+                    : revealed.has(participant.id)
+                      ? "隐藏"
+                      : "查看"
+                }}
               </button>
             </td>
-            <td v-if="index === 0" :rowspan="item.participants.length">
+            <td
+              v-if="index === 0"
+              :rowspan="item.participants.length"
+              role="cell"
+              data-label="报名时间"
+            >
               {{ displayDate(item.createdAt) }}
             </td>
-            <td v-if="index === 0" :rowspan="item.participants.length">
+            <td
+              v-if="index === 0"
+              :rowspan="item.participants.length"
+              role="cell"
+            >
               <span
                 class="status-pill inline"
                 :class="`tone-${registrationTone(item.status)}`"
@@ -267,7 +334,16 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <PaginationBar v-if="activity && activity.priceCents === 0" :page="page" :page-size="data.size" :total="data.total" :has-more="data.hasMore" :busy="busy" label="名单分页" @change="(next) => page = next" />
+    <PaginationBar
+      v-if="activity && activity.priceCents === 0"
+      :page="page"
+      :page-size="data.size"
+      :total="data.total"
+      :has-more="data.hasMore"
+      :busy="busy"
+      label="名单分页"
+      @change="(next) => (page = next)"
+    />
     <ConfirmDialog
       v-if="revealTarget"
       title="查看参加者资料？"
@@ -278,3 +354,23 @@ onUnmounted(() => {
     />
   </main>
 </template>
+<style scoped>
+@media (max-width: 720px) {
+  .roster-table tbody td[data-label="身份证号"],
+  .roster-table tbody td[data-label="联系方式"] {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .roster-table tbody td[data-label="身份证号"]::before,
+  .roster-table tbody td[data-label="联系方式"]::before {
+    flex: 0 0 60px;
+    margin: 0;
+  }
+  .roster-table .phone-toggle {
+    margin-left: auto;
+  }
+}
+</style>

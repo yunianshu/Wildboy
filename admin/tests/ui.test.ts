@@ -92,9 +92,16 @@ describe("real component flows", () => {
     expect(wrapper.get("h2").text()).toBe("管理员登录");
     expect(wrapper.find(".eyebrow").exists()).toBe(false);
     expect(wrapper.find('input[autocomplete="username"]').exists()).toBe(true);
-    expect(
-      wrapper.find('input[autocomplete="current-password"]').exists(),
-    ).toBe(true);
+    const password = wrapper.get('input[autocomplete="current-password"]');
+    const visibility = wrapper.get('button[aria-controls="login-password"]');
+    expect(password.attributes("type")).toBe("password");
+    expect(visibility.attributes("aria-label")).toBe("显示密码");
+    expect(visibility.text()).toBe("");
+    await visibility.trigger("click");
+    expect(password.attributes("type")).toBe("text");
+    expect(visibility.attributes("aria-label")).toBe("隐藏密码");
+    await visibility.trigger("click");
+    expect(password.attributes("type")).toBe("password");
     expect(wrapper.get(".login-note").text()).toContain("刷新后需重新登录");
     expect(wrapper.get(".login-note").text()).toContain(
       "请勿在公共设备上展示报名名单",
@@ -141,7 +148,7 @@ describe("real component flows", () => {
     expect(currentUser.value?.role).toBe("ADMIN");
     wrapper.unmount();
   });
-  it("loads empty activities with create action and disables next page", async () => {
+  it("clears a filtered empty activity list in one click and hides unnecessary pagination", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -156,17 +163,23 @@ describe("real component flows", () => {
         }),
       }),
     );
-    const { wrapper } = await mounted(ActivitiesView, "/activities");
+    const { wrapper, router } = await mounted(
+      ActivitiesView,
+      "/activities?upcomingFull=1",
+    );
     await flushPromises();
     expect(wrapper.text()).toContain("暂无匹配活动");
     expect(wrapper.find(".workspace-note").exists()).toBe(false);
     expect(wrapper.find('a[href="/activities/new"]').exists()).toBe(true);
-    expect(
-      wrapper
-        .findAll("button")
-        .find((b) => b.text() === "下一页")
-        ?.attributes("disabled"),
-    ).toBeDefined();
+    expect(wrapper.find('[aria-label="活动分页"]').exists()).toBe(false);
+    const actions = wrapper
+      .findAll("button")
+      .filter((button) => button.text() === "清除筛选");
+    expect(actions).toHaveLength(1);
+    await actions[0].trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value.query.upcomingFull).toBeUndefined();
+    expect(wrapper.get(".ui-state").text()).toBe("暂无活动");
     wrapper.unmount();
   });
   it("cancel dialog emits no confirmation and Escape cancels", async () => {

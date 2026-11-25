@@ -88,7 +88,7 @@ describe("persistent admin account settings", () => {
     expect(w.find("form").exists()).toBe(false);
     await w
       .findAll("button")
-      .find((b) => b.text() === "重新读取")!
+      .find((b) => b.text() === "重试")!
       .trigger("click");
     await flushPromises();
     expect(w.find("form").exists()).toBe(false);

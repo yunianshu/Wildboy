@@ -81,9 +81,9 @@ it("labels each report row by source, logistics type and outcome", async () => {
   expect(text).toContain("错误码 9400001");
   expect(text).toContain("upload_shipping_info");
   expect(text).toContain("非微信支付订单，无交易记录");
-  expect(
-    w.findAll("button").filter((b: any) => b.text() === "补报").length,
-  ).toBe(2);
+  const actions = w.findAll("tbody button");
+  expect(actions.map((button) => button.text())).toEqual(["补报"]);
+  expect(actions[0].attributes("disabled")).toBeUndefined();
   w.unmount();
 });
 

@@ -1,5 +1,20 @@
 export type Category = "WEEKLY" | "DOMESTIC" | "HOLIDAY" | "LEISURE";
 export type Status = "DRAFT" | "PUBLISHED" | "CANCELLED";
+export type NavigationPointKind = "DESTINATION" | "MEETING" | "BOARDING";
+export interface NavigationPoint {
+  id: string;
+  kind: NavigationPointKind;
+  label: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+export interface BoardingPointLocation {
+  name: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+}
 export interface ActivityInput {
   title: string;
   category: Category;
@@ -9,6 +24,8 @@ export interface ActivityInput {
   description: string;
   location: string;
   meetingPoint: string;
+  boardingPoints?: string[];
+  navigationPoints?: NavigationPoint[];
   startAt: string;
   endAt: string;
   registrationDeadline: string;
@@ -30,6 +47,7 @@ export interface Activity extends ActivityInput {
 export interface Participant {
   id: string;
   participantName: string;
+  boardingPoint?: string | null;
   idNumber: string;
   phone: string;
 }
@@ -195,9 +213,9 @@ export interface Auth {
   user: User;
 }
 export const categories: Record<Category, string> = {
-  WEEKLY: "本周活动",
-  DOMESTIC: "国内游行",
-  HOLIDAY: "假期活动",
+  WEEKLY: "户外活动",
+  DOMESTIC: "户外旅行",
+  HOLIDAY: "重装露营",
   LEISURE: "休闲活动",
 };
 export const statuses: Record<Status, string> = {
@@ -205,3 +223,104 @@ export const statuses: Record<Status, string> = {
   PUBLISHED: "已发布",
   CANCELLED: "已取消",
 };
+export interface HomeQrImage {
+  url: string;
+  label: string;
+}
+export type HomeActionType =
+  "NONE" | "PAGE" | "ACTIVITY" | "ARTICLE" | "WECHAT_ARTICLE" | "POPUP";
+export interface HomeActionLink {
+  type: HomeActionType;
+  page: string;
+  activityId: string;
+  articleId: string;
+  wechatArticleUrl: string;
+  popupTitle: string;
+  popupText: string;
+  popupImages: HomeQrImage[];
+}
+export interface HomeHeroConfig {
+  imageUrl: string;
+  brandName: string;
+  brandCaption: string;
+  kicker: string;
+  title: string;
+  subtitle: string;
+  action: HomeActionLink;
+}
+export interface HomeShortcutItem {
+  id: string;
+  name: string;
+  icon: string;
+  imageUrl: string;
+  type: Exclude<HomeActionType, "NONE">;
+  page: string;
+  activityId: string;
+  articleId: string;
+  wechatArticleUrl: string;
+  popupTitle: string;
+  popupText: string;
+  popupImageUrl: string;
+  popupImages: HomeQrImage[];
+}
+export interface HomeShortcutsConfig {
+  columns: number;
+  items: HomeShortcutItem[];
+}
+export interface HomeActivitiesConfig {
+  eyebrow: string;
+  title: string;
+  showAllLink: boolean;
+  maxCount: number;
+  autoFill: boolean;
+  featuredActivityIds: string[];
+}
+export interface HomeShopConfig {
+  showBanner: boolean;
+  bannerImageUrl: string;
+  bannerTag: string;
+  bannerTitle: string;
+  bannerCta: string;
+  showProducts: boolean;
+  maxCount: number;
+  autoFill: boolean;
+  featuredProductIds: string[];
+}
+export interface HomeGallerySlide {
+  id: string;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+  action: HomeActionLink;
+}
+export interface HomeGalleryConfig {
+  eyebrow: string;
+  title: string;
+  mode: "AUTO_ARTICLES" | "CUSTOM";
+  slides: HomeGallerySlide[];
+}
+export interface HomeFooterConfig {
+  followEnabled: boolean;
+  followTitle: string;
+  followSubtitle: string;
+  followQrcodes: HomeQrImage[];
+  brandEnabled: boolean;
+  brandImageUrl: string;
+  brandWidthPx: number;
+}
+export type HomeModuleId =
+  "HERO" | "SHORTCUTS" | "ACTIVITIES" | "SHOP" | "GALLERY" | "FOOTER";
+export interface HomeModuleEntry {
+  id: HomeModuleId;
+  enabled: boolean;
+}
+export interface HomeLayoutConfig {
+  version: number;
+  modules: HomeModuleEntry[];
+  hero: HomeHeroConfig;
+  shortcuts: HomeShortcutsConfig;
+  activities: HomeActivitiesConfig;
+  shop: HomeShopConfig;
+  gallery: HomeGalleryConfig;
+  footer: HomeFooterConfig;
+}

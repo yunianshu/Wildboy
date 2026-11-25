@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
-import { inject, ref, onMounted, onUnmounted, watch } from "vue";
+import { computed, inject, ref, onMounted, onUnmounted, watch } from "vue";
 import { routeLocationKey, routerKey } from "vue-router";
 import { request, currentUser, errorMessage } from "../api";
 import type { Page } from "../types";
@@ -22,10 +23,14 @@ type ShippingReport = {
 const route = inject(routeLocationKey, null);
 const router = inject(routerKey, null);
 const wantedStatus = route?.query.status;
-const initialStatus = typeof wantedStatus === "string" && ["PENDING", "REPORTED", "FAILED", "SKIPPED"].includes(wantedStatus)
-  ? wantedStatus : "";
+const initialStatus =
+  typeof wantedStatus === "string" &&
+  ["PENDING", "REPORTED", "FAILED", "SKIPPED"].includes(wantedStatus)
+    ? wantedStatus
+    : "";
 const wantedPage = Number(route?.query.page);
-const initialPage = Number.isSafeInteger(wantedPage) && wantedPage > 0 ? wantedPage - 1 : 0;
+const initialPage =
+  Number.isSafeInteger(wantedPage) && wantedPage > 0 ? wantedPage - 1 : 0;
 const data = ref<ShippingReport[]>([]),
   errors = ref(""),
   notice = ref(""),
@@ -68,7 +73,13 @@ async function load(p = 0) {
     hasMore.value = value.hasMore;
     page.value = p;
     if (router && route) {
-      void router.replace({ query: { ...route.query, status: status.value || undefined, page: p ? String(p + 1) : undefined } });
+      void router.replace({
+        query: {
+          ...route.query,
+          status: status.value || undefined,
+          page: p ? String(p + 1) : undefined,
+        },
+      });
     }
   } catch (e) {
     if (n === epoch) errors.value = errorMessage(e);
@@ -80,22 +91,33 @@ const page = ref(0),
   pageTotal = ref<number>(),
   hasMore = ref(false);
 function filter(value: string) {
+  if (retrying.value || value === status.value) return;
   status.value = value;
   page.value = 0;
   data.value = [];
+  pageTotal.value = undefined;
+  hasMore.value = false;
   void load();
 }
-async function retry(id: string) {
-  if (retrying.value) return;
-  if (!(await askConfirm("确认向微信重新上报该订单的发货信息？"))) return;
+async function retry(report: ShippingReport) {
+  if (retrying.value || loading.value) return;
   const actor = currentUser.value,
     n = epoch;
-  retrying.value = id;
-  errors.value = "";
+  retrying.value = report.id;
   try {
-    await request(`/admin/shipping-reports/${encodeURIComponent(id)}/retry`, {
-      method: "POST",
+    const confirmed = await askConfirm({
+      title: "补报发货信息？",
+      description: `将向微信重新上报订单 ${report.order_no} 的发货信息。`,
+      confirmLabel: "确认补报",
     });
+    if (!confirmed || n !== epoch || actor !== currentUser.value) return;
+    errors.value = "";
+    await request(
+      `/admin/shipping-reports/${encodeURIComponent(report.id)}/retry`,
+      {
+        method: "POST",
+      },
+    );
     if (n === epoch && actor === currentUser.value) {
       notice.value = "已提交补报，请查看最新上报状态。";
       await load();
@@ -103,7 +125,7 @@ async function retry(id: string) {
   } catch (e) {
     if (n === epoch) errors.value = errorMessage(e);
   } finally {
-    if (actor === currentUser.value && retrying.value === id)
+    if (actor === currentUser.value && retrying.value === report.id)
       retrying.value = "";
   }
 }
@@ -144,19 +166,19 @@ const pillClass = (value: string) =>
 const unreportable = (r: ShippingReport) =>
   r.status === "SKIPPED" &&
   ["missing_transaction", "no_wechat_identity"].includes(r.last_error);
+const canReport = (r: ShippingReport) =>
+  r.status !== "REPORTED" && !unreportable(r);
+const showActions = computed(() => data.value.some(canReport));
 onMounted(() => void load(initialPage));
 import UiState from "../components/UiState.vue";
+useForegroundRefresh(() => {
+  if (!loading.value && !retrying.value) void load(page.value);
+}, 45_000);
 </script>
 <template>
   <main class="workspace">
-    <section class="page-heading">
-      <h1>发货上报</h1>
-      <button class="secondary" :disabled="loading" @click="load()">
-        刷新
-      </button>
-    </section>
-    <p class="muted">上报失败的订单可在此补报。</p>
-    <nav class="report-filter" aria-label="上报状态筛选">
+    <header class="page-heading"><h1>发货上报</h1></header>
+    <nav class="report-filter task-tabs" aria-label="上报状态筛选">
       <button
         v-for="[value, label] in [
           ['', '全部'],
@@ -168,44 +190,59 @@ import UiState from "../components/UiState.vue";
         :key="value"
         :class="status === value ? 'primary' : 'secondary'"
         :aria-pressed="status === value"
+        :disabled="!!retrying"
         @click="filter(value)"
       >
         {{ label }}
       </button>
     </nav>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-    <p v-if="errors" class="error-box" role="alert">{{ errors }}</p>
-    <UiState v-if="!loading && !errors && !data.length" compact
-      >暂无上报记录</UiState
+    <p v-if="errors" class="error-box" role="alert">
+      {{ errors }}
+      <button
+        v-if="!data.length"
+        type="button"
+        class="text-button"
+        @click="load(page)"
+      >
+        重试
+      </button>
+    </p>
+    <UiState v-if="loading && !data.length" kind="loading" compact
+      >正在读取上报记录…</UiState
     >
-    <div v-if="data.length" class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>来源</th>
-            <th>订单号</th>
-            <th>类型</th>
-            <th>状态</th>
-            <th>尝试</th>
-            <th>最近结果</th>
-            <th>上报时间</th>
-            <th></th>
+    <UiState v-else-if="!errors && !data.length" compact>
+      {{ status ? `没有「${statusLabel(status)}」的记录` : "暂无上报记录" }}
+    </UiState>
+    <div v-if="data.length" class="table-scroll" :aria-busy="loading">
+      <table class="record-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader">订单号</th>
+            <th role="columnheader">来源</th>
+            <th role="columnheader">类型</th>
+            <th role="columnheader">状态</th>
+            <th role="columnheader">尝试</th>
+            <th role="columnheader">最近结果</th>
+            <th role="columnheader">上报时间</th>
+            <th role="columnheader" v-if="showActions" scope="col">操作</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="r in data" :key="r.id">
-            <td>{{ sourceLabel(r.source) }}</td>
-            <td class="mono">{{ r.order_no }}</td>
-            <td>{{ logisticsLabel(r.logistics_type) }}</td>
-            <td>
+        <tbody role="rowgroup">
+          <tr role="row" v-for="r in data" :key="r.id">
+            <td role="cell" data-cell="title" class="mono">{{ r.order_no }}</td>
+            <td role="cell" data-label="来源">{{ sourceLabel(r.source) }}</td>
+            <td role="cell" data-label="发货类型">
+              {{ logisticsLabel(r.logistics_type) }}
+            </td>
+            <td role="cell" data-label="上报状态">
               <span class="status-pill" :class="pillClass(r.status)">{{
                 statusLabel(r.status)
               }}</span>
             </td>
-            <td>{{ r.attempts }}</td>
-            <td>
-              <template v-if="r.status === 'FAILED'"
-              >
+            <td role="cell" data-label="尝试次数">{{ r.attempts }}</td>
+            <td role="cell" data-cell="wide">
+              <template v-if="r.status === 'FAILED'">
                 <span>错误码 {{ r.last_errcode ?? "—" }}</span>
                 <details v-if="r.last_error">
                   <summary>查看原因</summary>
@@ -217,13 +254,13 @@ import UiState from "../components/UiState.vue";
               }}</template>
               <template v-else>—</template>
             </td>
-            <td>{{ time(r.reported_at) }}</td>
-            <td>
+            <td role="cell" data-label="上报时间">{{ time(r.reported_at) }}</td>
+            <td role="cell" data-cell="actions" v-if="showActions">
               <button
-                v-if="r.status !== 'REPORTED'"
+                v-if="canReport(r)"
                 class="text-button"
-                :disabled="!!retrying || unreportable(r)"
-                @click="retry(r.id)"
+                :disabled="loading || !!retrying"
+                @click="retry(r)"
               >
                 补报
               </button>
@@ -232,17 +269,19 @@ import UiState from "../components/UiState.vue";
         </tbody>
       </table>
     </div>
-    <PaginationBar v-if="pageTotal != null || hasMore || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="hasMore" :busy="loading" label="发货上报分页" @change="load" />
-    <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
+    <PaginationBar
+      v-if="pageTotal != null || hasMore || page > 0"
+      :page="page"
+      :page-size="20"
+      :total="pageTotal"
+      :has-more="hasMore"
+      :busy="loading || !!retrying"
+      label="发货上报分页"
+      @change="load"
+    />
   </main>
 </template>
 <style scoped>
-.report-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
 .mono {
   font-variant-numeric: tabular-nums;
 }

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import ShopView from "../src/views/ShopView.vue";
+import ProductContentView from "../src/views/ProductContentView.vue";
 import { acceptAuth, clearSession } from "../src/api";
 
 const product = {
@@ -80,25 +81,116 @@ describe("shop administration", () => {
       history: createMemoryHistory(),
       routes: [
         { path: "/shop", component: ShopView },
-        { path: "/shop/products/:id/content", component: { template: "<h1>商品图文工作台</h1>" } },
+        {
+          path: "/shop/products/:id/content",
+          component: { template: "<h1>商品图文工作台</h1>" },
+        },
       ],
     });
     await router.push("/shop?productQuery=背包");
-    const wrapper = mount({ template: "<RouterView />" }, { global: { plugins: [router] } });
+    const wrapper = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] } },
+    );
     await flushPromises();
 
-    await wrapper.findAll("button").find(b => b.text() === "编辑商品信息")!.trigger("click");
+    await click(wrapper, "编辑商品信息");
     expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
     expect(wrapper.text()).not.toContain("商品图文工作台");
     expect(fetch.mock.calls.some(([path]) => path === contentPath)).toBe(false);
     await wrapper.get('button[aria-label="关闭弹窗"]').trigger("click");
 
-    await wrapper.get(`a[href^="/shop/products/${product.id}/content"]`).trigger("click");
+    await wrapper
+      .get(`a[href^="/shop/products/${product.id}/content"]`)
+      .trigger("click");
     await flushPromises();
     expect(wrapper.get("h1").text()).toBe("商品图文工作台");
     expect(wrapper.find("#shop-product-form").exists()).toBe(false);
     expect(router.currentRoute.value.query.productQuery).toBe("背包");
     wrapper.unmount();
+  });
+
+  it("opens the existing product form from the content editor and clears its edit query", async () => {
+    const fetch = vi.fn(async (path: string) => ({
+      ok: true,
+      status: 200,
+      json: async () => {
+        if (path.endsWith("/products")) return [product];
+        if (path.endsWith("/categories")) return [];
+        return orderPage;
+      },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/shop", component: ShopView }],
+    });
+    await router.push("/shop?productQuery=背包&edit=product-1");
+    const wrapper = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] } },
+    );
+    await flushPromises();
+    expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
+    expect(
+      wrapper.get<HTMLInputElement>(".form-modal form input").element.value,
+    ).toBe("徒步背包");
+    await wrapper.get('button[aria-label="关闭弹窗"]').trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value.query.edit).toBeUndefined();
+    expect(router.currentRoute.value.query.productQuery).toBe("背包");
+    wrapper.unmount();
+  });
+
+  it("opens product information while the separate markdown request is pending", async () => {
+    let finishMarkdown!: (response: Response) => void;
+    const markdown = new Promise<Response>((resolve) => {
+      finishMarkdown = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) => {
+        if (path.endsWith("/content/markdown")) return markdown;
+        return {
+          ok: true,
+          status: 200,
+          json: async () =>
+            path.endsWith("/products")
+              ? [product]
+              : path.endsWith("/categories")
+                ? []
+                : path.endsWith("/products/product-1")
+                  ? product
+                  : orderPage,
+        };
+      }),
+    );
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/shop", component: ShopView },
+        { path: "/shop/products/:id/content", component: ProductContentView },
+      ],
+    });
+    await router.push("/shop/products/product-1/content");
+    const wrapper = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] } },
+    );
+    try {
+      await flushPromises();
+      expect(wrapper.text()).toContain("正在读取正文");
+      await wrapper.get('a[aria-label="编辑商品基本信息"]').trigger("click");
+      await flushPromises();
+      expect(router.currentRoute.value.path).toBe("/shop");
+      expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
+    } finally {
+      wrapper.unmount();
+      finishMarkdown(
+        new Response(JSON.stringify({ markdown: "", version: 0 })),
+      );
+      await flushPromises();
+    }
   });
 
   it("loads products and masks order delivery data", async () => {
@@ -239,9 +331,7 @@ describe("shop administration", () => {
       .find((b) => b.text() === "确认发货")!;
     await confirm.trigger("click");
     await flushPromises();
-    const shipCall = fetch.mock.calls.find(
-      ([, o]) => o?.method === "POST",
-    );
+    const shipCall = fetch.mock.calls.find(([, o]) => o?.method === "POST");
     expect(JSON.parse(String(shipCall?.[1]?.body))).toEqual({
       version: order.version,
       company: "顺丰速运",
@@ -406,9 +496,9 @@ describe("shop administration", () => {
       const alert = wrapper.get('.form-modal [role="alert"]');
       expect(alert.text()).toContain("内容冲突");
       expect(document.activeElement).toBe(alert.element);
-      expect(wrapper.get<HTMLInputElement>(".form-modal form input").element.value).toBe(
-        "保留的商品名称",
-      );
+      expect(
+        wrapper.get<HTMLInputElement>(".form-modal form input").element.value,
+      ).toBe("保留的商品名称");
       const call = fetchMock.mock.calls.find(
         ([, options]) => options?.method === "PUT",
       )!;
@@ -442,12 +532,7 @@ describe("shop administration", () => {
       await flushPromises();
       expect(wrapper.get("#shop-orders").isVisible()).toBe(true);
       expect(wrapper.get("#shop-products").isVisible()).toBe(false);
-      expect(
-        wrapper
-          .findAll("button")
-          .find((button) => button.text() === "筛选商品")
-          ?.isVisible(),
-      ).toBe(false);
+      expect(wrapper.get('[name="categoryFilter"]').isVisible()).toBe(false);
       await click(wrapper, "商品与库存");
       await flushPromises();
       expect(router.currentRoute.value.query.tab).toBe("products");

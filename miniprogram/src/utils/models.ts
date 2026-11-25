@@ -1,5 +1,27 @@
 export type Category = "WEEKLY" | "DOMESTIC" | "HOLIDAY" | "LEISURE";
+export type NavigationPointKind = "DESTINATION" | "MEETING" | "BOARDING";
+export interface NavigationPoint {
+  id: string;
+  kind: NavigationPointKind;
+  label: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+export interface AttendeeView {
+  nickname: string;
+  avatarUrl: string;
+  partySize: number;
+  joinedAt: string;
+}
+export interface AttendeeSummary {
+  items: AttendeeView[];
+  totalParticipants: number;
+  totalUsers: number;
+}
 export interface Activity {
+  boardingPoints?: string[];
+  navigationPoints?: NavigationPoint[];
   id: string;
   title: string;
   category: Category;
@@ -25,6 +47,7 @@ export interface Activity {
   updatedAt: string;
 }
 export interface ParticipantInput {
+  boardingPoint?: string | null;
   participantName: string;
   idNumber: string;
   phone: string;

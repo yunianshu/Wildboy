@@ -149,7 +149,7 @@ Page({
       if (!current()) return;
       this.setData({ detail: this.shopView(order) });
       this.getOpenerEventChannel?.()?.emit?.("orderUpdated", order);
-      if (order.status === "PENDING_PAYMENT") this.setData({ confirmError: "支付结果尚未确认，请刷新订单核对。" });
+      if (order.status === "PENDING_PAYMENT") this.setData({ confirmError: "支付结果尚未确认，请勿重复付款。" });
       else if (order.status === "PAID") wx.showToast({ title: "付款已确认", icon: "success" });
     } catch (error) {
       if (current()) this.setData({ confirmError: message(error) });

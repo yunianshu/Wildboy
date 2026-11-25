@@ -70,7 +70,7 @@ const { join } = require("node:path");
   await page.getByLabel("活动标题").fill(name + " edited");
   await page.getByRole("button", { name: "保存修改", exact: true }).click();
   await page
-    .getByText("已保存。未发布的草稿不会展示给用户。", { exact: true })
+    .getByText("活动修改已保存。", { exact: true })
     .waitFor();
   await page.getByRole("button", { name: "取消活动", exact: true }).click();
   await page.getByRole("button", { name: "确认取消活动", exact: true }).click();

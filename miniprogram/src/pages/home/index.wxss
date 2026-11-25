@@ -292,6 +292,9 @@ button.shortcut-close {
   flex-shrink: 1;
 }
 .shortcut-content { display: flex; flex-direction: column; gap: 12px; }
+.shortcut-multi-qr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.shortcut-qr-card { padding: 10px; border-radius: 16rpx; background: #F6F8F3; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.shortcut-qr-label { font-size: 13px; font-weight: 600; color: #20372C; text-align: center; }
 .shortcut-image { width: 100%; display: block; flex-shrink: 0; }
 .shortcut-text, .shortcut-message {
   white-space: pre-wrap;
@@ -299,3 +302,47 @@ button.shortcut-close {
   line-height: 1.7;
 }
 .shortcut-message { color: var(--color-muted, #5D7064); font-size: 14px; }
+
+.follow-card {
+  margin-top: var(--space-5, 24px);
+  padding: 20px 16px;
+  border-radius: var(--card-radius, 12px);
+  background: #FFFFFF;
+  border: 1px solid rgba(36, 122, 82, 0.14);
+  text-align: center;
+}
+.follow-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #20372C;
+}
+.follow-sub {
+  margin-top: 6px;
+  font-size: 24rpx;
+  color: #5D7064;
+}
+.follow-qr-grid {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+}
+.follow-qr-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.follow-qr-image {
+  width: 240rpx;
+  height: 240rpx;
+  padding: 12rpx;
+  border-radius: 16rpx;
+  background: #F6F8F3;
+}
+.follow-qr-label {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #247A52;
+}

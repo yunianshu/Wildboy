@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import {
   computed,
   inject,
@@ -12,11 +13,13 @@ import { askConfirm } from "../confirm";
 import { routeLocationKey, routerKey } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { displayDate } from "../forms";
+import { shopOrderTone } from "../statusTone";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
+import AppIcon from "../components/AppIcon.vue";
 import type {
   Order,
   Page,
@@ -27,7 +30,6 @@ import type {
 } from "../types";
 
 const formOpen = ref(false);
-const filterOpen = ref(false);
 const formError = ref("");
 const formErrorElement = ref<HTMLElement>();
 const products = ref<Product[]>([]),
@@ -49,7 +51,6 @@ const products = ref<Product[]>([]),
   revealTarget = ref<Order | null>(null),
   detailed = ref(new Set<string>()),
   appliedCategory = ref(""),
-  categoryFilterDraft = ref(""),
   shipping = ref<Order | null>(null),
   shipCompany = ref(""),
   shipTracking = ref(""),
@@ -101,17 +102,23 @@ productStatus.value = queryString(route?.query.productStatus);
 orderQuery.value = queryString(route?.query.orderQuery);
 orderStatus.value = queryString(route?.query.orderStatus);
 const initialPage = Number(queryString(route?.query.page));
-page.value = Number.isSafeInteger(initialPage) && initialPage >= 0 && initialPage <= 100000 ? initialPage : 0;
+page.value =
+  Number.isSafeInteger(initialPage) && initialPage >= 0 && initialPage <= 100000
+    ? initialPage
+    : 0;
 function rememberFilters() {
   if (!route || !router) return;
-  void router.replace({ query: { ...route.query,
-    category: appliedCategory.value || undefined,
-    productQuery: productQuery.value.trim() || undefined,
-    productStatus: productStatus.value || undefined,
-    orderQuery: orderQuery.value.trim() || undefined,
-    orderStatus: orderStatus.value || undefined,
-    page: page.value ? String(page.value) : undefined,
-  } });
+  void router.replace({
+    query: {
+      ...route.query,
+      category: appliedCategory.value || undefined,
+      productQuery: productQuery.value.trim() || undefined,
+      productStatus: productStatus.value || undefined,
+      orderQuery: orderQuery.value.trim() || undefined,
+      orderStatus: orderStatus.value || undefined,
+      page: page.value ? String(page.value) : undefined,
+    },
+  });
 }
 function searchOrders() {
   page.value = 0;
@@ -119,11 +126,19 @@ function searchOrders() {
   void load();
 }
 const filteredProducts = computed(() =>
-  products.value.filter((p) =>
-    (!appliedCategory.value || p.categoryId === appliedCategory.value) &&
-    (!productStatus.value || p.status === productStatus.value) &&
-    (!route?.query.productId || p.id === route.query.productId) &&
-    p.name.toLocaleLowerCase().includes(productQuery.value.trim().toLocaleLowerCase()),
+  products.value.filter(
+    (p) =>
+      (!appliedCategory.value || p.categoryId === appliedCategory.value) &&
+      (!productStatus.value || p.status === productStatus.value) &&
+      (!route?.query.productId || p.id === route.query.productId) &&
+      p.name
+        .toLocaleLowerCase()
+        .includes(productQuery.value.trim().toLocaleLowerCase()),
+  ),
+);
+const hasProductFilters = computed(() =>
+  Boolean(
+    appliedCategory.value || productStatus.value || productQuery.value.trim(),
   ),
 );
 function clear() {
@@ -140,7 +155,6 @@ function clear() {
   shippingError.value = "";
   shippingConflictId.value = "";
   formOpen.value = false;
-  filterOpen.value = false;
   editingId.value = "";
   editingVersion.value = 0;
   pendingPayload.value = null;
@@ -204,10 +218,15 @@ async function load() {
   revealed.value = new Set();
   revealTarget.value = null;
   try {
-    const params = new URLSearchParams({ page: String(page.value), size: "20" });
+    const params = new URLSearchParams({
+      page: String(page.value),
+      size: "20",
+    });
     if (orderQuery.value.trim()) params.set("query", orderQuery.value.trim());
-    if (orderStatus.value === "AWAITING_SHIPMENT") params.set("awaitingShipment", "true");
-    else if (orderStatus.value && orderStatus.value in orderStatuses) params.set("status", orderStatus.value);
+    if (orderStatus.value === "AWAITING_SHIPMENT")
+      params.set("awaitingShipment", "true");
+    else if (orderStatus.value && orderStatus.value in orderStatuses)
+      params.set("status", orderStatus.value);
     const [productData, orderData] = await Promise.all([
       request<Product[]>("/admin/shop/products"),
       request<Page<Order>>(`/admin/orders?${params}`),
@@ -240,20 +259,9 @@ function changePage(delta: number) {
   rememberFilters();
   void load();
 }
-function openFilter() {
-  categoryFilterDraft.value = appliedCategory.value;
-  filterOpen.value = true;
-}
-function applyFilter() {
-  appliedCategory.value = categoryFilterDraft.value;
+function clearProductFilters() {
+  appliedCategory.value = productStatus.value = productQuery.value = "";
   rememberFilters();
-  filterOpen.value = false;
-}
-function clearFilter() {
-  appliedCategory.value = "";
-  categoryFilterDraft.value = "";
-  rememberFilters();
-  filterOpen.value = false;
 }
 function openNew() {
   formError.value = "";
@@ -298,8 +306,13 @@ function edit(product: Product) {
   formOpen.value = true;
 }
 async function reset(saved = false) {
-  if (!saved && formOpen.value && JSON.stringify(form.value) !== formSnapshot &&
-      !(await askConfirm("商品修改未保存，确定放弃吗？"))) return;
+  if (
+    !saved &&
+    formOpen.value &&
+    JSON.stringify(form.value) !== formSnapshot &&
+    !(await askConfirm("商品修改未保存，确定放弃吗？"))
+  )
+    return;
   formError.value = "";
   editingId.value = "";
   editingVersion.value = 0;
@@ -316,7 +329,20 @@ async function reset(saved = false) {
     stock: "0",
     status: "ON_SALE",
   };
+  if (router && route?.query.edit) {
+    const { edit: _, ...query } = route.query;
+    void router.replace({ query });
+  }
 }
+watch(
+  [products, () => route?.query.edit],
+  ([items, id]) => {
+    if (formOpen.value || typeof id !== "string" || !id) return;
+    const product = items.find((item) => item.id === id);
+    if (product) edit(product);
+  },
+  { immediate: true },
+);
 function parseYuan(value: string) {
   const text = value.trim();
   if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
@@ -502,6 +528,16 @@ onMounted(() => {
   void loadCategories();
 });
 onUnmounted(clear);
+useForegroundRefresh(() => {
+  if (
+    !busy.value &&
+    !formOpen.value &&
+    !shipping.value &&
+    !revealed.value.size &&
+    !revealTarget.value
+  )
+    void load();
+});
 </script>
 
 <template>
@@ -511,8 +547,9 @@ onUnmounted(clear);
         <h1>商城运营</h1>
       </div>
       <div v-show="tab === 'products'" class="action-row">
-        <button class="secondary button" @click="openFilter">筛选商品</button>
-        <button class="primary button" @click="openNew">＋ 新商品</button>
+        <button class="primary" @click="openNew">
+          <AppIcon name="plus" :size="16" />新商品
+        </button>
       </div>
     </section>
     <nav class="task-tabs" aria-label="商城任务">
@@ -534,45 +571,117 @@ onUnmounted(clear);
     <p v-if="error" role="alert" class="error-box">
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
-    <section
-      v-show="tab === 'products'"
-      id="shop-products"
-      class="editor-section"
-    >
-      <div class="section-heading">
-        <h2>商品目录</h2>
-        <span class="muted">{{ filteredProducts.length }} 件商品</span>
-      </div>
-      <form class="action-row" @submit.prevent="rememberFilters">
-        <input v-model="productQuery" aria-label="搜索商品名称" placeholder="商品名称" @change="rememberFilters" />
-        <select v-model="productStatus" aria-label="销售状态" @change="rememberFilters">
+    <section v-show="tab === 'products'" id="shop-products">
+      <form
+        class="list-filters"
+        role="search"
+        aria-label="筛选商品"
+        @submit.prevent="rememberFilters"
+      >
+        <input
+          v-model="productQuery"
+          type="search"
+          aria-label="搜索商品名称"
+          placeholder="搜索商品名称"
+          @input="rememberFilters"
+        />
+        <select
+          v-model="appliedCategory"
+          name="categoryFilter"
+          aria-label="商品分类"
+          @change="rememberFilters"
+        >
+          <option value="">全部分类</option>
+          <option
+            v-if="
+              appliedCategory &&
+              !categories.some((category) => category.id === appliedCategory)
+            "
+            :value="appliedCategory"
+          >
+            当前分类
+          </option>
+          <option
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.id"
+          >
+            {{ category.name }}
+          </option>
+        </select>
+        <select
+          v-model="productStatus"
+          aria-label="销售状态"
+          @change="rememberFilters"
+        >
           <option value="">全部销售状态</option>
           <option value="ON_SALE">已上架</option>
           <option value="OFF_SALE">已下架</option>
         </select>
-        <RouterLink v-if="route?.query.productId" class="text-button" to="/shop">查看全部商品</RouterLink>
+        <RouterLink v-if="route?.query.productId" class="text-button" to="/shop"
+          >查看全部商品</RouterLink
+        >
+        <button
+          v-else-if="hasProductFilters && (filteredProducts.length || error)"
+          class="text-button"
+          type="button"
+          @click="clearProductFilters"
+        >
+          清除筛选
+        </button>
       </form>
-      <UiState v-if="busy && !products.length" kind="loading" compact>正在加载商品…</UiState>
-      <UiState v-else-if="!busy && !error && !filteredProducts.length" compact>没有符合条件的商品</UiState>
+      <UiState v-if="categoriesError" kind="error" compact>
+        商品分类加载失败。<button
+          class="text-button"
+          type="button"
+          @click="loadCategories"
+        >
+          重试
+        </button>
+      </UiState>
+      <UiState v-if="busy && !products.length" kind="loading" compact
+        >正在加载商品…</UiState
+      >
+      <UiState v-else-if="!busy && !error && !filteredProducts.length" compact>
+        {{
+          hasProductFilters || route?.query.productId
+            ? "没有符合条件的商品"
+            : "暂无商品"
+        }}
+        <button
+          v-if="hasProductFilters && !route?.query.productId"
+          class="text-button"
+          type="button"
+          @click="clearProductFilters"
+        >
+          清除筛选
+        </button>
+      </UiState>
       <div v-if="filteredProducts.length" class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>商品</th>
-              <th>分类</th>
-              <th>原价 / 现价</th>
-              <th>库存</th>
-              <th>状态</th>
-              <th></th>
+        <table class="record-table" role="table">
+          <thead role="rowgroup">
+            <tr role="row">
+              <th role="columnheader">商品</th>
+              <th role="columnheader">分类</th>
+              <th role="columnheader">原价 / 现价</th>
+              <th role="columnheader">库存</th>
+              <th role="columnheader">状态</th>
+              <th role="columnheader" scope="col">操作</th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="product in filteredProducts" :key="product.id">
-              <td>
+          <tbody role="rowgroup">
+            <tr
+              role="row"
+              v-for="product in filteredProducts"
+              :key="product.id"
+            >
+              <td role="cell" data-cell="title">
                 <strong>{{ product.name }}</strong>
               </td>
-              <td>{{ product.categoryName || "未分类" }}</td>
-              <td>
+              <td role="cell" data-label="分类">
+                {{ product.categoryName || "未分类" }}
+              </td>
+              <td role="cell" data-label="原价 / 现价">
                 <del
                   v-if="
                     (product.originalPriceCents ?? product.priceCents) >
@@ -584,33 +693,65 @@ onUnmounted(clear);
                 >
                 {{ money(product.priceCents) }}
               </td>
-              <td>{{ product.stock }}</td>
-              <td>{{ product.status === "ON_SALE" ? "上架" : "下架" }}</td>
-              <td>
+              <td role="cell" data-label="库存">{{ product.stock }}</td>
+              <td role="cell" data-label="销售状态">
+                {{ product.status === "ON_SALE" ? "上架" : "下架" }}
+              </td>
+              <td role="cell" data-cell="actions">
                 <div class="product-actions">
-                  <button type="button" class="text-button" @click="edit(product)">编辑商品信息</button>
+                  <button
+                    type="button"
+                    class="text-button"
+                    @click="edit(product)"
+                  >
+                    编辑商品信息
+                  </button>
                   <RouterLink
                     class="button text-button"
-                    :to="{ path: `/shop/products/${encodeURIComponent(product.id)}/content`, query: route?.query }"
-                  >编辑商品图文</RouterLink>
+                    :to="{
+                      path: `/shop/products/${encodeURIComponent(product.id)}/content`,
+                      query: route?.query,
+                    }"
+                    >编辑商品图文</RouterLink
+                  >
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p v-if="filteredProducts.length" class="pagination-count">
+        共 {{ filteredProducts.length }} 件商品
+      </p>
     </section>
-    <section v-show="tab === 'orders'" id="shop-orders" class="editor-section">
-      <div class="section-heading">
-        <h2>装备订单</h2>
-        <button class="secondary" :disabled="busy" @click="load">刷新</button>
-      </div>
-      <form class="action-row" @submit.prevent="searchOrders">
-        <input v-model="orderQuery" maxlength="100" aria-label="搜索装备订单" placeholder="订单号" />
-        <select v-model="orderStatus" aria-label="装备订单状态">
+    <section v-show="tab === 'orders'" id="shop-orders">
+      <form
+        class="list-filters"
+        role="search"
+        aria-label="筛选装备订单"
+        @submit.prevent="searchOrders"
+      >
+        <input
+          v-model="orderQuery"
+          type="search"
+          maxlength="100"
+          aria-label="搜索装备订单"
+          placeholder="搜索订单号"
+        />
+        <select
+          v-model="orderStatus"
+          aria-label="装备订单状态"
+          @change="searchOrders"
+        >
           <option value="">全部订单状态</option>
-          <option value="AWAITING_SHIPMENT">待发货（可发货）</option>
-          <option v-for="(label, value) in orderStatuses" :key="value" :value="value">{{ label }}</option>
+          <option value="AWAITING_SHIPMENT">待发货</option>
+          <option
+            v-for="(label, value) in orderStatuses"
+            :key="value"
+            :value="value"
+          >
+            {{ label }}
+          </option>
         </select>
         <button class="secondary" :disabled="busy">查询</button>
       </form>
@@ -620,9 +761,9 @@ onUnmounted(clear);
       <UiState v-if="busy && !orders.items.length" kind="loading" compact
         >正在加载订单…</UiState
       >
-      <UiState v-else-if="!orders.items.length && !error" compact
-        >还没有订单</UiState
-      >
+      <UiState v-else-if="!orders.items.length && !error" compact>
+        {{ orderQuery || orderStatus ? "没有符合条件的订单" : "暂无装备订单" }}
+      </UiState>
       <article
         v-for="order in orders.items"
         :key="order.id"
@@ -631,10 +772,13 @@ onUnmounted(clear);
       >
         <div class="section-heading">
           <div>
-            <strong
-              >{{ orderStatuses[order.status] }} ·
-              {{ money(order.totalCents) }}</strong
-            >
+            <div class="order-title-line">
+              <span
+                class="status-pill inline"
+                :class="`tone-${shopOrderTone(order.status)}`"
+                >{{ orderStatuses[order.status] }}</span
+              ><strong>{{ money(order.totalCents) }}</strong>
+            </div>
             <p class="muted record-id">订单号 {{ order.orderNo }}</p>
             <p
               v-if="
@@ -645,8 +789,15 @@ onUnmounted(clear);
               会员优惠前 {{ money(order.originalTotalCents) }} · 优惠
               {{ money(order.originalTotalCents - order.totalCents) }}
             </p>
-            <p v-if="order.status === 'SHIPPED' && (order.shippingCompany || order.shippingTrackingNo)" class="muted">
-              {{ order.shippingCompany || "物流" }} {{ order.shippingTrackingNo }}
+            <p
+              v-if="
+                order.status === 'SHIPPED' &&
+                (order.shippingCompany || order.shippingTrackingNo)
+              "
+              class="muted"
+            >
+              {{ order.shippingCompany || "物流" }}
+              {{ order.shippingTrackingNo }}
             </p>
             <p v-if="order.reconciliationRequired" class="error">
               需核对微信订单状态，库存暂保留，请勿手动回库。
@@ -654,7 +805,7 @@ onUnmounted(clear);
           </div>
           <button
             v-if="canShip(order) && shippingConflictId !== order.id"
-            class="secondary button"
+            class="primary button"
             @click="openShipping(order)"
           >
             确认发货
@@ -710,7 +861,15 @@ onUnmounted(clear);
           {{ displayDate(order.createdAt) }}
         </p>
       </article>
-      <PaginationBar :page="orders.page" :page-size="orders.size" :total="orders.total" :has-more="orders.hasMore" :busy="busy" label="订单分页" @change="(next) => changePage(next - page)" />
+      <PaginationBar
+        :page="orders.page"
+        :page-size="orders.size"
+        :total="orders.total"
+        :has-more="orders.hasMore"
+        :busy="busy"
+        label="订单分页"
+        @change="(next) => changePage(next - page)"
+      />
     </section>
     <ConfirmDialog
       v-if="revealTarget"
@@ -782,27 +941,6 @@ onUnmounted(clear);
       @cancel="cancelSave"
       @confirm="confirmSave"
     />
-    <FormModal :busy="busy" v-if="filterOpen" @close="filterOpen = false"
-      ><template #title><h2>筛选商品</h2></template>
-      <form class="form-section" @submit.prevent="applyFilter">
-        <label
-          >商品分类<select v-model="categoryFilterDraft" name="categoryFilter">
-            <option value="">全部分类</option>
-            <option
-              v-for="category in categories"
-              :key="category.id"
-              :value="category.id"
-            >
-              {{ category.name }}
-            </option>
-          </select></label
-        >
-        <div class="dialog-actions">
-          <button type="button" @click="clearFilter">清除筛选</button
-          ><button class="primary">应用筛选</button>
-        </div>
-      </form>
-    </FormModal>
     <FormModal :busy="busy" v-if="formOpen" size="lg" @close="reset()"
       ><template #title
         ><h2>{{ editingId ? "编辑商品信息" : "创建商品" }}</h2></template
@@ -820,10 +958,10 @@ onUnmounted(clear);
       <p v-if="categoriesError" class="error-box" role="alert">
         {{ categoriesError }}
         <button class="text-button" :disabled="busy" @click="loadCategories">
-          重新加载分类
+          重试
         </button>
       </p>
-      <form class="form-grid" @submit.prevent="save">
+      <form id="shop-product-form" class="form-grid" @submit.prevent="save">
         <label
           >商品名称<input
             v-model="form.name"
@@ -831,13 +969,6 @@ onUnmounted(clear);
             maxlength="120"
             :disabled="busy"
         /></label>
-        <ImageUpload :disabled="busy" @uploaded="form.imageUrl = $event" />
-        <img
-          v-if="form.imageUrl"
-          class="cover-preview"
-          :src="form.imageUrl"
-          alt="商品图片预览"
-        />
         <label
           >商品分类<select
             v-model="form.categoryId"
@@ -893,22 +1024,36 @@ onUnmounted(clear);
             :disabled="busy"
           />
         </label>
-        <button class="primary" :disabled="busy || !!categoriesError">
-          {{ busy ? "正在保存…" : "确认并保存" }}
-        </button>
+        <ImageUpload
+          class="full-field"
+          label="上传商品图片"
+          :preview="form.imageUrl"
+          preview-alt="商品图片预览"
+          :disabled="busy"
+          @uploaded="form.imageUrl = $event"
+        />
       </form>
+      <template #footer>
+        <div class="dialog-actions">
+          <button
+            class="primary"
+            type="submit"
+            form="shop-product-form"
+            :disabled="busy || !!categoriesError"
+          >
+            {{ busy ? "正在保存…" : "确认并保存" }}
+          </button>
+        </div>
+      </template>
     </FormModal>
   </main>
 </template>
 
 <style scoped>
-.editor-section {
-  min-width: 0;
-  margin-top: 14px;
-  padding: 14px;
-  border: 1px solid var(--admin-line);
-  border-radius: var(--admin-radius);
-  background: var(--admin-surface);
+.product-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
 }
 .section-heading {
   display: flex;
@@ -922,6 +1067,16 @@ onUnmounted(clear);
   margin: 0;
   font-size: 16px;
 }
+.order-title-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.order-title-line strong {
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -931,6 +1086,7 @@ onUnmounted(clear);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 .full-field {
   grid-column: 1 / -1;
@@ -938,18 +1094,14 @@ onUnmounted(clear);
 .full-field textarea {
   min-height: 120px;
 }
-.form-grid .primary {
-  justify-self: start;
-}
-.product-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 8px;
-}
 .order-admin-card {
-  padding: 12px 0;
-  border-top: 1px solid var(--admin-line);
+  margin-bottom: 12px;
+  padding: 20px;
   overflow-wrap: anywhere;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-surface);
+  box-shadow: var(--rf-shadow-sm);
 }
 .order-admin-card .section-heading {
   align-items: flex-start;
@@ -969,24 +1121,18 @@ onUnmounted(clear);
   font-size: 12px;
 }
 .order-detail {
-  margin: 10px 0;
-  padding: 12px 16px;
-  border: 1px dashed var(--admin-line, var(--rf-soft));
-  border-radius: 8px;
-  background: #ffffff;
+  margin: 12px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--rf-bg);
 }
 .order-detail p {
   margin: 4px 0;
 }
 @media (max-width: 760px) {
-  .editor-section {
-    padding: 12px;
-  }
   .form-grid {
-    grid-template-columns: 1fr;
-  }
-  .full-field {
-    grid-column: auto;
+    gap: 14px 12px;
   }
 }
 </style>

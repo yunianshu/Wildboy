@@ -5,28 +5,40 @@ import { displayDate } from "./forms";
 type RosterRow = {
   name: string;
   maskedPhone: string;
+  boardingPoint?: string | null;
   status: "CONFIRMED" | "CANCELLED";
   createdAt: string;
 };
 
 function saveCsv(entries: RosterRow[], title: string) {
   const quote = (value: string) => {
-    const safe = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/.test(value) ? "'" + value : value;
+    const safe = /^[\s\uFEFF]*[=+\-@]|^[\t\r\n]/.test(value)
+      ? "'" + value
+      : value;
     return '"' + safe.replaceAll('"', '""') + '"';
   };
-  const rows = [["姓名", "手机号（脱敏）", "报名状态", "报名时间（北京时间）"]];
+  const rows = [
+    ["姓名", "手机号（脱敏）", "报名状态", "报名时间（北京时间）", "上车地点"],
+  ];
   for (const entry of entries) {
     rows.push([
-      entry.name, entry.maskedPhone,
+      entry.name,
+      entry.maskedPhone,
       entry.status === "CONFIRMED" ? "已报名" : "已取消",
       displayDate(entry.createdAt),
+      entry.boardingPoint ?? "",
     ]);
   }
   const csv = rows.map((row) => row.map(quote).join(",")).join("\r\n");
-  const url = URL.createObjectURL(new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }));
+  const url = URL.createObjectURL(
+    new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" }),
+  );
   const link = document.createElement("a");
   link.href = url;
-  const name = title.replace(/[<>:"/\\|?*]/g, "_").trim().slice(0, 80);
+  const name = title
+    .replace(/[<>:"/\\|?*]/g, "_")
+    .trim()
+    .slice(0, 80);
   link.download = `${name ? name + "-" : ""}报名名单-脱敏.csv`;
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -47,8 +59,13 @@ export function useRosterExport() {
   watch(currentUser, resetExport, { flush: "sync" });
   onUnmounted(resetExport);
 
-  async function downloadRoster(activityId: string, title: string, filters?: { query: string; status: string }) {
-    if (exporting.value || currentUser.value?.role !== "ADMIN" || !activityId) return;
+  async function downloadRoster(
+    activityId: string,
+    title: string,
+    filters?: { query: string; status: string },
+  ) {
+    if (exporting.value || currentUser.value?.role !== "ADMIN" || !activityId)
+      return;
     const attempt = new AbortController();
     controller = attempt;
     exporting.value = true;
@@ -58,9 +75,13 @@ export function useRosterExport() {
     if (filters?.status) params.set("status", filters.status);
     const endpoint = `/admin/activities/${encodeURIComponent(activityId)}/registrations/export`;
     try {
-      const entries = await request<RosterRow[]>(params.size ? `${endpoint}?${params}` : endpoint, {
-        signal: attempt.signal, cache: "no-store",
-      });
+      const entries = await request<RosterRow[]>(
+        params.size ? `${endpoint}?${params}` : endpoint,
+        {
+          signal: attempt.signal,
+          cache: "no-store",
+        },
+      );
       if (attempt.signal.aborted) return;
       if (!entries.length) exportError.value = "没有可导出的报名记录。";
       else saveCsv(entries, title);

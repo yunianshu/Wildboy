@@ -58,6 +58,11 @@ public class ApiController {
     return activities.get(id, false);
   }
 
+  @GetMapping("/activities/{id}/attendees")
+  AttendeeSummary attendeesPublic(@PathVariable String id) {
+    return activities.publicAttendees(id);
+  }
+
   @GetMapping("/me/registrations")
   Page<Registration> mine(
       @AuthenticationPrincipal User user,
@@ -105,6 +110,26 @@ public class ApiController {
     return activities.get(id, true);
   }
 
+  @GetMapping("/admin/activity-boarding-points")
+  List<String> adminBoardingPoints() {
+    return activities.listBoardingPoints();
+  }
+
+  @PostMapping("/admin/activity-boarding-points")
+  Map<String, String> saveBoardingPoint(@Valid @RequestBody BoardingPointInput input) {
+    return Map.of("name", activities.saveBoardingPoint(input.name()));
+  }
+
+  @GetMapping("/admin/activity-boarding-point-locations")
+  List<BoardingPointLocation> adminBoardingPointLocations() {
+    return activities.listBoardingPointLocations();
+  }
+
+  @PostMapping("/admin/activity-boarding-point-locations")
+  BoardingPointLocation saveBoardingPointLocation(@Valid @RequestBody BoardingPointLocation input) {
+    return activities.saveBoardingPointLocation(input);
+  }
+
   @PostMapping("/admin/activities")
   ResponseEntity<Activity> create(
       @Valid @RequestBody ActivityInput input, @AuthenticationPrincipal User user) {
@@ -133,6 +158,14 @@ public class ApiController {
       @Valid @RequestBody VersionInput input,
       @AuthenticationPrincipal User user) {
     return activities.cancel(id, input.version(), user.id());
+  }
+
+  @PostMapping("/admin/activities/{id}/reopen")
+  Activity reopen(
+      @PathVariable String id,
+      @Valid @RequestBody VersionInput input,
+      @AuthenticationPrincipal User user) {
+    return activities.reopenToDraft(id, input.version(), user.id());
   }
 
   @GetMapping("/admin/activities/{id}/registrations")
@@ -188,9 +221,9 @@ public class ApiController {
         banners,
         "categories",
         List.of(
-            Map.of("code", "WEEKLY", "name", "本周活动"),
-            Map.of("code", "DOMESTIC", "name", "国内游行"),
-            Map.of("code", "HOLIDAY", "name", "假期活动"),
+            Map.of("code", "WEEKLY", "name", "户外活动"),
+            Map.of("code", "DOMESTIC", "name", "户外旅行"),
+            Map.of("code", "HOLIDAY", "name", "重装露营"),
             Map.of("code", "LEISURE", "name", "休闲活动")),
         "equipment",
         shop.products(false).stream()

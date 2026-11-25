@@ -9,7 +9,7 @@
   --admin-tint: var(--rf-soft);
   --admin-line: var(--rf-line);
   --admin-hairline: var(--rf-line);
-  --admin-ink-panel: var(--rf-surface);
+  --admin-ink-panel: var(--rf-sidebar);
   --admin-danger: var(--rf-danger);
   --admin-danger-bg: var(--rf-danger-bg);
   --admin-inset: 24px;
@@ -113,33 +113,39 @@ button,
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  border: 0;
+  border: 1px solid var(--button-border, var(--rf-line));
   cursor: pointer;
-  border-radius: var(--admin-radius);
+  border-radius: var(--rf-control-radius);
   min-height: var(--rf-web-control-height);
-  padding: 6px 16px;
+  padding: 8px 16px;
   line-height: 1.5;
+  font-size: 14px;
   font-weight: 600;
   gap: 6px;
   white-space: nowrap;
-  color: var(--rf-primary-text);
-  background: var(--admin-tint);
+  color: var(--button-color, var(--rf-primary-text));
+  background: var(--button-background, var(--rf-soft));
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
-    transform 180ms cubic-bezier(0.2, 0.8, 0.3, 1);
+    box-shadow 150ms ease,
+    transform 150ms ease;
 }
-button:enabled:active,
-.button:active {
-  transform: scale(0.985);
+:is(button:enabled, a.button):hover {
+  background-color: var(--button-hover, var(--rf-info-bg));
+}
+:where(button:enabled, a.button):active {
+  filter: brightness(0.96);
 }
 button:disabled {
   cursor: not-allowed;
-  opacity: 0.52;
+  color: var(--rf-muted);
+  border-color: var(--rf-line);
+  background: var(--rf-neutral-bg);
 }
 button:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--admin-primary);
+  outline: 2px solid var(--rf-primary);
   outline-offset: 2px;
 }
 input,
@@ -201,35 +207,41 @@ fieldset {
   min-width: 0;
 }
 .primary {
-  background: var(--rf-primary);
-  color: var(--rf-on-primary);
+  --button-background: var(--rf-primary);
+  --button-hover: var(--rf-primary-hover);
+  --button-color: var(--rf-on-primary);
+  --button-border: transparent;
+  box-shadow: 0 5px 14px #167a5224;
 }
 .primary:hover:enabled {
-  background: var(--rf-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 7px 18px #167a5230;
 }
 .secondary {
-  background: var(--rf-soft);
-  border: 1px solid var(--admin-line);
-  color: var(--rf-primary-text);
+  --button-background: var(--rf-surface);
+  --button-hover: var(--rf-soft);
+  --button-color: var(--rf-ink);
 }
-.secondary:hover:not(:disabled) {
-  background: var(--admin-tint);
+.danger,
+.danger-outline {
+  --button-background: var(--rf-danger-bg);
+  --button-hover: var(--rf-danger-bg);
+  --button-color: var(--rf-danger);
 }
 .danger {
-  background: var(--rf-danger-bg);
-  color: var(--rf-danger);
-}
-.danger-outline {
-  color: var(--tone-danger);
-  background: var(--tone-danger-bg);
-  border: 1px solid var(--tone-danger-border);
+  --button-border: transparent;
 }
 .text-button {
-  background: none;
+  --button-background: transparent;
+  --button-hover: var(--rf-soft);
+  --button-border: transparent;
   padding: 4px 6px;
   min-height: 28px;
   font-size: 12px;
   color: var(--rf-primary-text);
+}
+a.text-button:hover {
+  text-decoration: underline;
 }
 .full {
   width: 100%;
@@ -258,7 +270,7 @@ fieldset {
   font-weight: 600;
   margin-top: 4px;
 }
-/* B 莓果晴天外壳：顶部横向业务导航（72px）+ 子导航行。 */
+/* 管理外壳基础布局；侧边栏与响应式覆盖统一维护在 slate.css。 */
 .topnav {
   position: sticky;
   top: 0;
@@ -628,7 +640,8 @@ fieldset {
 }
 .pagination {
   display: flex;
-  justify-content: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 20px;
   margin-top: 32px;
@@ -816,18 +829,14 @@ fieldset {
   backdrop-filter: blur(10px);
   border-radius: var(--admin-radius);
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 14px;
 }
 .editor-actions > span {
   font-size: 11px;
   color: var(--admin-muted);
-}
-.editor-actions > div {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 .privacy-note {
   padding: 10px 14px;
@@ -915,7 +924,7 @@ td strong {
   font-size: 12px;
   margin: 0 0 36px;
 }
-.login-form .primary {
+.login-form .footer-actions {
   margin-top: 8px;
 }
 .login-note {
@@ -926,15 +935,10 @@ td strong {
 .login-version {
   margin: 8px 0 0;
 }
-.demo-login {
-  margin-top: 15px;
-  font-size: 11px;
-}
 @media (max-width: 720px) {
   button,
   .button {
-    min-height: 44px;
-    padding: 8px 12px;
+    padding-inline: 12px;
   }
   input:not([type="checkbox"], [type="radio"], [type="file"]),
   select {
@@ -1043,10 +1047,6 @@ td strong {
   .page-heading {
     align-items: flex-start;
   }
-  .page-heading .primary {
-    padding: 9px 12px;
-    font-size: 11px;
-  }
   .page-heading .muted {
     font-size: 10px;
   }
@@ -1111,16 +1111,6 @@ td strong {
   }
   .editor-actions {
     padding: 15px;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .editor-actions > div {
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .editor-actions button {
-    padding: 9px 12px;
-    font-size: 11px;
   }
   .login-layout {
     display: block;
@@ -1135,9 +1125,6 @@ td strong {
   }
   .pagination {
     gap: 12px;
-  }
-  .pagination button {
-    font-size: 11px;
   }
   .dialog {
     padding: 24px;
@@ -1475,9 +1462,5 @@ td strong {
   }
   .workspace {
     animation: none;
-  }
-  button:enabled:active,
-  .button:active {
-    transform: none;
   }
 }

@@ -284,7 +284,7 @@ describe("membership administration", () => {
     expect(writes()).toHaveLength(1);
     tier.version = 8;
     tier.name = "远程名称";
-    await button(w, "重新加载最新资料").trigger("click");
+    await button(w, "采用最新资料").trigger("click");
     await flushPromises();
     expect(
       (w.get('[aria-label="等级名称"]').element as HTMLInputElement).value,
@@ -375,7 +375,7 @@ describe("membership administration", () => {
     });
     const { w } = await view();
     expect(w.text()).toContain("没有执行此操作的权限");
-    await button(w, "刷新列表").trigger("click");
+    window.dispatchEvent(new Event("focus"));
     await flushPromises();
     expect(w.text()).toContain("小野");
     await button(w, "编辑身份").trigger("click");

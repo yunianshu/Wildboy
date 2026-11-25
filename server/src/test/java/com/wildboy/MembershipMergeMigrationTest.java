@@ -19,9 +19,14 @@ class MembershipMergeMigrationTest {
       throws Exception {
     var membershipVersions = Set.of("V15__memberships.sql", "V16__shop_membership_prices.sql",
         "V17__activity_orders.sql", "V23__activity_payment_recovery.sql");
+    var boardingMigrations = Set.of("V34__activity_boarding_points.sql",
+        "V35__activity_boarding_point_catalog.sql",
+        "V36__home_page_layout.sql",
+        "V37__activity_navigation_locations.sql");
     try (var files = Files.list(Path.of("src/main/resources/db/migration"))) {
       for (var file : files.toList()) {
-        if (!membershipVersions.contains(file.getFileName().toString())) {
+        String name = file.getFileName().toString();
+        if (!membershipVersions.contains(name) && !boardingMigrations.contains(name)) {
           Files.copy(file, legacyMigrations.resolve(file.getFileName()));
         }
       }
@@ -57,8 +62,12 @@ class MembershipMergeMigrationTest {
       var item = db.queryForMap("SELECT * FROM shop_order_item WHERE id='item'");
       var refund = db.queryForMap("SELECT * FROM refund_request WHERE id='refund'");
 
-      var upgrade = Flyway.configure().dataSource(source).outOfOrder(true).load();
-      assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(4);
+      var upgrade = Flyway.configure().dataSource(source).outOfOrder(true).target("34").load();
+      assertThat(upgrade.migrate().migrationsExecuted).isEqualTo(5);
+      assertThat(db.queryForObject("""
+          SELECT COUNT(*) FROM information_schema.columns
+          WHERE table_name = 'activity_order_participant' AND column_name = 'boarding_point'
+          """, Integer.class)).isEqualTo(1);
       assertThat(db.queryForMap("SELECT * FROM app_user WHERE id='owner'"))
           .containsAllEntriesOf(user).containsEntry("customer_type", "GUEST");
       assertThat(db.queryForMap("SELECT * FROM product WHERE id='gear'")).isEqualTo(product);
@@ -68,9 +77,21 @@ class MembershipMergeMigrationTest {
           .containsAllEntriesOf(item).containsEntry("original_price_cents", 199);
       assertThat(db.queryForMap("SELECT * FROM refund_request WHERE id='refund'")).isEqualTo(refund);
 
-      var normal = Flyway.configure().dataSource(source).load();
-      normal.validate();
-      assertThat(normal.migrate().migrationsExecuted).isZero();
+      db.update("""
+          INSERT INTO activity(id,title,category,cover_url,summary,description,location,meeting_point,
+              start_at,end_at,registration_deadline,capacity,status,boarding_points)
+          SELECT id,'QA hike','WEEKLY','/assets/a.jpg','Summary','Description','City','Gate',
+              CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+INTERVAL '1 hour',CURRENT_TIMESTAMP,20,'PUBLISHED',points
+          FROM (VALUES ('first','["North station","South gate"]'), ('second','["South gate"]')) AS saved(id,points)
+          """);
+      var normal = Flyway.configure().dataSource(source).target("35").load();
+      assertThat(normal.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(db.queryForList("SELECT name FROM activity_boarding_point ORDER BY name", String.class))
+          .containsExactly("North station", "South gate");
+      var latest = Flyway.configure().dataSource(source).load();
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
+      latest.validate();
+      assertThat(latest.migrate().migrationsExecuted).isZero();
     }
   }
 }

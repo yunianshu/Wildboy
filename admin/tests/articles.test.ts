@@ -111,7 +111,9 @@ beforeEach(() => {
       article.version++;
       data = { ...article };
     } else if (options.method) {
-      article = { ...article, ...body, version: article.version + 1 };
+      const { markdown, ...fields } = body;
+      if (markdown !== undefined) markdownText = markdown;
+      article = { ...article, ...fields, version: article.version + 1 };
       data = { ...article };
     } else if (url.includes("/articles?"))
       data = { items: [{ ...article }], hasMore: false };
@@ -166,6 +168,7 @@ describe("article editor page", () => {
   it("creates a draft before loading its structured content", async () => {
     const w = await view("/articles/new");
     expect(vditorInstances.length).toBe(0);
+    expect(w.text()).toContain("保存草稿后，继续撰写正文");
     await w.get('[aria-label="文章标题"]').setValue("新文章");
     await button(w, "保存草稿").trigger("click");
     await flushPromises();
@@ -208,23 +211,87 @@ describe("article editor page", () => {
     )!;
     expect(JSON.parse(publish[1].body)).toEqual({ version: 2 });
     expect(w.text()).toContain("文章已发布，将在小程序探索页展示。");
+    await typeContent(w, "发布后的首次更新");
+    await button(w, "发布更新").trigger("click");
+    await flushPromises();
+    expect(JSON.parse(writes().at(-1)![1].body).version).toBe(3);
+    expect(markdownText).toBe("发布后的首次更新");
     w.unmount();
   });
-  it("keeps a published article read-only until it is unpublished", async () => {
+  it("edits a published article and releases metadata and body together", async () => {
+    article.status = "PUBLISHED";
+    article.isOfficial = true;
+    const w = await view("/articles/article-1/edit");
+    await loadRich(w);
+    const title = w.get('[aria-label="文章标题"]');
+    expect(title.attributes("disabled")).toBeUndefined();
+    expect(vditorInstances.at(-1)!.disabledCalls).toBe(0);
+    expect(button(w, "发布更新").attributes("disabled")).toBeDefined();
+    await title.setValue("新版标题");
+    await typeContent(w, "新版正文");
+    expect(writes()).toHaveLength(0);
+    expect(w.text()).toContain("修改待发布");
+    await button(w, "发布更新").trigger("click");
+    await flushPromises();
+    expect(writes()).toHaveLength(1);
+    expect(writes()[0][0]).toMatch(/\/admin\/articles\/article-1$/);
+    expect(JSON.parse(writes()[0][1].body)).toEqual({
+      title: "新版标题",
+      summary: "摘要",
+      coverUrl: "/assets/cover.jpg",
+      activityId: null,
+      markdown: "新版正文",
+      version: 0,
+    });
+    expect(article).toMatchObject({
+      title: "新版标题",
+      status: "PUBLISHED",
+      isOfficial: true,
+      version: 1,
+    });
+    expect(markdownText).toBe("新版正文");
+    expect(w.text()).toContain("更新已发布");
+    expect(button(w, "发布更新").attributes("disabled")).toBeDefined();
+    await title.setValue("下架后的草稿标题");
+    await typeContent(w, "尚未保存的正文");
+    await button(w, "下架").trigger("click");
+    await flushPromises();
+    expect(writes()[1][0]).toMatch(/\/unpublish$/);
+    expect(JSON.parse(writes()[1][1].body)).toEqual({ version: 1 });
+    expect(article.status).toBe("DRAFT");
+    expect(article.title).toBe("新版标题");
+    expect(
+      w.get<HTMLTextAreaElement>('[aria-label="文章标题"]').element.value,
+    ).toBe("下架后的草稿标题");
+    expect(vditorInstances.at(-1)!.value).toBe("尚未保存的正文");
+    expect(w.text()).toContain("有未保存修改");
+    w.unmount();
+  });
+  it("preserves unsaved edits when a published update has a version conflict", async () => {
     article.status = "PUBLISHED";
     const w = await view("/articles/article-1/edit");
     await loadRich(w);
-    expect(
-      w.get('[aria-label="文章标题"]').attributes("disabled"),
-    ).toBeDefined();
-    expect(vditorInstances.at(-1)!.disabledCalls).toBeGreaterThan(0);
-    expect(button(w, "保存")).toBeUndefined();
-    await button(w, "下架并编辑").trigger("click");
+    await w.get('[aria-label="文章标题"]').setValue("未发布标题");
+    await typeContent(w, "未发布正文");
+    fetcher.mockResolvedValueOnce({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: "文章版本冲突" }),
+    });
+    await button(w, "发布更新").trigger("click");
     await flushPromises();
-    expect(writes()[0][0].endsWith("/unpublish")).toBe(true);
+    expect(w.text()).toContain("文章版本或状态已变化");
+    expect(w.text()).toContain("修改待发布");
     expect(
-      w.get('[aria-label="文章标题"]').attributes("disabled"),
-    ).toBeUndefined();
+      w.get<HTMLTextAreaElement>('[aria-label="文章标题"]').element.value,
+    ).toBe("未发布标题");
+    expect(vditorInstances.at(-1)!.value).toBe("未发布正文");
+    expect(article).toMatchObject({
+      title: base.title,
+      status: "PUBLISHED",
+      version: 0,
+    });
+    expect(markdownText).toBe("回顾正文");
     w.unmount();
   });
   it("confirms official designation and allows it only for published articles", async () => {
@@ -298,26 +365,18 @@ describe("article editor page", () => {
     expect(button(w, "发布")).toBeUndefined();
     w.unmount();
   });
-  it("switches editor layouts without remounting the editor or losing content", async () => {
+  it("keeps one continuous editing flow with unique fields and a stable editor", async () => {
     const w = await view("/articles/article-1/edit");
     await loadRich(w);
-    await typeContent(w, "切换布局也不丢正文");
-    expect(w.find(".workbench").isVisible()).toBe(true);
-    expect(w.find(".doc-canvas").isVisible()).toBe(false);
-    await button(w, "文档").trigger("click");
-    await flushPromises();
-    expect(w.find(".doc-canvas").isVisible()).toBe(true);
-    expect(w.find(".workbench").isVisible()).toBe(false);
-    // 编辑器实例未重建，未保存的正文仍在
+    expect(w.find(".article-layout").exists()).toBe(true);
+    expect(w.find(".article-steps").exists()).toBe(false);
+    expect(w.find(".layout-switch").exists()).toBe(false);
+    expect(w.findAll('[aria-label="文章标题"]')).toHaveLength(1);
+    expect(w.findAll('[aria-label="文章摘要"]')).toHaveLength(1);
+    await typeContent(w, "连续编辑不丢正文");
     expect(vditorInstances).toHaveLength(1);
     expect(Boolean(rich(w).vm.dirty)).toBe(true);
-    expect(localStorage.getItem("wildboy-admin-article-layout")).toBe("canvas");
-    await button(w, "工作台").trigger("click");
-    await flushPromises();
-    expect(localStorage.getItem("wildboy-admin-article-layout")).toBe(
-      "workbench",
-    );
-    expect(vditorInstances).toHaveLength(1);
+    expect(localStorage.getItem("wildboy-admin-article-layout")).toBeNull();
     w.unmount();
   });
   it("shows version conflict without overwriting or auto-publishing", async () => {

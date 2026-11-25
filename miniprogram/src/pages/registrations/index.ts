@@ -43,7 +43,7 @@ Page({
       this.setData({ items: [], page: 0, hasMore: false, total: 0 });
     }
     this.setData({ loggedIn });
-    if (loggedIn && !this._listLoaded) void this.load(true);
+    if (loggedIn) void this.load(true, this._listLoaded);
   },
   onHide() {
     epoch.invalidate();
@@ -71,7 +71,7 @@ Page({
     this.setData({ status });
     void this.load(true);
   },
-  async load(reset = true) {
+  async load(reset = true, background = false) {
     if (!hasSession()) {
       this.setData({ loggedIn: false, items: [], total: 0 });
       return;
@@ -84,24 +84,29 @@ Page({
     const n = epoch.next(),
       session = sessionVersion();
     this.setData({
-      loading: reset,
+      loading: reset && !background,
       loadingMore: !reset,
       error: "",
-      ...(reset ? { items: [], total: 0, page: 0, hasMore: true } : {}),
+      ...(reset && !background ? { items: [], total: 0, page: 0, hasMore: true } : {}),
     });
     try {
-      const p = await request<PageResult<Registration>>(
-        `/me/registrations?page=${reset ? 0 : this.data.page + 1}&size=20${this.data.status ? "&status=" + this.data.status : ""}`,
-      );
+      const status = this.data.status ? "&status=" + this.data.status : "";
+      const pages = background
+        ? Array.from({ length: this.data.page + 1 }, (_, index) => index)
+        : [reset ? 0 : this.data.page + 1];
+      const results = await Promise.all(pages.map((page) => request<PageResult<Registration>>(
+        `/me/registrations?page=${page}&size=20${status}`,
+      )));
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+      const p = results[results.length - 1];
       this._listLoaded = true;
       this._listSession = session;
-      const items = p.items.map((x) => ({
+      const items = results.flatMap((result) => result.items).map((x) => ({
         ...x,
         dateText: dateLabel(x.createdAt),
       }));
       this.setData({
-        items: reset ? items : mergeUnique(this.data.items, items),
+        items: mergeUnique(reset ? [] : this.data.items, items),
         page: p.page,
         hasMore: p.hasMore,
         total: p.total,

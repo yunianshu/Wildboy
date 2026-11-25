@@ -31,6 +31,30 @@
   padding-top: 24rpx;
   font-size: 25rpx;
 }
+.boarding-picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1px solid var(--rf-field-line);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-surface);
+  font-size: 14px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.boarding-picker-chevron {
+  flex: none;
+  width: 12rpx;
+  height: 12rpx;
+  margin-right: 4rpx;
+  border-right: 2rpx solid var(--rf-muted);
+  border-bottom: 2rpx solid var(--rf-muted);
+  transform: rotate(45deg);
+}
 .participant-card {
   padding: 24rpx 0;
 }
@@ -85,7 +109,8 @@
   margin: 40rpx 0;
 }
 .success button {
-  margin-top: 24rpx;
+  width: 100%;
+  margin-top: 12px;
 }
 
 .participant-draft {

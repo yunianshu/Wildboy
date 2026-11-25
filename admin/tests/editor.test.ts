@@ -52,9 +52,11 @@ async function uploadCover(wrapper: ReturnType<typeof mount>) {
   const file = new File([pngBuffer], "cover.png", { type: "image/png" });
   Object.defineProperty(input.element, "files", { value: [file] });
   await input.trigger("change");
-  // FileReader 回调是宏任务，微任务 flush 等不到
-  await new Promise((resolve) => setTimeout(resolve, 20));
-  await flushPromises();
+  await vi.waitFor(() => {
+    expect(wrapper.get('img[alt="封面预览"]').attributes("src")).toBe(
+      "/assets/uploads/mock-cover.png",
+    );
+  });
 }
 function withMedia(
   fetch: ReturnType<typeof vi.fn>,
@@ -137,7 +139,9 @@ describe("editor workflow", () => {
       .findAll("button")
       .find((button) => button.text() === "09:00")!
       .trigger("click");
-    await wrapper.get("[role=dialog] .dialog-actions .primary").trigger("click");
+    await wrapper
+      .get("[role=dialog] .dialog-actions .primary")
+      .trigger("click");
     expect(
       (wrapper.get("#activity-start").element as HTMLInputElement).value,
     ).toBe(selectedDate);
@@ -271,6 +275,78 @@ describe("editor workflow", () => {
     });
     wrapper.unmount();
   });
+  it("selects and saves boarding points on a started activity", async () => {
+    const started = {
+      ...base,
+      status: "PUBLISHED",
+      startAt: "2026-11-01T09:00:10+08:00",
+      endAt: "2026-11-01T09:00:50+08:00",
+      registrationDeadline: "2026-10-31T18:00:00+08:00",
+      boardingPoints: ["海滨公园东门"],
+    };
+    const fetch = vi.fn(async (path: string, options: RequestInit = {}) => {
+      if (path.endsWith("/activity-boarding-points")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () =>
+            options.method === "POST"
+              ? { name: "会展中心东门" }
+              : ["厦门北站", "海滨公园东门"],
+        };
+      }
+      const data =
+        options.method === "PUT"
+          ? { ...started, ...JSON.parse(String(options.body)), version: 3 }
+          : started;
+      return { ok: true, status: 200, json: async () => data };
+    });
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "时间与地点")!
+      .trigger("click");
+    await flushPromises();
+    const choices = wrapper.get('select[aria-label="选择已有上车地点"]');
+    expect(choices.findAll("option").map((option) => option.text())).toEqual([
+      "选择已有地点",
+      "厦门北站",
+    ]);
+    await choices.setValue("厦门北站");
+    await wrapper
+      .get('button[aria-label="移除上车地点 海滨公园东门"]')
+      .trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "新增地点")!
+      .trigger("click");
+    await wrapper.get(".new-point input").setValue("  会展中心东门  ");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "保存地点")!
+      .trigger("click");
+    await flushPromises();
+    expect(JSON.parse(String(fetch.mock.calls[2]?.[1]?.body))).toEqual({
+      name: "会展中心东门",
+    });
+    expect(wrapper.find(".new-point input").exists()).toBe(false);
+    expect(wrapper.get(".selected-points").text()).toContain("会展中心东门");
+    expect(
+      fetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+    ).toBe(false);
+
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(JSON.parse(String(fetch.mock.calls[3]?.[1]?.body))).toMatchObject({
+      boardingPoints: ["厦门北站", "会展中心东门"],
+      startAt: started.startAt,
+      endAt: started.endAt,
+      version: 2,
+    });
+    expect(wrapper.get('[role="status"]').text()).toBe("活动修改已保存。");
+    wrapper.unmount();
+  });
   it("saves a draft price separately, retains main DTO free-only and never publishes implicitly", async () => {
     let activity = { ...base, registeredCount: 0 };
     const fetch = vi.fn(async (_path: string, options: any = {}) => {
@@ -312,9 +388,12 @@ describe("editor workflow", () => {
     const fetch = vi.fn(async (path: string, options?: RequestInit) => ({
       ok: true,
       status: 200,
-      json: async () => path.endsWith("/price")
-        ? { ...base, version: 4, priceCents: 2500 }
-        : options?.method === "PUT" ? { ...base, version: 3 } : base,
+      json: async () =>
+        path.endsWith("/price")
+          ? { ...base, version: 4, priceCents: 2500 }
+          : options?.method === "PUT"
+            ? { ...base, version: 3 }
+            : base,
     }));
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
@@ -330,7 +409,10 @@ describe("editor workflow", () => {
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(fetch.mock.calls[2][0]).toMatch(/\/price$/);
-    expect(JSON.parse(String(fetch.mock.calls[2][1]?.body))).toEqual({ priceCents: 2500, version: 3 });
+    expect(JSON.parse(String(fetch.mock.calls[2][1]?.body))).toEqual({
+      priceCents: 2500,
+      version: 3,
+    });
     expect(
       (wrapper.get('[aria-label="活动报名原价"]').element as HTMLInputElement)
         .value,

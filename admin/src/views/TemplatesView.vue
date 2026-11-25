@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
 import DateTimeField from "../components/DateTimeField.vue";
@@ -8,6 +9,7 @@ import { request, currentUser, errorMessage } from "../api";
 import type { Activity, ActivityInput, Page } from "../types";
 import FormModal from "../components/FormModal.vue";
 import UiState from "../components/UiState.vue";
+import AppIcon from "../components/AppIcon.vue";
 type Template = {
   id: string;
   name: string;
@@ -29,7 +31,12 @@ const editor = ref(false),
   editing = ref<Template | null>(null),
   name = ref(""),
   sourceId = ref("");
-const scheduleErrors = ref<{ date?: string; source?: string; count?: string; interval?: string }>({});
+const scheduleErrors = ref<{
+  date?: string;
+  source?: string;
+  count?: string;
+  interval?: string;
+}>({});
 const schedule = ref<Template | null>(null),
   copying = ref(false),
   start = ref(""),
@@ -104,8 +111,12 @@ function openEditor(t: Template | null = null) {
 }
 async function close() {
   if (busy.value) return;
-  const dirty = editor.value ? name.value !== (editing.value?.name || "") || !!sourceId.value
-    : !!start.value || (copying.value && !!sourceId.value) || count.value !== 1 || interval.value !== 7;
+  const dirty = editor.value
+    ? name.value !== (editing.value?.name || "") || !!sourceId.value
+    : !!start.value ||
+      (copying.value && !!sourceId.value) ||
+      count.value !== 1 ||
+      interval.value !== 7;
   if (dirty && !(await askConfirm("模板操作尚未保存，确定放弃吗？"))) return;
   editor.value = false;
   schedule.value = null;
@@ -147,17 +158,32 @@ async function save() {
   }
 }
 async function removeTemplate(template: Template) {
-  const actor = currentUser.value, n = epoch;
-  if (!actor || loading.value || busy.value || !(await askConfirm({
-    title: "删除活动模板？",
-    description: "已生成的活动草稿会保留。",
-    confirmLabel: "删除模板",
-    danger: true,
-  })) || actor !== currentUser.value || n !== epoch) return;
+  const actor = currentUser.value,
+    n = epoch;
+  if (
+    !actor ||
+    loading.value ||
+    busy.value ||
+    !(await askConfirm({
+      title: "删除活动模板？",
+      description: "已生成的活动草稿会保留。",
+      confirmLabel: "删除模板",
+      danger: true,
+    })) ||
+    actor !== currentUser.value ||
+    n !== epoch
+  )
+    return;
   busy.value = true;
   error.value = "";
   try {
-    await request("/admin/templates/" + encodeURIComponent(template.id) + "?version=" + template.version, { method: "DELETE" });
+    await request(
+      "/admin/templates/" +
+        encodeURIComponent(template.id) +
+        "?version=" +
+        template.version,
+      { method: "DELETE" },
+    );
     if (n !== epoch || actor !== currentUser.value) return;
     items.value = items.value.filter((item) => item.id !== template.id);
     success.value = "模板已删除";
@@ -198,7 +224,11 @@ async function generate() {
   if (schedule.value) {
     if (!Number.isInteger(count.value) || count.value < 1 || count.value > 12)
       invalid.count = "请输入 1–12 的整数";
-    if (!Number.isInteger(interval.value) || interval.value < 1 || interval.value > 365)
+    if (
+      !Number.isInteger(interval.value) ||
+      interval.value < 1 ||
+      interval.value > 365
+    )
       invalid.interval = "请输入 1–365 的整数";
   }
   if (Object.keys(invalid).length) return;
@@ -241,15 +271,33 @@ async function generate() {
   }
 }
 onMounted(() => void load());
+useForegroundRefresh(() => {
+  if (
+    !busy.value &&
+    !loading.value &&
+    !editor.value &&
+    !copying.value &&
+    !schedule.value
+  )
+    void load(page.value);
+});
 </script>
 <template>
   <main class="workspace">
     <section class="page-heading">
-      <h1>活动模板</h1>
+      <div>
+        <h1>活动模板</h1>
+        <p class="template-page-hint">
+          复用成熟活动配置，生成草稿后检查并发布，减少重复填写。
+        </p>
+      </div>
       <div class="template-actions">
-        <button class="secondary" :disabled="busy || loading" @click="load()">刷新</button>
-        <button class="secondary" @click="openSchedule(null)">复制活动</button>
-        <button class="primary" @click="openEditor()">新建模板</button>
+        <button class="secondary" @click="openSchedule(null)">
+          <AppIcon name="document" :size="15" />复制活动
+        </button>
+        <button class="primary" @click="openEditor()">
+          <AppIcon name="plus" :size="16" />新建模板
+        </button>
       </div>
     </section>
     <p
@@ -257,7 +305,10 @@ onMounted(() => void load());
       class="error-box"
       role="alert"
     >
-      {{ error }} <button class="text-button" :disabled="busy || loading" @click="load()">重试</button>
+      {{ error }}
+      <button class="text-button" :disabled="busy || loading" @click="load()">
+        重试
+      </button>
     </p>
     <p v-if="success" class="success-box" role="status">{{ success }}</p>
     <div v-if="generated.length" class="generated">
@@ -284,24 +335,41 @@ onMounted(() => void load());
       >暂无模板</UiState
     >
     <section v-for="t in items" :key="t.id" class="template-row">
-      <div class="template-summary">
-        <h3>{{ t.name }}</h3>
-        <p>
-          {{ t.activity.title }} · {{ t.activity.capacity }} 人 ·
-          {{
-            t.activity.priceCents > 0
-              ? `¥${(t.activity.priceCents / 100).toFixed(2)} / 人`
-              : "免费报名"
-          }}
-        </p>
+      <div class="template-leading">
+        <span class="template-icon"
+          ><AppIcon name="template" :size="20"
+        /></span>
+        <div class="template-summary">
+          <h3>{{ t.name }}</h3>
+          <p>
+            <span>{{ t.activity.title }}</span
+            ><span>{{ t.activity.capacity }} 人</span
+            ><span>{{
+              t.activity.priceCents > 0
+                ? `¥${(t.activity.priceCents / 100).toFixed(2)} / 人`
+                : "免费报名"
+            }}</span>
+          </p>
+        </div>
       </div>
       <div class="template-actions">
-        <button class="text-button" @click="removeTemplate(t)">删除模板</button>
-        <button class="text-button" @click="openEditor(t)">更新模板</button
-        ><button class="primary" @click="openSchedule(t)">生成草稿</button>
+        <button class="text-button template-delete" @click="removeTemplate(t)">
+          删除模板
+        </button>
+        <button class="secondary" @click="openEditor(t)">更新模板</button>
+        <button class="primary" @click="openSchedule(t)">生成草稿</button>
       </div>
     </section>
-    <PaginationBar v-if="pageTotal != null || hasMore || page > 0" :page="page" :page-size="20" :total="pageTotal" :has-more="hasMore" :busy="loading" label="模板分页" @change="load" />
+    <PaginationBar
+      v-if="pageTotal != null || hasMore || page > 0"
+      :page="page"
+      :page-size="20"
+      :total="pageTotal"
+      :has-more="hasMore"
+      :busy="loading"
+      label="模板分页"
+      @change="load"
+    />
     <FormModal :busy="busy" v-if="editor || schedule || copying" @close="close"
       ><template #title
         ><h2 class="modal-heading">
@@ -315,11 +383,18 @@ onMounted(() => void load());
         /></label>
         <label v-if="editor || copying"
           >来源活动<select v-model="sourceId" :disabled="busy">
-            <option value="">{{ editing ? "保留原活动内容" : "选择活动" }}</option>
+            <option value="">
+              {{ editing ? "保留原活动内容" : "选择活动" }}
+            </option>
             <option v-for="a in sources" :key="a.id" :value="a.id">
               {{ a.title }} · {{ statuses[a.status] }}
-            </option>
-          </select><small v-if="copying && scheduleErrors.source" class="field-error" role="alert">{{ scheduleErrors.source }}</small></label
+            </option></select
+          ><small
+            v-if="copying && scheduleErrors.source"
+            class="field-error"
+            role="alert"
+            >{{ scheduleErrors.source }}</small
+          ></label
         >
         <button
           v-if="(editor || copying) && sourceMore"
@@ -331,29 +406,49 @@ onMounted(() => void load());
         </button>
         <template v-if="!editor"
           ><fieldset :disabled="busy">
-            <DateTimeField id="template-start" v-model="start" label="开始时间（北京时间）" :error="scheduleErrors.date" required />
-          </fieldset><template v-if="schedule"
+            <DateTimeField
+              id="template-start"
+              v-model="start"
+              label="开始时间（北京时间）"
+              :error="scheduleErrors.date"
+              required
+            />
+          </fieldset>
+          <template v-if="schedule"
             ><label
               >生成场次<input
                 v-model.number="count"
                 type="number"
                 min="1"
                 max="12"
-                :disabled="busy" /><small v-if="scheduleErrors.count" class="field-error" role="alert">{{ scheduleErrors.count }}</small></label
+                :disabled="busy"
+              /><small
+                v-if="scheduleErrors.count"
+                class="field-error"
+                role="alert"
+                >{{ scheduleErrors.count }}</small
+              ></label
             ><label
               >间隔天数<input
                 v-model.number="interval"
                 type="number"
                 min="1"
                 max="365"
-                :disabled="busy" /><small v-if="scheduleErrors.interval" class="field-error" role="alert">{{ scheduleErrors.interval }}</small></label
-          ></template>
+                :disabled="busy"
+              /><small
+                v-if="scheduleErrors.interval"
+                class="field-error"
+                role="alert"
+                >{{ scheduleErrors.interval }}</small
+              ></label
+            ></template
+          >
           <p class="muted">
             仅生成草稿，时长和报名提前量沿用来源活动。
           </p></template
         >
         <p v-if="error" class="error-box" role="alert">{{ error }}</p>
-        <div class="modal-actions">
+        <div class="dialog-actions">
           <button
             type="button"
             class="secondary"
@@ -370,17 +465,47 @@ onMounted(() => void load());
   </main>
 </template>
 <style scoped>
+.template-page-hint {
+  margin: 5px 0 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+}
 .template-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--admin-surface);
-  padding: 10px 14px;
-  margin-bottom: 8px;
-  border: 1px solid var(--admin-line);
-  border-radius: var(--admin-radius);
-  gap: 12px;
+  gap: 18px;
+  margin-bottom: 10px;
+  padding: 16px 18px;
   overflow-wrap: anywhere;
+  border: 1px solid var(--admin-line);
+  border-radius: 14px;
+  background: var(--admin-surface);
+  box-shadow: var(--rf-shadow-sm);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+.template-row:hover {
+  border-color: #cadbd0;
+  box-shadow: 0 10px 24px #183c290c;
+}
+.template-leading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  flex: 1;
+  min-width: 0;
+}
+.template-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: var(--rf-primary-text);
+  background: var(--rf-soft);
 }
 .template-summary {
   min-width: 0;
@@ -390,25 +515,45 @@ onMounted(() => void load());
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
+}
+.template-actions .secondary,
+.template-actions .primary {
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+.template-delete {
+  margin-right: 4px;
+  color: var(--rf-muted);
+}
+.template-delete:hover {
+  color: var(--rf-danger);
 }
 .template-row h3 {
   margin: 0;
+  font-size: 14px;
+  font-weight: 650;
 }
 .template-row p {
-  margin: 3px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 5px 0 0;
   color: var(--admin-muted);
+  font-size: 11px;
+}
+.template-row p span + span {
+  position: relative;
+}
+.template-row p span + span::before {
+  position: absolute;
+  left: -8px;
+  content: "·";
 }
 .modal-heading {
   padding-right: 36px;
-}
-.modal-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 14px;
 }
 .generated {
   display: grid;
@@ -416,10 +561,26 @@ onMounted(() => void load());
   margin-top: 24px;
   overflow-wrap: anywhere;
 }
+.generated a {
+  padding: 12px 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: 10px;
+  color: var(--rf-primary-text);
+  background: var(--rf-surface);
+}
 @media (max-width: 640px) {
   .template-row {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 14px;
+    padding: 15px;
+  }
+  .template-actions {
+    padding-top: 10px;
+    border-top: 1px solid var(--rf-line);
+  }
+  .template-delete {
+    margin-right: auto;
   }
 }
 </style>

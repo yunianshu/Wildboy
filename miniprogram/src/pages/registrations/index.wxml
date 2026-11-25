@@ -1,4 +1,4 @@
-<view class="page page-motion {{pageMotionClass}}">
+<view class="page registrations-page page-motion {{pageMotionClass}}">
   <view class="registrations-heading"><view class="title">免费活动报名</view><button class="text-button" bindtap="messages">活动消息</button></view>
   <view class="notice">本页显示免费活动报名。收费活动（含会员免支付）请查看<button class="text-button" bindtap="activityOrders">活动订单</button></view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty"
@@ -13,56 +13,65 @@
     ><view wx:if="{{error}}" class="error">{{error}}</view></ui-state
   >
   <block wx:else>
-    <view class="filters"
-      ><view
-        class="filter {{status === '' ? 'active' : ''}}"
-        data-status=""
-        bindtap="select"
-        >全部</view
-      ><view
-        class="filter {{status === 'CONFIRMED' ? 'active' : ''}}"
-        data-status="CONFIRMED"
-        bindtap="select"
-        >已报名</view
-      ><view
-        class="filter {{status === 'CANCELLED' ? 'active' : ''}}"
-        data-status="CANCELLED"
-        bindtap="select"
-        >已取消</view
-      ></view
-    >
-    <ui-state wx:if="{{loading}}" kind="loading">正在加载报名…</ui-state>
-    <ui-state wx:elif="{{!items.length && !error}}" kind="empty"
-      >{{status === 'CANCELLED' ? '还没有取消记录' :
-      '还没有免费活动报名记录'}}<button class="secondary ui-button ui-button-block" bindtap="explore">
-        去发现活动
-      </button></ui-state
-    >
-    <view class="record" wx:for="{{items}}" wx:key="id"
-      ><view class="record-top"
-        ><text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}"
-          >{{item.status === 'CONFIRMED' ? '已报名' : '已取消'}}</text
-        ><text class="small muted"
-          >{{item.status === 'CONFIRMED' ? '免费参与' : '名额已释放'}}</text
-        ></view
-      ><view class="record-title">{{item.activityTitle}}</view
-      ><view class="muted">报名时间 {{item.dateText}} · {{item.participants.length}} 人</view
-      ><view class="muted small" wx:for="{{item.participants}}" wx:for-item="participant" wx:key="id"
-        >{{participant.participantName}}</view
-      ><button class="secondary" data-id="{{item.activityId}}" bindtap="open">
-        查看活动安排
-      </button></view
-    >
-    <ui-state wx:if="{{error}}" kind="error"
-      >{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">
-        重新加载
-      </button></ui-state
-    >
-    <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
-    <view wx:elif="{{items.length}}" class="loading-line"
-      >{{hasMore ? '上拉加载更多' :
-      ('已显示全部 ' + total + ' 条记录')}}</view
-    >
+    <view class="section-tabs registration-tabs" aria-label="报名状态">
+      <view class="section-tab-list section-tab-list-fill">
+        <button
+          class="section-tab {{status === '' ? 'section-tab-current' : ''}}"
+          data-status=""
+          bindtap="select"
+          hover-class="section-tab-pressed"
+          aria-label="全部{{status === '' ? '，已选中' : ''}}"
+        >全部</button>
+        <button
+          class="section-tab {{status === 'CONFIRMED' ? 'section-tab-current' : ''}}"
+          data-status="CONFIRMED"
+          bindtap="select"
+          hover-class="section-tab-pressed"
+          aria-label="已报名{{status === 'CONFIRMED' ? '，已选中' : ''}}"
+        >已报名</button>
+        <button
+          class="section-tab {{status === 'CANCELLED' ? 'section-tab-current' : ''}}"
+          data-status="CANCELLED"
+          bindtap="select"
+          hover-class="section-tab-pressed"
+          aria-label="已取消{{status === 'CANCELLED' ? '，已选中' : ''}}"
+        >已取消</button>
+      </view>
+    </view>
+    <view class="section-tab-panel">
+      <ui-state wx:if="{{loading}}" kind="loading">正在加载报名…</ui-state>
+      <ui-state wx:elif="{{!items.length && !error}}" kind="empty"
+        >{{status === 'CANCELLED' ? '还没有取消记录' :
+        '还没有免费活动报名记录'}}<button class="secondary ui-button ui-button-block" bindtap="explore">
+          去发现活动
+        </button></ui-state
+      >
+      <view class="record" wx:for="{{items}}" wx:key="id"
+        ><view class="record-top"
+          ><text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}"
+            >{{item.status === 'CONFIRMED' ? '已报名' : '已取消'}}</text
+          ><text class="small muted"
+            >{{item.status === 'CONFIRMED' ? '免费参与' : '名额已释放'}}</text
+          ></view
+        ><view class="record-title">{{item.activityTitle}}</view
+        ><view class="muted">报名时间 {{item.dateText}} · {{item.participants.length}} 人</view
+        ><view class="muted small" wx:for="{{item.participants}}" wx:for-item="participant" wx:key="id"
+          >{{participant.participantName}}<text wx:if="{{participant.boardingPoint}}"> · 上车地点 {{participant.boardingPoint}}</text></view
+        ><button class="secondary" data-id="{{item.activityId}}" bindtap="open">
+          查看活动安排
+        </button></view
+      >
+      <ui-state wx:if="{{error}}" kind="error"
+        >{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">
+          重试
+        </button></ui-state
+      >
+      <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载…</ui-state>
+      <view wx:elif="{{items.length}}" class="loading-line"
+        >{{hasMore ? '上拉加载更多' :
+        ('已显示全部 ' + total + ' 条记录')}}</view
+      >
+    </view>
     <view class="notice"
       >“已报名”含已结束活动；活动时间与取消规则见详情。</view
     >

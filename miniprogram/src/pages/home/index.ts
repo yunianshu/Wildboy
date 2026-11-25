@@ -14,11 +14,26 @@ import {
   shortcutViews,
   shortcutPages,
   defaultShortcutViews,
+  openWechatOfficialArticle,
 } from "../../utils/home-shortcuts";
+import {
+  defaultActivitiesHeader,
+  defaultFooterView,
+  defaultGalleryView,
+  defaultHeroView,
+  defaultHomeModules,
+  defaultShopView,
+  HomeActionLink,
+  HomeQrImage,
+  HomeShortcutView,
+  isPublicHomeLayout,
+  normalizePublicHomeLayout,
+} from "../../utils/home-layout";
 import { syncTabBar } from "../../utils/tab-bar";
 import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 import { enterPage } from "../../utils/page-motion";
 
+const layoutEpoch = new RequestEpoch();
 const shortcutEpoch = new RequestEpoch();
 const tapEpoch = new RequestEpoch();
 const epoch = new RequestEpoch();
@@ -31,15 +46,25 @@ Page({
     pageMotionClass: "",
     devMode: false,
     topInset: 48,
+    modules: defaultHomeModules,
+    hero: defaultHeroView,
+    shortcutColumns: 4,
+    activitiesHeader: defaultActivitiesHeader,
+    shopConfig: defaultShopView,
+    galleryConfig: defaultGalleryView,
+    footer: defaultFooterView,
     equipment: [] as ReturnType<typeof homeEquipmentSlots>,
     equipmentLoading: false,
     equipmentError: "",
     banners: fallbackBanners,
-    categories: defaultShortcutViews,
+    categories: defaultShortcutViews as Array<
+      ((typeof defaultShortcutViews)[number] & Partial<HomeShortcutView>) | HomeShortcutView
+    >,
     shortcutLoading: true,
     shortcutError: "",
     shortcutBusy: false,
     popup: null as null | { title: string; text: string; image: string },
+    popupImages: [] as HomeQrImage[],
     popupImageError: false,
     popupGeneration: 0,
     popupBodyHeight: 0,
@@ -68,19 +93,22 @@ Page({
     this._shown = true;
   },
   _shown: false,
+  _layoutManaged: false,
   _popupSizeRequest: 0,
   _popupDisposed: false,
   onHide() {
     this._popupSizeRequest++;
     resetTabSwipe(this);
+    layoutEpoch.invalidate();
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
-    this.setData({ popup: null, shortcutBusy: false });
+    this.setData({ popup: null, popupImages: [], shortcutBusy: false });
   },
   onUnload() {
     this._popupDisposed = true;
     this._popupSizeRequest++;
     resetTabSwipe(this);
+    layoutEpoch.invalidate();
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
     articleEpoch.invalidate();
@@ -91,12 +119,81 @@ Page({
     void this.load().finally(() => wx.stopPullDownRefresh());
   },
   async load() {
+    this._layoutManaged = false;
     await Promise.all([
+      this.loadLayout(),
       this.loadArticles(),
       this.loadShortcuts(),
       this.loadEquipment(),
       this.loadActivities(),
     ]);
+  },
+  async loadLayout(): Promise<boolean> {
+    const n = layoutEpoch.next();
+    try {
+      const payload = await request<unknown>("/home/layout");
+      if (!layoutEpoch.valid(n) || !isPublicHomeLayout(payload)) return false;
+      const normalized = normalizePublicHomeLayout(payload);
+      this._layoutManaged = true;
+      const featuredActivities = Array.isArray(payload.featuredActivities)
+        ? homeActivitySlots(
+            payload.featuredActivities.map((x) => ({
+              ...x,
+              coverUrl: mediaUrl(x.coverUrl),
+            })),
+            normalized.activitiesHeader.maxCount,
+          )
+        : [];
+      const featuredEquipment = Array.isArray(payload.featuredEquipment)
+        ? homeEquipmentSlots(
+            payload.featuredEquipment,
+            normalized.shop.maxCount,
+          ).map((item) => ({
+            ...item,
+            imageUrl: mediaUrl(item.imageUrl),
+          }))
+        : [];
+      this.setData({
+        modules: normalized.modules,
+        hero: normalized.hero,
+        shortcutColumns: normalized.shortcutColumns,
+        categories: normalized.shortcuts,
+        shortcutLoading: false,
+        shortcutError: "",
+        activitiesHeader: normalized.activitiesHeader,
+        items: featuredActivities,
+        loading: false,
+        error: "",
+        shopConfig: normalized.shop,
+        equipment: featuredEquipment,
+        equipmentLoading: false,
+        equipmentError: "",
+        galleryConfig: normalized.gallery,
+        footer: normalized.footer,
+        popup: null,
+        popupImages: [],
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  },
+  async loadBannersOnly() {
+    const n = equipmentEpoch.next();
+    try {
+      const home = await request<Home>("/home");
+      if (!equipmentEpoch.valid(n)) return;
+      this.setData({
+        banners: home.banners.length
+          ? home.banners.map((item) => ({
+              ...item,
+              imageUrl: mediaUrl(item.imageUrl),
+            }))
+          : fallbackBanners,
+      });
+    } catch {
+      // Keep fallback banners if /home is unreachable
+    }
   },
   async loadActivities() {
     const n = epoch.next();
@@ -109,7 +206,7 @@ Page({
       const page = await request<PageResult<Activity>>(
         `/activities?page=0&size=${HOME_ACTIVITY_COUNT}`,
       );
-      if (!epoch.valid(n)) return;
+      if (!epoch.valid(n) || this._layoutManaged) return;
       this.setData({
         items: homeActivitySlots(
           page.items.map((x) => ({ ...x, coverUrl: mediaUrl(x.coverUrl) })),
@@ -128,10 +225,14 @@ Page({
       const home = await request<Home>("/home");
       if (!equipmentEpoch.valid(n)) return;
       this.setData({
-        equipment: homeEquipmentSlots(home.equipment).map((item) => ({
-          ...item,
-          imageUrl: mediaUrl(item.imageUrl),
-        })),
+        ...(this._layoutManaged
+          ? {}
+          : {
+              equipment: homeEquipmentSlots(home.equipment).map((item) => ({
+                ...item,
+                imageUrl: mediaUrl(item.imageUrl),
+              })),
+            }),
         banners: home.banners.length
           ? home.banners.map((item) => ({
               ...item,
@@ -175,8 +276,19 @@ Page({
     if (id) wx.navigateTo({ url: `/pages/article/index?id=${id}` });
   },
   openGalleryItem(e: WechatMiniprogram.TouchEvent) {
+    const slideIdx = e.currentTarget.dataset.slideIndex;
+    if (slideIdx !== undefined && this.data.galleryConfig.mode === "CUSTOM") {
+      const slide = this.data.galleryConfig.slides[Number(slideIdx)];
+      if (slide) void this.dispatchAction(slide.action);
+      return;
+    }
     if (e.currentTarget.dataset.article) this.openArticle(e);
     else this.openActivity(e);
+  },
+  tapHero() {
+    if (this.data.hero.action && this.data.hero.action.type !== "NONE") {
+      void this.dispatchAction(this.data.hero.action);
+    }
   },
   retry() {
     void this.loadActivities();
@@ -192,12 +304,13 @@ Page({
       shortcutLoading: true,
       shortcutError: "",
       popup: null,
+      popupImages: [],
       shortcutBusy: false,
     });
     try {
-      const config = await request<ShortcutConfig>("/home/shortcuts");
-      if (!shortcutEpoch.valid(n)) return;
-      this.setData({ categories: shortcutViews(config) });
+      const cfg = await request<ShortcutConfig>("/home/shortcuts");
+      if (!shortcutEpoch.valid(n) || this._layoutManaged) return;
+      this.setData({ categories: shortcutViews(cfg) });
     } catch (e) {
       if (shortcutEpoch.valid(n)) this.setData({ shortcutError: message(e) });
     } finally {
@@ -206,6 +319,90 @@ Page({
   },
   retryShortcuts() {
     void this.loadShortcuts();
+  },
+  showPopupDialog(title: string, text: string, images: HomeQrImage[]) {
+    const firstUrl = images[0]?.url || "";
+    this.setData(
+      {
+        popup: {
+          title: title.trim(),
+          text: text.trim(),
+          image: firstUrl,
+        },
+        popupImages: images.length > 1 ? images : [],
+        popupImageError: false,
+        popupGeneration: this.data.popupGeneration + 1,
+        popupBodyHeight: 0,
+      },
+      () => this.resizePopup(),
+    );
+  },
+  async dispatchAction(action: HomeActionLink) {
+    if (this.data.shortcutBusy || this.data.popup) return;
+    if (action.type === "NONE") return;
+    if (action.type === "WECHAT_ARTICLE") {
+      openWechatOfficialArticle(action.wechatArticleUrl);
+      return;
+    }
+    if (action.type === "POPUP") {
+      this.showPopupDialog(
+        action.popupTitle || "",
+        action.popupText || "",
+        action.popupImages || [],
+      );
+      return;
+    }
+    if (action.type === "ACTIVITY") {
+      const id = safeId(action.activityId);
+      if (id) wx.navigateTo({ url: `/pages/detail/index?id=${id}` });
+      else wx.showToast({ title: "活动暂未开放", icon: "none" });
+      return;
+    }
+    if (action.type === "PAGE") {
+      const url = shortcutPages[action.page];
+      if (!url) return;
+      if (
+        ["WEEKLY", "DOMESTIC", "HOLIDAY", "LEISURE", "ACTIVITIES"].includes(
+          action.page,
+        )
+      ) {
+        wx.setStorageSync(
+          "wildboy-category",
+          action.page === "ACTIVITIES" ? "ALL" : action.page,
+        );
+      }
+      this.setData({ shortcutBusy: true });
+      wx.switchTab({
+        url,
+        complete: () => this.setData({ shortcutBusy: false }),
+      });
+      return;
+    }
+    if (action.type === "ARTICLE") {
+      const n = tapEpoch.next();
+      this.setData({ shortcutBusy: true });
+      try {
+        if (!action.articleId) throw new Error("文章已下架或尚未配置");
+        const official = action.articleId === "OFFICIAL";
+        await request(
+          official ? "/articles/official" : `/articles/${action.articleId}`,
+        );
+        if (!tapEpoch.valid(n)) return;
+        wx.navigateTo({
+          url: official
+            ? "/pages/article/index?official=1"
+            : `/pages/article/index?id=${action.articleId}`,
+          complete: () => {
+            if (tapEpoch.valid(n)) this.setData({ shortcutBusy: false });
+          },
+        });
+      } catch (e) {
+        if (tapEpoch.valid(n)) {
+          this.setData({ shortcutBusy: false });
+          wx.showToast({ title: message(e), icon: "none" });
+        }
+      }
+    }
   },
   async openCategory(e: WechatMiniprogram.TouchEvent) {
     if (
@@ -219,78 +416,92 @@ Page({
       (x) => x.slot === Number(e.currentTarget.dataset.slot),
     );
     if (!entry) return;
+    if (entry.type === "WECHAT_ARTICLE") {
+      openWechatOfficialArticle(entry.wechatArticleUrl || "");
+      return;
+    }
     if (entry.type === "POPUP") {
-      this.setData({
-        popup: {
-          title: entry.popupTitle.trim(),
-          text: entry.popupText.trim(),
-          image: entry.popupImageUrl,
-        },
-        popupImageError: false,
-        popupGeneration: this.data.popupGeneration + 1,
-        popupBodyHeight: 0,
-      }, () => this.resizePopup());
+      const imgs: HomeQrImage[] =
+        Array.isArray(entry.popupImages) && entry.popupImages.length
+          ? entry.popupImages
+          : entry.popupImageUrl
+            ? [{ url: entry.popupImageUrl, label: "" }]
+            : [];
+      this.showPopupDialog(entry.popupTitle, entry.popupText, imgs);
       return;
     }
-    if (entry.type === "PAGE") {
-      const url = shortcutPages[entry.page];
-      if (!url) return;
-      if (["WEEKLY", "DOMESTIC", "ACTIVITIES"].includes(entry.page))
-        wx.setStorageSync(
-          "wildboy-category",
-          entry.page === "ACTIVITIES" ? "ALL" : entry.page,
-        );
-      this.setData({ shortcutBusy: true });
-      wx.switchTab({
-        url,
-        complete: () => this.setData({ shortcutBusy: false }),
-      });
-      return;
-    }
-    const n = tapEpoch.next();
-    this.setData({ shortcutBusy: true });
-    try {
-      if (!entry.articleId) throw new Error("文章已下架或尚未配置");
-      const official = entry.articleId === "OFFICIAL";
-      await request(
-        official ? "/articles/official" : `/articles/${entry.articleId}`,
-      );
-      if (!tapEpoch.valid(n)) return;
-      wx.navigateTo({
-        url: official
-          ? "/pages/article/index?official=1"
-          : `/pages/article/index?id=${entry.articleId}`,
-        complete: () => {
-          if (tapEpoch.valid(n)) this.setData({ shortcutBusy: false });
-        },
-      });
-    } catch (e) {
-      if (tapEpoch.valid(n)) {
-        this.setData({ shortcutBusy: false });
-        wx.showToast({ title: message(e), icon: "none" });
-      }
-    }
+    await this.dispatchAction({
+      type: entry.type,
+      page: entry.page || "",
+      activityId: entry.activityId || "",
+      articleId: entry.articleId || "",
+      wechatArticleUrl: entry.wechatArticleUrl || "",
+      popupTitle: entry.popupTitle || "",
+      popupText: entry.popupText || "",
+      popupImages: entry.popupImages || [],
+    });
+  },
+  previewPopupQr(e: WechatMiniprogram.TouchEvent) {
+    const current = String(e.currentTarget.dataset.url || "");
+    if (!current || typeof wx.previewImage !== "function") return;
+    const urls = this.data.popupImages.length
+      ? this.data.popupImages.map((x) => x.url)
+      : this.data.popup?.image
+        ? [this.data.popup.image]
+        : [];
+    if (urls.length) wx.previewImage({ current, urls });
+  },
+  previewFollowQr(e: WechatMiniprogram.TouchEvent) {
+    const current = String(e.currentTarget.dataset.url || "");
+    if (!current || typeof wx.previewImage !== "function") return;
+    const urls = this.data.footer.followQrcodes.map((x) => x.url);
+    if (urls.length) wx.previewImage({ current, urls });
   },
   closePopup() {
     this._popupSizeRequest++;
-    this.setData({ popup: null, popupImageError: false, popupBodyHeight: 0 });
+    this.setData({
+      popup: null,
+      popupImages: [],
+      popupImageError: false,
+      popupBodyHeight: 0,
+    });
   },
   keepPopup() {},
   resizePopup(e?: WechatMiniprogram.CustomEvent) {
     const generation = this.data.popupGeneration;
-    if (this._popupDisposed || !this.data.popup || (e && Number(e.currentTarget.dataset.generation) !== generation)) return;
+    if (
+      this._popupDisposed ||
+      !this.data.popup ||
+      (e && Number(e.currentTarget.dataset.generation) !== generation)
+    )
+      return;
     if (typeof wx.createSelectorQuery !== "function") return;
-    const request = ++this._popupSizeRequest;
+    const reqId = ++this._popupSizeRequest;
     const query = wx.createSelectorQuery().in(this);
     query.select(".shortcut-content").boundingClientRect();
     query.select(".shortcut-heading").boundingClientRect();
     query.exec((rects) => {
-      if (!this.data.popup || this.data.popupGeneration !== generation || this._popupSizeRequest !== request) return;
-      const content = rects[0] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
-      const heading = rects[1] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
-      if (!content || !Number.isFinite(content.height) || content.height <= 0) return;
-      const maxHeight = Math.max(1, Math.floor(wx.getWindowInfo().windowHeight * 0.8) - 44 - (heading?.height || 44));
-      this.setData({ popupBodyHeight: Math.min(Math.ceil(content.height), maxHeight) });
+      if (
+        !this.data.popup ||
+        this.data.popupGeneration !== generation ||
+        this._popupSizeRequest !== reqId
+      )
+        return;
+      const content =
+        rects[0] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
+      const heading =
+        rects[1] as WechatMiniprogram.BoundingClientRectCallbackResult | null;
+      if (!content || !Number.isFinite(content.height) || content.height <= 0)
+        return;
+      const maxHeight = Math.max(
+        1,
+        Math.floor(wx.getWindowInfo().windowHeight * 0.8) -
+          44 -
+          (heading?.height || 44),
+      );
+      this.setData({
+        popupBodyHeight: Math.min(Math.ceil(content.height), maxHeight),
+      });
     });
   },
   onResize() {
@@ -298,7 +509,8 @@ Page({
   },
   popupImageFailed(e: WechatMiniprogram.CustomEvent) {
     if (
-      !this._popupDisposed && this.data.popup &&
+      !this._popupDisposed &&
+      this.data.popup &&
       Number(e.currentTarget.dataset.generation) === this.data.popupGeneration
     )
       this.setData({ popupImageError: true }, () => this.resizePopup());

@@ -1,9 +1,13 @@
 @import "../../styles/slate-theme.wxss";
 .article-cover {
   width: 100%;
-  border-radius: 20rpx;
-  margin-bottom: 28rpx;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  background: var(--rf-soft);
 }
+.article-page .title { margin: 0 0 8px; }
+.article-page .primary { margin-top: 20px; }
+.article-page .secondary { margin-top: 12px; }
 .article-summary {
   color: var(--rf-muted);
   line-height: 1.8;

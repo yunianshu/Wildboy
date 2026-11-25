@@ -10,8 +10,11 @@ export { defaultShortcuts as homeEntries } from "./home-shortcuts";
 
 // Keep the API's departure-time order and original IDs; never repeat activities
 // to fill empty positions.
-export function homeActivitySlots(activities: Activity[]) {
-  return activities.slice(0, HOME_ACTIVITY_COUNT).map((activity, index) => ({
+export function homeActivitySlots(
+  activities: Activity[],
+  maxCount: number = HOME_ACTIVITY_COUNT,
+) {
+  return activities.slice(0, maxCount).map((activity, index) => ({
     ...activityView(activity),
     slotKey: `home-activity-${index}`,
   }));
@@ -21,8 +24,11 @@ export type EquipmentCard = Home["equipment"][number];
 
 /** Equipment cards keep the server label; a strikethrough original only appears
  * for a genuine markdown, never derived from a legacy label. */
-export function homeEquipmentSlots(products: EquipmentCard[]) {
-  return products.slice(0, HOME_EQUIPMENT_COUNT).map((product) => {
+export function homeEquipmentSlots(
+  products: EquipmentCard[],
+  maxCount: number = HOME_EQUIPMENT_COUNT,
+) {
+  return products.slice(0, maxCount).map((product) => {
     const original = originalPriceText(
       product.priceCents,
       product.originalPriceCents,

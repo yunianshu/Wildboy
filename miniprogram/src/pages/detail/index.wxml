@@ -20,16 +20,75 @@
       标准费用 {{activity.priceLabel}}，会员优惠以报名报价为准。
     </view>
     <view class="article-section">
-      <view class="section-bar">活动安排</view>
+      <view class="section-bar section-bar-row">
+        <text>活动安排</text>
+        <view wx:if="{{navPoints.length}}" class="nav-entry-pill" aria-role="button" bindtap="openAllNavPicker">
+          <image class="nav-pin-icon" src="/assets/icons/location.svg" mode="aspectFit" aria-hidden="{{true}}" />
+          <text>{{navPoints.length > 1 ? '选择地点导航' : '打开地图导航'}}</text>
+        </view>
+      </view>
       <view class="section-body facts">
         <view><text>【出发时间】</text><text>{{activity.dateText}}</text></view>
         <view><text>【结束时间】</text><text>{{endDate}}</text></view>
-        <view><text>【活动地点】</text><text>{{activity.location}}</text></view>
-        <view><text>【集合地点】</text><text>{{activity.meetingPoint}}</text></view>
+        <view class="nav-fact-row" aria-role="button" bindtap="tapDestinationNav">
+          <text>【活动地点】</text>
+          <view class="nav-fact-value">
+            <text>{{activity.location}}</text>
+            <text class="nav-action-tag">{{destHasCoord ? '导航' : '复制'}}</text>
+          </view>
+        </view>
+        <view class="nav-fact-row" aria-role="button" bindtap="tapMeetingNav">
+          <text>【集合地点】</text>
+          <view class="nav-fact-value nav-meeting-wrap">
+            <text class="meeting-point">{{activity.meetingPoint}}</text>
+            <text class="nav-action-tag">{{meetHasCoord ? '导航' : '复制'}}</text>
+          </view>
+        </view>
+        <view wx:if="{{boardingStops.length}}" class="boarding-fact-block">
+          <text>【上车地点】</text>
+          <view class="boarding-stop-list">
+            <view
+              class="boarding-stop-chip"
+              wx:for="{{boardingStops}}"
+              wx:key="label"
+              data-index="{{index}}"
+              aria-role="button"
+              bindtap="tapBoardingStop"
+            >
+              <text class="boarding-stop-name">{{item.label}}</text>
+              <text class="nav-action-tag">{{item.hasCoord ? '导航' : '复制'}}</text>
+            </view>
+          </view>
+        </view>
         <view><text>【报名截止】</text><text>{{deadline}}</text></view>
         <view><text>【同行名额】</text><text>{{activity.registeredCount}} / {{activity.capacity}} 人占用<text wx:if="{{activity.pendingPaymentCount}}"> · {{activity.pendingPaymentCount}} 人待付款</text></text></view>
       </view>
     </view>
+
+    <view class="article-section" wx:if="{{attendees.length}}">
+      <view class="section-bar section-bar-row">
+        <text>已报名同行伙伴（{{attendeeTotalParticipants}} 人）</text>
+        <text wx:if="{{attendees.length > 12}}" class="attendee-toggle" aria-role="button" bindtap="toggleAttendeesExpand">{{attendeesExpanded ? '收起' : '查看全部'}}</text>
+      </view>
+      <view class="section-body attendee-grid">
+        <view class="attendee-item" wx:for="{{visibleAttendees}}" wx:key="key">
+          <view class="attendee-avatar-wrap">
+            <image
+              wx:if="{{item.avatarUrl}}"
+              class="attendee-avatar"
+              src="{{item.avatarUrl}}"
+              mode="aspectFill"
+              data-index="{{index}}"
+              binderror="attendeeAvatarFailed"
+            />
+            <view wx:else class="attendee-avatar-fallback">{{item.initial}}</view>
+            <text wx:if="{{item.partySize > 1}}" class="attendee-party-badge">×{{item.partySize}}</text>
+          </view>
+          <text class="attendee-nick">{{item.nickname}}</text>
+        </view>
+      </view>
+    </view>
+
     <view class="article-section">
       <view class="section-bar">线路与流程</view>
       <view class="section-body"><content-view wx:if="{{contentBlocks.length}}" blocks="{{contentBlocks}}" preview-images="{{true}}"/><text wx:else class="body-copy">{{activity.description}}</text><view wx:if="{{contentError}}" class="muted" bindtap="loadRichContent">{{contentError}} · 重试</view></view>
@@ -52,4 +111,32 @@
       <block wx:else><button class="primary" disabled="{{!activity.enabled || !activity.available || !!registrationError}}" bindtap="register">{{activity.available ? activity.label : '名额已满'}}</button></block>
     </view>
   </block>
+</view>
+
+<view wx:if="{{navPickerOpen}}" class="nav-sheet-mask" catchtap="closeNavPicker" catchtouchmove="keepNavPicker">
+  <view class="nav-sheet" catchtap="keepNavPicker" aria-role="dialog" aria-modal="true" aria-label="{{navPickerTitle}}">
+    <view class="nav-sheet-head">
+      <text class="nav-sheet-title">{{navPickerTitle}}</text>
+      <view class="nav-sheet-close" aria-role="button" aria-label="关闭导航列表" bindtap="closeNavPicker">关闭</view>
+    </view>
+    <scroll-view scroll-y class="nav-sheet-list">
+      <view
+        class="nav-sheet-item"
+        wx:for="{{navPickerItems}}"
+        wx:key="id"
+        data-index="{{index}}"
+        aria-role="button"
+        bindtap="selectNavItem"
+      >
+        <view class="nav-sheet-item-info">
+          <view class="nav-sheet-item-top">
+            <text class="nav-kind-pill">{{item.kindLabel}}</text>
+            <text class="nav-sheet-name">{{item.label}}</text>
+          </view>
+          <text class="nav-sheet-addr">{{item.address}}</text>
+        </view>
+        <text class="nav-action-tag">去这里</text>
+      </view>
+    </scroll-view>
+  </view>
 </view>

@@ -16,6 +16,7 @@ set -eu
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO"
+. ./deploy/api-artifact.sh
 
 SKIP_TESTS=0
 DRY_RUN=0
@@ -47,16 +48,13 @@ head_short=$(git rev-parse --short HEAD)
 echo "==> 0/6 发布目标：$head_short $(git log --oneline -1 | cut -d' ' -f2-)"
 if [ "$DRY_RUN" = "1" ]; then
   echo "==> 1/6 [dry-run] admin 质量门禁（typecheck + vitest + build）"
-  if git diff --quiet origin/main -- server/ 2>/dev/null; then
-    echo "==> 2/6 [dry-run] server/ 相对远端无变更，跳过后端测试"
-  else
-    echo "==> 2/6 [dry-run] 后端门禁 mvn verify（server/ 有变更）"
-  fi
+  echo "==> 2/6 [dry-run] 本地 Maven clean verify 并准备 JAR"
   echo "==> 3/6 [dry-run] git push origin main"
   echo "==> 4/6 [dry-run] git push $SERVER_REPO main:refs/heads/deploy-staging"
   echo "           ssh: cd /root/Wildboy && git merge --ff-only deploy-staging && git branch -D deploy-staging"
   echo "           scp deploy/deploy-steps.sh -> /root/deploy-steps.sh"
-  echo "==> 5/6 [dry-run] 服务器 nohup sh /root/deploy-steps.sh，轮询日志至 deploy complete"
+  echo "==> 5/6 [dry-run] 上传 JAR、重建 API 容器并检查健康"
+  echo "           服务器 nohup sh /root/deploy-steps.sh，轮询日志至 deploy complete"
   echo "==> 6/6 [dry-run] 公网烟雾检查 www.wildboy.com.cn + api.wildboy.com.cn"
   exit 0
 fi
@@ -74,12 +72,8 @@ else
   (cd admin && npm run build >/dev/null)
 fi
 
-if git diff --quiet origin/main -- server/ 2>/dev/null; then
-  echo "==> 2/6 server/ 相对远端无变更，跳过后端测试"
-else
-  echo "==> 2/6 后端门禁 mvn verify（server/ 有变更，约 4 分钟）"
-  (cd server && mvn -B -q verify)
-fi
+api_prepare
+api_build
 
 echo "==> 3/6 推送 GitHub"
 git push origin main
@@ -93,7 +87,10 @@ ssh $SSH_OPTS "root@$DEPLOY_HOST" '
   echo "    服务器 main = $(git rev-parse --short HEAD)"'
 scp -q $SSH_OPTS deploy/deploy-steps.sh "root@$DEPLOY_HOST:/root/deploy-steps.sh"
 
-echo "==> 5/6 服务器执行部署（compose 构建 + admin 构建 + nginx 重建 + 烟雾检查）"
+echo "==> 5/6 部署已验证的 JAR"
+api_deploy
+
+echo "==> 构建 admin、重建 nginx 并检查服务"
 ssh $SSH_OPTS "root@$DEPLOY_HOST" \
   'nohup sh /root/deploy-steps.sh > /root/deploy-run.log 2>&1 & echo started'
 deploy_done=0

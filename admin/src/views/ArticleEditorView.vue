@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
-import { computed, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Activity, Page } from "../types";
@@ -8,10 +9,10 @@ import { articleStatusTone } from "../statusTone";
 import AppIcon from "../components/AppIcon.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import MarkdownEditor from "../components/MarkdownEditor.vue";
+import ImageUpload from "../components/ImageUpload.vue";
 import UiState from "../components/UiState.vue";
 
-// Medium 式文档画布：标题、摘要、封面与图文正文都是文档流的一部分，
-// 基本资料以 Notion 式属性行内嵌在文档顶部，不再使用弹窗。
+// 文章信息、正文和发布状态在同一页面连续完成。
 type Article = {
   id: string;
   title: string;
@@ -34,27 +35,6 @@ const route = useRoute(),
   success = ref(""),
   dialog = ref<"publish" | "official" | null>(null);
 const rich = ref<InstanceType<typeof MarkdownEditor> | null>(null);
-// 双编辑布局：工作台（左侧资料栏 + 右侧画布）与文档（Medium 式画布）。
-// 编辑器经 Teleport 在两套布局的挂载点间搬移，切换不重挂、未保存正文不丢。
-type EditorLayout = "workbench" | "canvas";
-const LAYOUT_KEY = "wildboy-admin-article-layout";
-function initialLayout(): EditorLayout {
-  try {
-    const stored = localStorage.getItem(LAYOUT_KEY);
-    if (stored === "workbench" || stored === "canvas") return stored;
-  } catch {
-    // localStorage 不可用（隐私模式等）时使用默认布局
-  }
-  return "workbench";
-}
-const layout = ref<EditorLayout>(initialLayout());
-watch(layout, (value) => {
-  try {
-    localStorage.setItem(LAYOUT_KEY, value);
-  } catch {
-    // 忽略持久化失败
-  }
-});
 const sources = ref<Activity[]>([]),
   sourcePage = ref(0),
   sourceMore = ref(false),
@@ -67,7 +47,7 @@ const form = reactive({
 });
 const baseline = ref(JSON.stringify(form));
 const dirty = computed(() => JSON.stringify(form) !== baseline.value);
-const locked = computed(
+const isPublished = computed(
   () => !!current.value && current.value.status === "PUBLISHED",
 );
 const contentPending = computed(
@@ -76,9 +56,15 @@ const contentPending = computed(
     (!rich.value?.loaded || rich.value?.busy || rich.value?.dirty),
 );
 const actionBlocked = computed(
-  () => saving.value || dirty.value || contentPending.value,
+  () => saving.value || coverBusy.value || dirty.value || contentPending.value,
 );
-function fill(article: Article) {
+const unpublishBusy = computed(
+  () => saving.value || coverBusy.value || !!rich.value?.busy,
+);
+function fill(article: Article, previousVersion?: number) {
+  if (previousVersion !== undefined) {
+    rich.value?.markSaved({ version: article.version }, previousVersion);
+  }
   current.value = article;
   Object.assign(form, {
     title: article.title,
@@ -165,22 +151,41 @@ async function loadSources(append = false) {
     if (n === epoch) sourceBusy.value = false;
   }
 }
-function autosize(event: Event) {
-  const el = event.target as HTMLTextAreaElement;
-  el.style.height = "auto";
-  el.style.height = `${el.scrollHeight}px`;
-}
 const titleInput = ref<HTMLTextAreaElement | null>(null);
+watch(
+  () => form.title,
+  () =>
+    void nextTick(() => {
+      const el = titleInput.value;
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }),
+  { flush: "post" },
+);
 function contentSaved(version: number) {
   // 图文与资料共用文章版本号，正文保存成功后同步本地版本。
   if (current.value) current.value.version = version;
 }
-async function saveMetaRequest(): Promise<boolean> {
+function validateTitle() {
   if (!form.title.trim()) {
     error.value = "请填写文章标题";
     titleInput.value?.focus();
     return false;
   }
+  return true;
+}
+function articleFields() {
+  return {
+    title: form.title.trim(),
+    summary: form.summary,
+    coverUrl: form.coverUrl,
+    activityId: form.activityId || null,
+  };
+}
+async function saveMetaRequest(): Promise<boolean> {
+  if (!validateTitle()) return false;
+  const previousVersion = current.value?.version;
   const n = epoch,
     actor = currentUser.value;
   error.value = "";
@@ -192,16 +197,13 @@ async function saveMetaRequest(): Promise<boolean> {
       {
         method: id.value ? "PUT" : "POST",
         body: JSON.stringify({
-          title: form.title.trim(),
-          summary: form.summary,
-          coverUrl: form.coverUrl,
-          activityId: form.activityId || null,
-          version: current.value?.version,
+          ...articleFields(),
+          version: previousVersion,
         }),
       },
     );
     if (n !== epoch || actor !== currentUser.value || !alive) return false;
-    fill(a);
+    fill(a, previousVersion);
     success.value = "已保存。";
     if (!id.value) await router.replace(`/articles/${a.id}/edit`);
     return true;
@@ -210,9 +212,46 @@ async function saveMetaRequest(): Promise<boolean> {
     return false;
   }
 }
-// 统一保存：先存图文（保证版本号推进），再存基本资料；失败即中断，不覆盖。
+async function savePublished() {
+  if (!validateTitle()) return;
+  const target = current.value;
+  const editor = rich.value;
+  const content = editor?.readContent();
+  if (!target || !editor || !content) {
+    error.value = "正文尚未加载完成，请稍候再发布更新。";
+    return;
+  }
+  if (content.version !== target.version) {
+    error.value = "正文和文章信息的版本已变化，请重新加载后核对。";
+    return;
+  }
+  const n = epoch;
+  const actor = currentUser.value;
+  error.value = "";
+  try {
+    const article = await request<Article>(
+      `/admin/articles/${encodeURIComponent(target.id)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ ...articleFields(), ...content }),
+      },
+    );
+    if (n !== epoch || actor !== currentUser.value || !alive) return;
+    editor.markSaved(
+      { markdown: content.markdown, version: article.version },
+      content.version,
+    );
+    fill(article);
+    success.value = "更新已发布，小程序将展示新版。";
+  } catch (e) {
+    if (n === epoch && actor === currentUser.value && alive)
+      error.value = articleError(e);
+  }
+}
+
 async function save() {
-  if (saving.value || locked.value || !currentUser.value) return;
+  if (saving.value || coverBusy.value || rich.value?.busy || !currentUser.value)
+    return;
   if (!id.value) {
     saving.value = true;
     try {
@@ -225,6 +264,10 @@ async function save() {
   if (!dirty.value && !rich.value?.dirty) return;
   saving.value = true;
   try {
+    if (isPublished.value) {
+      await savePublished();
+      return;
+    }
     if (rich.value?.dirty) {
       if (!rich.value.loaded) {
         error.value = "图文尚未加载完成，请稍候再保存。";
@@ -249,43 +292,7 @@ async function reload() {
   await load();
   if (current.value) await rich.value?.load?.();
 }
-// 封面与正文图片一律上传到 /admin/media，与 ImageUpload / MarkdownEditor 同源。
-const coverInput = ref<HTMLInputElement | null>(null),
-  coverBusy = ref(false);
-async function pickCover(event: Event) {
-  const input = event.target as HTMLInputElement,
-    file = input.files?.[0];
-  input.value = "";
-  if (!file || coverBusy.value || locked.value || saving.value) return;
-  if (
-    !["image/png", "image/jpeg"].includes(file.type) ||
-    file.size > 4 * 1024 * 1024
-  ) {
-    error.value = "请选择 4MB 内 JPG/PNG 图片";
-    return;
-  }
-  const actor = currentUser.value;
-  coverBusy.value = true;
-  error.value = "";
-  try {
-    const data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(",")[1]);
-      reader.onerror = () => reject(new Error("读取图片失败"));
-      reader.readAsDataURL(file);
-    });
-    if (!alive || currentUser.value !== actor) return;
-    const result = await request<{ url: string }>("/admin/media", {
-      method: "POST",
-      body: JSON.stringify({ dataBase64: data }),
-    });
-    if (alive && currentUser.value === actor) form.coverUrl = result.url;
-  } catch (e) {
-    if (alive && currentUser.value === actor) error.value = articleError(e);
-  } finally {
-    if (alive) coverBusy.value = false;
-  }
-}
+const coverBusy = ref(false);
 function requestAction(action: "publish" | "official") {
   if (!current.value || actionBlocked.value) return;
   if (action === "official" && current.value.isOfficial) return;
@@ -297,6 +304,8 @@ async function confirmAction() {
   const target = current.value;
   if (saving.value || !target || !dialog.value) return;
   const action = dialog.value;
+  const n = epoch;
+  const actor = currentUser.value;
   saving.value = true;
   error.value = "";
   try {
@@ -304,8 +313,8 @@ async function confirmAction() {
       method: "POST",
       body: JSON.stringify({ version: target.version }),
     });
-    if (alive) {
-      fill(a);
+    if (n === epoch && actor === currentUser.value && alive) {
+      fill(a, target.version);
       success.value =
         action === "publish"
           ? "文章已发布，将在小程序探索页展示。"
@@ -313,20 +322,28 @@ async function confirmAction() {
       dialog.value = null;
     }
   } catch (e) {
-    if (alive) {
+    if (n === epoch && actor === currentUser.value && alive) {
       error.value = articleError(e);
       dialog.value = null;
     }
   } finally {
-    if (alive) saving.value = false;
+    if (n === epoch && actor === currentUser.value && alive)
+      saving.value = false;
   }
 }
 async function unpublish() {
   const target = current.value;
-  if (saving.value || !target) return;
-  if (!(await askConfirm("确认下架文章？小程序将不再展示此文。"))) return;
+  if (unpublishBusy.value || !target) return;
   const n = epoch,
     actor = currentUser.value;
+  if (!(await askConfirm("确认下架文章？小程序将不再展示此文。"))) return;
+  if (
+    n !== epoch ||
+    actor !== currentUser.value ||
+    !alive ||
+    unpublishBusy.value
+  )
+    return;
   saving.value = true;
   error.value = "";
   try {
@@ -335,8 +352,9 @@ async function unpublish() {
       body: JSON.stringify({ version: target.version }),
     });
     if (n === epoch && actor === currentUser.value && alive) {
-      fill(a);
-      success.value = "文章已下架，可编辑后重新发布。";
+      rich.value?.markSaved({ version: a.version }, target.version);
+      current.value = a;
+      success.value = "文章已下架。";
     }
   } catch (e) {
     if (n === epoch && alive) error.value = articleError(e);
@@ -359,91 +377,277 @@ function beforeUnload(event: BeforeUnloadEvent) {
 }
 window.addEventListener("beforeunload", beforeUnload);
 onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
+useForegroundRefresh(() => {
+  if (
+    id.value &&
+    !coverBusy.value &&
+    !dirty.value &&
+    !rich.value?.dirty &&
+    !rich.value?.busy &&
+    !saving.value &&
+    !loading.value
+  )
+    void reload();
+});
 </script>
 <template>
   <main class="workspace article-editor">
-    <h1 class="sr-only">{{ id ? "编辑文章" : "新建文章" }}</h1>
-    <div class="article-topbar">
-      <div class="article-topbar-left">
-        <RouterLink class="article-back" to="/articles">
-          <AppIcon name="back" :size="16" />
-          文章
-        </RouterLink>
-        <span
-          v-if="current"
-          class="status-pill inline"
-          :class="`tone-${articleStatusTone(current.status)}`"
-          >{{ current.status === "PUBLISHED" ? "已发布" : "草稿" }}</span
-        >
-        <span
-          v-if="current?.isOfficial"
-          class="status-pill inline tone-info"
-          title="探索页「野小子」入口当前打开此文"
-          >官方介绍</span
-        >
-        <nav class="layout-switch" aria-label="编辑布局">
-          <button
-            type="button"
-            :aria-pressed="layout === 'workbench'"
-            title="左侧资料栏 + 右侧编辑画布，条理清晰"
-            @click="layout = 'workbench'"
+    <header class="page-heading article-topbar">
+      <RouterLink class="article-back" to="/articles">
+        <AppIcon name="back" :size="17" />返回文章列表
+      </RouterLink>
+      <div class="article-title-line">
+        <h1>{{ id ? "编辑文章" : "新建文章" }}</h1>
+        <div v-if="current" class="article-badges">
+          <span
+            class="status-pill inline"
+            :class="`tone-${articleStatusTone(current.status)}`"
           >
-            工作台
-          </button>
-          <button
-            type="button"
-            :aria-pressed="layout === 'canvas'"
-            title="资料内嵌文档流，像写文章一样沉浸"
-            @click="layout = 'canvas'"
+            {{ current.status === "PUBLISHED" ? "已发布" : "草稿" }}
+          </span>
+          <span
+            v-if="current.isOfficial"
+            class="status-pill inline tone-info"
+            title="探索页「野小子」入口当前打开此文"
+            >官方介绍</span
           >
-            文档
-          </button>
-        </nav>
+        </div>
       </div>
-      <div class="article-topbar-actions">
-        <span
-          v-if="dirty || rich?.dirty"
-          class="article-save-hint is-dirty"
-          role="status"
-          >● 有尚未保存的修改</span
-        >
-        <span v-else-if="current" class="article-save-hint" role="status"
-          >内容已保存 · 版本 {{ current.version }}</span
-        >
-        <button
-          v-if="current"
-          class="text-button"
-          :disabled="saving || !!rich?.busy"
-          @click="reload"
-        >
-          重新加载
-        </button>
+    </header>
+
+    <p v-if="error" role="alert" class="error-box">
+      {{ error }}
+      <button v-if="id && current" class="text-button" @click="reload">
+        {{ dirty || rich?.dirty ? "采用最新版本" : "重试" }}
+      </button>
+    </p>
+    <UiState v-if="loading" kind="loading" compact>正在加载文章…</UiState>
+
+    <template v-else>
+      <div class="article-layout">
+        <section class="article-writing-panel" aria-label="文章写作区">
+          <div class="article-title-field">
+            <div class="article-field-meta">
+              <label for="article-title">文章标题 <span>*</span></label>
+              <small>{{ form.title.length }} / 120</small>
+            </div>
+            <textarea
+              id="article-title"
+              ref="titleInput"
+              v-model="form.title"
+              class="article-title-input"
+              rows="1"
+              maxlength="120"
+              placeholder="请输入文章标题"
+              aria-label="文章标题"
+              :disabled="saving"
+            ></textarea>
+          </div>
+          <div class="article-summary-field">
+            <div class="article-field-meta">
+              <label for="article-summary">
+                文章摘要 <small>用于文章列表与分享卡片</small>
+              </label>
+              <small class="field-counter"
+                >{{ form.summary.length }} / 500</small
+              >
+            </div>
+            <textarea
+              id="article-summary"
+              v-model="form.summary"
+              class="article-summary-input"
+              rows="2"
+              maxlength="500"
+              placeholder="用简短文字介绍文章内容，让读者快速了解主题…"
+              aria-label="文章摘要"
+              :disabled="saving"
+            ></textarea>
+          </div>
+          <div class="article-body-heading">
+            <h2>正文</h2>
+            <small v-if="id">支持粘贴图片与 Markdown 格式</small>
+          </div>
+          <div v-if="!id" class="article-body-empty">
+            <AppIcon name="document" :size="26" />
+            <div>
+              <strong>保存草稿后，继续撰写正文</strong>
+              <p>已填写的标题、摘要与发布设置会自动保留。</p>
+            </div>
+          </div>
+          <MarkdownEditor
+            v-else
+            ref="rich"
+            :key="id"
+            class="article-body-editor"
+            managed-navigation
+            :components="false"
+            :height="620"
+            placeholder="从这里开始撰写正文，可粘贴图片或输入 / 插入格式…"
+            :path="`/admin/articles/${id}/content`"
+            :disabled="saving"
+            @saved="contentSaved"
+          />
+        </section>
+
+        <aside class="article-settings">
+          <section class="article-settings-card">
+            <header class="article-settings-heading">
+              <h2>发布设置</h2>
+              <p>完善封面与关联信息</p>
+            </header>
+            <div class="setting-group cover-setting">
+              <div class="setting-label">
+                <strong>文章封面</strong><small>列表与分享时展示</small>
+              </div>
+              <ImageUpload
+                label="上传文章封面"
+                :preview="form.coverUrl"
+                preview-alt="文章封面"
+                :disabled="saving || (!!id && !current)"
+                @busy="coverBusy = $event"
+                @uploaded="form.coverUrl = $event"
+              />
+              <button
+                v-if="form.coverUrl"
+                type="button"
+                class="text-button remove-cover"
+                :disabled="saving || coverBusy"
+                @click="form.coverUrl = ''"
+              >
+                移除封面
+              </button>
+            </div>
+            <div class="setting-group">
+              <label for="article-activity">关联活动 <small>选填</small></label>
+              <select
+                id="article-activity"
+                v-model="form.activityId"
+                aria-label="关联活动"
+                :disabled="saving"
+                @focus="!sources.length && loadSources()"
+              >
+                <option value="">不关联活动</option>
+                <option
+                  v-if="
+                    form.activityId &&
+                    !sources.some((a) => a.id === form.activityId)
+                  "
+                  :value="form.activityId"
+                >
+                  当前关联活动 {{ form.activityId }}
+                </option>
+                <option v-for="a in sources" :key="a.id" :value="a.id">
+                  {{ a.title }}
+                </option>
+              </select>
+              <p v-if="form.activityId" class="selected-activity">
+                <AppIcon name="mountain" :size="15" />{{
+                  sources.find((a) => a.id === form.activityId)?.title ||
+                  `活动 ${form.activityId}`
+                }}
+              </p>
+              <button
+                v-if="!form.activityId && sourceMore"
+                type="button"
+                class="text-button"
+                :disabled="saving || sourceBusy"
+                @click="loadSources(true)"
+              >
+                {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
+              </button>
+              <small class="setting-hint"
+                >便于读者从文章进一步了解相关活动。</small
+              >
+            </div>
+          </section>
+          <section class="article-publish-card">
+            <div class="article-publish-heading">
+              <span
+                :class="{ 'is-published': isPublished }"
+                aria-hidden="true"
+              ></span>
+              <h2>{{ isPublished ? "内容已公开" : "发布说明" }}</h2>
+            </div>
+            <p>
+              {{
+                isPublished
+                  ? "修改与正文一起发布；保存前，小程序仍展示线上版本。"
+                  : id
+                    ? "发布前请确认标题、摘要、封面和正文完整。"
+                    : "先保存草稿，再撰写正文并发布。"
+              }}
+            </p>
+            <div class="article-publish-meta">
+              <span>内容版本</span
+              ><strong>{{ current?.version ?? "—" }}</strong>
+            </div>
+            <small>保存与发布均进行版本校验，不会自动覆盖他人修改。</small>
+          </section>
+        </aside>
+      </div>
+    </template>
+
+    <footer v-if="!loading && (!id || current)" class="article-footer">
+      <span
+        v-if="dirty || rich?.dirty"
+        class="footer-status article-save-hint is-dirty"
+        role="status"
+        >{{
+          isPublished ? "修改待发布 · 小程序仍展示线上版本" : "有未保存修改"
+        }}</span
+      >
+      <span
+        v-else-if="current || success"
+        class="footer-status article-save-hint"
+        role="status"
+        >{{ success || `内容已保存 · 版本 ${current?.version}` }}</span
+      >
+      <span v-else class="footer-status article-save-hint" role="status">
+        填写标题后保存草稿，继续撰写正文
+      </span>
+      <div class="footer-actions">
         <template v-if="current?.status === 'PUBLISHED'">
           <button
             class="danger-outline"
-            :disabled="saving || !!rich?.busy"
+            :disabled="unpublishBusy"
             @click="unpublish"
           >
-            下架并编辑
+            下架
           </button>
           <button
-            class="primary"
-            :disabled="saving || !!rich?.busy || current.isOfficial"
+            class="secondary"
+            :disabled="actionBlocked || current.isOfficial"
             @click="requestAction('official')"
           >
             {{ current.isOfficial ? "当前官方介绍" : "设为官方介绍" }}
           </button>
+          <button
+            class="primary"
+            :disabled="
+              saving ||
+              coverBusy ||
+              !!rich?.busy ||
+              !rich?.loaded ||
+              !rich?.ready ||
+              (!dirty && !rich?.dirty)
+            "
+            @click="save"
+          >
+            {{ saving ? "正在发布…" : "发布更新" }}
+          </button>
         </template>
         <template v-else-if="current">
           <button
-            class="primary"
-            :disabled="saving || (!dirty && !rich?.dirty)"
+            class="secondary"
+            :disabled="
+              saving || coverBusy || !!rich?.busy || (!dirty && !rich?.dirty)
+            "
             @click="save"
           >
             {{ saving ? "正在保存…" : "保存" }}
           </button>
           <button
-            class="article-publish"
+            class="primary"
             :disabled="actionBlocked"
             @click="requestAction('publish')"
           >
@@ -453,321 +657,13 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
         <button
           v-else-if="!id"
           class="primary"
-          :disabled="saving"
+          :disabled="saving || coverBusy"
           @click="save"
         >
           {{ saving ? "正在保存…" : "保存草稿" }}
         </button>
       </div>
-    </div>
-    <p v-if="error" role="alert" class="error-box">
-      {{ error }}
-      <button v-if="id && current" class="text-button" @click="reload">
-        重新加载最新版本
-      </button>
-    </p>
-    <p v-if="success" role="status" class="success-box">{{ success }}</p>
-    <p v-if="current?.status === 'DRAFT' && (dirty || rich?.dirty)" class="muted">请先保存修改，再发布。</p>
-    <UiState v-if="loading" kind="loading" compact>正在加载文章…</UiState>
-    <template v-else>
-      <!-- 工作台模式（Linear 式）：左侧文章资料栏 + 右侧编辑画布 -->
-      <div v-show="layout === 'workbench'" class="workbench">
-        <aside class="workbench-side">
-          <template v-if="layout === 'workbench'">
-            <section>
-              <p class="wb-label">封面</p>
-              <div class="wb-card wb-cover">
-                <img
-                  v-if="form.coverUrl"
-                  :src="form.coverUrl"
-                  alt="文章封面"
-                  referrerpolicy="no-referrer"
-                />
-                <button
-                  v-else
-                  type="button"
-                  class="wb-cover-upload"
-                  :disabled="locked || saving || coverBusy"
-                  @click="coverInput?.click()"
-                >
-                  <AppIcon name="plus" :size="14" />
-                  上传封面
-                </button>
-                <div v-if="form.coverUrl" class="wb-cover-actions">
-                  <button
-                    type="button"
-                    class="text-button"
-                    :disabled="locked || saving || coverBusy"
-                    @click="coverInput?.click()"
-                  >
-                    更换
-                  </button>
-                  <button
-                    type="button"
-                    class="text-button"
-                    :disabled="locked || saving"
-                    @click="form.coverUrl = ''"
-                  >
-                    移除
-                  </button>
-                </div>
-              </div>
-              <span v-if="coverBusy" class="wb-cover-busy">封面上传中…</span>
-            </section>
-            <section>
-              <p class="wb-label">摘要</p>
-              <div class="wb-card">
-                <textarea
-                  v-model="form.summary"
-                  class="wb-summary"
-                  rows="4"
-                  maxlength="500"
-                  placeholder="写一句摘要，会展示在文章列表与分享卡片…"
-                  aria-label="文章摘要"
-                  :disabled="locked || saving"
-                ></textarea>
-              </div>
-            </section>
-            <section>
-              <p class="wb-label">关联活动</p>
-              <div class="wb-card wb-activity">
-                <span v-if="form.activityId" class="doc-chip">
-                  {{
-                    sources.find((a) => a.id === form.activityId)?.title ||
-                    `活动 ${form.activityId}`
-                  }}
-                  <button
-                    type="button"
-                    class="doc-chip-clear"
-                    aria-label="取消关联活动"
-                    :disabled="locked || saving"
-                    @click="form.activityId = ''"
-                  >
-                    <AppIcon name="close" :size="11" />
-                  </button>
-                </span>
-                <select
-                  v-else
-                  v-model="form.activityId"
-                  class="doc-chip-select is-block"
-                  aria-label="关联活动"
-                  :disabled="locked || saving"
-                  @focus="!sources.length && loadSources()"
-                >
-                  <option value="">＋ 关联活动（选填）</option>
-                  <option
-                    v-if="
-                      form.activityId &&
-                      !sources.some((a) => a.id === form.activityId)
-                    "
-                    :value="form.activityId"
-                  >
-                    当前关联活动 {{ form.activityId }}
-                  </option>
-                  <option v-for="a in sources" :key="a.id" :value="a.id">
-                    {{ a.title }}
-                  </option>
-                </select>
-                <button
-                  v-if="!form.activityId && sourceMore"
-                  type="button"
-                  class="text-button"
-                  :disabled="locked || saving || sourceBusy"
-                  @click="loadSources(true)"
-                >
-                  {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
-                </button>
-              </div>
-            </section>
-          </template>
-        </aside>
-        <section class="workbench-main">
-          <div class="workbench-main-inner">
-            <template v-if="layout === 'workbench'">
-              <textarea
-                ref="titleInput"
-                v-model="form.title"
-                class="wb-title"
-                rows="1"
-                maxlength="120"
-                placeholder="输入标题…"
-                aria-label="文章标题"
-                :disabled="locked || saving"
-                @input="autosize"
-              ></textarea>
-              <p v-if="!id" class="doc-body-empty">先保存草稿，再编辑正文。</p>
-            </template>
-            <div
-              class="article-editor-host article-editor-host--workbench"
-            ></div>
-            <template v-if="layout === 'workbench'">
-              <p class="doc-foot">支持 Markdown 与图片上传</p>
-            </template>
-          </div>
-        </section>
-      </div>
-      <!-- 文档模式（Medium 式）：资料内嵌文档流，整页即文章 -->
-      <div v-show="layout === 'canvas'" class="doc-canvas">
-        <template v-if="layout === 'canvas'">
-          <div class="doc-props">
-            <div class="doc-prop">
-              <span class="doc-prop-key">状态</span>
-              <span class="doc-prop-value">
-                <span
-                  v-if="current"
-                  class="status-pill inline"
-                  :class="`tone-${articleStatusTone(current.status)}`"
-                  >{{
-                    current.status === "PUBLISHED"
-                      ? "已发布 · 小程序可见"
-                      : "草稿 · 未发布"
-                  }}</span
-                >
-                <span v-else class="doc-prop-empty"
-                  >新建文章，保存后可发布</span
-                >
-              </span>
-            </div>
-            <div class="doc-prop">
-              <span class="doc-prop-key">关联活动</span>
-              <span class="doc-prop-value">
-                <span v-if="form.activityId" class="doc-chip">
-                  {{
-                    sources.find((a) => a.id === form.activityId)?.title ||
-                    `活动 ${form.activityId}`
-                  }}
-                  <button
-                    type="button"
-                    class="doc-chip-clear"
-                    aria-label="取消关联活动"
-                    :disabled="locked || saving"
-                    @click="form.activityId = ''"
-                  >
-                    <AppIcon name="close" :size="11" />
-                  </button>
-                </span>
-                <select
-                  v-else
-                  v-model="form.activityId"
-                  class="doc-chip-select"
-                  aria-label="关联活动"
-                  :disabled="locked || saving"
-                  @focus="!sources.length && loadSources()"
-                >
-                  <option value="">＋ 关联活动（选填）</option>
-                  <option
-                    v-if="
-                      form.activityId &&
-                      !sources.some((a) => a.id === form.activityId)
-                    "
-                    :value="form.activityId"
-                  >
-                    当前关联活动 {{ form.activityId }}
-                  </option>
-                  <option v-for="a in sources" :key="a.id" :value="a.id">
-                    {{ a.title }}
-                  </option>
-                </select>
-                <button
-                  v-if="!form.activityId && sourceMore"
-                  type="button"
-                  class="text-button"
-                  :disabled="locked || saving || sourceBusy"
-                  @click="loadSources(true)"
-                >
-                  {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
-                </button>
-              </span>
-            </div>
-          </div>
-          <textarea
-            ref="titleInput"
-            v-model="form.title"
-            class="doc-title"
-            rows="1"
-            maxlength="120"
-            placeholder="输入标题…"
-            aria-label="文章标题"
-            :disabled="locked || saving"
-            @input="autosize"
-          ></textarea>
-          <textarea
-            v-model="form.summary"
-            class="doc-summary"
-            rows="1"
-            maxlength="500"
-            placeholder="写一句摘要，会展示在文章列表与分享卡片…"
-            aria-label="文章摘要"
-            :disabled="locked || saving"
-            @input="autosize"
-          ></textarea>
-          <div class="doc-cover" :class="{ 'is-empty': !form.coverUrl }">
-            <img
-              v-if="form.coverUrl"
-              :src="form.coverUrl"
-              alt="文章封面"
-              referrerpolicy="no-referrer"
-            />
-            <button
-              type="button"
-              class="doc-cover-swap"
-              :class="{ 'is-empty': !form.coverUrl }"
-              :disabled="locked || saving || coverBusy"
-              @click="coverInput?.click()"
-            >
-              <AppIcon name="plus" :size="14" />
-              {{ form.coverUrl ? "更换封面" : "上传封面（16:9 效果最佳）" }}
-            </button>
-            <button
-              v-if="form.coverUrl"
-              type="button"
-              class="text-button doc-cover-clear"
-              :disabled="locked || saving"
-              @click="form.coverUrl = ''"
-            >
-              移除封面
-            </button>
-            <span v-if="coverBusy" class="doc-cover-busy">封面上传中…</span>
-          </div>
-          <p v-if="!id" class="doc-body-empty">先保存草稿，再编辑正文。</p>
-        </template>
-        <div class="article-editor-host article-editor-host--canvas"></div>
-        <template v-if="layout === 'canvas'">
-          <p class="doc-foot">支持 Markdown 与图片上传</p>
-        </template>
-      </div>
-      <!-- 共享的封面上传入口：两种布局的「上传 / 更换」按钮都触发它 -->
-      <input
-        ref="coverInput"
-        type="file"
-        accept="image/png,image/jpeg"
-        class="article-cover-input"
-        aria-label="文章封面"
-        :disabled="locked || saving || coverBusy"
-        @change="pickCover"
-      />
-      <!-- 编辑器只实例化一次，随布局切换在两个挂载点间搬移。
-           defer：目标挂载点由本组件渲染，需等整个应用渲染完成后再解析。 -->
-      <Teleport
-        defer
-        :to="
-          layout === 'workbench'
-            ? '.article-editor-host--workbench'
-            : '.article-editor-host--canvas'
-        "
-      >
-        <MarkdownEditor
-          v-if="id"
-          ref="rich"
-          :key="id"
-          class="doc-body"
-          managed-navigation
-          :path="`/admin/articles/${id}/content`"
-          :disabled="locked || saving"
-          @saved="contentSaved"
-        />
-      </Teleport>
-    </template>
+    </footer>
     <ConfirmDialog
       v-if="dialog && current"
       :busy="saving"
@@ -785,414 +681,417 @@ onUnmounted(() => window.removeEventListener("beforeunload", beforeUnload));
 </template>
 <style scoped>
 .article-editor {
-  max-width: 1100px;
+  max-width: 1320px;
 }
 .article-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 16px;
-  flex-wrap: wrap;
-  margin: -16px calc(var(--admin-inset) * -1) 0;
-  padding: 10px var(--admin-inset);
-  background: rgba(246, 247, 249, 0.94);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--admin-hairline);
-}
-.article-topbar-left,
-.article-topbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 18px;
+  margin-bottom: 22px;
 }
 .article-back {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 6px;
-  color: var(--admin-muted);
+  min-height: 40px;
+  padding-right: 20px;
+  border-right: 1px solid var(--rf-line);
+  color: var(--rf-muted);
   font-size: 13px;
 }
 .article-back:hover {
-  color: var(--admin-ink);
-}
-.article-save-hint {
-  font-size: 12px;
-  color: var(--admin-muted);
-}
-.article-save-hint.is-dirty {
-  color: var(--tone-warning);
-}
-.article-publish {
-  background: var(--admin-tint);
   color: var(--rf-primary-text);
 }
-.doc-canvas {
-  max-width: 720px;
-  margin: 26px auto 0;
-  padding-bottom: 60px;
-}
-.doc-props {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 22px;
-}
-.doc-prop {
+.article-title-line,
+.article-badges {
   display: flex;
   align-items: center;
-  gap: 14px;
-  font-size: 13px;
-  min-height: 28px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
-.doc-prop-key {
-  width: 64px;
-  flex: none;
-  color: var(--admin-muted);
+.article-title-line h1 {
+  font-size: 22px;
+  font-weight: 650;
 }
-.doc-prop-value {
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 304px;
+  gap: 24px;
+  align-items: start;
+}
+.article-writing-panel,
+.article-settings-card {
+  min-width: 0;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-surface);
+  box-shadow: var(--rf-shadow-sm);
+}
+.article-writing-panel {
+  padding: 36px 42px 30px;
+}
+.article-field-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.article-field-meta label,
+.setting-group label {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  margin: 0;
+  color: var(--rf-ink);
+  font-size: 13px;
+  font-weight: 500;
 }
-.doc-prop-empty {
-  color: var(--admin-muted);
-  font-size: 12.5px;
+.article-field-meta label > span {
+  color: var(--rf-danger);
 }
-.doc-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: var(--acc-content-soft);
-  border: 1px solid var(--acc-content-border);
-  color: var(--acc-content-strong);
-  font-size: 12.5px;
-  font-weight: 550;
-  max-width: 320px;
+.article-field-meta > small,
+.article-field-meta label small,
+.setting-group label small {
+  color: var(--rf-muted);
+  font-size: 11px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
-.doc-chip-clear {
-  display: inline-flex;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  opacity: 0.55;
-  padding: 2px;
-  cursor: pointer;
-}
-.doc-chip-clear:hover {
-  opacity: 1;
-}
-.doc-chip-select {
-  height: 26px;
-  border: 1px dashed var(--admin-line);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--admin-muted);
-  font-size: 12.5px;
-  padding: 0 10px;
-  max-width: 320px;
-  cursor: pointer;
-}
-.doc-title {
+.article-title-input,
+.article-summary-input {
   display: block;
   width: 100%;
+  margin: 0;
   border: 0;
-  outline: none;
-  resize: none;
+  border-radius: 0;
+  background: transparent;
+}
+.article-title-input {
+  min-height: 66px;
+  padding: 9px 0 18px;
   overflow: hidden;
-  background: transparent;
-  font-family: inherit;
-  font-size: 31px;
-  line-height: 1.35;
-  font-weight: 800;
-  color: var(--admin-ink);
-  letter-spacing: -0.015em;
-  margin-bottom: 8px;
-}
-.doc-title::placeholder,
-.doc-summary::placeholder {
-  color: var(--rf-line);
-}
-.doc-summary {
-  display: block;
-  width: 100%;
-  border: 0;
-  outline: none;
+  border-bottom: 1px solid var(--rf-line);
   resize: none;
-  overflow: hidden;
-  background: transparent;
-  font-family: inherit;
-  font-size: 16px;
-  line-height: 1.7;
-  color: var(--admin-muted);
-  margin-bottom: 18px;
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.5;
+  letter-spacing: -0.4px;
 }
-.doc-cover {
-  position: relative;
-  margin-bottom: 18px;
+.article-title-input:focus,
+.article-summary-input:focus {
+  outline: 0;
 }
-.doc-cover img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 340px;
-  object-fit: cover;
-  border-radius: 12px;
-  display: block;
+.article-title-input:focus {
+  border-bottom-color: var(--rf-primary);
+  box-shadow: 0 1px 0 var(--rf-primary);
 }
-.doc-cover-swap {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 550;
-  color: var(--admin-body);
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid var(--admin-line);
-  border-radius: 8px;
-  padding: 6px 11px;
-  cursor: pointer;
-  box-shadow: 0 1px 4px rgba(17, 24, 39, 0.06);
+.article-title-input::placeholder,
+.article-summary-input::placeholder {
+  color: #97a79c;
 }
-.doc-cover-swap input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
+.article-summary-field {
+  margin-top: 24px;
+  padding: 15px 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: #f6f9f7;
 }
-.doc-cover .doc-cover-swap {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
+.article-summary-field:focus-within {
+  border-color: var(--rf-line);
+  background: var(--rf-soft);
 }
-.doc-cover.is-empty .doc-cover-swap {
-  position: static;
+.article-summary-input {
+  min-height: 72px;
+  padding: 9px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  resize: vertical;
+}
+.article-body-heading {
   display: flex;
-  justify-content: center;
-  width: 100%;
-  padding: 26px 12px;
-  border-style: dashed;
-  border-radius: 12px;
-  color: var(--admin-muted);
-  background: var(--admin-paper);
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 28px 0 14px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rf-line);
+}
+.article-body-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.article-body-heading > small {
+  color: var(--rf-muted);
+  font-size: 12px;
+}
+.article-body-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 10px;
+  color: var(--rf-primary-text);
+  background: var(--rf-soft);
+}
+.article-body-empty > .app-icon {
+  flex-shrink: 0;
+}
+.article-body-empty strong {
+  color: var(--rf-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.article-body-empty p {
+  margin: 5px 0 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.article-body-editor {
+  margin-top: 0;
+}
+.article-body-editor :deep(.vditor) {
+  border: 1px solid var(--rf-line);
+  border-radius: 10px;
   box-shadow: none;
 }
-.doc-cover.is-empty .doc-cover-swap:hover {
-  color: var(--rf-primary-text);
-  border-color: var(--admin-primary);
+.article-body-editor :deep(.vditor-toolbar) {
+  padding: 6px 8px;
+  border-radius: 10px 10px 0 0;
 }
-.doc-cover-clear {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 8px;
-  padding: 4px 9px;
+.article-body-editor :deep(.vditor-wysiwyg) {
+  padding: 26px 20px;
+  line-height: 1.9;
+}
+.article-settings {
+  position: sticky;
+  top: 24px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.article-settings-card {
+  padding: 22px;
+}
+.article-settings-heading {
+  margin-bottom: 20px;
+}
+.article-settings-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+.article-settings-heading p {
+  margin: 4px 0 0;
+  color: var(--rf-muted);
   font-size: 12px;
 }
-.doc-cover-busy {
+.setting-group {
+  padding-top: 20px;
+  margin-top: 20px;
+  border-top: 1px solid var(--rf-line);
+}
+.setting-group.cover-setting {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+.setting-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.setting-label strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.setting-label small,
+.setting-hint {
+  color: var(--rf-muted);
+  font-size: 11px;
+}
+.setting-group select {
+  margin: 0;
+}
+.setting-hint {
   display: block;
-  margin-top: 6px;
+  margin-top: 9px;
+  line-height: 1.7;
+}
+.remove-cover {
+  display: flex;
+  margin: 7px 0 0 auto;
+}
+.selected-activity {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 9px 0 0;
+  color: var(--rf-primary-text);
   font-size: 12px;
-  color: var(--admin-muted);
+  line-height: 1.6;
 }
-.doc-body {
-  margin-top: 4px;
+.selected-activity .app-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
-.doc-body-empty {
-  margin: 12px 0 0;
-  padding: 28px 20px;
-  text-align: center;
-  color: var(--admin-muted);
-  font-size: 13.5px;
-  border: 1px dashed var(--admin-line);
+.article-publish-card {
+  padding: 20px 22px;
+  border: 1px solid var(--rf-line);
   border-radius: 12px;
-  background: var(--admin-paper);
+  background: var(--rf-soft);
 }
-.doc-foot {
-  margin: 18px 0 0;
-  font-size: 11.5px;
-  color: var(--rf-line);
+.article-publish-heading {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-.doc-foot-sep {
-  color: var(--admin-hairline);
+.article-publish-heading > span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rf-warning);
 }
-/* ---------- 布局切换器 ---------- */
-.layout-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--admin-line);
-  border-radius: 8px;
-  background: var(--admin-surface);
-  margin-left: 2px;
+.article-publish-heading > span.is-published {
+  background: var(--rf-success);
 }
-.layout-switch button {
-  border: 0;
-  background: transparent;
-  color: var(--admin-muted);
+.article-publish-card h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.article-publish-card > p {
+  margin: 10px 0 0;
+  color: var(--rf-muted);
   font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 6px;
-  min-height: 0;
+  line-height: 1.8;
 }
-.layout-switch button[aria-pressed="true"] {
-  background: var(--admin-tint);
-  color: var(--rf-primary-text);
-  font-weight: 650;
-}
-/* ---------- 工作台模式（Linear 式） ---------- */
-.workbench {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  margin: 0 calc(var(--admin-inset) * -1) -28px;
-  min-height: calc(100vh - 118px);
-  background: var(--admin-surface);
-  animation: workspace-enter 170ms ease-out;
-}
-.workbench-side {
-  background: var(--admin-paper);
-  border-right: 1px solid var(--admin-line);
-  padding: 22px 16px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-.wb-label {
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-  color: var(--admin-muted);
-  margin: 0 0 8px;
-}
-.wb-card {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-line);
-  border-radius: 8px;
-  padding: 8px;
-}
-.wb-cover img {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  object-fit: cover;
-  border-radius: 5px;
-  display: block;
-}
-.wb-cover-upload {
-  width: 100%;
+.article-publish-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 24px 10px;
-  border: 1px dashed var(--admin-line);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--admin-muted);
-  font-size: 12.5px;
-}
-.wb-cover-upload:hover:not(:disabled) {
-  color: var(--rf-primary-text);
-  border-color: var(--admin-primary);
-}
-.wb-cover-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  padding: 6px 4px 2px;
-}
-.wb-cover-busy {
-  display: block;
-  margin-top: 6px;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 12px;
+  padding-block: 10px;
+  border-block: 1px solid var(--rf-line);
+  color: var(--rf-muted);
   font-size: 12px;
-  color: var(--admin-muted);
 }
-.wb-summary {
+.article-publish-meta strong {
+  color: var(--rf-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.article-publish-card > small {
   display: block;
-  width: 100%;
-  border: 0;
-  outline: none;
-  resize: vertical;
-  background: transparent;
-  font: inherit;
-  font-size: 12.5px;
+  color: var(--rf-muted);
+  font-size: 11px;
   line-height: 1.7;
-  color: var(--admin-body);
-  min-height: 68px;
-  padding: 4px;
 }
-.wb-activity {
-  padding: 10px;
+.article-footer {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-top: 22px;
+  padding: 12px 14px 12px 18px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: #fffffff2;
+  box-shadow: 0 10px 28px #183c2914;
+  backdrop-filter: blur(14px);
 }
-.doc-chip-select.is-block {
-  width: 100%;
-  height: 28px;
+.article-footer .footer-actions {
+  margin-left: auto;
 }
-.wb-title {
-  display: block;
-  width: 100%;
-  border: 0;
-  outline: none;
-  resize: none;
-  overflow: hidden;
-  background: transparent;
-  font-family: inherit;
-  font-size: 26px;
-  line-height: 1.35;
-  font-weight: 800;
-  color: var(--admin-ink);
-  letter-spacing: -0.01em;
-  margin: 2px 0 18px;
+.article-save-hint {
+  color: var(--rf-muted);
+  font-size: 12px;
 }
-.wb-title::placeholder {
-  color: var(--rf-line);
+.article-save-hint.is-dirty {
+  color: var(--rf-warning);
 }
-.workbench-main {
-  min-width: 0;
-  padding: 30px 40px 40px;
-}
-.workbench-main-inner {
-  max-width: 780px;
-  margin: 0 auto;
-}
-/* 共享封面上传入口（视觉隐藏） */
-.article-cover-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
+@media (max-width: 1100px) {
+  .article-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .article-settings {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 720px) {
-  .doc-canvas {
-    margin-top: 18px;
-  }
-  .doc-title {
-    font-size: 25px;
-  }
   .article-topbar {
-    margin-inline: calc(var(--admin-inset) * -1);
-    padding-inline: var(--admin-inset);
+    gap: 12px;
+    margin-bottom: 18px;
   }
-  .workbench {
+  .article-back {
+    gap: 4px;
+    padding-right: 12px;
+    font-size: 12px;
+  }
+  .article-title-line {
+    gap: 8px;
+  }
+  .article-title-line h1 {
+    font-size: 20px;
+  }
+  .article-writing-panel {
+    padding: 24px 18px;
+  }
+  .article-field-meta label {
+    font-size: 12px;
+  }
+  .article-title-input {
+    min-height: 58px;
+    padding-bottom: 14px;
+    font-size: 24px;
+  }
+  .article-summary-field {
+    margin-top: 20px;
+    padding: 14px;
+  }
+  .article-field-meta label small {
+    font-size: 10px;
+  }
+  .article-body-heading {
+    margin-top: 24px;
+    padding-top: 18px;
+  }
+  .article-body-heading > small {
+    font-size: 11px;
+  }
+  .article-body-editor :deep(.vditor-wysiwyg) {
+    padding: 20px 12px;
+  }
+  .article-settings {
     grid-template-columns: minmax(0, 1fr);
-    margin-inline: calc(var(--admin-inset) * -1);
   }
-  .workbench-side {
-    border-right: 0;
-    border-bottom: 1px solid var(--admin-line);
+  .article-settings-card {
+    padding: 20px;
   }
-  .workbench-main {
-    padding: 20px 16px 32px;
+  .article-footer {
+    position: static;
+    padding: 12px;
+  }
+  .article-footer .footer-status {
+    flex-basis: 100%;
+    margin: 0;
+  }
+  .article-footer .footer-actions {
+    width: 100%;
+  }
+  .article-footer .footer-actions button {
+    flex: 1;
   }
 }
 </style>

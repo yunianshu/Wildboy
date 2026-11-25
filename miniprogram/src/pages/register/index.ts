@@ -40,7 +40,8 @@ import {
 import { money } from "../../utils/shop";
 const epoch = new RequestEpoch();
 const quoteEpoch = new RequestEpoch();
-const emptyParticipant = (): ParticipantInput => ({
+type ParticipantForm = ParticipantInput & { boardingChoice?: number };
+const emptyParticipant = (): ParticipantForm => ({
   participantName: "", idNumber: "", phone: "",
 });
 function confirmedRegistration(value: Registration | null, activityId: string): value is Registration {
@@ -69,11 +70,12 @@ Page({
     quoteLines: [] as ReturnType<typeof priceLines>,
     quoteLoginRequired: false,
     activity: null as ReturnType<typeof activityView> | null,
+    boardingChoices: [] as string[],
     loading: true,
     error: "",
     participants: [
       { participantName: "", idNumber: "", phone: "" },
-    ] as ParticipantInput[],
+    ] as ParticipantForm[],
     participantModalOpen: false,
     participantDraft: emptyParticipant(),
     participantError: "",
@@ -171,7 +173,10 @@ Page({
     try {
       const a = await request<Activity>(`/activities/${this.data.id}`);
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
-      this.setData({ activity: activityView(a) });
+      this.setData({
+        activity: activityView(a),
+        boardingChoices: a.boardingPoints?.length ? ["请选择上车地点", ...a.boardingPoints] : [],
+      });
       this.clearQuote();
       if (a.priceCents > 0 && hasSession()) {
         try {
@@ -287,6 +292,27 @@ Page({
       fieldError: "",
     });
   },
+  chooseBoardingPoint(e: WechatMiniprogram.CustomEvent<{ value: string | number }>) {
+    if (this.data.submitting || this.data.recoveryNeeded || this.data.success) return;
+    const selection = Number(e.detail.value);
+    if (!Number.isInteger(selection) || selection < 0 || selection >= this.data.boardingChoices.length) return;
+    const point = selection > 0 ? this.data.boardingChoices[selection] : "";
+    if (this.data.participantModalOpen) {
+      this.setData({
+        participantDraft: { ...this.data.participantDraft, boardingPoint: point, boardingChoice: selection },
+        participantError: "",
+      });
+      return;
+    }
+    const index = Number(e.currentTarget.dataset.index);
+    if (!this.data.participants[index]) return;
+    this.setData({
+      participants: this.data.participants.map((participant, i) =>
+        i === index ? { ...participant, boardingPoint: point, boardingChoice: selection } : participant,
+      ),
+      fieldError: "",
+    });
+  },
   addParticipant() {
     if (this.data.submitting || this.data.recoveryNeeded || this.data.success || this.data.participantModalOpen) return;
     if (this.data.participants.length >= (this.data.activity?.available || 0)) {
@@ -320,12 +346,13 @@ Page({
   confirmParticipant() {
     if (!this.data.participantModalOpen || this.data.submitting || this.data.success) return;
     const participant = {
+      ...this.data.participantDraft,
       participantName: this.data.participantDraft.participantName.trim(),
       idNumber: this.data.activity?.identityRequired
         ? this.data.participantDraft.idNumber.trim().toUpperCase() : "",
       phone: this.data.participantDraft.phone.trim(),
     };
-    const error = validateParticipants([participant], true, !!this.data.activity?.identityRequired);
+    const error = validateParticipants([participant], true, !!this.data.activity?.identityRequired, this.data.activity?.boardingPoints);
     if (error) {
       this.setData({ participantError: error.replace("第 1 位参与人", "报名人") });
       return;
@@ -454,6 +481,7 @@ Page({
       this.applyProfile(user);
       const fieldError = validateParticipants(
         this.data.participants, this.data.consent, !!this.data.activity?.identityRequired,
+        this.data.activity?.boardingPoints,
       );
       if (fieldError) throw new Error(fieldError);
       if (this.data.participants.length > this.data.activity!.available)
@@ -474,6 +502,7 @@ Page({
         participantName: participant.participantName.trim(),
         idNumber: this.data.activity?.identityRequired ? participant.idNumber.trim().toUpperCase() : "",
         phone: participant.phone.trim(),
+        ...(this.data.activity?.boardingPoints?.length && participant.boardingPoint ? { boardingPoint: participant.boardingPoint } : {}),
       }));
       if (paid && quote) {
         const key = activityIntent(user.id, this.data.id);
@@ -580,11 +609,11 @@ Page({
       participants: this.data.participants.map((participant, index) =>
         index === 0
           ? {
+              ...first,
               participantName:
                 first.participantName.trim() === ""
                   ? user.realName || ""
                   : first.participantName,
-              idNumber: first.idNumber,
               phone: first.phone.trim() === "" ? user.phone || "" : first.phone,
             }
           : participant,

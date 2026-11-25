@@ -2,7 +2,7 @@
   <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后查看订单详情<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
   <block wx:else>
     <ui-state wx:if="{{loading}}" kind="loading">正在读取订单…</ui-state>
-    <ui-state wx:elif="{{error}}" kind="error">{{error}}<view class="detail-actions"><button class="secondary ui-button" bindtap="retry">重新加载</button><button class="secondary ui-button" bindtap="backToList">返回订单列表</button></view></ui-state>
+    <ui-state wx:elif="{{error}}" kind="error">{{error}}<view class="detail-actions"><button class="secondary ui-button" bindtap="retry">重试</button><button class="secondary ui-button" bindtap="backToList">返回订单列表</button></view></ui-state>
 
     <block wx:elif="{{detail.kind === 'shop'}}">
       <view class="detail-card status-card">

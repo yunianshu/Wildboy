@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ArticleService {
   final JdbcTemplate db; final ObjectMapper json;
   static final String SELECT="SELECT a.*, (s.official_article_id=a.id) IS TRUE AS is_official FROM article a CROSS JOIN article_settings s ";
+  static final String PUBLISHED_UPDATE_REQUIRED = "请通过发布更新一次保存文章信息和正文";
   public ArticleService(JdbcTemplate db,ObjectMapper json){this.db=db;this.json=json;}
   Article map(java.sql.ResultSet r,int n,boolean withNodes) throws java.sql.SQLException {
     String markdown=r.getString("markdown");
@@ -37,10 +38,9 @@ public class ArticleService {
     return new Models.Page<>(items,total,page,size,((long)page+1)*size<total);
   }
   void lock(){db.queryForList("SELECT id FROM article_settings WHERE id=1 FOR UPDATE");}
-  Article check(String id,Long version,boolean draft){
+  Article checkVersion(String id, Long version){
     var old=get(id,true);
     if(version==null || version!=old.version())throw ApiException.conflict("ARTICLE_CONFLICT","文章已更新，请刷新后重试");
-    if(draft && !old.status().equals("DRAFT"))throw ApiException.conflict("ARTICLE_PUBLISHED","请先下架文章再编辑");
     return old;
   }
   /** 生效正文：markdown 列为空时从旧版 blocks 懒转换（读路径不落库，保存时固化）。 */
@@ -56,6 +56,11 @@ public class ArticleService {
     if(!empty(in.coverUrl()).isEmpty() && !ContentService.safeImage(in.coverUrl()))throw new ApiException(400,"INVALID_ARTICLE_COVER","封面地址无效");
     if(!empty(in.activityId()).isEmpty() && db.queryForObject("SELECT count(*) FROM activity WHERE id=?",Long.class,in.activityId())==0)throw new ApiException(400,"INVALID_ARTICLE_ACTIVITY","关联活动不存在");
   }
+  void requirePublishable(String coverUrl, String markdown) {
+    if (!ContentService.safeImage(coverUrl) || markdown == null || markdown.isBlank()) {
+      throw new ApiException(400, "ARTICLE_INCOMPLETE", "请填写封面和文章正文");
+    }
+  }
   void audit(String actor,String id,String action){db.update("INSERT INTO audit_event(id,actor_id,entity_id,action) VALUES(?,?,?,?)",UUID.randomUUID().toString(),actor,id,action);}
   @Transactional public Article create(Input in,String actor){
     validate(in);String id=UUID.randomUUID().toString();
@@ -63,21 +68,36 @@ public class ArticleService {
     audit(actor,id,"ARTICLE_CREATE");return get(id,true);
   }
   @Transactional public Article update(String id,Input in,String actor){
-    lock();check(id,in.version(),true);validate(in);
-    db.update("UPDATE article SET title=?,summary=?,cover_url=?,activity_id=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",in.title().strip(),empty(in.summary()),empty(in.coverUrl()),empty(in.activityId()).isEmpty()?null:in.activityId(),id);
+    lock();
+    var old = checkVersion(id, in.version());
+    validate(in);
+    if (old.status().equals("PUBLISHED")) {
+      if (in.markdown() == null) throw ApiException.conflict("ARTICLE_PUBLISHED", PUBLISHED_UPDATE_REQUIRED);
+      requirePublishable(empty(in.coverUrl()), in.markdown());
+    }
+    db.update("""
+      UPDATE article SET title=?, summary=?, cover_url=?, activity_id=?,
+        markdown=COALESCE(?, markdown), version=version+1, updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+      """, in.title().strip(), empty(in.summary()), empty(in.coverUrl()),
+      empty(in.activityId()).isEmpty() ? null : in.activityId(), in.markdown(), id);
     audit(actor,id,"ARTICLE_UPDATE");return get(id,true);
   }
   @Transactional public ArticleContent saveContent(String id,ArticleContentInput in,String actor){
-    lock();check(id,in.version(),true);
+    lock();
+    var old = checkVersion(id, in.version());
+    if (!old.status().equals("DRAFT")) {
+      throw ApiException.conflict("ARTICLE_PUBLISHED", PUBLISHED_UPDATE_REQUIRED);
+    }
     db.update("UPDATE article SET markdown=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",in.markdown()==null?"":in.markdown(),id);
     audit(actor,id,"ARTICLE_CONTENT_UPDATE");return content(id);
   }
   @Transactional public Article action(String id,Long version,String action,String actor){
-    lock();var old=check(id,version,false);
+    lock();var old=checkVersion(id,version);
     switch(action){
       case "publish" -> {
         if(!old.status().equals("DRAFT"))throw ApiException.conflict("ARTICLE_PUBLISHED","文章已发布");
-        if(!ContentService.safeImage(old.coverUrl()) || effectiveMarkdown(id).isBlank())throw new ApiException(400,"ARTICLE_INCOMPLETE","请先保存封面和文章正文");
+        requirePublishable(old.coverUrl(), effectiveMarkdown(id));
         db.update("UPDATE article SET status='PUBLISHED',published_at=CURRENT_TIMESTAMP WHERE id=?",id);
       }
       case "unpublish" -> {

@@ -91,8 +91,11 @@ function move(i: number, delta: number) {
   dirty.value = true;
 }
 async function remove(block: Block) {
-  const hasContent = block.text?.trim() || block.url || block.caption?.trim()
-    || block.rows?.some((row) => row.some((cell) => cell.trim()));
+  const hasContent =
+    block.text?.trim() ||
+    block.url ||
+    block.caption?.trim() ||
+    block.rows?.some((row) => row.some((cell) => cell.trim()));
   const n = generation;
   if (hasContent && !(await askConfirm("删除这段图文？"))) return;
   const index = blocks.value.indexOf(block);
@@ -136,14 +139,16 @@ onBeforeRouteLeave(
   <section class="editor-section rich-editor">
     <h2>图文详情</h2>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
-    <UiState v-if="!loaded && busy" kind="loading" compact>正在读取图文…</UiState>
+    <UiState v-if="!loaded && busy" kind="loading" compact
+      >正在读取图文…</UiState
+    >
     <button
       v-if="!loaded && !busy"
       class="secondary button"
       :disabled="busy"
       @click="load"
     >
-      重新加载图文
+      重试
     </button>
     <fieldset :disabled="busy || disabled || !loaded">
       <div v-for="(block, i) in blocks" :key="i" class="rich-block">
@@ -165,11 +170,7 @@ onBeforeRouteLeave(
             :disabled="i === blocks.length - 1"
           >
             下移</button
-          ><button
-            type="button"
-            class="danger-outline"
-            @click="remove(block)"
-          >
+          ><button type="button" class="danger-outline" @click="remove(block)">
             删除
           </button>
         </div>
@@ -197,7 +198,7 @@ onBeforeRouteLeave(
             alt="图片预览"
             style="max-width: 100%; max-height: 240px"
         /></template>
-        <label v-else
+        <label v-else class="rich-table-field"
           >表格（Tab 分列，Shift+Tab 离开）<textarea
             @keydown.tab="insertColumnSeparator(i, $event)"
             :value="block.rows?.map((r) => r.join('\t')).join('\n')"
@@ -206,7 +207,7 @@ onBeforeRouteLeave(
           />
         </label>
       </div>
-      <div class="rich-tools">
+      <div class="rich-tools footer-actions">
         <button
           type="button"
           @click="add('text')"
@@ -233,26 +234,43 @@ onBeforeRouteLeave(
   </section>
 </template>
 <style scoped>
+.rich-editor,
+.rich-editor fieldset {
+  display: grid;
+  gap: 16px;
+}
+.rich-editor h2 {
+  margin: 0;
+}
 .rich-block {
-  margin: 20px 0;
+  display: grid;
+  gap: 12px;
   padding: 16px;
   border: 1px solid var(--rf-soft);
   border-radius: 12px;
 }
 .rich-tools {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
 }
 .rich-tools strong {
-  margin-right: auto;
+  margin-inline-end: auto;
+}
+.rich-block .rich-tools {
+  justify-content: flex-end;
+}
+.rich-table-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
 }
 .rich-editor textarea,
 .rich-editor input {
   display: block;
   width: 100%;
-  margin-top: 12px;
+  margin: 0;
 }
 .rich-editor fieldset {
   border: 0;

@@ -2,68 +2,97 @@
   <view class="title">我的活动订单</view>
   <view class="muted page-intro">收费活动的报名订单在此支付、核对与退款；免费活动记录在“免费活动报名”。</view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后查看自己的活动订单<button class="primary ui-button ui-button-block" bindtap="login">微信登录</button></ui-state>
-  <ui-state wx:if="{{loading}}" kind="loading">正在加载活动订单…</ui-state>
-  <view wx:if="{{error}}" class="error">{{error}}</view>
-  <view wx:if="{{loggedIn}}" class="order-actions">
-    <button class="{{!status ? 'primary' : 'secondary'}}" data-status="" bindtap="filterStatus">全部</button>
-    <button class="{{status === 'PENDING_PAYMENT' ? 'primary' : 'secondary'}}" data-status="PENDING_PAYMENT" bindtap="filterStatus">待付款</button>
-    <button class="{{status === 'PAID' ? 'primary' : 'secondary'}}" data-status="PAID" bindtap="filterStatus">已付款</button>
-    <button class="{{status === 'REFUND_PENDING' ? 'primary' : 'secondary'}}" data-status="REFUND_PENDING" bindtap="filterStatus">退款中</button>
+  <view wx:if="{{loggedIn}}" class="section-tabs activity-order-tabs" aria-label="订单状态">
+    <view class="section-tab-list section-tab-list-fill">
+      <button
+        class="section-tab {{status === '' ? 'section-tab-current' : ''}}"
+        data-status=""
+        bindtap="filterStatus"
+        hover-class="section-tab-pressed"
+        aria-label="全部{{status === '' ? '，已选中' : ''}}"
+      >全部</button>
+      <button
+        class="section-tab {{status === 'PENDING_PAYMENT' ? 'section-tab-current' : ''}}"
+        data-status="PENDING_PAYMENT"
+        bindtap="filterStatus"
+        hover-class="section-tab-pressed"
+        aria-label="待付款{{status === 'PENDING_PAYMENT' ? '，已选中' : ''}}"
+      >待付款</button>
+      <button
+        class="section-tab {{status === 'PAID' ? 'section-tab-current' : ''}}"
+        data-status="PAID"
+        bindtap="filterStatus"
+        hover-class="section-tab-pressed"
+        aria-label="已付款{{status === 'PAID' ? '，已选中' : ''}}"
+      >已付款</button>
+      <button
+        class="section-tab {{status === 'REFUND_PENDING' ? 'section-tab-current' : ''}}"
+        data-status="REFUND_PENDING"
+        bindtap="filterStatus"
+        hover-class="section-tab-pressed"
+        aria-label="退款中{{status === 'REFUND_PENDING' ? '，已选中' : ''}}"
+      >退款中</button>
+    </view>
   </view>
-  <button wx:if="{{loggedIn}}" class="secondary refresh" bindtap="retry" disabled="{{loading || busyId}}">刷新订单列表</button>
+  <view class="{{loggedIn ? 'section-tab-panel' : ''}}">
+    <ui-state wx:if="{{loading}}" kind="loading">正在加载活动订单…</ui-state>
+    <view wx:if="{{error}}" class="error">{{error}}</view>
 
-  <view wx:for="{{items}}" wx:key="id" class="order-card">
-    <view class="order-head">
-      <button class="text-button order-title" data-id="{{item.activityId}}" bindtap="openActivity">{{item.activityTitle}}</button>
-      <text class="badge {{item.status === 'PENDING_PAYMENT' || item.status === 'REFUND_PENDING' ? 'wait' : item.status === 'PAID' || item.status === 'CONFIRMED_FREE' ? 'ok' : item.status === 'REFUNDED' ? 'info' : 'neutral'}}">{{item.statusText}}</text>
-    </view>
-    <view class="order-meta">{{item.partySize}} 人 · 合计 <text class="order-amount">{{item.totalText}}</text></view>
-    <view wx:if="{{item.originalTotalCents !== item.totalCents}}" class="muted small original">原价 {{item.originalText}}</view>
-    <view class="price-lines"><view wx:for="{{item.lines}}" wx:for-item="line" wx:key="key" class="muted small">{{line.label}}</view></view>
-    <view class="order-number">订单号 {{item.orderNo}} <button class="text-button" data-id="{{item.id}}" bindtap="copyOrderNumber">复制</button></view>
-    <view wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="notice">付款截止 {{item.expiresText}}。未确认付款不代表报名成功；支付结果未知时请刷新核对，勿重复报名。</view>
-
-    <view class="order-actions">
-      <button wx:if="{{item.status === 'PENDING_PAYMENT' && item.totalCents > 0}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" disabled="{{!!busyId}}" loading="{{busyId === item.id}}">确认支付 {{item.totalText}}</button>
-      <button wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="verify" disabled="{{!!busyId}}">刷新付款结果</button>
-    </view>
-    <view wx:if="{{item.status === 'PENDING_PAYMENT' && paymentNotice && paymentNotice.orderId === item.id}}" class="error inline-error">{{paymentNotice.text}}</view>
-    <view class="order-actions sub-actions">
-      <button class="secondary small-button" data-id="{{item.id}}" bindtap="participants" disabled="{{!!busyId}}">{{participantsId === item.id ? '收起参与人' : '查看本单参与人'}}</button>
-      <button wx:if="{{item.status === 'PENDING_PAYMENT' || item.status === 'CONFIRMED_FREE'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="askCancel" disabled="{{!!busyId}}">取消本单全部报名</button>
-      <button wx:if="{{item.status === 'PAID' || item.status === 'REFUND_PENDING' || item.status === 'REFUNDED'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="openRefund" disabled="{{!!busyId}}">退款申请 / 查看进度</button>
-    </view>
-
-    <view wx:if="{{participantsId === item.id}}" class="expand-panel">
-      <view wx:for="{{participants}}" wx:for-item="person" wx:key="id" class="participant-row">
-        <text class="participant-name">{{person.participantName}}</text>
-        <text class="muted small">{{person.phone}}</text>
-        <text wx:if="{{person.idNumber}}" class="muted small">证件 {{person.idNumber}}</text>
+    <view wx:for="{{items}}" wx:key="id" class="order-card">
+      <view class="order-head">
+        <button class="text-button order-title" data-id="{{item.activityId}}" bindtap="openActivity">{{item.activityTitle}}</button>
+        <text class="badge {{item.status === 'PENDING_PAYMENT' || item.status === 'REFUND_PENDING' ? 'wait' : item.status === 'PAID' || item.status === 'CONFIRMED_FREE' ? 'ok' : item.status === 'REFUNDED' ? 'info' : 'neutral'}}">{{item.statusText}}</text>
       </view>
+      <view class="order-meta">{{item.partySize}} 人 · 合计 <text class="order-amount">{{item.totalText}}</text></view>
+      <view wx:if="{{item.originalTotalCents !== item.totalCents}}" class="muted small original">原价 {{item.originalText}}</view>
+      <view class="price-lines"><view wx:for="{{item.lines}}" wx:for-item="line" wx:key="key" class="muted small">{{line.label}}</view></view>
+      <view class="order-number"><text>订单号 {{item.orderNo}}</text><button class="text-button" data-id="{{item.id}}" bindtap="copyOrderNumber">复制</button></view>
+      <view wx:if="{{item.status === 'PENDING_PAYMENT'}}" class="notice">付款截止 {{item.expiresText}}。未确认付款不代表报名成功；系统会核对支付结果，请勿重复报名。</view>
+
+      <view class="order-actions">
+        <button wx:if="{{item.status === 'PENDING_PAYMENT' && item.totalCents > 0}}" class="primary small-button" data-id="{{item.id}}" bindtap="pay" disabled="{{!!busyId}}" loading="{{busyId === item.id}}">确认支付 {{item.totalText}}</button>
+
+      </view>
+      <view wx:if="{{item.status === 'PENDING_PAYMENT' && paymentNotice && paymentNotice.orderId === item.id}}" class="error inline-error">{{paymentNotice.text}}</view>
+      <view class="order-actions sub-actions">
+        <button class="secondary small-button" data-id="{{item.id}}" bindtap="participants" disabled="{{!!busyId}}">{{participantsId === item.id ? '收起参与人' : '查看本单参与人'}}</button>
+        <button wx:if="{{item.status === 'PENDING_PAYMENT' || item.status === 'CONFIRMED_FREE'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="askCancel" disabled="{{!!busyId}}">取消本单全部报名</button>
+        <button wx:if="{{item.status === 'PAID' || item.status === 'REFUND_PENDING' || item.status === 'REFUNDED'}}" class="secondary small-button" data-id="{{item.id}}" bindtap="openRefund" disabled="{{!!busyId}}">退款申请 / 查看进度</button>
+      </view>
+
+      <view wx:if="{{participantsId === item.id}}" class="expand-panel">
+        <view wx:for="{{participants}}" wx:for-item="person" wx:key="id" class="participant-row">
+          <text class="participant-name">{{person.participantName}}</text>
+          <text class="muted small">{{person.phone}}</text>
+          <text wx:if="{{person.boardingPoint}}" class="muted small">上车地点 {{person.boardingPoint}}</text>
+          <text wx:if="{{person.idNumber}}" class="muted small">证件 {{person.idNumber}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{refundId === item.id}}" class="expand-panel">
+        <view class="panel-title">{{refundStatus}}</view>
+        <view wx:if="{{refund}}" class="muted small">{{refund.reason}}<view>{{refund.decision_note || refund.last_error}}</view></view>
+        <block wx:if="{{item.status === 'PAID' && (!refund || refund.status === 'REJECTED' || refund.status === 'CLOSED')}}">
+          <textarea class="refund-textarea" value="{{reason}}" maxlength="200" placeholder="退款原因" bindinput="reason" disabled="{{!!busyId || !!confirmId}}"/>
+          <button class="primary" bindtap="askRefund" disabled="{{!!busyId || !!confirmId}}">申请整单退款</button>
+        </block>
+        <view wx:if="{{refundError}}" class="error">{{refundError}}</view>
+        <button class="secondary" bindtap="closeRefund" disabled="{{!!busyId}}">关闭</button>
+      </view>
+
+
     </view>
 
-    <view wx:if="{{refundId === item.id}}" class="expand-panel">
-      <view class="panel-title">{{refundStatus}}</view>
-      <view wx:if="{{refund}}" class="muted small">{{refund.reason}}<view>{{refund.decision_note || refund.last_error}}</view></view>
-      <block wx:if="{{item.status === 'PAID' && (!refund || refund.status === 'REJECTED' || refund.status === 'CLOSED')}}">
-        <textarea class="refund-textarea" value="{{reason}}" maxlength="200" placeholder="退款原因" bindinput="reason" disabled="{{!!busyId || !!confirmId}}"/>
-        <button class="primary" bindtap="askRefund" disabled="{{!!busyId || !!confirmId}}">申请整单退款</button>
-      </block>
-      <view wx:if="{{refundError}}" class="error">{{refundError}}</view>
-      <button class="secondary" bindtap="closeRefund" disabled="{{!!busyId}}">关闭</button>
-    </view>
-
-
+    <ui-dialog wx:if="{{confirmId}}" title="{{confirmAction === 'cancel' ? '取消报名？' : '申请退款？'}}" bindclose="dismiss">
+      <view>{{confirmAction === 'cancel' ? '确认取消本单全部参与人？服务端确认后释放名额。' : '退款须管理员审核，以实际到账为准。'}}</view>
+      <view slot="footer" class="order-actions">
+        <button class="secondary" bindtap="dismiss">返回</button>
+        <button class="primary" bindtap="confirm">确认</button>
+      </view>
+    </ui-dialog>
+    <ui-state wx:if="{{loggedIn && !loading && !error && !items.length}}" kind="empty">暂无活动订单。免费活动记录在“免费活动报名”。</ui-state>
+    <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载更多…</ui-state>
+    <button wx:if="{{hasMore && !loadingMore}}" class="secondary more" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore || busyId}}">加载更多</button>
   </view>
 
-  <ui-dialog wx:if="{{confirmId}}" title="{{confirmAction === 'cancel' ? '取消报名？' : '申请退款？'}}" bindclose="dismiss">
-    <view>{{confirmAction === 'cancel' ? '确认取消本单全部参与人？服务端确认后释放名额。' : '退款须管理员审核，以实际到账为准。'}}</view>
-    <view slot="footer" class="order-actions">
-      <button class="secondary" bindtap="dismiss">返回</button>
-      <button class="primary" bindtap="confirm">确认</button>
-    </view>
-  </ui-dialog>
-  <ui-state wx:if="{{loggedIn && !loading && !error && !items.length}}" kind="empty">暂无活动订单。免费活动记录在“免费活动报名”。</ui-state>
-  <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载更多…</ui-state>
-  <button wx:if="{{hasMore && !loadingMore}}" class="secondary more" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore || busyId}}">加载更多</button>
 </view>

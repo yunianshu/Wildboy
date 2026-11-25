@@ -13,8 +13,11 @@ type ConfirmationOptions = {
   danger?: boolean;
 };
 
-export function askConfirm(options: string | ConfirmationOptions): Promise<boolean> {
-  const description = typeof options === "string" ? options : options.description;
+export function askConfirm(
+  options: string | ConfirmationOptions,
+): Promise<boolean> {
+  const description =
+    typeof options === "string" ? options : options.description;
   if (pending) return Promise.resolve(false);
   pending = true;
   return new Promise((resolve) => {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { readListSearch, rememberListSearch } from "../listSearchContext";
 import PaginationBar from "../components/PaginationBar.vue";
 import { computed, inject, onMounted, onUnmounted, ref, watch } from "vue";
@@ -43,11 +44,21 @@ function allowedFilter(value: unknown, options: string[]) {
   return typeof value === "string" && options.includes(value) ? value : "";
 }
 const rememberedSearch = readListSearch(currentUser.value, "users");
-const initialProfile = allowedFilter(route?.query.profile, ["COMPLETE", "INCOMPLETE"]);
+const initialProfile = allowedFilter(route?.query.profile, [
+  "COMPLETE",
+  "INCOMPLETE",
+]);
 const initialRole = allowedFilter(route?.query.role, Object.keys(roleLabels));
-const initialSource = allowedFilter(route?.query.source, Object.keys(sourceLabels));
+const initialSource = allowedFilter(
+  route?.query.source,
+  Object.keys(sourceLabels),
+);
 const wantedPage = Number(route?.query.page);
-const initialPage = rememberedSearch?.page ?? (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001 ? wantedPage - 1 : 0);
+const initialPage =
+  rememberedSearch?.page ??
+  (Number.isSafeInteger(wantedPage) && wantedPage > 0 && wantedPage <= 100001
+    ? wantedPage - 1
+    : 0);
 function registrationLabel(registration: Registration) {
   if (registration.source === "ACTIVITY_ORDER" && registration.orderStatus)
     return activityOrderLabels[registration.orderStatus];
@@ -95,21 +106,17 @@ let alive = true,
   epoch = 0,
   detailEpoch = 0;
 const interactionLocked = computed(() => roleBusy.value || !!pendingRole.value);
-const filterSummary = computed(() =>
-  [
-    query.value ? `搜索：${query.value}` : "全部用户",
-    profile.value
-      ? profile.value === "COMPLETE"
-        ? "资料已完善"
-        : "资料未完善"
-      : "",
-    role.value ? roleLabels[role.value as AdminUser["role"]] : "",
-    accountSource.value
-      ? sourceLabels[accountSource.value as AdminUser["accountSource"]]
-      : "",
-  ]
-    .filter(Boolean)
-    .join(" · "),
+const hasFilters = computed(() =>
+  Boolean(
+    query.value ||
+    profile.value ||
+    role.value ||
+    accountSource.value ||
+    queryDraft.value.trim() ||
+    profileDraft.value ||
+    roleDraft.value ||
+    sourceDraft.value,
+  ),
 );
 const roleDescription = computed(() => {
   const pending = pendingRole.value;
@@ -202,8 +209,16 @@ async function load(next = 0) {
     );
     if (!result.items.length && next > lastPage) clampTo = lastPage;
     else if (router && route) {
-      void router.replace({ query: { ...route.query, profile: profile.value || undefined, role: role.value || undefined,
-        source: accountSource.value || undefined, page: !query.value && result.page ? String(result.page + 1) : undefined } });
+      void router.replace({
+        query: {
+          ...route.query,
+          profile: profile.value || undefined,
+          role: role.value || undefined,
+          source: accountSource.value || undefined,
+          page:
+            !query.value && result.page ? String(result.page + 1) : undefined,
+        },
+      });
     }
   } catch (reason) {
     if (n === epoch && active(identity, actor) && !accessFailed(reason))
@@ -404,61 +419,77 @@ function dateTime(value: string | null) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
   return new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" });
 }
+useForegroundRefresh(() => {
+  if (loading.value || interactionLocked.value) return;
+  if (!detailId.value) void load(page.value);
+  else if (!detailLoading.value && !roleBlocked.value)
+    void loadDetail(detail.value?.registrations.page || 0);
+});
 </script>
 
 <template>
   <main class="workspace">
-    <header class="page-heading">
-      <div>
-        <h1>用户管理</h1>
-        <p class="muted">查看用户资料、报名历史与真实微信账号的管理权限。</p>
-      </div>
-      <button class="secondary" :disabled="loading || interactionLocked" @click="load(page)">
-        刷新用户
+    <header class="page-heading"><h1>用户管理</h1></header>
+    <form
+      class="list-filters"
+      role="search"
+      aria-label="筛选用户"
+      @submit.prevent="applyFilters"
+    >
+      <input
+        v-model="queryDraft"
+        name="userQuery"
+        type="search"
+        maxlength="80"
+        aria-label="昵称、姓名、用户编号或完整手机号"
+        placeholder="昵称、姓名、编号或完整手机号"
+      />
+      <select
+        v-model="profileDraft"
+        name="profile"
+        aria-label="资料状态"
+        @change="applyFilters"
+      >
+        <option value="">全部资料状态</option>
+        <option value="COMPLETE">资料已完善</option>
+        <option value="INCOMPLETE">资料未完善</option>
+      </select>
+      <select
+        v-model="roleDraft"
+        name="role"
+        aria-label="角色"
+        @change="applyFilters"
+      >
+        <option value="">全部角色</option>
+        <option value="USER">普通用户</option>
+        <option value="ADMIN">管理员</option>
+      </select>
+      <select
+        v-model="sourceDraft"
+        name="accountSource"
+        aria-label="账号来源"
+        @change="applyFilters"
+      >
+        <option value="">全部来源</option>
+        <option v-for="(label, key) in sourceLabels" :key="key" :value="key">
+          {{ label }}
+        </option>
+      </select>
+      <button type="submit" class="secondary" :disabled="loading">
+        查询用户
       </button>
-    </header>
-      <form class="filterbar" @submit.prevent="applyFilters">
-        <label
-          >昵称、姓名、用户编号或完整手机号<input
-            v-model="queryDraft"
-            name="userQuery"
-            maxlength="80"
-            placeholder="输入查找内容"
-        /></label>
-        <div class="action-row">
-          <label
-            >资料状态<select v-model="profileDraft" name="profile">
-              <option value="">全部状态</option>
-              <option value="COMPLETE">资料已完善</option>
-              <option value="INCOMPLETE">资料未完善</option>
-            </select></label
-          ><label
-            >角色<select v-model="roleDraft" name="role">
-              <option value="">全部角色</option>
-              <option value="USER">普通用户</option>
-              <option value="ADMIN">管理员</option>
-            </select></label
-          >
-        </div>
-        <label
-          >账号来源<select v-model="sourceDraft" name="accountSource">
-            <option value="">全部来源</option>
-            <option
-              v-for="(label, key) in sourceLabels"
-              :key="key"
-              :value="key"
-            >
-              {{ label }}
-            </option>
-          </select></label
-        >
-        <div class="action-row">
-          <button type="button" class="secondary" :disabled="loading" @click="resetFilters">重置并查询</button
-          ><button class="primary" :disabled="loading">查询用户</button>
-        </div>
-      </form>
+      <button
+        v-if="hasFilters && (items.length || error)"
+        type="button"
+        class="text-button"
+        :disabled="loading"
+        @click="resetFilters"
+      >
+        清除筛选
+      </button>
+    </form>
     <p class="privacy-note">
-      姓名、手机号与报名资料默认脱敏。不能代替用户修改资料；完整联系方式请在对应活动名单中按用途核验。
+      用户资料默认脱敏。完整联系方式请到对应活动名单核验。
     </p>
     <p v-if="notice && !detailId" class="success-box" role="status">
       {{ notice }}
@@ -476,32 +507,42 @@ function dateTime(value: string | null) {
     <UiState v-if="loading && !items.length" kind="loading" compact
       >正在读取用户…</UiState
     >
-    <UiState v-else-if="!items.length && !error" kind="empty" compact
-      >没有匹配的用户。可调整筛选条件后重新查询。<button class="secondary" @click="resetFilters">
-        重置筛选
-      </button></UiState
-    >
+    <UiState v-else-if="!items.length && !error" kind="empty" compact>
+      {{
+        query || profile || role || accountSource
+          ? "没有匹配的用户"
+          : "暂无用户"
+      }}
+      <button
+        v-if="hasFilters"
+        type="button"
+        class="text-button"
+        @click="resetFilters"
+      >
+        清除筛选
+      </button>
+    </UiState>
     <div v-if="items.length" class="table-scroll" :aria-busy="loading">
-      <table class="users-table">
-        <thead>
-          <tr>
-            <th>用户</th>
-            <th>联系资料 · 已脱敏</th>
-            <th>账号来源 / 角色</th>
-            <th>报名记录</th>
-            <th>注册时间 · 北京时间</th>
-            <th>操作</th>
+      <table class="users-table record-table" role="table">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader">用户</th>
+            <th role="columnheader">联系资料 · 已脱敏</th>
+            <th role="columnheader">账号来源 / 角色</th>
+            <th role="columnheader">报名记录</th>
+            <th role="columnheader">注册时间 · 北京时间</th>
+            <th role="columnheader">操作</th>
           </tr>
         </thead>
-        <tbody>
-          <tr v-for="user in items" :key="user.id">
-            <td>
+        <tbody role="rowgroup">
+          <tr role="row" v-for="user in items" :key="user.id">
+            <td role="cell" data-cell="title">
               <strong>{{ user.nickname || "未设置昵称" }}</strong
               ><br /><span class="record-id" :title="user.id">{{
                 user.id
               }}</span>
             </td>
-            <td>
+            <td role="cell" data-label="资料">
               {{ user.realName || "姓名未填写" }} ·
               {{ user.phone || "手机号未填写" }}<br /><span
                 class="status-badge"
@@ -509,22 +550,24 @@ function dateTime(value: string | null) {
                 >{{ user.profileCompleted ? "资料已完善" : "资料未完善" }}</span
               >
             </td>
-            <td>
+            <td role="cell" data-label="来源与角色">
               {{ sourceLabels[user.accountSource] || "其他来源" }}<br /><span
                 class="status-badge"
                 :class="`tone-${roleTone(user.role)}`"
                 >{{ roleLabels[user.role] || "未知角色" }}</span
               >
             </td>
-            <td>
+            <td role="cell" data-label="报名">
               有效 {{ user.confirmedRegistrationCount }} / 全部
               {{ user.registrationCount }}
               <template v-if="user.pendingRegistrationCount != null">
                 · 待支付 {{ user.pendingRegistrationCount }}
               </template>
             </td>
-            <td>{{ dateTime(user.createdAt) }}</td>
-            <td>
+            <td role="cell" data-label="注册时间">
+              {{ dateTime(user.createdAt) }}
+            </td>
+            <td role="cell" data-cell="actions">
               <button
                 class="text-button"
                 :disabled="interactionLocked"
@@ -537,9 +580,21 @@ function dateTime(value: string | null) {
         </tbody>
       </table>
     </div>
-    <PaginationBar :page-size="8" :has-more="hasMore" :busy="loading || interactionLocked" :page="page" :total="total" label="用户分页" @change="load" />
+    <PaginationBar
+      :page-size="8"
+      :has-more="hasMore"
+      :busy="loading || interactionLocked"
+      :page="page"
+      :total="total"
+      label="用户分页"
+      @change="load"
+    />
 
-    <FormModal v-if="detailId" size="lg" @close="closeUser"
+    <FormModal
+      v-if="detailId"
+      size="lg"
+      class="user-detail-dialog"
+      @close="closeUser"
       ><template #title><h2>用户详情</h2></template>
       <div aria-label="用户详情">
         <p class="record-id">
@@ -547,7 +602,12 @@ function dateTime(value: string | null) {
             detailId
           }}
         </p>
-        <RouterLink v-if="detail" class="text-button" :to="{ path: '/memberships', query: { userId: detailId } }">管理会员身份</RouterLink>
+        <RouterLink
+          v-if="detail"
+          class="text-button"
+          :to="{ path: '/memberships', query: { userId: detailId } }"
+          >管理会员身份</RouterLink
+        >
         <nav class="user-detail-tabs" aria-label="用户详情视图">
           <button
             :class="{ primary: detailTab === 'profile' }"
@@ -577,7 +637,7 @@ function dateTime(value: string | null) {
             :disabled="detailLoading || interactionLocked"
             @click="loadDetail(detail?.registrations.page || 0)"
           >
-            重新读取
+            重试
           </button>
         </p>
         <template v-if="detail">
@@ -633,7 +693,7 @@ function dateTime(value: string | null) {
                   :disabled="detailLoading || interactionLocked"
                   @click="loadDetail(detail.registrations.page)"
                 >
-                  重新读取并核对
+                  核对角色状态
                 </button>
               </p>
               <button
@@ -747,11 +807,6 @@ function dateTime(value: string | null) {
       </div>
       <div class="dialog-actions">
         <button
-          :disabled="detailLoading || interactionLocked"
-          @click="loadDetail(detail?.registrations.page || 0)"
-        >
-          刷新资料</button
-        ><button
           class="primary"
           :disabled="interactionLocked"
           @click="closeUser"

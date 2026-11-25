@@ -23,13 +23,13 @@ sh deploy/release.sh --dry-run            # 预演（只打印步骤，不执行
 | --- | --- | --- |
 | 0 | 确认 main 分支、工作区干净，打印发布目标 | 阻断 |
 | 1 | admin 门禁：`vue-tsc` + vitest + 生产构建 | 阻断（`--skip-tests` 可跳过，仅紧急修正） |
-| 2 | 若 `server/` 相对远端有变更：`mvn verify`（约 4 分钟，228 项） | 阻断 |
+| 2 | 开发机执行 Maven `clean verify`，保留通过测试的 JAR | 阻断 |
 | 3 | `git push origin main` 推送 GitHub | 阻断 |
 | 4 | SSH 直推服务器 `deploy-staging` 分支并 `--ff-only` 快进 main；上传 `deploy/deploy-steps.sh` | 阻断 |
-| 5 | 服务器执行 `deploy-steps.sh`（= deploy.sh 第 2–5 步）：compose 重建 db/api → API 健康等待（含 Flyway 自动迁移与校验）→ node 容器构建 admin/dist → 重建 edge/admin nginx → 服务器端烟雾检查（api OK、edge 凭据 200/匿名 403、admin OK） | 失败即输出日志尾部并退出；超时 10 分钟 |
+| 5 | 上传并校验 JAR，沿用原 API 镜像重建容器。随后构建管理后台并运行烟雾检查 | API 启动或本机冒烟失败时恢复上一套 Compose 配置。管理后台步骤超时 10 分钟 |
 | 6 | 公网烟雾：www.wildboy.com.cn 200、api.wildboy.com.cn 公开接口 200 | 阻断 |
 
-步骤 4 用 SSH 直推而不是让服务器 `git fetch`，因为服务器到 GitHub 的链路不稳定（deploy.sh 第 1 步的既有风险，曾导致部署卡在拉取阶段）。等该链路恢复稳定后，也可以回到服务器上直接跑 `sh deploy/deploy.sh` 的原始方式。
+步骤 4 通过 SSH 同步部署文件。只部署后端时，从开发机运行 `sh deploy/deploy-api.sh`。
 
 ## 迁移与数据库安全
 
@@ -47,7 +47,7 @@ git reset --hard <good-commit> && git push origin main --force-with-lease
 sh deploy/release.sh --skip-tests
 ```
 
-- admin 前端产物部署在 nginx 卷上，重跑步骤 5 即可单独刷新前端。
+- 管理后台产物挂载在 nginx 容器上，可单独运行服务器侧的 `deploy/deploy-steps.sh` 刷新。
 - 数据库由 Flyway 管理：回退代码不会回滚已应用的迁移；涉及删列/删表的新迁移需确认旧代码兼容后再发布。
 - 机密文件（`.env`、AnyService 凭据）在服务器上不入库，发布与回退均不影响。
 

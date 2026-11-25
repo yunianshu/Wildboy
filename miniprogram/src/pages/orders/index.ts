@@ -52,8 +52,10 @@ Page({
   onLoad(query: Record<string, string | undefined>) {
     this._afterSalesId = safeId(query.afterSales);
   },
+  _showGeneration: 0,
   async onShow() {
     enterPage(this);
+    this._showGeneration++;
     const session = sessionVersion();
     const loggedIn = hasSession();
     if (this._listSession !== session || !loggedIn) {
@@ -63,13 +65,17 @@ Page({
     }
     this.setData({ loggedIn });
     if (!loggedIn) return;
-    if (!this._listLoaded) await this.load(true);
-    if (!this._afterSalesId || !isSessionCurrent(session)) return;
+    const refreshing = this.load(true, this._listLoaded);
+    const visit = this._showGeneration;
+    await refreshing;
+    if (visit !== this._showGeneration || !isSessionCurrent(session)) return;
+    if (!this._afterSalesId) { await this.reconcilePending(); return; }
     const id = this._afterSalesId;
     this._afterSalesId = "";
     await this.loadRefund(id);
   },
   onHide() {
+    this._showGeneration++;
     this._afterSalesId = "";
     epoch.invalidate();
     this.setData({ loading: false, loadingMore: false, busyId: "", refundOrderId:"",refundRecord:null,refundReRequestable:false,refundAmountText:"",refundReason:"",refundError:"" });
@@ -92,6 +98,7 @@ Page({
     void this.load(false);
   },
   onUnload() {
+    this._showGeneration++;
     epoch.invalidate();
   },
   onPullDownRefresh() {
@@ -108,7 +115,7 @@ Page({
       deadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     };
   },
-  async load(reset = true) {
+  async load(reset = true, background = false) {
     if (
       this.data.busyId ||
       (!reset &&
@@ -119,28 +126,31 @@ Page({
     const session = sessionVersion();
     const page = reset ? 0 : this.data.page + 1;
     this.setData({
-      loading: reset,
+      loading: reset && !background,
       loadingMore: !reset,
       error: "",
       loggedIn: hasSession(),
-      ...(reset ? { items: [], page: 0, hasMore: false } : {}),
+      ...(reset && !background ? { items: [], page: 0, hasMore: false } : {}),
     });
     if (!hasSession()) {
       this.setData({ loading: false, loadingMore: false, items: [] });
       return;
     }
     try {
-      const result = await request<PageResult<Order>>(
-        `/orders?page=${page}&size=20${this.data.selected ? "&status=" + this.data.selected : ""}`,
-      );
+      const status = this.data.selected ? "&status=" + this.data.selected : "";
+      const pages = background ? Array.from({ length: this.data.page + 1 }, (_, i) => i) : [page];
+      const results = await Promise.all(pages.map((index) => request<PageResult<Order>>(
+        "/orders?page=" + index + "&size=20" + status,
+      )));
+      const result = results[results.length - 1];
       if (epoch.valid(current) && isSessionCurrent(session)) {
         this._listLoaded = true;
         this._listSession = session;
-        const rows = result.items.map((order) => this.view(order));
+        const rows = results.flatMap((result) => result.items.map((order) => this.view(order)));
         const previous = reset ? [] : this.data.items;
-        const ids = new Set(previous.map((item) => item.id));
+        const distinct = new Map([...previous, ...rows].map((item) => [item.id, item]));
         this.setData({
-          items: [...previous, ...rows.filter((item) => !ids.has(item.id))],
+          items: [...distinct.values()],
           page: result.page,
           hasMore: result.hasMore,
         });
@@ -224,9 +234,12 @@ Page({
       if (epoch.valid(current)) this.setData({ busyId: "" });
     }
   },
-  async verify(event: WechatMiniprogram.TouchEvent) {
-    const id = safeId(event.currentTarget.dataset.id);
-    if (!id || this.data.busyId || this.data.loading || this.data.loadingMore) return;
+  async reconcilePending() {
+    if (this.data.busyId || this.data.loading || this.data.loadingMore || this.data.refundOrderId) return;
+    const id = this.data.items.find((item) =>
+      item.status === "PENDING_PAYMENT" && (item.paymentInitiated || item.reconciliationRequired)
+    )?.id;
+    if (!id) return;
     const current = epoch.next();
     const session = sessionVersion();
     this.setData({ busyId: id, error: "" });
@@ -234,7 +247,7 @@ Page({
       const order = await verifyPayment(id, () => epoch.valid(current));
       if (epoch.valid(current) && isSessionCurrent(session)) {
         this.updateOrder(order);
-        if (order.status === "PENDING_PAYMENT") this.setData({ error: "尚未确认到账，请稍后刷新，勿重复下单" });
+        if (order.status === "PENDING_PAYMENT") this.setData({ error: "暂未确认到账，请勿重复下单" });
       }
     } catch (error) {
       if (epoch.valid(current)) this.setData({ error: message(error), ...(!hasSession() ? {items: [], loggedIn: false, hasMore: false} : {}) });

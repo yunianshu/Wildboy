@@ -1,4 +1,8 @@
 import type { ActivityInput } from "./types";
+
+export const maxBoardingPoints = 20;
+export const maxBoardingPointLength = 200;
+
 export function toShanghaiInput(value: string) {
   if (!value || !Number.isFinite(Date.parse(value))) return "";
   const parts = new Intl.DateTimeFormat("sv-SE", {
@@ -44,6 +48,14 @@ export function validateActivity(input: ActivityInput, registered = 0) {
     errors.location = "请填写目的地";
   if (!input.meetingPoint.trim() || input.meetingPoint.length > 200)
     errors.meetingPoint = "请填写集合地点";
+  const boardingPoints = input.boardingPoints ?? [];
+  if (
+    boardingPoints.length > maxBoardingPoints ||
+    boardingPoints.some((point) => point.length > maxBoardingPointLength) ||
+    new Set(boardingPoints).size !== boardingPoints.length
+  )
+    errors.boardingPoints =
+      "最多设置 20 个上车地点，每项最多 200 字，名称不能重复";
   if (!imageUrlValid(input.coverUrl))
     errors.coverUrl = "封面须为 HTTPS 图片地址或 /assets/ 路径";
   if (
@@ -65,8 +77,7 @@ export function validateActivity(input: ActivityInput, registered = 0) {
     input.capacity > 10000
   )
     errors.capacity = `人数上限须为 ${Math.max(1, registered)}–10,000 的整数，且不能少于已报名人数`;
-  if (input.priceCents !== 0)
-    errors.priceCents = "请在报名价格区设置金额";
+  if (input.priceCents !== 0) errors.priceCents = "请在报名价格区设置金额";
   return errors;
 }
 export function displayDate(value: string) {

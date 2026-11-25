@@ -49,10 +49,12 @@ public class SecurityConfig {
                     .requestMatchers(
                         org.springframework.http.HttpMethod.GET,
                         "/api/v1/home/shortcuts",
+                        "/api/v1/home/layout",
                         "/api/v1/articles",
                         "/api/v1/articles/*",
                         "/api/v1/activities",
                         "/api/v1/activities/*",
+                        "/api/v1/activities/*/attendees",
                         "/api/v1/shop/products",
                         "/api/v1/shop/products/*",
                         "/api/v1/shop/categories",

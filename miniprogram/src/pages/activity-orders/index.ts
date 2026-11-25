@@ -8,7 +8,14 @@ Page({
   data: { pageMotionClass: "",items:[] as Row[],loggedIn:false,status:'',loading:false,loadingMore:false,error:'',paymentNotice:null as {orderId:string;text:string}|null,page:0,hasMore:false,selectedId:'',activityId:'',busyId:'',confirmId:'',confirmAction:'',refundId:'',refund:null as ActivityRefund|null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[] as {id:string;participantName:string;idNumber:string;phone:string}[]},
   _epoch:0,_session:-1,
   onLoad(o:Record<string,string>){this.setData({selectedId:safeId(o.id),activityId:safeId(o.activityId)});},
-  onShow() { enterPage(this); void this.load();},
+  async onShow() {
+    enterPage(this);
+    const session = sessionVersion();
+    const pending = this.load();
+    const attempt = this._epoch;
+    await pending;
+    if (this.current(attempt, session)) await this.reconcilePending();
+  },
   onHide(){this.clear();},onUnload(){this.clear();},
   clear(){this._epoch++;this.setData({items:[],loggedIn:false,loading:false,loadingMore:false,busyId:'',paymentNotice:null,page:0,hasMore:false,confirmId:'',confirmAction:'',refundId:'',refund:null,refundStatus:'',reason:'',refundError:'',participantsId:'',participants:[]});},
   current(n:number,s:number){return n===this._epoch&&isSessionCurrent(s);},
@@ -82,7 +89,7 @@ Page({
       if (!this.current(n,s)) return;
       this.update(result);
       if (result.status === 'PENDING_PAYMENT') {
-        this.setData({paymentNotice:{orderId:row.id,text:'付款尚未确认，请刷新订单核对，不要重复报名。'}});
+        this.setData({paymentNotice:{orderId:row.id,text:'系统正在核对付款结果，请勿重复报名。'}});
       } else if (result.status === "PAID") {
         wx.showToast?.({ title: "付款已确认", icon: "success" });
       }
@@ -91,10 +98,12 @@ Page({
     }
     finally{if(this.checkAccess(n,s))this.setData({busyId:''});}
   },
-  async verify(e:WechatMiniprogram.TouchEvent){
-    const id=safeId(e.currentTarget.dataset.id);if(!this.canAct()||!this.data.items.some(row=>row.id===id&&row.status==='PENDING_PAYMENT'))return;
+  async reconcilePending(){
+    if (!this.canAct()) return;
+    const id = this.data.items.find(row => row.status === "PENDING_PAYMENT" && row.paymentAttempted)?.id;
+    if (!id) return;
     const n=this._epoch,s=this._session;this.setData({busyId:id,error:'',paymentNotice:null});
-    try{const result=await verifyActivityPayment(id,()=>this.current(n,s));if(this.current(n,s)){this.update(result);if(result.status==='PENDING_PAYMENT')this.setData({error:'暂未确认付款，名额仍按服务端状态保留，请稍后刷新。'});}}
+    try{const result=await verifyActivityPayment(id,()=>this.current(n,s));if(this.current(n,s)){this.update(result);if(result.status==='PENDING_PAYMENT')this.setData({error:'付款尚未确认，名额仍按服务端状态保留。'});}}
     catch(e){if(this.checkAccess(n,s,e))this.setData({error:message(e)});}
     finally{if(this.checkAccess(n,s))this.setData({busyId:''});}
   },

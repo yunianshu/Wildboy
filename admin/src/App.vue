@@ -4,7 +4,6 @@ import { useRoute, useRouter } from "vue-router";
 import { currentUser, clearSession, sessionExpired } from "./api";
 import { askConfirm } from "./confirm";
 import AppIcon from "./components/AppIcon.vue";
-import brandLogo from "./assets/platform-brand-original-transparent.png";
 const adminVersion = __ADMIN_VERSION__;
 const route = useRoute(),
   router = useRouter();
@@ -48,6 +47,7 @@ const navigation = [
     label: "内容与设置",
     key: "content",
     items: [
+      { path: "/home-layout", title: "首页装修", icon: "dashboard" },
       { path: "/articles", title: "文章管理", icon: "document" },
       { path: "/legal", title: "协议管理", icon: "document" },
       { path: "/settings", title: "基础配置", icon: "dashboard" },
@@ -69,6 +69,7 @@ const moduleBySection: Record<string, string> = {
   "/users": "user",
   "/memberships": "user",
   "/articles": "content",
+  "/home-layout": "content",
   "/legal": "content",
   "/settings": "content",
   "/settings/admin-account": "content",
@@ -92,10 +93,12 @@ async function switchSection(event: Event) {
 let signingOut = false;
 watch(currentUser, (user) => {
   if (!user && route.path !== "/login") {
-    const query = signingOut ? {} : {
-      redirect: route.fullPath,
-      reason: sessionExpired.value ? "expired" : undefined,
-    };
+    const query = signingOut
+      ? {}
+      : {
+          redirect: route.fullPath,
+          reason: sessionExpired.value ? "expired" : undefined,
+        };
     signingOut = false;
     void router.replace({
       path: "/login",
@@ -106,11 +109,16 @@ watch(currentUser, (user) => {
 
 async function logout() {
   const actor = currentUser.value;
-  if (!actor || !(await askConfirm({
-    title: "退出登录？",
-    description: "退出后，当前页面未保存的修改会丢失。",
-    confirmLabel: "退出登录",
-  })) || actor !== currentUser.value) return;
+  if (
+    !actor ||
+    !(await askConfirm({
+      title: "退出登录？",
+      description: "退出后，当前页面未保存的修改会丢失。",
+      confirmLabel: "退出登录",
+    })) ||
+    actor !== currentUser.value
+  )
+    return;
   signingOut = true;
   clearSession();
 }
@@ -118,20 +126,32 @@ async function logout() {
 <template>
   <RouterView v-if="route.path === '/login'" />
   <div v-else class="app-shell morning-shell" :data-module="pageModule">
-    <header class="topnav">
+    <aside class="topnav">
       <RouterLink
         class="brand"
         to="/activities"
         aria-label="野小子管理后台首页"
       >
-        <img class="brand-logo" :src="brandLogo" alt="" /><span
-          class="brand-label"
-          >管理后台</span
+        <span class="brand-mark"><AppIcon name="mountain" :size="25" /></span>
+        <span class="brand-copy"
+          ><strong>WILDBOY</strong><small>野小子运营中心</small></span
         >
       </RouterLink>
+      <div class="sidebar-status">
+        <span></span>运营系统在线<small>PRO</small>
+      </div>
       <nav class="sidebar-nav" aria-label="管理页面">
-        <div v-for="group in navigation" :key="group.key" class="sidebar-group" role="group" :aria-label="group.label">
-          <p class="sidebar-group-label">{{ group.label }}</p>
+        <div
+          v-for="(group, groupIndex) in navigation"
+          :key="group.key"
+          class="sidebar-group"
+          role="group"
+          :aria-label="group.label"
+        >
+          <p class="sidebar-group-label">
+            <span>{{ group.label }}</span
+            ><span>0{{ groupIndex + 1 }}</span>
+          </p>
           <RouterLink
             v-for="item in group.items"
             :key="item.path"
@@ -140,17 +160,23 @@ async function logout() {
             :aria-current="currentSection === item.path ? 'page' : undefined"
             :to="item.path"
           >
-            <AppIcon :name="item.icon" :size="18" />{{ item.title }}
+            <AppIcon :name="item.icon" :size="18" /><span>{{
+              item.title
+            }}</span>
           </RouterLink>
         </div>
       </nav>
       <div class="topnav-admin">
-        <AppIcon name="user" :size="24" />
+        <span class="admin-avatar">{{
+          (currentUser?.nickname || "管理员").slice(0, 1)
+        }}</span>
         <span class="admin-name"
           >{{ currentUser?.nickname || "管理员"
           }}<small>后台版本 {{ adminVersion }}</small></span
         >
-        <button class="text-button logout" @click="logout">退出登录</button>
+        <button class="text-button logout" title="退出登录" @click="logout">
+          <AppIcon name="logout" :size="17" /><span>退出登录</span>
+        </button>
       </div>
       <label class="mobile-nav">
         <span class="sr-only">切换管理页面</span>
@@ -170,7 +196,7 @@ async function logout() {
           </optgroup>
         </select>
       </label>
-    </header>
+    </aside>
     <div class="main-shell">
       <RouterView :key="route.path" />
     </div>
@@ -178,6 +204,23 @@ async function logout() {
 </template>
 
 <style scoped>
-.sidebar-group { display: grid; gap: 2px; }
-.sidebar-group-label { margin: 8px 0 3px; padding-inline: 12px; color: var(--ink-muted, var(--rf-muted)); font-size: 12px; }
+.sidebar-group {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+.sidebar-group-label {
+  display: flex;
+  justify-content: space-between;
+  margin: 6px 0 4px;
+  padding-inline: 12px;
+  color: #7f998b;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+}
+.sidebar-group-label span:last-child {
+  color: #526f60;
+  font-variant-numeric: tabular-nums;
+}
 </style>

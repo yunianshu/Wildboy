@@ -197,7 +197,7 @@ describe("single-level product categories", () => {
     await button(wrapper, "编辑分类").trigger("click");
     await wrapper.get('[name="categoryName"]').setValue("其他装备");
     latest = { ...fallback, version: 2 };
-    await button(wrapper, "刷新分类").trigger("click");
+    window.dispatchEvent(new Event("focus"));
     await flushPromises();
     await wrapper.get("form").trigger("submit");
     await flushPromises();
@@ -266,12 +266,12 @@ describe("single-level product categories", () => {
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(button(wrapper, "保存分类").attributes("disabled")).toBeDefined();
-    await button(wrapper, "重新读取").trigger("click");
+    await button(wrapper, "采用最新版本").trigger("click");
     await button(wrapper, "取消").trigger("click");
     expect(
       (wrapper.get('[name="categoryName"]').element as HTMLInputElement).value,
     ).toBe("本地草稿");
-    await button(wrapper, "重新读取").trigger("click");
+    await button(wrapper, "采用最新版本").trigger("click");
     await button(wrapper, "确认重新读取").trigger("click");
     await flushPromises();
     expect(wrapper.text()).toContain("读取断开");
@@ -279,7 +279,7 @@ describe("single-level product categories", () => {
     expect(
       (wrapper.get('[name="categoryName"]').element as HTMLInputElement).value,
     ).toBe("本地草稿");
-    await button(wrapper, "重新读取").trigger("click");
+    await button(wrapper, "采用最新版本").trigger("click");
     await button(wrapper, "确认重新读取").trigger("click");
     await flushPromises();
     expect(
@@ -377,9 +377,7 @@ describe("product category and original/current prices", () => {
     expect(wrapper.get("del").text()).toBe("¥249.00");
     expect(wrapper.get("table").text()).toContain("原价 / 现价");
     const calls = fetcher.mock.calls.length;
-    await button(wrapper, "筛选商品").trigger("click");
     await wrapper.get('[name="categoryFilter"]').setValue(gear.id);
-    await wrapper.get(".form-modal form").trigger("submit");
     expect(wrapper.get("tbody").findAll("tr")).toHaveLength(1);
     expect(wrapper.get("table").text()).toContain(discounted.name);
     expect(wrapper.get("table").text()).not.toContain(product.name);
@@ -464,11 +462,11 @@ describe("product category and original/current prices", () => {
     expect(wrapper.text()).toContain("分类网络断开");
     expect(button(wrapper, "确认并保存").attributes("disabled")).toBeDefined();
     fail = false;
-    await button(wrapper, "重新加载分类").trigger("click");
+    await button(wrapper, "重试").trigger("click");
     await flushPromises();
-    expect((wrapper.get(".form-modal form input").element as HTMLInputElement).value).toBe(
-      "保留新名称",
-    );
+    expect(
+      (wrapper.get(".form-modal form input").element as HTMLInputElement).value,
+    ).toBe("保留新名称");
     expect(
       button(wrapper, "确认并保存").attributes("disabled"),
     ).toBeUndefined();

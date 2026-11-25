@@ -45,7 +45,7 @@ test("native pages use safe markup and never embed payment secrets", () => {
     assert.doesNotMatch(script, /AppSecret|session_key|WECHAT_PAY_API_V3_KEY/);
   }
 });
-test("custom page headers remove old titles and center compact activity tabs", () => {
+test("custom headers and shared status tabs retain native layout and touch targets", () => {
   for (const name of ["mine", "activities"]) {
     const config = JSON.parse(
       fs.readFileSync(path.join(root, "pages", name, "index.json"), "utf8"),
@@ -53,13 +53,18 @@ test("custom page headers remove old titles and center compact activity tabs", (
     assert.equal(config.navigationStyle, "custom");
     assert.equal(config.navigationBarTitleText, undefined);
   }
-  const styles = fs.readFileSync(
-    path.join(root, "pages", "activities", "index.wxss"),
-    "utf8",
-  );
-  assert.match(styles, /\.filter\s*\{[^}]*min-height:\s*44px/s);
-  assert.match(styles, /\.filter\s*\{[^}]*align-items:\s*center/s);
-  assert.match(styles, /\.filters\s*\{[^}]*height:\s*44px/s);
+  const styles = fs.readFileSync(path.join(root, "styles/section-tabs.wxss"), "utf8");
+  assert.match(styles, /button\.section-tab\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(styles, /button\.section-tab\s*\{[^}]*align-items:\s*center/s);
+  assert.match(styles, /button\.section-tab-current\s*\{[^}]*background:\s*var\(--rf-primary-text\)/s);
+  assert.match(styles, /\.section-tab-panel\s*\{[^}]*border-top:\s*3px solid var\(--rf-primary-text\)/s);
+  for (const page of ["activities", "shop", "orders", "activity-orders", "registrations"]) {
+    const pageStyles = fs.readFileSync(path.join(root, "pages", page, "index.wxss"), "utf8");
+    const markup = fs.readFileSync(path.join(root, "pages", page, "index.wxml"), "utf8");
+    assert.match(pageStyles, /styles\/section-tabs\.wxss/, page);
+    assert.match(markup, /section-tab-current/, page);
+    assert.match(markup, /section-tab-panel/, page);
+  }
 });
 test("production configuration uses the public HTTPS API and keeps domain validation enabled", () => {
   const config = require("../dist/config.js").config;
@@ -84,4 +89,39 @@ test("WXML template expressions retain native operators, not HTML entities", () 
       );
     }
   }
+});
+
+
+test("product sharing stays in the padded content flow above the purchase bar", () => {
+  const markup = fs.readFileSync(path.join(root, "pages/product/index.wxml"), "utf8");
+  const content = markup.match(/<view class="page product-content">([\s\S]*)<\/view>\s*<view class="sticky-action purchase-bar">/);
+  assert.ok(content, "product content must precede the purchase bar");
+  assert.match(content[1], /<view class="product-share">[\s\S]*open-type="share"/);
+  const styles = fs.readFileSync(path.join(root, "pages/product/index.wxss"), "utf8");
+  assert.match(styles, /\.product-share\s*\{[^}]*padding-top:\s*16px/);
+  assert.match(styles, /\.product-share button\s*\{[^}]*width:\s*100%/);
+});
+
+test("checkout quantity controls have a compact three-column layout", () => {
+  const styles = fs.readFileSync(path.join(root, "pages/checkout/index.wxss"), "utf8");
+  assert.match(styles, /\.order-product-info \.action-row\s*\{[^}]*display:\s*grid/);
+  assert.match(styles, /\.order-product-info \.action-row\s*\{[^}]*grid-template-columns:\s*44px minmax\(0,1fr\) 44px/);
+  assert.match(styles, /\.order-product-info \.action-row \.secondary\s*\{[^}]*min-height:\s*44px/);
+  assert.match(styles, /\.order-product-info \.action-row text\s*\{[^}]*white-space:\s*nowrap/);
+});
+
+test("shared controls keep block actions and quiet text actions distinct", () => {
+  const styles = fs.readFileSync(path.join(root, "styles/slate-components.wxss"), "utf8");
+  assert.match(styles, /button\.ui-button-block\s*\{\s*width:\s*100%/);
+  assert.match(styles, /\.page button\.text-button[^{]*\{[^}]*background:\s*transparent/);
+  assert.match(styles, /\.page button\.text-button[^{]*\{[^}]*min-height:\s*44px/);
+});
+
+test("address selection separates maintenance from the primary choice", () => {
+  const markup = fs.readFileSync(path.join(root, "pages/addresses/index.wxml"), "utf8");
+  assert.match(markup, /class="address-secondary-actions"/);
+  assert.match(markup, /class="text-button danger-text"[^>]*catchtap="remove"/);
+  const styles = fs.readFileSync(path.join(root, "pages/addresses/index.wxss"), "utf8");
+  assert.match(styles, /\.address-actions\s*\{[^}]*justify-content:\s*space-between/);
+  assert.match(styles, /\.address-actions \.select-address\s*\{[^}]*min-height:\s*44px/);
 });

@@ -8,19 +8,19 @@ export const categories: {
 }[] = [
   {
     code: "WEEKLY",
-    name: "本周活动",
+    name: "户外活动",
     en: "THIS WEEK",
     image: "/assets/category-weekly.jpg",
   },
   {
     code: "DOMESTIC",
-    name: "国内游行",
+    name: "户外旅行",
     en: "GO FURTHER",
     image: "/assets/category-domestic.jpg",
   },
   {
     code: "HOLIDAY",
-    name: "假期活动",
+    name: "重装露营",
     en: "SLOW DAYS",
     image: "/assets/category-holiday.jpg",
   },
@@ -94,6 +94,7 @@ export function validateParticipants(
   participants: ParticipantInput[],
   consent: boolean,
   identityRequired = true,
+  boardingPoints: string[] = [],
 ): string {
   if (!participants.length) return "请至少添加一位参与人";
   const idNumbers = new Set<string>();
@@ -111,6 +112,8 @@ export function validateParticipants(
     idNumbers.add(idNumber);
     if (!/^1[3-9]\d{9}$/.test(participant.phone.trim()))
       return `请填写${label}的有效中国大陆手机号`;
+    if (boardingPoints.length && !boardingPoints.includes(participant.boardingPoint ?? ""))
+      return `请选择${label}的上车地点`;
   }
   if (!consent) return "请先阅读并同意报名信息使用说明";
   return "";

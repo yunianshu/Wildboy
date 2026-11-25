@@ -104,7 +104,7 @@ public class UserService {
   }
 
   static Participant maskedParticipant(Participant p) {
-    return new Participant(p.id(),maskName(p.participantName()),p.idNumber(),maskPhone(p.phone()));
+    return new Participant(p.id(),maskName(p.participantName()),p.idNumber(),maskPhone(p.phone()),p.boardingPoint());
   }
 
   @Transactional
@@ -210,10 +210,10 @@ public class UserService {
     var args=new ArrayList<>(ids);
     args.addAll(ids);
     String sql="""
-        SELECT 'FREE_REGISTRATION' AS source,registration_id AS reference_id,id,participant_name,id_number,phone,position
+        SELECT 'FREE_REGISTRATION' AS source,registration_id AS reference_id,id,participant_name,id_number,phone,position,boarding_point
           FROM registration_participant WHERE registration_id IN (%s)
         UNION ALL
-        SELECT 'ACTIVITY_ORDER',order_id,id,participant_name,id_number,phone,position
+        SELECT 'ACTIVITY_ORDER',order_id,id,participant_name,id_number,phone,position,boarding_point
           FROM activity_order_participant WHERE order_id IN (%s)
         ORDER BY source,reference_id,position
         """.formatted(placeholders,placeholders);
@@ -221,7 +221,7 @@ public class UserService {
     db.query(sql,r->{
       var key=new RegistrationKey(RegistrationSource.valueOf(r.getString("source")),r.getString("reference_id"));
       var p=new Participant(r.getString("id"),r.getString("participant_name"),
-          identity.masked(r.getString("id_number")),r.getString("phone"));
+          identity.masked(r.getString("id_number")),r.getString("phone"),r.getString("boarding_point"));
       result.computeIfAbsent(key,ignored->new ArrayList<>()).add(maskedParticipant(p));
     },args.toArray());
     return result;

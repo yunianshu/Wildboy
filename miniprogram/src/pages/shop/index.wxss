@@ -1,11 +1,8 @@
 @import "../../styles/slate-theme.wxss";
+@import "../../styles/section-tabs.wxss";
 @import "../../styles/user-flow.wxss";
 .category-retry, .shop-inline-error { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; font-size: 13px; color: var(--rf-danger); }
 .category-retry-text { flex: 1; min-width: 0; }
-.shop-category-viewport { width: 100%; white-space: nowrap; }
-.shop-category-track { display: inline-flex; align-items: center; gap: 8px; padding-bottom: 4px; }
-.shop-category-chip { flex: none; display: flex; align-items: center; min-height: 44px; padding: 8px 16px; border-radius: 8px; color: var(--rf-primary-text); background: var(--rf-soft); font-size: 13px; }
-.shop-category-chip-active { background: var(--rf-primary); color: var(--rf-on-primary); font-weight: 600; }
 .shop-refresh-hint { margin-top: 12px; color: var(--rf-muted); font-size: 12px; }
 .product-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-top: 16px; }
 .product-card { display: flex; flex-direction: column; min-width: 0; padding: 8px; border-radius: 12px; background: var(--rf-surface); }

@@ -2,141 +2,174 @@
   bindtouchstart="startTabSwipe" bindtouchmove="moveTabSwipe"
   bindtouchend="endTabSwipe" bindtouchcancel="cancelTabSwipe">
   <view class="home page-motion {{pageMotionClass}}">
-    <view class="hero">
-      <image class="hero-image" src="/assets/hero-hiking.jpg" mode="aspectFill" />
-      <view class="hero-shade" />
-      <view class="hero-copy">
-        <text class="hero-kicker">WILDBOY / OUTDOOR CLUB</text>
-        <view class="hero-title">去山野，找回自己。</view>
-        <view class="hero-sub">把日常留在身后 · 一起走出去</view>
-      </view>
-      <view class="brand" style="top:{{topInset}}px">
-        <text class="brand-name">野小子</text>
-        <text class="brand-caption">野一点，自由一点</text>
-      </view>
-    </view>
-    <view class="home-body">
-      <view wx:if="{{devMode}}" class="notice">
-        开发演示账号 · 非真实用户
-      </view>
-      <ui-state wx:if="{{shortcutLoading}}" kind="loading" compact="{{true}}">正在加载首页入口…</ui-state>
-      <ui-state wx:if="{{shortcutError}}" kind="error" compact="{{true}}">入口加载失败：{{shortcutError}}<button class="secondary" bindtap="retryShortcuts">重试</button></ui-state>
-      <view class="category-grid" aria-busy="{{shortcutLoading}}">
-        <view
-          class="category"
-          wx:for="{{categories}}"
-          wx:key="slot"
-          data-slot="{{item.slot}}"
-          aria-label="{{item.name}}"
-          aria-role="button"
-          bindtap="openCategory"
-        >
-          <image src="{{item.image}}" mode="aspectFill" />
-          <view class="category-shade" />
-          <view class="category-copy">
-            <view class="category-title">
-              {{item.name}}
-            </view>
-          </view>
+    <view wx:if="{{devMode}}" class="home-body"><view class="notice">开发演示账号 · 非真实用户</view></view>
+    <block wx:for="{{modules}}" wx:for-item="mod" wx:key="id">
+      <view wx:if="{{mod.enabled && mod.id === 'HERO'}}" class="hero" bindtap="tapHero">
+        <image class="hero-image" src="{{hero.imageUrl}}" mode="aspectFill" />
+        <view class="hero-shade" />
+        <view class="hero-copy">
+          <text wx:if="{{hero.kicker}}" class="hero-kicker">{{hero.kicker}}</text>
+          <view wx:if="{{hero.title}}" class="hero-title">{{hero.title}}</view>
+          <view wx:if="{{hero.subtitle}}" class="hero-sub">{{hero.subtitle}}</view>
+        </view>
+        <view class="brand" style="top:{{topInset}}px">
+          <text wx:if="{{hero.brandName}}" class="brand-name">{{hero.brandName}}</text>
+          <text wx:if="{{hero.brandCaption}}" class="brand-caption">{{hero.brandCaption}}</text>
         </view>
       </view>
-      <view class="section-head">
-        <view>
-          <view class="eyebrow">FIND YOUR NEXT ADVENTURE</view>
-          <view class="section-title">正在发生的山野</view>
-        </view>
-        <text class="section-link" bindtap="allActivities">全部</text>
-      </view>
-      <ui-state wx:if="{{error}}" kind="error">
-        <view>{{error}}</view>
-        <button class="secondary" bindtap="retry">重新加载</button>
-      </ui-state>
-      <ui-state wx:elif="{{loading}}" kind="loading">正在加载活动…</ui-state>
-      <block wx:else>
-        <ui-state wx:if="{{!items.length}}" kind="empty">
-          暂无活动
-        </ui-state>
-        <view class="grid">
+
+      <view wx:elif="{{mod.enabled && mod.id === 'SHORTCUTS'}}" class="home-body">
+        <ui-state wx:if="{{shortcutLoading}}" kind="loading" compact="{{true}}">正在加载首页入口…</ui-state>
+        <ui-state wx:if="{{shortcutError}}" kind="error" compact="{{true}}">入口加载失败：{{shortcutError}}<button class="secondary" bindtap="retryShortcuts">重试</button></ui-state>
+        <view class="category-grid" style="grid-template-columns:repeat({{shortcutColumns}},minmax(0,1fr))" aria-busy="{{shortcutLoading}}">
           <view
-            class="activity-card"
-            wx:for="{{items}}"
-            wx:key="slotKey"
-            data-id="{{item.id}}"
-            bindtap="openActivity"
+            class="category"
+            wx:for="{{categories}}"
+            wx:key="slot"
+            data-slot="{{item.slot}}"
+            aria-label="{{item.name}}"
+            aria-role="button"
+            bindtap="openCategory"
           >
-            <image
-              class="activity-image"
-              src="{{item.coverUrl}}"
-              mode="aspectFill"
-              lazy-load
-            />
-            <view class="card-meta">
-              {{item.categoryName}} · {{item.dateText}}
-            </view>
-            <view class="card-title">{{item.title}}</view>
-            <view class="card-detail">{{item.location}}</view>
-            <view class="card-footer">
-              <text class="free">{{item.priceLabel}}</text>
-              <text class="muted">{{item.available}} 个余位</text>
+            <image src="{{item.image}}" mode="aspectFill" />
+            <view class="category-shade" />
+            <view class="category-copy">
+              <view class="category-title">{{item.name}}</view>
             </view>
           </view>
         </view>
-      </block>
-      <view class="shop" bindtap="equipmentInfo" aria-role="button" aria-label="逛野小子装备小店">
-        <image class="shop-banner-image" src="/assets/equipment-banner.jpg" mode="aspectFill" />
-        <view class="shop-copy">
-          <view class="shop-tag">山野好物 · 轻装出发</view>
-          <view class="shop-title">把山野，装进行囊</view>
-          <view class="shop-cta">去逛逛 <image class="ui-icon" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-        </view>
       </view>
-      <ui-state wx:if="{{equipmentError}}" class="equipment-state" kind="error" compact="{{true}}">
-        <view>{{equipmentError}}</view>
-        <button class="secondary" bindtap="retryEquipment">重新加载装备</button>
-      </ui-state>
-      <ui-state wx:elif="{{equipmentLoading}}" class="equipment-state" kind="loading" compact="{{true}}">正在加载装备…</ui-state>
-      <ui-state wx:elif="{{!equipment.length}}" class="equipment-state" kind="empty" compact="{{true}}">装备正在准备中</ui-state>
-      <view wx:else class="equipment-grid">
-        <view
-          class="equipment-item"
-          wx:for="{{equipment}}"
-          wx:key="id"
-          data-id="{{item.id}}"
-          bindtap="openProduct"
-          aria-role="button"
-          aria-label="{{item.name}}，{{item.priceLabel}}"
-        >
-          <image class="equipment-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
-          <view class="equipment-name">{{item.name}}</view>
-          <view class="equipment-price-stack">
-            <view wx:if="{{item.originalPriceText}}" class="equipment-original-price">原价 {{item.originalPriceText}}</view>
-            <view class="equipment-price">{{item.priceLabel}}</view>
+
+      <view wx:elif="{{mod.enabled && mod.id === 'ACTIVITIES'}}" class="home-body">
+        <view class="section-head">
+          <view>
+            <view wx:if="{{activitiesHeader.eyebrow}}" class="eyebrow">{{activitiesHeader.eyebrow}}</view>
+            <view class="section-title">{{activitiesHeader.title}}</view>
           </view>
+          <text wx:if="{{activitiesHeader.showAllLink}}" class="section-link" bindtap="allActivities">全部</text>
         </view>
-      </view>
-      <view class="section-head gallery-head">
-        <view>
-          <view class="eyebrow">MOMENTS OUTSIDE</view>
-          <view class="section-title">山野之间</view>
-        </view>
-      </view>
-      <ui-state wx:if="{{articleError}}" kind="error" compact="{{true}}">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></ui-state>
-      <swiper class="scenery-swiper" mark:tabSwipeIgnore="{{true}}" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
-        <swiper-item wx:for="{{articles.length ? articles : banners}}" wx:key="id">
-          <view class="scenery-slide" data-id="{{articles.length ? item.id : item.activityId}}" data-article="{{articles.length > 0}}" bindtap="openGalleryItem">
-            <image class="scenery-image" src="{{articles.length ? item.coverUrl : item.imageUrl}}" mode="aspectFill" lazy-load />
-            <view class="scenery-shade" />
-            <view class="scenery-copy">
-              <view class="scenery-title">{{item.title}}</view>
-              <view class="scenery-sub">{{articles.length ? item.summary : item.subtitle}}</view>
+        <ui-state wx:if="{{error}}" kind="error">
+          <view>{{error}}</view>
+          <button class="secondary" bindtap="retry">重新加载</button>
+        </ui-state>
+        <ui-state wx:elif="{{loading}}" kind="loading">正在加载活动…</ui-state>
+        <block wx:else>
+          <ui-state wx:if="{{!items.length}}" kind="empty">暂无活动</ui-state>
+          <view class="grid">
+            <view
+              class="activity-card"
+              wx:for="{{items}}"
+              wx:key="slotKey"
+              data-id="{{item.id}}"
+              bindtap="openActivity"
+            >
+              <image
+                class="activity-image"
+                src="{{item.coverUrl}}"
+                mode="aspectFill"
+                lazy-load
+              />
+              <view class="card-meta">{{item.categoryName}} · {{item.dateText}}</view>
+              <view class="card-title">{{item.title}}</view>
+              <view class="card-detail">{{item.location}}</view>
+              <view class="card-footer">
+                <text class="free">{{item.priceLabel}}</text>
+                <text class="muted">{{item.available}} 个余位</text>
+              </view>
             </view>
           </view>
-        </swiper-item>
-      </swiper>
-      <view class="platform-brand">
-        <image class="platform-brand-image" src="/assets/platform-brand-original-transparent.png" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
+        </block>
       </view>
-    </view>
+
+      <view wx:elif="{{mod.enabled && mod.id === 'SHOP'}}" class="home-body">
+        <view wx:if="{{shopConfig.showBanner}}" class="shop" bindtap="equipmentInfo" aria-role="button" aria-label="逛野小子装备小店">
+          <image class="shop-banner-image" src="{{shopConfig.bannerImageUrl}}" mode="aspectFill" />
+          <view class="shop-copy">
+            <view wx:if="{{shopConfig.bannerTag}}" class="shop-tag">{{shopConfig.bannerTag}}</view>
+            <view wx:if="{{shopConfig.bannerTitle}}" class="shop-title">{{shopConfig.bannerTitle}}</view>
+            <view wx:if="{{shopConfig.bannerCta}}" class="shop-cta">{{shopConfig.bannerCta}} <image class="ui-icon" src="/assets/icons/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+          </view>
+        </view>
+        <block wx:if="{{shopConfig.showProducts}}">
+          <ui-state wx:if="{{equipmentError}}" class="equipment-state" kind="error" compact="{{true}}">
+            <view>{{equipmentError}}</view>
+            <button class="secondary" bindtap="retryEquipment">重新加载装备</button>
+          </ui-state>
+          <ui-state wx:elif="{{equipmentLoading}}" class="equipment-state" kind="loading" compact="{{true}}">正在加载装备…</ui-state>
+          <ui-state wx:elif="{{!equipment.length}}" class="equipment-state" kind="empty" compact="{{true}}">装备正在准备中</ui-state>
+          <view wx:else class="equipment-grid">
+            <view
+              class="equipment-item"
+              wx:for="{{equipment}}"
+              wx:key="id"
+              data-id="{{item.id}}"
+              bindtap="openProduct"
+              aria-role="button"
+              aria-label="{{item.name}}，{{item.priceLabel}}"
+            >
+              <image class="equipment-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+              <view class="equipment-name">{{item.name}}</view>
+              <view class="equipment-price-stack">
+                <view wx:if="{{item.originalPriceText}}" class="equipment-original-price">原价 {{item.originalPriceText}}</view>
+                <view class="equipment-price">{{item.priceLabel}}</view>
+              </view>
+            </view>
+          </view>
+        </block>
+      </view>
+
+      <view wx:elif="{{mod.enabled && mod.id === 'GALLERY'}}" class="home-body">
+        <view class="section-head gallery-head">
+          <view>
+            <view wx:if="{{galleryConfig.eyebrow}}" class="eyebrow">{{galleryConfig.eyebrow}}</view>
+            <view class="section-title">{{galleryConfig.title}}</view>
+          </view>
+        </view>
+        <ui-state wx:if="{{galleryConfig.mode !== 'CUSTOM' && articleError}}" kind="error" compact="{{true}}">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></ui-state>
+        <swiper class="scenery-swiper" mark:tabSwipeIgnore="{{true}}" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
+          <block wx:if="{{galleryConfig.mode === 'CUSTOM' && galleryConfig.slides.length}}">
+            <swiper-item wx:for="{{galleryConfig.slides}}" wx:key="id">
+              <view class="scenery-slide" data-slide-index="{{index}}" bindtap="openGalleryItem">
+                <image class="scenery-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+                <view class="scenery-shade" />
+                <view class="scenery-copy">
+                  <view class="scenery-title">{{item.title}}</view>
+                  <view class="scenery-sub">{{item.subtitle}}</view>
+                </view>
+              </view>
+            </swiper-item>
+          </block>
+          <block wx:else>
+            <swiper-item wx:for="{{articles.length ? articles : banners}}" wx:key="id">
+              <view class="scenery-slide" data-id="{{articles.length ? item.id : item.activityId}}" data-article="{{articles.length > 0}}" bindtap="openGalleryItem">
+                <image class="scenery-image" src="{{articles.length ? item.coverUrl : item.imageUrl}}" mode="aspectFill" lazy-load />
+                <view class="scenery-shade" />
+                <view class="scenery-copy">
+                  <view class="scenery-title">{{item.title}}</view>
+                  <view class="scenery-sub">{{articles.length ? item.summary : item.subtitle}}</view>
+                </view>
+              </view>
+            </swiper-item>
+          </block>
+        </swiper>
+      </view>
+
+      <view wx:elif="{{mod.enabled && mod.id === 'FOOTER'}}" class="home-body">
+        <view wx:if="{{footer.followEnabled && footer.followQrcodes.length}}" class="follow-card">
+          <view wx:if="{{footer.followTitle}}" class="follow-title">{{footer.followTitle}}</view>
+          <view wx:if="{{footer.followSubtitle}}" class="follow-sub">{{footer.followSubtitle}}</view>
+          <view class="follow-qr-grid">
+            <view class="follow-qr-item" wx:for="{{footer.followQrcodes}}" wx:key="url">
+              <image class="follow-qr-image" src="{{item.url}}" mode="aspectFit" show-menu-by-longpress data-url="{{item.url}}" bindtap="previewFollowQr" />
+              <view wx:if="{{item.label}}" class="follow-qr-label">{{item.label}}</view>
+            </view>
+          </view>
+        </view>
+        <view wx:if="{{footer.brandEnabled}}" class="platform-brand">
+          <image class="platform-brand-image" src="{{footer.brandImageUrl}}" style="width:{{footer.brandWidthPx}}px" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
+        </view>
+      </view>
+    </block>
   </view>
 </view>
 
@@ -148,10 +181,16 @@
     </view>
     <scroll-view scroll-y class="shortcut-body" style="height:{{popupBodyHeight ? popupBodyHeight + 'px' : 'auto'}}">
       <view class="shortcut-content">
-        <image wx:if="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-generation="{{popupGeneration}}" bindload="resizePopup" binderror="popupImageFailed" />
+        <view wx:if="{{popupImages.length > 1}}" class="shortcut-multi-qr">
+          <view class="shortcut-qr-card" wx:for="{{popupImages}}" wx:key="url">
+            <view wx:if="{{item.label}}" class="shortcut-qr-label">{{item.label}}</view>
+            <image class="shortcut-image" src="{{item.url}}" mode="widthFix" show-menu-by-longpress data-url="{{item.url}}" data-generation="{{popupGeneration}}" bindtap="previewPopupQr" bindload="resizePopup" binderror="popupImageFailed" />
+          </view>
+        </view>
+        <image wx:elif="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-url="{{popup.image}}" data-generation="{{popupGeneration}}" bindtap="previewPopupQr" bindload="resizePopup" binderror="popupImageFailed" />
         <view wx:if="{{popupImageError}}" class="shortcut-message">图片加载失败，请关闭后重试</view>
         <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
-        <view wx:if="{{!popup.image && !popup.text}}" class="shortcut-message">暂未配置内容，请联系主理人。</view>
+        <view wx:if="{{!popup.image && !popupImages.length && !popup.text}}" class="shortcut-message">暂未配置内容，请联系主理人。</view>
       </view>
     </scroll-view>
   </view>

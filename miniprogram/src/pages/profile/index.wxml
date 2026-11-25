@@ -1,5 +1,5 @@
 <view class="uf-page profile-page page-motion {{pageMotionClass}}">
-
+  <view class="uf-header"><view class="uf-title">联系资料</view><view class="uf-muted">用于活动报名、身份核验与联系</view></view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后管理活动联系资料<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button></ui-state>
   <view wx:else class="uf-stack">
     <ui-state wx:if="{{membershipLoading}}" compact="{{true}}" kind="loading">正在读取会员身份…</ui-state>
@@ -35,7 +35,7 @@
       <view class="field"><text class="label">本人姓名</text><input value="{{draft.realName}}" maxlength="40" data-field="realName" bindinput="input" disabled="{{saving}}" placeholder="请填写真实姓名" /></view>
       <view class="field"><text class="label">中国大陆手机号</text><input value="{{draft.phone}}" type="number" maxlength="11" data-field="phone" bindinput="input" disabled="{{saving}}" placeholder="用于活动联系" /></view>
       <view class="uf-caption">我们会按当前隐私政策处理上述资料。手机号由你主动填写，不会未经操作自动读取。</view>
-      <view wx:if="{{legalError || !legal}}" class="notice" aria-role="status">{{legalLoading ? '正在重新获取当前协议…' : (legalError || '当前协议尚未就绪，请重新获取后决定是否同意。')}}<button class="secondary ui-button ui-button-block {{(saving || legalLoading) ? 'button-disabled' : ''}}" bindtap="retryLegal" loading="{{legalLoading}}" disabled="{{saving || legalLoading}}">重新获取协议</button></view>
+      <view wx:if="{{legalError || !legal}}" class="notice" aria-role="status">{{legalLoading ? '正在重新获取当前协议…' : (legalError || '当前协议尚未就绪，请重新获取后决定是否同意。')}}<button class="secondary ui-button ui-button-block {{(saving || legalLoading) ? 'button-disabled' : ''}}" bindtap="retryLegal" loading="{{legalLoading}}" disabled="{{saving || legalLoading}}">重试</button></view>
       <view class="uf-legal-files"><view class="uf-legal-file"><text class="legal-link" catchtap="privacy" aria-role="link" aria-label="隐私政策，版本 {{legal.privacy.version}}">《隐私政策》</text></view><view class="uf-legal-file"><text class="legal-link" catchtap="terms" aria-role="link" aria-label="用户协议，版本 {{legal.terms.version}}">《用户协议》</text></view></view>
       <checkbox-group bindchange="consentChange"><label class="consent"><checkbox value="yes" checked="{{consent}}" disabled="{{saving || legalLoading || !legal}}" color="#1D6342" aria-label="同意资料处理说明"/><view class="consent-copy">我同意当前《隐私政策》和《用户协议》，同意将姓名和手机号用于活动组织、身份核验和联系。</view></label></checkbox-group>
       <view wx:if="{{fieldError}}" class="error dialog-error" aria-role="alert">{{fieldError}}</view>

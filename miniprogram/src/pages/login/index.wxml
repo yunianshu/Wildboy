@@ -25,7 +25,7 @@
       class="secondary"
       bindtap="retry"
     >
-      重新获取协议
+      重试
     </button>
     <button
       class="primary"

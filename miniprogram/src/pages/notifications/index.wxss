@@ -1,5 +1,13 @@
 @import "../../styles/slate-theme.wxss";
 @import "../../styles/user-flow.wxss";
-.notice-card { padding:28rpx; margin-top:24rpx; background:white; border-radius:20rpx; line-height:1.8; }
+.notifications-page .page-intro { margin: 0 0 16px; }
+.notifications-page .subscribe { width: 100%; margin: 0 0 4px; }
+.notice-card { padding: 16px; margin-top: 12px; background: var(--rf-surface); border-radius: 12px; }
+.notice-card-pressed { background: var(--rf-soft); }
+.notice-title { color: var(--rf-ink); font-size: 15px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.notice-detail { margin-top: 6px; color: var(--rf-muted); font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.notice-meta { margin-top: 10px; color: var(--rf-muted); font-size: 12px; line-height: 1.5; }
+.notifications-page .error { margin: 12px 0; }
+.notifications-page .error button { width: 100%; margin-top: 8px; }
 
 @import "../../styles/slate-components.wxss";

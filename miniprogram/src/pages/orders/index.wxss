@@ -1,4 +1,5 @@
 @import "../../styles/slate-theme.wxss";
+@import "../../styles/section-tabs.wxss";
 @import "../../styles/user-flow.wxss";
 .orders-page .title { margin-bottom: 8rpx; }
 .order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #FFFFFF; }
@@ -6,17 +7,13 @@
 .cancelled { background: var(--rf-soft); color: var(--rf-muted); }
 .order-line { display: flex; align-items: flex-start; justify-content: space-between; gap: 20rpx; padding: 12rpx 0; }
 .product-name { font-weight: 600; line-height: 1.5; }
-.order-total { display: flex; align-items: center; justify-content: space-between; padding-top: 20rpx; margin-top: 14rpx; }
-.order-total .amount-strong { font-weight: 600; color: var(--rf-primary-text); font-size: 32rpx; }
-.order-number { margin-top: 12rpx; color: var(--rf-muted); font-size: 19rpx; word-break: break-all; }
+.order-total { display: flex; align-items: center; justify-content: space-between; padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--rf-line); }
+.order-total .amount-strong { font-weight: 600; color: var(--rf-primary-text); font-size: 18px; }
+.order-number { margin-top: 8px; color: var(--rf-muted); font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
 .order-actions { display: flex; gap: 16rpx; margin-top: 22rpx; }
 .small-button { display: flex; align-items: center; justify-content: center; flex: 1; min-width: 0; min-height: 72rpx; padding: 10rpx 12rpx; line-height: 1.4; font-size: 25rpx; text-align: center; }
 .orders-page .notice { margin-top: 30rpx; }
 
-.order-filters { margin-top: 24rpx; white-space: nowrap; }
-.filter-row { display: flex; gap: 12rpx; }
-.filter { display: flex; align-items: center; justify-content: center; flex: 1; width: 0; min-width: 0; height: 68rpx; margin: 0; padding: 0 6rpx; font-size: 24rpx; line-height: 1.4; border-radius: 40rpx; background: var(--rf-bg); }
-.filter.active { color: var(--rf-on-primary); background: var(--rf-primary); }
 .end { text-align: center; margin-top: 24rpx; }
 
 .refund-overlay { position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.4); display:flex;align-items:center;justify-content:center;padding:32rpx;}
@@ -24,3 +21,5 @@
 .refund-dialog button {margin-top:0;}
 
 @import "../../styles/slate-components.wxss";
+
+.orders-page .section-tabs { margin-top: 12px; }

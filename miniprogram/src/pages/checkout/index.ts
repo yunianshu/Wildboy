@@ -84,8 +84,10 @@ Page({
     if (id) void this.load();
     else this.setData({ loading: false, error: "商品链接无效" });
   },
-  onShow() {
+  _showGeneration: 0,
+  async onShow() {
     enterPage(this);
+    const visit = ++this._showGeneration;
     const session = sessionVersion();
     const authenticated = hasSession();
     const changed = this.data.session !== -1 && this.data.session !== session;
@@ -118,10 +120,12 @@ Page({
         error: "账号已改变，请重新确认收货信息",
       });
     }
-    if (this.data.id && (this.data.loading || changed || (!this.data.product && !this.data.order))) void this.load();
-    else if (!this.data.order) void this.resumeCheckout();
+    if (this.data.id && (this.data.loading || changed || (!this.data.product && !this.data.order))) await this.load();
+    else if (!this.data.order) await this.resumeCheckout();
+    if (visit === this._showGeneration && isSessionCurrent(session)) await this.reconcilePayment();
   },
   onHide() {
+    this._showGeneration++;
     epoch.invalidate();
     addressEpoch.invalidate();
     quoteEpoch.invalidate();
@@ -129,6 +133,7 @@ Page({
     this.setData({ busy: false, recoveringOrder: false, quote: null, quoteSession: -1, totalText: "", originalTotalText: "", tierName: "", quoteLoading: false });
   },
   onUnload() {
+    this._showGeneration++;
     quoteEpoch.invalidate();
     epoch.invalidate();
     addressEpoch.invalidate();
@@ -557,13 +562,15 @@ Page({
       orderDeadlineText: order.expiresAt ? dateLabel(order.expiresAt) : "",
     });
   },
-  async refreshOrder() {
-    if (!this.data.order || this.data.busy) return;
+  async reconcilePayment() {
+    const pending = this.data.order;
+    if (pending?.status !== "PENDING_PAYMENT" || this.data.busy
+      || !(pending.paymentInitiated || pending.reconciliationRequired)) return;
     const current = epoch.next();
     const session = sessionVersion();
     this.setData({ busy: true, error: "" });
     try {
-      const order = await verifyPayment(this.data.order.id, () => epoch.valid(current));
+      const order = await verifyPayment(pending.id, () => epoch.valid(current));
       if (epoch.valid(current) && isSessionCurrent(session))
         this.showOrder(order);
     } catch (error) {

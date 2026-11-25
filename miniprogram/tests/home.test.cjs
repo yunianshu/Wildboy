@@ -110,7 +110,7 @@ test("home fourth shortcut is Wildboy without renaming the leisure activity cate
     homeEntries,
   );
   assert.equal(homeEntries[2].name, "二维码");
-  assert.equal(domain.categoryName("HOLIDAY"), "假期活动");
+  assert.equal(domain.categoryName("HOLIDAY"), "重装露营");
 });
 
 test("zero real activities remains empty, never fabricates signups", () => {
@@ -139,6 +139,7 @@ test("home requests six activities and cards navigate using original IDs", async
   const p = page();
   await p.load();
   assert.deepEqual(calls, [
+    { path: "/home/layout", method: "GET" },
     { path: "/articles?page=0&size=10", method: "GET" },
     { path: "/home/shortcuts", method: "GET" },
     { path: "/home", method: "GET" },
@@ -282,15 +283,17 @@ test("empty refresh removes old activities; failure offers retry without fake da
 test("late refresh cannot overwrite newer activities", async () => {
   let resolveOld;
   api.request = async (path) =>
-    path === "/home/shortcuts"
-      ? { version: 0, items: homeEntries }
-      : path === "/home"
-        ? home
-        : path.startsWith("/articles")
-          ? { items: [] }
-          : new Promise((resolve) => {
-              resolveOld = resolve;
-            });
+    path === "/home/layout"
+      ? null
+      : path === "/home/shortcuts"
+        ? { version: 0, items: homeEntries }
+        : path === "/home"
+          ? home
+          : path.startsWith("/articles")
+            ? { items: [] }
+            : new Promise((resolve) => {
+                resolveOld = resolve;
+              });
   const p = page();
   const old = p.load();
   responses([activity("new")]);
@@ -305,15 +308,17 @@ test("late refresh cannot overwrite newer activities", async () => {
 test("unload invalidates inflight home response", async () => {
   let finish;
   api.request = async (path) =>
-    path === "/home/shortcuts"
-      ? { version: 0, items: homeEntries }
-      : path === "/home"
-        ? home
-        : path.startsWith("/articles")
-          ? { items: [] }
-          : new Promise((resolve) => {
-              finish = resolve;
-            });
+    path === "/home/layout"
+      ? null
+      : path === "/home/shortcuts"
+        ? { version: 0, items: homeEntries }
+        : path === "/home"
+          ? home
+          : path.startsWith("/articles")
+            ? { items: [] }
+            : new Promise((resolve) => {
+                finish = resolve;
+              });
   const p = page();
   const pending = p.load();
   p.onUnload();
@@ -339,10 +344,10 @@ test("native home keeps its hero, shortcuts, activity cards, full-width equipmen
     'class="category-grid"',
     'class="grid"',
     'class="shop"',
-    'src="/assets/equipment-banner.jpg"',
+    'src="{{shopConfig.bannerImageUrl}}"',
     'class="equipment-grid"',
     'class="scenery-swiper"',
-    'src="/assets/platform-brand-original-transparent.png"',
+    'src="{{footer.brandImageUrl}}"',
   ].map((x) => markup.indexOf(x));
   assert.ok(positions.every((x, i) => x >= 0 && (!i || x > positions[i - 1])));
   assert.equal((markup.match(/<swiper\s/g) || []).length, 1);
@@ -390,7 +395,7 @@ test("returning to Explore refreshes the article publication state", async () =>
   assert.equal(calls.length, 0);
   p.onShow();
   await new Promise((resolve) => setImmediate(resolve));
-  assert.equal(calls[0].path, "/articles?page=0&size=10");
+  assert.ok(calls.some((c) => c.path === "/articles?page=0&size=10"));
 });
 
 test("QR popup defaults to honest unconfigured state; repeated taps and dismissal do not navigate", async () => {

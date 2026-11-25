@@ -430,17 +430,23 @@ test("deleted selected address cannot create order", async () => {
   assert.equal(p.data.selectedAddressId, "");
   assert.ok(!requests.includes("/orders"));
 });
-test("checkout explicit refresh actively reconciles rather than trusting local status", async () => {
-  const p = checkout(); p.data.order = baseOrder;
+test("checkout automatically reconciles an attempted payment on return", async () => {
+  const p = checkout(); p.data.order = { ...baseOrder, paymentInitiated:true };
   api.request = async (path, method) => { requests.push({path,method}); return {...baseOrder,status:"PAID"}; };
-  await p.refreshOrder();
+  await p.onShow();
   assert.equal(p.data.order.status,"PAID");
   assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
 });
+test("returning to an unattempted checkout does not contact payment endpoints", async () => {
+  const p = checkout();
+  p.data.order = { ...baseOrder, paymentInitiated: false, reconciliationRequired: false };
+  await p.onShow();
+  assert.deepEqual(requests, []);
+});
 test("order list provides active reconciliation without repeat payment", async () => {
-  const p = page("orders"); p.data.loading = false; p.data.items = [p.view(baseOrder)];
+  const p = page("orders"); p.data.loading = false; p.data.items = [p.view({ ...baseOrder, paymentInitiated:true })];
   api.request = async (path, method) => { requests.push({path,method}); return {...baseOrder,status:"PAID"}; };
-  await p.verify(event("order-1"));
+  await p.reconcilePending();
   assert.equal(p.data.items[0].status,"PAID");
   assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
 });

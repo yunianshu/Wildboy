@@ -7,7 +7,7 @@
 1. 让域名的 A 记录指向部署主机。仅在主机具备公网 IPv6 时添加 AAAA 记录。部署主机需允许公网 TCP 443，API 端口 8080 保持仅本机可达。
 2. 用受信任的 CA 签发覆盖 `api.wildboy.com.cn` 的证书，例如通过 ACME DNS-01 验证，继续由现有服务使用 80。将 `fullchain.pem`（域名证书在前，其后是中间证书）和 `privkey.pem` 放在 `/etc/wildboy/tls/api.wildboy.com.cn/`。文件由 root 持有，目录与私钥仅允许部署账户访问。若证书来自其他路径或由符号链接提供，复制实际 PEM 文件到该目录，由续期钩子更新。也可通过 `WILDBOY_API_TLS_DIR` 指定独立目录。
 3. 开放入口前，确认现有 API 已用 `prod` 配置重建，且正式管理员可登录。首次从演示环境转生产时，应撤销已有演示会话。关闭演示登录后，先前签发的令牌仍可能有效至原到期。暂不启用微信支付时，可在原项目 `.env` 中设置 `SPRING_PROFILES_ACTIVE=prod`，按原 Compose 配置重建 `api`。启用支付时，按下文使用生产覆盖文件。
-4. 从服务器项目根目录执行以下命令。可手动上传此目录中的部署文件，随后直接执行 Compose。旧 `deploy/deploy.sh` 会同步并重置代码检出，且没有加载这两个 Compose 文件。
+4. 从服务器项目根目录执行以下命令。可手动上传此目录中的部署文件，随后直接执行 Compose。HTTPS 网关使用独立的 Compose 项目。
 
 ```sh
 docker compose -p wildboy-https -f deploy/compose.https.yml config --quiet
@@ -39,11 +39,7 @@ docker compose -p wildboy-https -f deploy/compose.https.yml exec -T api-https ng
 - 覆盖文件固定使用 `prod`。AnyService 和 8081 继续连接同一个 API，正式账号从现有数据库或服务器 bootstrap 配置读取。
 - `SPRING_FLYWAY_OUT_OF_ORDER` 默认 `false`。仅当现有数据库已经应用 V18–V22、确认 V15–V17 缺失且其他历史校验和匹配时，在备份与副本验证后为首次升级设置 `SPRING_FLYWAY_OUT_OF_ORDER=true`。升级后删除临时设置，再按默认值部署。保留已应用迁移的内容及校验和，不手工修改迁移历史。详见 [后端迁移说明](../docs/backend.md)。
 
-```sh
-docker compose -f docker-compose.yml -f deploy/compose.production-api.yml config --quiet
-docker compose -f docker-compose.yml -f deploy/compose.production-api.yml up -d --build api
-curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health
-```
+生产配置生效后，从开发机执行 `sh deploy/deploy-api.sh` 更新后端。脚本沿用运行中 API 容器记录的生产 Compose 文件，并追加 JAR 覆盖文件。首次配置时，先将生产参数和密钥挂载应用到现有 API 运行时镜像。
 
 `WECHAT_PAY_NOTIFY_URL` 指向 `https://api.wildboy.com.cn/api/v1/payments/wechat/notify`。服务端由此派生其余回调地址。
 

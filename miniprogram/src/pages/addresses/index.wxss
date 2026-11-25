@@ -31,59 +31,80 @@
   width: 100%;
   height: 168rpx;
   padding: 20rpx;
-  border: 1rpx solid var(--rf-soft);
-  border-radius: 10rpx;
-  background: #FFFFFF;
-  color: var(--rf-primary-text);
-  font-size: 30rpx;
+  border: 1px solid var(--rf-field-line);
+  border-radius: 8px;
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  font-size: 14px;
   line-height: 1.5;
   text-align: left;
 }
-.address-card.address-selected { background: var(--rf-soft); }
+.address-card.address-selected { background: var(--rf-soft); border-color: var(--rf-primary); }
 .address-card {
-  background: #FFFFFF;
-  padding: 28rpx;
-  border-radius: 20rpx;
-  margin-bottom: 24rpx;
+  background: var(--rf-surface);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 12px;
 }
 .address-name {
-  font-size: 30rpx;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 15px;
   font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
-.address-name text {
-  margin-left: 16rpx;
-}
+.address-name text { margin: 0; }
 .address-name .default-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--rf-soft);
   color: var(--rf-muted);
-  font-size: 22rpx;
+  font-size: 11px;
+  font-weight: 400;
 }
 .address-detail {
-  font-size: 27rpx;
+  margin: 8px 0 12px;
+  color: var(--rf-muted);
+  font-size: 13px;
   line-height: 1.6;
-  margin: 18rpx 0;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 .address-actions,
 .default-row {
   display: flex;
   align-items: center;
-  gap: 16rpx;
+  gap: 12px;
 }
-.address-actions button {
+.address-actions { justify-content: space-between; }
+.address-secondary-actions { display: flex; flex: 1; gap: 4px; min-width: 0; }
+.addresses-page .address-actions .text-button {
+  flex: 0 1 auto;
+  min-width: 52px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px;
+  font-size: 13px;
+}
+.addresses-page .address-actions .danger-text { color: var(--rf-danger); }
+.address-actions .select-address {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 72rpx;
+  flex: 0 0 auto;
+  max-width: 56%;
+  min-height: 44px;
+  margin: 0 0 0 auto;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--rf-primary);
+  color: var(--rf-on-primary);
+  font-size: 13px;
   line-height: 1.4;
   text-align: center;
-  margin: 0;
-  padding: 10rpx 18rpx;
-  font-size: 25rpx;
-}
-.address-actions .select-address {
-  margin-left: auto;
-  background: var(--rf-primary);
-  color: white;
+  white-space: normal;
 }
 .default-row {
   justify-content: space-between;

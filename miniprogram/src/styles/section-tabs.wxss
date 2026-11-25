@@ -1,0 +1,70 @@
+.section-tabs {
+  width: 100%;
+  white-space: nowrap;
+}
+.section-tab-list {
+  display: inline-flex;
+  align-items: flex-end;
+  min-width: 100%;
+  vertical-align: top;
+}
+.section-tab-list button.section-tab {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 48px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 10px;
+  border-radius: 7px 13px 0 0;
+  background: transparent;
+  color: var(--rf-muted);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+button.section-tab::after {
+  border: 0;
+}
+.section-tab-list-fill {
+  display: flex;
+  width: 100%;
+}
+.section-tab-list-fill button.section-tab {
+  flex: 1 1 0;
+}
+/* The selected tab and the panel's top edge share one green surface. */
+.section-tab-list button.section-tab-pressed {
+  background: var(--rf-soft);
+}
+.section-tab-list button.section-tab-current {
+  background: var(--rf-primary-text);
+  color: var(--rf-on-primary);
+  font-weight: 600;
+}
+.section-tab-list button.section-tab-current.section-tab-pressed {
+  background: var(--rf-primary-text);
+}
+.section-tab-panel {
+  box-sizing: border-box;
+  min-width: 0;
+  padding: 0 12px 12px;
+  border: 1px solid var(--rf-line);
+  border-top: 3px solid var(--rf-primary-text);
+  border-radius: 0 3px 10px 10px;
+  background: var(--rf-surface);
+}
+.section-tab-panel > .order-card,
+.section-tab-panel > .record,
+.section-tab-panel .product-card {
+  box-sizing: border-box;
+  border: 1px solid var(--rf-line);
+}
+.section-tab-list button.section-tab[disabled] {
+  opacity: .6;
+}

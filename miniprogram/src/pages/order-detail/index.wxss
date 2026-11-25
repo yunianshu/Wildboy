@@ -1,6 +1,6 @@
 @import "../../styles/slate-theme.wxss";
 
-/* 订单详情：微信电商订单深链落地页，B 莓果语言。 */
+/* 订单详情：微信电商订单深链落地页。 */
 .order-detail-page { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
 .detail-card {
@@ -27,11 +27,14 @@
 .product-name { font-size: 14px; font-weight: 600; color: var(--rf-ink); overflow-wrap: anywhere; }
 .product-price { font-size: 14px; font-weight: 600; color: var(--rf-ink); white-space: nowrap; }
 
-.meta-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; }
-.meta-row .muted { color: var(--rf-muted); flex-shrink: 0; }
-.meta-value { color: var(--rf-ink); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-.amount { color: var(--rf-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
-.recipient { font-size: 14px; font-weight: 600; color: var(--rf-ink); }
+.meta-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; font-size: 13px; }
+.meta-row .muted { color: var(--rf-muted); }
+.meta-row > .muted:first-child { font-size: 12px; }
+.meta-value { min-width: 0; color: var(--rf-ink); text-align: left; overflow-wrap: anywhere; font-size: 12px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.meta-row > .meta-value:last-child, .meta-row > .amount, .meta-row > .muted:last-child { text-align: right; }
+.order-detail-page .meta-row > .text-button { min-width: 44px; padding: 8px 4px; }
+.amount { color: var(--rf-primary); font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.recipient { font-size: 14px; font-weight: 600; line-height: 1.6; color: var(--rf-ink); overflow-wrap: anywhere; }
 
 .virtual-card {
   box-sizing: border-box;
@@ -48,3 +51,5 @@
 
 .detail-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .detail-actions .center { text-align: center; }
+
+@import "../../styles/slate-components.wxss";

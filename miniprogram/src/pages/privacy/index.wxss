@@ -2,11 +2,11 @@
 @import "../../styles/user-flow.wxss";
 .legal-content {
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   line-height: 1.9;
-  font-size: 28rpx;
-  margin: 40rpx 0;
-  color: var(--rf-primary-text);
+  font-size: 14px;
+  margin: 24px 0;
+  color: var(--rf-ink);
 }
 .notice {
   margin-top: 36rpx;

@@ -23,7 +23,7 @@ Page({
   },
   onShow() {
     enterPage(this);
-    if (this._path && !this.data.article) void this.load();
+    if (this._path) void this.load(!!this.data.article);
   },
   onHide() {
     this._epoch++;
@@ -32,10 +32,10 @@ Page({
   onUnload() {
     this._epoch++;
   },
-  async load() {
+  async load(background = false) {
     if (!this._path) return;
     const n = ++this._epoch;
-    this.setData({ article: null, loading: true, error: "", empty: "" });
+    this.setData({ ...(background ? {} : { article: null, loading: true }), error: "", empty: "" });
     try {
       const article = await request<Article>(this._path);
       if (
@@ -61,12 +61,13 @@ Page({
       if (n !== this._epoch) return;
       if (e instanceof ApiError && e.status === 404)
         this.setData({
+          article: null,
           empty:
             this._path === "/articles/official"
               ? "野小子官方介绍即将发布"
               : "文章尚未发布或已下架",
         });
-      else this.setData({ error: message(e) });
+      else if (!background) this.setData({ error: message(e) });
     } finally {
       if (n === this._epoch) this.setData({ loading: false });
     }

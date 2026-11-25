@@ -79,6 +79,11 @@ function focusableElements() {
 function keydown(event: KeyboardEvent) {
   if (!isTopmost()) return;
   if (event.key === "Escape") {
+    if (
+      globalThis.CSS?.supports?.("selector(select:open)") &&
+      dialog.value?.querySelector("select:open")
+    )
+      return;
     event.preventDefault();
     event.stopPropagation();
     close();

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRouter } from "vue-router";
@@ -73,6 +74,7 @@ async function closeEditor() {
   conflict.value = false;
   error.value = "";
   editing.value = false;
+  void load();
 }
 watch(currentUser, clear, { flush: "sync" });
 async function load() {
@@ -99,13 +101,7 @@ async function load() {
     if (n === epoch) loading.value = false;
   }
 }
-async function reload() {
-  if (
-    !dirty.value ||
-    (await askConfirm("重新读取会清空当前未保存的账号和密码输入，是否继续？"))
-  )
-    void load();
-}
+
 async function save() {
   if (
     busy.value ||
@@ -172,7 +168,7 @@ async function save() {
       };
     }
     error.value = conflict.value
-      ? "账号设置已在其他会话更新。当前输入已保留，请重新读取后再核对；不会自动覆盖。"
+      ? "账号设置已在其他会话更新。当前输入已保留，不会自动覆盖。关闭编辑后会读取最新资料。"
       : e instanceof ApiError && e.status === 429
         ? "操作过于频繁，请稍后再试。当前输入已保留。"
         : e instanceof Error
@@ -206,6 +202,9 @@ onUnmounted(() => {
   clear();
   window.removeEventListener("beforeunload", beforeUnload);
 });
+useForegroundRefresh(() => {
+  if (!loading.value && !editing.value && !busy.value) void load();
+});
 </script>
 <template>
   <main class="workspace">
@@ -221,9 +220,14 @@ onUnmounted(() => {
       </button>
     </section>
     <p v-if="error && !editing" class="error-box" role="alert">
-      {{ error
-      }}<button class="text-button" :disabled="busy || loading" @click="reload">
-        重新读取
+      {{ error }}
+      <button
+        v-if="!settings"
+        class="text-button"
+        :disabled="loading"
+        @click="load"
+      >
+        重试
       </button>
     </p>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
@@ -231,17 +235,16 @@ onUnmounted(() => {
       >正在读取账号设置…</UiState
     >
     <template v-if="settings">
-      <div class="privacy-note">
-        {{
-          settings.configured
-            ? `已配置管理员账号：${settings.username}。小程序管理员登录入口已启用。`
-            : "当前未配置。保存管理员账号后，小程序才会显示管理员登录入口。"
-        }}
-      </div>
       <section v-if="settings.canConfigure" class="form-section account-form">
-        <h2>当前管理员</h2>
+        <h2>登录账号</h2>
         <p>{{ settings.username || "尚未设置用户名" }}</p>
-        <p class="muted">账号密码只在修改弹窗中填写，页面不保留密码输入。</p>
+        <p class="muted">
+          {{
+            settings.configured
+              ? "小程序管理员登录入口已启用"
+              : "当前未配置。保存账号后启用小程序管理员登录。"
+          }}
+        </p>
       </section>
       <UiState v-else kind="empty" compact
         ><strong>{{
@@ -253,7 +256,7 @@ onUnmounted(() => {
           {{
             settings.configurationBlockReason === "PASSWORD_LOGIN_REQUIRED"
               ? "请使用真实管理员用户名和密码登录后再设置。"
-              : "请联系部署人员完成管理员初始密码配置，再刷新重试。"
+              : "请联系部署人员完成管理员初始密码配置。"
           }}
         </p>
         <button
@@ -261,14 +264,11 @@ onUnmounted(() => {
           class="primary"
           @click="passwordLogin"
         >
-          使用密码登录</button
-        ><button v-else @click="reload">重新读取</button></UiState
+          使用密码登录
+        </button></UiState
       >
-      <p class="privacy-note">
-        保存后保留当前会话，其他管理员登录会退出。之后仅使用新用户名和密码登录；成功后清空所有密码输入。
-      </p>
     </template>
-    <button v-else-if="!loading && !error" @click="load">重新加载</button>
+
     <FormModal
       :busy="busy"
       v-if="editing && settings?.canConfigure"
@@ -280,7 +280,14 @@ onUnmounted(() => {
         class="form-section account-form"
         @submit.prevent="save"
       >
-        <button type="button" class="text-button" :aria-pressed="showPasswords" @click="showPasswords = !showPasswords">{{ showPasswords ? "隐藏密码" : "显示密码" }}</button>
+        <button
+          type="button"
+          class="text-button"
+          :aria-pressed="showPasswords"
+          @click="showPasswords = !showPasswords"
+        >
+          {{ showPasswords ? "隐藏密码" : "显示密码" }}
+        </button>
         <p v-if="error" class="error-box" role="alert">{{ error }}</p>
         <div class="field-row">
           <label
@@ -322,7 +329,7 @@ onUnmounted(() => {
         </div>
         <p class="field-hint">
           新密码须为 12–72 字符，至少包含英文字母与数字，UTF-8 最多 72
-          字节。密码不保存在设备。
+          字节。保存后，其他管理员会话将退出。
         </p>
         <div class="dialog-actions">
           <button type="button" :disabled="busy" @click="closeEditor">

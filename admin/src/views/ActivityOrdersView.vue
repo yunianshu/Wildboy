@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router";
@@ -26,16 +27,29 @@ const searchDraft = ref("");
 const statusDraft = ref("");
 const refundDraft = ref("");
 const appliedFilters = ref({ query: "", status: "", refundStatus: "" });
+const hasFilters = computed(() =>
+  Object.values(appliedFilters.value).some(Boolean),
+);
 const notice = ref("");
 const total = ref(0);
-const { exporting, exportError, downloadRoster, resetExport } = useRosterExport();
+const { exporting, exportError, downloadRoster, resetExport } =
+  useRosterExport();
 function applyFilters() {
-  appliedFilters.value = { query: searchDraft.value.trim(), status: statusDraft.value, refundStatus: refundDraft.value };
+  appliedFilters.value = {
+    query: searchDraft.value.trim(),
+    status: statusDraft.value,
+    refundStatus: refundDraft.value,
+  };
   void load(0);
+}
+function clearFilters() {
+  searchDraft.value = statusDraft.value = refundDraft.value = "";
+  applyFilters();
 }
 function listPath(next: number) {
   const params = new URLSearchParams({ page: String(next), size: "20" });
-  for (const [key, value] of Object.entries(appliedFilters.value)) if (value) params.set(key, value);
+  for (const [key, value] of Object.entries(appliedFilters.value))
+    if (value) params.set(key, value);
   if (activityId.value) params.set("activityId", activityId.value);
   if (orderId.value) params.set("orderId", orderId.value);
   return `/admin/activity-orders?${params}`;
@@ -59,6 +73,7 @@ type Order = {
 type Participant = {
   id: string;
   participantName: string;
+  boardingPoint?: string | null;
   phone: string;
   idNumber: string | null;
 };
@@ -407,11 +422,19 @@ async function action(
       error.value = "请重新加载订单和退款资料，核对服务端结果后再操作。";
     }
   } finally {
-    if (n === epoch) busy.value = false;
+    if (n === epoch) {
+      busy.value = false;
+      if (conflict.value && !hasDraft() && selected.value) {
+        await open(selected.value);
+        if (n === epoch && selected.value && !error.value)
+          notice.value = "订单资料已更新，请核对后继续。";
+      }
+    }
   }
 }
 async function loadParticipants(background = false) {
-  if ((!background && busy.value) || !selected.value || !currentUser.value) return;
+  if ((!background && busy.value) || !selected.value || !currentUser.value)
+    return;
   const order = selected.value;
   const attempt = ++peopleRequest;
   const n = epoch,
@@ -422,8 +445,21 @@ async function loadParticipants(background = false) {
     const rows = await request<Participant[]>(
       `/admin/activity-orders/${encodeURIComponent(selected.value.id)}/participants`,
     );
-    if (attempt !== peopleRequest || n !== epoch || actor !== currentUser.value || selected.value?.id !== order.id) return;
-    if (!Array.isArray(rows) || rows.some((row) => typeof row.participantName !== "string" || typeof row.phone !== "string"))
+    if (
+      attempt !== peopleRequest ||
+      n !== epoch ||
+      actor !== currentUser.value ||
+      selected.value?.id !== order.id
+    )
+      return;
+    if (
+      !Array.isArray(rows) ||
+      rows.some(
+        (row) =>
+          typeof row.participantName !== "string" ||
+          typeof row.phone !== "string",
+      )
+    )
       throw new Error("参加者资料暂不可用，请重试");
     participants.value = rows;
     peopleLoaded.value = true;
@@ -491,6 +527,12 @@ watch([activityId, orderId], () => {
   void load(0);
 });
 onMounted(() => void load(0));
+useForegroundRefresh(() => {
+  if (busy.value) return;
+  if (!selected.value) void load();
+  else if (!hasDraft() && !revealed.value && !showPeople.value)
+    void open(selected.value);
+}, 45_000);
 </script>
 <template>
   <main class="workspace activity-orders-workspace">
@@ -500,7 +542,10 @@ onMounted(() => void load(0));
           orderId ? "活动订单核对" : activityId ? "收费活动名单" : "活动订单"
         }}
       </h1>
-      <div v-if="activityId && !orderId && currentUser?.role === 'ADMIN'" class="action-row">
+      <div
+        v-if="activityId && !orderId && currentUser?.role === 'ADMIN'"
+        class="action-row"
+      >
         <button
           class="primary"
           type="button"
@@ -510,10 +555,6 @@ onMounted(() => void load(0));
           {{ exporting ? "正在导出…" : "导出已确认名单" }}
         </button>
       </div>
-      <button v-else class="secondary" :disabled="busy" @click="load()">
-        <AppIcon name="refresh" :size="16" />
-        刷新订单
-      </button>
     </div>
     <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <div v-if="activityId || orderId" class="activity-order-scope">
@@ -530,24 +571,79 @@ onMounted(() => void load(0));
     </div>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="error && !selected" role="alert" class="error-box">{{ error }}</p>
-    <form v-if="!orderId" class="activity-order-filters" @submit.prevent="applyFilters">
-      <input v-model="searchDraft" maxlength="100" aria-label="搜索活动订单" placeholder="订单号或活动名称" />
-      <select v-model="statusDraft" aria-label="订单状态">
+    <form
+      v-if="!orderId"
+      class="list-filters"
+      role="search"
+      aria-label="筛选活动订单"
+      @submit.prevent="applyFilters"
+    >
+      <input
+        v-model="searchDraft"
+        type="search"
+        maxlength="100"
+        aria-label="搜索活动订单"
+        placeholder="订单号或活动名称"
+      />
+      <select
+        v-model="statusDraft"
+        aria-label="订单状态"
+        @change="applyFilters"
+      >
         <option value="">全部订单状态</option>
-        <option v-for="(label, value) in activityOrderLabels" :key="value" :value="value">{{ label }}</option>
+        <option
+          v-for="(label, value) in activityOrderLabels"
+          :key="value"
+          :value="value"
+        >
+          {{ label }}
+        </option>
       </select>
-      <select v-model="refundDraft" aria-label="退款状态">
+      <select
+        v-model="refundDraft"
+        aria-label="退款状态"
+        @change="applyFilters"
+      >
         <option value="">全部退款状态</option>
-        <option v-for="(label, value) in refundLabels" :key="value" :value="value">{{ label }}</option>
+        <option
+          v-for="(label, value) in refundLabels"
+          :key="value"
+          :value="value"
+        >
+          {{ label }}
+        </option>
       </select>
-      <button class="secondary" :disabled="busy">查询</button>
+      <button class="secondary" type="submit" :disabled="busy">查询</button>
+      <button
+        v-if="hasFilters && (items.length || error)"
+        class="text-button"
+        type="button"
+        :disabled="busy"
+        @click="clearFilters"
+      >
+        清除筛选
+      </button>
     </form>
     <UiState v-if="busy && !items.length" kind="loading" compact
       >正在读取活动订单…</UiState
     >
-    <UiState v-else-if="!busy && !items.length && !error" kind="empty" compact
-      >暂无活动订单</UiState
-    >
+    <UiState v-else-if="!busy && !items.length && !error" kind="empty" compact>
+      {{
+        hasFilters
+          ? "没有符合条件的活动订单"
+          : orderId
+            ? "没有找到此订单"
+            : "暂无活动订单"
+      }}
+      <button
+        v-if="hasFilters && !orderId"
+        class="text-button"
+        type="button"
+        @click="clearFilters"
+      >
+        清除筛选
+      </button>
+    </UiState>
     <div v-if="items.length" class="table-scroll activity-order-table">
       <table role="table" aria-label="活动订单">
         <thead role="rowgroup">
@@ -581,8 +677,16 @@ onMounted(() => void load(0));
                 status(o)
               }}</span>
             </td>
-            <td role="cell">{{ o.refundStatus ? (refundLabels[o.refundStatus] || o.refundStatus) : "—" }}</td>
-            <td role="cell">{{ o.createdAt ? displayDate(o.createdAt) : "—" }}</td>
+            <td class="order-refund" role="cell" data-label="退款状态">
+              {{
+                o.refundStatus
+                  ? refundLabels[o.refundStatus] || o.refundStatus
+                  : "—"
+              }}
+            </td>
+            <td class="order-date" role="cell" data-label="下单时间">
+              {{ o.createdAt ? displayDate(o.createdAt) : "—" }}
+            </td>
             <td class="order-open" role="cell">
               <button class="text-button" :disabled="busy" @click="open(o)">
                 查看订单
@@ -592,10 +696,15 @@ onMounted(() => void load(0));
         </tbody>
       </table>
     </div>
-    <PaginationBar :page="page" :page-size="20" :total="total" :has-more="more" :busy="busy" label="活动订单分页" @change="load" />
-    <p class="activity-order-hint">
-      金额为下单时的成交快照。待支付订单尚未确认报名。
-    </p>
+    <PaginationBar
+      :page="page"
+      :page-size="20"
+      :total="total"
+      :has-more="more"
+      :busy="busy"
+      label="活动订单分页"
+      @change="load"
+    />
     <FormModal
       :busy="busy"
       v-if="selected"
@@ -681,6 +790,7 @@ onMounted(() => void load(0));
           }}
           ·
           {{ showPeople ? person.phone : maskPhone(person.phone) }}
+          <span v-if="person.boardingPoint"> · {{ person.boardingPoint }}</span>
           · {{ person.idNumber || "无需证件" }}
         </p>
         <p class="activity-order-hint">
@@ -767,9 +877,14 @@ onMounted(() => void load(0));
           </p>
         </template>
       </section>
-      <div class="activity-order-actions activity-order-footer">
-        <button class="secondary" :disabled="busy" @click="reload">
-          刷新详情
+      <div class="footer-actions activity-order-footer">
+        <button
+          v-if="conflict && hasDraft()"
+          class="secondary"
+          :disabled="busy"
+          @click="reload"
+        >
+          放弃填写并查看当前订单
         </button>
         <template v-if="selected.status === 'PENDING_PAYMENT'">
           <button
@@ -834,19 +949,6 @@ onMounted(() => void load(0));
   </main>
 </template>
 <style scoped>
-.activity-order-filters {
-  display: grid;
-  grid-template-columns: minmax(180px, 1.5fr) repeat(2, minmax(136px, 1fr)) auto;
-  align-items: end;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.activity-order-filters :is(input, select) { width: 100%; min-width: 0; margin: 0; }
-@media (max-width: 720px) {
-  .activity-order-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .activity-order-filters input { grid-column: 1 / -1; }
-}
-
 .activity-order-pager,
 .activity-order-actions,
 .activity-order-scope,
@@ -865,7 +967,6 @@ onMounted(() => void load(0));
 }
 .activity-order-scope span,
 .activity-order-pager,
-.activity-order-hint,
 .order-identity small,
 .order-amount small {
   color: var(--admin-muted);
@@ -921,9 +1022,6 @@ onMounted(() => void load(0));
 }
 .activity-order-pager span {
   margin-right: auto;
-}
-.activity-order-hint {
-  margin: 10px 0 0;
 }
 .activity-order-detail :deep(.form-modal) {
   max-width: 780px;
@@ -987,9 +1085,6 @@ onMounted(() => void load(0));
 .activity-order-user {
   overflow-wrap: anywhere;
 }
-.activity-order-footer {
-  justify-content: flex-end;
-}
 
 @media (max-width: 720px) {
   .activity-order-table {
@@ -1046,6 +1141,26 @@ onMounted(() => void load(0));
   .order-amount {
     grid-column: 2;
     grid-row: 2;
+  }
+  .order-refund,
+  .order-date {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    grid-row: 3;
+    color: var(--admin-muted);
+    font-size: 11px;
+  }
+  .order-refund {
+    grid-column: 1;
+  }
+  .order-date {
+    grid-column: 2 / 4;
+  }
+  .order-refund::before,
+  .order-date::before {
+    color: var(--admin-muted);
+    content: attr(data-label) "：";
   }
   .order-open {
     grid-column: 3;

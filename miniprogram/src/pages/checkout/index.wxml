@@ -15,11 +15,11 @@
       <view class="muted">{{order.address}}</view>
     </view>
     <view wx:if="{{order.status === 'PENDING_PAYMENT' && orderDeadlineText}}" class="notice">付款截止 {{orderDeadlineText}}，超时后核实关单并释放库存。</view>
-    <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请刷新结果或联系管理员，不要重复下单。</view>
+    <view wx:if="{{order.reconciliationRequired}}" class="notice">支付状态待核对，库存暂时保留。请勿重复下单。</view>
     <view wx:if="{{error}}" class="error form-error">{{error}}</view>
-    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">已付款请刷新结果，勿重复下单；未付款可继续支付。</view>
+    <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="notice">已付款请等待系统核对，勿重复下单；未付款可继续支付。</view>
     <view wx:if="{{order.status === 'PENDING_PAYMENT'}}" class="payment-actions">
-      <button class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="refreshOrder">刷新支付结果</button>
+
       <button class="primary" loading="{{busy}}" disabled="{{busy}}" bindtap="payExisting">继续支付</button>
     </view>
     <button class="secondary orders-link" bindtap="orders">查看我的订单</button>
@@ -33,7 +33,7 @@
     </view><view class="price">{{totalText}}</view></view></view>
     <ui-state wx:if="{{quoteLoading}}" kind="loading" compact="{{true}}">正在核对订单金额…</ui-state>
     <view wx:elif="{{quoteLoginRequired}}" class="notice">登录后确认当前报价<button class="secondary" bindtap="login">微信登录</button></view>
-    <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="resumeCheckout" disabled="{{busy || recoveringOrder}}">重新获取价格</button></view>
+    <view wx:elif="{{quoteError}}" class="error">{{quoteError}}<button class="secondary" bindtap="resumeCheckout" disabled="{{busy || recoveringOrder}}">重试</button></view>
     <view wx:elif="{{quote.originalTotalCents > quote.totalCents}}" class="notice">{{tierName || '会员'}}优惠 · 优惠前 {{originalTotalText}}</view>
     <view class="section-head"><view class="section-title">收货地址</view></view>
     <ui-state wx:if="{{addressLoading}}" kind="loading" compact="{{true}}">正在加载地址…</ui-state>
@@ -49,7 +49,7 @@
       {{recoveringOrder ? '正在核对原订单…' : recoveryError}}
       <button class="secondary" bindtap="resumeCheckout" loading="{{recoveringOrder}}" disabled="{{busy || recoveringOrder}}">核对原订单</button>
     </view>
-    <button wx:if="{{!legal}}" class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="retry">重新加载协议</button>
+    <button wx:if="{{!legal}}" class="secondary" loading="{{busy}}" disabled="{{busy}}" bindtap="retry">重试</button>
     <button class="primary submit" loading="{{busy}}" disabled="{{busy || recoveringOrder || !!recoveryError || !quote || quoteLoading || !legal || addressLoading || addressError}}" bindtap="submit">{{busy ? '正在处理订单…' : (quote ? (quote.totalCents === 0 ? '提交免支付订单' : '提交订单并支付 ' + totalText) : '等待确认价格')}}</button>
   </block>
   <ui-state wx:if="{{error && !product && !order}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>

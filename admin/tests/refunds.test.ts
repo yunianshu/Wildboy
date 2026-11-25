@@ -36,7 +36,7 @@ it("requires explicit confirmation before refund and labels processing accuratel
   await button(w, "批准退款").trigger("click");
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(w.get('[role="dialog"]').text()).toContain("不可撤回");
-  await button(w, "确认").trigger("click");
+  await button(w, "确认退款").trigger("click");
   await flushPromises();
   expect(w.text()).toContain("退款中");
   expect(w.get("table").text()).not.toContain("已退款");
@@ -50,13 +50,13 @@ it("cancel never sends a refund and rejection needs a reason", async () => {
   await button(w, "取消").trigger("click");
   expect(fetcher).toHaveBeenCalledTimes(1);
   await button(w, "拒绝").trigger("click");
-  await button(w, "确认").trigger("click");
+  await button(w, "确认拒绝").trigger("click");
   expect(fetcher).toHaveBeenCalledTimes(1);
   expect(w.get('[role="dialog"] [role="alert"]').text()).toContain(
     "请填写拒绝原因",
   );
   await w.get("textarea").setValue("已沟通");
-  await button(w, "确认").trigger("click");
+  await button(w, "确认拒绝").trigger("click");
   await flushPromises();
   expect(fetcher.mock.calls[1][0]).toContain("/reject");
   w.unmount();
@@ -74,7 +74,7 @@ it("keeps the refund dialog and its error visible through a pending or failed re
   const w = mount(RefundsView, { attachTo: document.body });
   await flushPromises();
   await button(w, "批准退款").trigger("click");
-  await button(w, "确认").trigger("click");
+  await button(w, "确认退款").trigger("click");
   document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
   await flushPromises();
   expect(w.find('[role="dialog"]').exists()).toBe(true);

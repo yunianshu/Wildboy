@@ -44,7 +44,7 @@ public class ActivityOrderService {
   }
   public List<Models.Participant> participants(String id,String user) {
     get(id,user);
-    return db.query("SELECT * FROM activity_order_participant WHERE order_id=? ORDER BY position",(r,n)->new Models.Participant(r.getString("id"),r.getString("participant_name"),identity.masked(r.getString("id_number")),r.getString("phone")),id);
+    return db.query("SELECT * FROM activity_order_participant WHERE order_id=? ORDER BY position",(r,n)->new Models.Participant(r.getString("id"),r.getString("participant_name"),identity.masked(r.getString("id_number")),r.getString("phone"),r.getString("boarding_point")),id);
   }
   public List<Models.Participant> maskedParticipants(String id) {
     return participants(id,null).stream().map(UserService::maskedParticipant).toList();
@@ -70,7 +70,9 @@ public class ActivityOrderService {
       var normalized=new ArrayList<List<String>>();
       for(var p:input.participants()) {
         if(p==null)throw new ApiException(400,"INVALID_PARTICIPANT","参与人信息不完整");
-        normalized.add(List.of(p.participantName()==null?"":p.participantName().strip(),p.idNumber()==null?"":p.idNumber().strip().toUpperCase(Locale.ROOT),p.phone()==null?"":p.phone().strip()));
+        var fields = new ArrayList<>(List.of(p.participantName()==null?"":p.participantName().strip(),p.idNumber()==null?"":p.idNumber().strip().toUpperCase(Locale.ROOT),p.phone()==null?"":p.phone().strip()));
+        if (p.boardingPoint() != null && !p.boardingPoint().isBlank()) fields.add(p.boardingPoint().strip());
+        normalized.add(fields);
       }
       String value=json.writeValueAsString(Arrays.asList(activityId,normalized,input.privacyVersion(),input.termsVersion()));
       return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
@@ -127,8 +129,9 @@ public class ActivityOrderService {
   public Models.Activity setPrice(String id,int price,long version,String actor) {
     if(price<0||price>100000000)throw new ApiException(400,"INVALID_PRICE","活动价格超出范围");
     return tx.execute(s->{var a=activities.lock(id);activities.checkVersion(a,version);
-      if(!a.status().equals("DRAFT"))throw ApiException.conflict("INVALID_STATE","仅草稿活动可设置收费价格");
-      if(a.registeredCount()!=0)throw ApiException.conflict("ACTIVITY_HAS_REGISTRATIONS","活动已有报名");
+      boolean hasHistory=activities.hasEnrollmentHistory(id,a.registeredCount());
+      if(hasHistory && ((a.priceCents()==0)!=(price==0)))
+        throw ApiException.conflict("ACTIVITY_HAS_REGISTRATIONS","活动已有报名记录，暂不能在免费与收费模式间直接切换；请使用「换时间重开一期」");
       db.update("UPDATE activity SET price_cents=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",price,id);
       activities.audit(actor,id,"ACTIVITY_PRICE_SET");return activities.get(id,true);});
   }
@@ -146,7 +149,7 @@ public class ActivityOrderService {
         return order;
       }
       var a=activities.lock(activityId);activities.enrollmentOpen(a);
-      var participants=activities.validatedParticipants(input,a.identityRequired());
+      var participants=activities.validatedParticipants(input,a);
       legal.requireCurrent(input.privacyVersion(),input.termsVersion());
       activities.requireRegistrationContact(user);
       if(a.priceCents()<=0)throw ApiException.conflict("FREE_REGISTRATION_REQUIRED","免费活动请使用报名入口");
@@ -169,8 +172,8 @@ public class ActivityOrderService {
           id,no,a.id(),a.title(),user,key,total==0?"CONFIRMED_FREE":"PENDING_PAYMENT",participants.size(),original,total,quoteJson,expiry,fingerprint);
       for(int i=0;i<participants.size();i++) {
         var p=participants.get(i);
-        db.update("INSERT INTO activity_order_participant(id,order_id,participant_name,id_number,phone,position) VALUES(?,?,?,?,?,?)",
-            UUID.randomUUID().toString(),id,p.participantName(),identity.encrypt(p.idNumber()),p.phone(),i);
+        db.update("INSERT INTO activity_order_participant(id,order_id,participant_name,id_number,phone,position,boarding_point) VALUES(?,?,?,?,?,?,?)",
+            UUID.randomUUID().toString(),id,p.participantName(),identity.encrypt(p.idNumber()),p.phone(),i,p.boardingPoint());
       }
       db.update("UPDATE activity SET registered_count=registered_count+?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",participants.size(),activityId);
       legal.accept(user,input.privacyVersion(),input.termsVersion(),"REGISTRATION");

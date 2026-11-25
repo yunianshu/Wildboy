@@ -39,3 +39,51 @@ button[disabled], button.primary[disabled], button.secondary[disabled], .na-page
 .dialog-actions { display: flex; gap: 12px; }
 .dialog-actions > button { flex: 1; width: 0; min-width: 0; min-height: 48px; margin: 0; padding: 8px 12px; line-height: 1.5; border-radius: var(--rf-control-radius); }
 .page .form input, .page .form textarea, .page .picker, .na-page .na-field input, .na-page .na-field textarea, .na-page .na-picker, .uf-page input, .uf-page textarea { border-color: var(--rf-field-line); border-radius: var(--rf-control-radius); }
+
+button.ui-button-block { width: 100%; }
+.page > .title:first-child { margin-top: 0; }
+.page .muted { color: var(--rf-muted); font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.page .muted.small, .uf-page .small { font-size: 12px; }
+.page .section-head { align-items: center; gap: 12px; margin: 24px 0 12px; }
+.page .section-title, .page .product-name, .page .order-title { overflow-wrap: anywhere; }
+.page .notice { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.page .notice + .notice { margin-top: 8px; }
+.page .notice button { margin-top: 8px; }
+.page > button.primary, .page > button.secondary { width: 100%; margin-right: 0; margin-left: 0; }
+.page button.primary, .page button.secondary, .uf-page button.primary, .uf-page button.secondary { box-sizing: border-box; max-width: 100%; white-space: normal; }
+.page button.text-button, .uf-page button.text-button, .dialog-body button.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 44px;
+  min-height: 44px;
+  height: auto;
+  margin: 0;
+  padding: 8px;
+  background: transparent;
+  color: var(--rf-primary-text);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: normal;
+}
+button.text-button.button-hover { background: var(--rf-soft); }
+button.primary.button-hover { background: var(--rf-primary-hover); }
+button.secondary.button-hover { background: var(--rf-line); }
+.page .order-card, .page .detail-card, .page .record, .page .notice-card, .page .address-card, .page .participant-card, .page .product-card, .page .shipping-card, .page .order-product, .page .panel, .page .trip, .page .profile, .page .menu, .page .menu-row, .uf-page .uf-card {
+  box-sizing: border-box;
+  min-width: 0;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+}
+.page .order-card, .page .record, .page .notice-card { padding: 16px; margin-top: 12px; }
+.page .record { margin-bottom: 12px; }
+.page .order-head { gap: 12px; }
+.page .order-head .badge { flex-shrink: 0; }
+.page .order-actions button, .page .participant-actions button { box-sizing: border-box; min-height: 44px; }
+.page .small-button { min-height: 44px; font-size: 13px; }
+.page .dialog-actions > button { width: 0; }
+.page .booking-summary, .page .result-card, .page .virtual-card { border-radius: 12px; }
+.page .notice .text-button { margin-left: -8px; justify-content: flex-start; text-align: left; }
+.page button.text-button[disabled], .uf-page button.text-button[disabled], .dialog-body button.text-button[disabled] { background: transparent; color: var(--rf-muted); }

@@ -61,7 +61,7 @@ async function view() {
 it("edits exactly four entries with allowed page and published article choices", async () => {
   const w = await view();
   expect(w.findAll("[data-slot]")).toHaveLength(4);
-  expect(w.text()).toContain("尚未配置二维码/图片");
+  expect(w.text()).toContain("未添加文字或图片");
   expect(w.text()).toContain("已发布文章");
   expect(w.text()).not.toContain("秘密草稿");
   expect(w.find('input[placeholder="页面路径"]').exists()).toBe(false);
@@ -69,9 +69,11 @@ it("edits exactly four entries with allowed page and published article choices",
 });
 it("clears inactive fields when action changes and saves expected version", async () => {
   const w = await view();
-  await w.get('[aria-label="入口1类型"]').setValue("POPUP");
+  await w.get('input[name="shortcut-action-1"][value="POPUP"]').setValue(true);
   await w.get('[aria-label="入口1弹窗文字"]').setValue("欢迎");
-  await w.get('[aria-label="入口1类型"]').setValue("ARTICLE");
+  await w
+    .get('input[name="shortcut-action-1"][value="ARTICLE"]')
+    .setValue(true);
   await w.get('[aria-label="入口1文章"]').setValue("published");
   await w.get("form").trigger("submit");
   await flushPromises();
@@ -180,8 +182,10 @@ it("blocks duplicate saves and ignores responses after unmount", async () => {
   resolve({ ok: true, status: 200, json: async () => defaults() });
   await flushPromises();
 });
-it("reload cancellation preserves edits after a failed upload", async () => {
+it("foreground revalidation preserves unsaved edits after a failed upload", async () => {
   const w = await view();
+  const name = w.get<HTMLInputElement>('[aria-label="入口1名称"]');
+  await name.setValue("未保存名称");
   // 上传失败：媒体接口返回 503，不得产生保存请求或预览
   fetcher.mockImplementation((url: string, options: any = {}) => {
     if (url.includes("/admin/media"))
@@ -211,23 +215,14 @@ it("reload cancellation preserves edits after a failed upload", async () => {
   } as any);
   await input.trigger("change");
   await flushPromises();
-  expect(w.find(".popup-preview").exists()).toBe(false);
+  expect(w.find('img[alt="弹窗图片预览"]').exists()).toBe(false);
   expect(fetcher.mock.calls.filter((c) => c[1]?.method === "PUT")).toHaveLength(
     0,
   );
-  vi.mocked(confirmation.askConfirm).mockResolvedValue(false);
-  const count = fetcher.mock.calls.filter(
-    (c) => !c[0].includes("/admin/media"),
-  ).length;
-  await w
-    .findAll("button")
-    .find((b) => b.text() === "重新加载配置")!
-    .trigger("click");
-  expect(
-    fetcher.mock.calls.filter(
-      (c) => !c[0].includes("/admin/media") && c[1]?.method !== "PUT",
-    ).length,
-  ).toBeGreaterThanOrEqual(count);
+  window.dispatchEvent(new Event("focus"));
+  await flushPromises();
+  expect(name.element.value).toBe("未保存名称");
+  expect(vi.mocked(confirmation.askConfirm)).not.toHaveBeenCalled();
   w.unmount();
 });
 it("an upload completing after logout cannot restore image data", async () => {
@@ -257,7 +252,7 @@ it("an upload completing after logout cannot restore image data", async () => {
     json: async () => ({ url: "/assets/media/late.png" }),
   });
   await flushPromises();
-  expect(w.find(".popup-preview").exists()).toBe(false);
+  expect(w.find('img[alt="弹窗图片预览"]').exists()).toBe(false);
   expect(w.findAll("[data-slot]")).toHaveLength(0);
   reader.mockRestore();
   w.unmount();
@@ -310,7 +305,8 @@ it("shows wechat order center status and configures the detail path", async () =
     return {
       ok: true,
       status: 200,
-      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+      json: async () =>
+        opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults(),
     };
   });
   vi.stubGlobal("fetch", fetchOrderCenter);
@@ -333,15 +329,21 @@ it("shows wechat order center status and configures the detail path", async () =
   await flushPromises();
   expect(dialog.text()).toContain("占位符");
   expect(
-    calls.find(([u, o]) => o?.method === "PUT" && u.includes("order-detail-path")),
+    calls.find(
+      ([u, o]) => o?.method === "PUT" && u.includes("order-detail-path"),
+    ),
   ).toBeUndefined();
   // 合法路径提交 → 调用管理端点
   await input.setValue("pages/order-detail/index?no=${商品订单号}");
   await dialog.get("#order-path-form").trigger("submit");
   await flushPromises();
-  const put = calls.find(([u, o]) => o?.method === "PUT" && u.includes("order-detail-path"));
+  const put = calls.find(
+    ([u, o]) => o?.method === "PUT" && u.includes("order-detail-path"),
+  );
   expect(put).toBeTruthy();
-  expect(JSON.parse(put![1].body)).toEqual({ path: "pages/order-detail/index?no=${商品订单号}" });
+  expect(JSON.parse(put![1].body)).toEqual({
+    path: "pages/order-detail/index?no=${商品订单号}",
+  });
   w.unmount();
 });
 
@@ -364,13 +366,22 @@ it("configures the wechat message jump path with local URL validation", async ()
         }),
       };
     if (url.includes("/articles?"))
-      return { ok: true, status: 200, json: async () => ({ items: [], hasMore: false }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], hasMore: false }),
+      };
     if (opts.method === "PUT" && url.includes("msg-jump-path"))
-      return { ok: true, status: 200, json: async () => ({ attempted: true, errcode: 0 }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ attempted: true, errcode: 0 }),
+      };
     return {
       ok: true,
       status: 200,
-      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+      json: async () =>
+        opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults(),
     };
   });
   vi.stubGlobal("fetch", fetchJump);
@@ -396,9 +407,13 @@ it("configures the wechat message jump path with local URL validation", async ()
   await input.setValue("pages/order-detail/index");
   await dialog.get("#msg-jump-form").trigger("submit");
   await flushPromises();
-  const put = calls.find(([u, o]) => o?.method === "PUT" && u.includes("msg-jump-path"));
+  const put = calls.find(
+    ([u, o]) => o?.method === "PUT" && u.includes("msg-jump-path"),
+  );
   expect(put).toBeTruthy();
-  expect(JSON.parse(put![1].body)).toEqual({ path: "pages/order-detail/index" });
+  expect(JSON.parse(put![1].body)).toEqual({
+    path: "pages/order-detail/index",
+  });
   w.unmount();
 });
 
@@ -421,7 +436,11 @@ it("queries wechat order list with filters and pagination", async () => {
         }),
       };
     if (url.includes("/articles?"))
-      return { ok: true, status: 200, json: async () => ({ items: [], hasMore: false }) };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({ items: [], hasMore: false }),
+      };
     if (url.includes("/admin/wechat-order-center/wechat-orders")) {
       page += 1;
       return {
@@ -461,7 +480,8 @@ it("queries wechat order list with filters and pagination", async () => {
     return {
       ok: true,
       status: 200,
-      json: async () => (opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults()),
+      json: async () =>
+        opts.method ? { ...JSON.parse(opts.body), version: 4 } : defaults(),
     };
   });
   vi.stubGlobal("fetch", fetchOrders);
@@ -481,9 +501,7 @@ it("queries wechat order list with filters and pagination", async () => {
   expect(card2.text()).toContain("¥199.00");
   // 下一页沿用已提交的条件及微信游标
   await form.get("select").setValue("3");
-  const more = card2
-    .findAll("button")
-    .find((b) => b.text() === "下一页")!;
+  const more = card2.findAll("button").find((b) => b.text() === "下一页")!;
   await more.trigger("click");
   await flushPromises();
   const second = calls.filter(([u]) => u.includes("/wechat-orders?"))[1];
@@ -492,7 +510,10 @@ it("queries wechat order list with filters and pagination", async () => {
   expect(card2.text()).not.toContain("42000000000000000000000000000081");
   expect(card2.text()).toContain("资金待结算");
   expect(card2.text()).toContain("纠纷中");
-  await card2.findAll("button").find((b) => b.text() === "上一页")!.trigger("click");
+  await card2
+    .findAll("button")
+    .find((b) => b.text() === "上一页")!
+    .trigger("click");
   await flushPromises();
   const third = calls.filter(([u]) => u.includes("/wechat-orders?"))[2];
   expect(third[0]).not.toContain("lastIndex");

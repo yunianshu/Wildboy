@@ -4,6 +4,7 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import MarkdownEditor from "../src/components/MarkdownEditor.vue";
 import ImageUpload from "../src/components/ImageUpload.vue";
+import ProductContentView from "../src/views/ProductContentView.vue";
 import { clearSession, acceptAuth } from "../src/api";
 
 // Vditor 在 jsdom 中无法初始化，用可控替身验证组件逻辑。
@@ -103,6 +104,25 @@ describe("markdown article content editor", () => {
     });
     expect(w.emitted("saved")![0]).toEqual([5]);
     expect(dirtyOf(w)).toBe(false);
+    instances[0].fireInput(); // A queued editor notification can arrive after saving.
+    expect(dirtyOf(w)).toBe(false);
+    w.unmount();
+  });
+
+  it("tracks native content input when the editor callback is missed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ markdown: "原正文", version: 1 }),
+      }),
+    );
+    const w = await mountEditor();
+    instances[0].ready();
+    instances[0].value = "已输入的新正文";
+    await w.get(".md-body").trigger("input");
+    expect(dirtyOf(w)).toBe(true);
     w.unmount();
   });
 
@@ -177,7 +197,109 @@ describe("markdown article content editor", () => {
   });
 });
 
+describe("product content page", () => {
+  it("shows product facts and saves only its markdown content", async () => {
+    let version = 4;
+    const fetch = vi.fn(async (url: string, options: any = {}) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        url.endsWith("/content/markdown")
+          ? {
+              markdown:
+                options.method === "PUT"
+                  ? JSON.parse(options.body).markdown
+                  : "商品详情",
+              version: options.method === "PUT" ? ++version : version,
+            }
+          : {
+              id: "product-1",
+              name: "轻量徒步背包",
+              description: "适合周末徒步的轻量装备",
+              imageUrl: "/assets/backpack.jpg",
+              categoryId: "category-1",
+              categoryName: "徒步装备",
+              priceCents: 19900,
+              originalPriceCents: 24900,
+              stock: 8,
+              status: "ON_SALE",
+              version: 2,
+            },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/shop/products/:id/content", component: ProductContentView },
+        { path: "/shop", component: { template: "<div />" } },
+      ],
+    });
+    await router.push("/shop/products/product-1/content?productQuery=背包");
+    const w = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] } },
+    );
+    await flushPromises();
+    instances[0].ready();
+    await flushPromises();
+    expect(w.get(".product-overview").text()).toContain("轻量徒步背包");
+    expect(w.get(".product-facts").text()).toContain("¥199.00");
+    expect(w.get(".product-facts").text()).toContain("8");
+    expect(w.get(".product-cover img").attributes("src")).toBe(
+      "/assets/backpack.jpg",
+    );
+    const save = () =>
+      w.findAll("button").find((button) => button.text() === "保存图文")!;
+    expect(save().attributes("disabled")).toBeDefined();
+    instances[0].value = "新的商品卖点与规格";
+    instances[0].fireInput();
+    await flushPromises();
+    await save().trigger("click");
+    await flushPromises();
+    const writes = fetch.mock.calls.filter(([, options]) => options?.method);
+    expect(writes).toHaveLength(1);
+    expect(writes[0][0]).toBe(
+      "/api/v1/admin/shop/products/product-1/content/markdown",
+    );
+    expect(JSON.parse(writes[0][1].body)).toEqual({
+      markdown: "新的商品卖点与规格",
+      version: 4,
+    });
+    expect(w.get(".product-save-status").text()).toContain("版本 5");
+    await w.get('a[aria-label="编辑商品基本信息"]').trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe("/shop");
+    expect(router.currentRoute.value.query).toMatchObject({
+      productQuery: "背包",
+      productId: "product-1",
+      edit: "product-1",
+      tab: "products",
+    });
+    w.unmount();
+  });
+});
+
 describe("image upload guard", () => {
+  it("uploads a dropped image through the same media endpoint as the picker", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ url: "/assets/dropped.png" }),
+    });
+    vi.stubGlobal("fetch", fetch);
+    const w = mount(ImageUpload);
+    const file = new File(["png bytes"], "dropped.png", { type: "image/png" });
+    await w
+      .get(".drop-zone")
+      .trigger("drop", { dataTransfer: { files: [file], types: ["Files"] } });
+    await vi.waitFor(() =>
+      expect(w.emitted("uploaded")).toEqual([["/assets/dropped.png"]]),
+    );
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch.mock.calls[0][0]).toBe("/api/v1/admin/media");
+    w.unmount();
+  });
+
   it("rejects oversized uploads before sending a request", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

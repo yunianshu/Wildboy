@@ -47,15 +47,15 @@ it("does not send retries for missing subscription or service configuration", as
   await flushPromises();
   for (const title of ["出发提醒", "活动变更", "活动取消"])
     expect(w.get("tbody").text()).toContain(title);
-  const blocked = w.findAll("button").filter((b) => b.text() === "暂不可重试");
-  expect(blocked).toHaveLength(2);
-  for (const b of blocked) {
-    expect(b.attributes("disabled")).toBeDefined();
-    await b.trigger("click");
-  }
+  expect(
+    w
+      .get("tbody")
+      .findAll("button")
+      .map((b) => b.text()),
+  ).toEqual(["重新发送"]);
   expect(f).toHaveBeenCalledTimes(2);
-  expect(w.text()).toContain("请用户先同意订阅");
-  expect(w.text()).toContain("需先完成部署配置");
+  expect(w.text()).toContain("等待用户在小程序订阅");
+  expect(w.text()).toContain("完成部署配置后可重新排队");
   await w
     .findAll("button")
     .find((b) => b.text() === "重新发送")!
@@ -159,15 +159,10 @@ it("keeps existing notices when config cannot be checked and retries the origina
   await flushPromises();
   expect(w.text()).toContain("原通知");
   expect(w.text()).toContain("暂无法核对微信消息配置");
-  const blocked = w.findAll("button").find((b) => b.text() === "暂不可重试")!;
-  expect(blocked.attributes("disabled")).toBeDefined();
-  await blocked.trigger("click");
+  expect(w.get("tbody").findAll("button")).toHaveLength(0);
   expect(f.mock.calls.filter(([, o]) => o?.method === "POST")).toHaveLength(0);
   configFailed = false;
-  await w
-    .findAll("button")
-    .find((b) => b.text() === "重新核对配置")!
-    .trigger("click");
+  window.dispatchEvent(new Event("focus"));
   await flushPromises();
   await w
     .findAll("button")

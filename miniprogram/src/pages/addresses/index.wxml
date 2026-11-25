@@ -26,8 +26,10 @@
       <view class="address-name">{{item.recipientName}} <text>{{item.phone}}</text><text wx:if="{{item.isDefault}}" class="default-tag">默认</text></view>
       <view class="address-detail">{{item.address}}</view>
       <view class="address-actions">
-        <button class="text-button" data-id="{{item.id}}" catchtap="edit" disabled="{{busy}}">编辑</button>
-        <button class="text-button" data-id="{{item.id}}" catchtap="remove" disabled="{{busy}}">删除</button>
+        <view class="address-secondary-actions">
+          <button class="text-button" data-id="{{item.id}}" catchtap="edit" disabled="{{busy}}">编辑</button>
+          <button class="text-button danger-text" data-id="{{item.id}}" catchtap="remove" disabled="{{busy}}">删除</button>
+        </view>
         <button wx:if="{{selecting}}" class="select-address" data-id="{{item.id}}" catchtap="select" disabled="{{busy}}">{{selectedId === item.id ? '使用当前地址' : '使用此地址'}}</button>
       </view>
     </view>

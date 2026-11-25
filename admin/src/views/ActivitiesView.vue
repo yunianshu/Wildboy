@@ -1,14 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { useForegroundRefresh } from "../foregroundRefresh";
+import { computed, inject, ref, onMounted, onUnmounted, watch } from "vue";
 import { routeLocationKey, routerKey } from "vue-router";
-import { inject } from "vue";
 import { request, errorMessage } from "../api";
 import { categories, statuses, type Activity, type Page } from "../types";
 import { activityStatusTone } from "../statusTone";
 import { displayDate } from "../forms";
 import AppIcon from "../components/AppIcon.vue";
+import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
+const reopenTarget = ref<Activity | null>(null),
+  reopenNotice = ref("");
+function isExpired(item: Activity) {
+  return (
+    item.status === "PUBLISHED" &&
+    Number.isFinite(Date.parse(item.startAt)) &&
+    Date.parse(item.startAt) <= Date.now()
+  );
+}
+function onReopened(created: Activity) {
+  reopenTarget.value = null;
+  reopenNotice.value = `已生成新一期活动「${created.title}」（${statuses[created.status]}）。`;
+  void load();
+}
 const result = ref<Page<Activity>>({
     items: [],
     total: 0,
@@ -23,38 +38,58 @@ const result = ref<Page<Activity>>({
   query = ref(""),
   appliedQuery = ref(""),
   busy = ref(false),
+  loadingResults = ref(false),
   error = ref("");
+const hasFilters = computed(() =>
+  Boolean(
+    query.value.trim() || category.value || status.value || upcomingFull.value,
+  ),
+);
 const route = inject(routeLocationKey, null);
 const router = inject(routerKey, null);
 function restoreFilters() {
   const values = route?.query;
   if (!values) return;
-  category.value = typeof values.category === "string" && values.category in categories ? values.category : "";
-  status.value = typeof values.status === "string" && values.status in statuses ? values.status : "";
+  category.value =
+    typeof values.category === "string" && values.category in categories
+      ? values.category
+      : "";
+  status.value =
+    typeof values.status === "string" && values.status in statuses
+      ? values.status
+      : "";
   upcomingFull.value = values.upcomingFull === "1";
-  query.value = appliedQuery.value = typeof values.title === "string" ? values.title.slice(0, 100) : "";
+  query.value = appliedQuery.value =
+    typeof values.title === "string" ? values.title.slice(0, 100) : "";
   const current = Number(values.page ?? 0);
-  page.value = Number.isSafeInteger(current) && current >= 0 && current <= 100000 ? current : 0;
+  page.value =
+    Number.isSafeInteger(current) && current >= 0 && current <= 100000
+      ? current
+      : 0;
 }
 function rememberFilters() {
   if (!router || !route) return;
-  void router.replace({ query: {
-    ...route.query,
-    title: appliedQuery.value || undefined,
-    category: category.value || undefined,
-    status: status.value || undefined,
-    upcomingFull: upcomingFull.value ? "1" : undefined,
-    page: page.value || undefined,
-  } });
+  void router.replace({
+    query: {
+      ...route.query,
+      title: appliedQuery.value || undefined,
+      category: category.value || undefined,
+      status: status.value || undefined,
+      upcomingFull: upcomingFull.value ? "1" : undefined,
+      page: page.value || undefined,
+    },
+  });
 }
 restoreFilters();
 let generation = 0,
-  controller: AbortController | undefined;
-async function load() {
+  controller: AbortController | undefined,
+  searchTimer: ReturnType<typeof setTimeout> | undefined;
+async function load(background = false) {
   const generationNow = ++generation;
   controller?.abort();
   controller = new AbortController();
   busy.value = true;
+  loadingResults.value = !background;
   error.value = "";
   try {
     const params = new URLSearchParams({
@@ -76,13 +111,26 @@ async function load() {
     )
       error.value = errorMessage(e);
   } finally {
-    if (generationNow === generation) busy.value = false;
+    if (generationNow === generation) busy.value = loadingResults.value = false;
   }
 }
 function applyFilters() {
+  clearTimeout(searchTimer);
+  searchTimer = undefined;
   appliedQuery.value = query.value.trim();
   if (page.value !== 0) page.value = 0;
-  else { rememberFilters(); void load(); }
+  else {
+    rememberFilters();
+    void load();
+  }
+}
+function scheduleSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(applyFilters, 300);
+}
+function toggleUpcomingFull() {
+  upcomingFull.value = !upcomingFull.value;
+  applyFilters();
 }
 function resetFilters() {
   query.value = "";
@@ -96,66 +144,100 @@ function rosterLink(item: Activity) {
     ? { path: "/activity-orders", query: { activityId: item.id } }
     : `/activities/${item.id}/registrations`;
 }
-watch(page, () => { rememberFilters(); void load(); });
-onMounted(load);
+watch(page, () => {
+  rememberFilters();
+  void load();
+});
+onMounted(() => void load());
 onUnmounted(() => {
   generation++;
   controller?.abort();
+  clearTimeout(searchTimer);
+});
+useForegroundRefresh(() => {
+  if (!busy.value && searchTimer == null) void load(true);
 });
 </script>
 <template>
   <main class="workspace">
-    <header class="activity-heading">
+    <header class="page-heading">
       <h1>活动管理</h1>
-      <span class="filterbar-actions">
-        <button class="secondary" type="button" :disabled="busy" @click="load">
-          <AppIcon name="refresh" :size="14" />刷新
-        </button>
-        <RouterLink class="primary button" to="/activities/new"
-          ><AppIcon name="plus" :size="16" />新建活动</RouterLink
+      <div class="heading-actions">
+        <RouterLink
+          class="secondary button"
+          to="/home-layout?section=ACTIVITIES"
         >
-      </span>
+          <AppIcon name="dashboard" :size="16" />首页 6 活动排序
+        </RouterLink>
+        <RouterLink class="primary button" to="/activities/new">
+          <AppIcon name="plus" :size="16" />新建活动
+        </RouterLink>
+      </div>
     </header>
-    <form class="filterbar activity-filterbar" @submit.prevent="applyFilters">
-      <label class="search-label"
-        ><span class="sr-only">搜索标题</span
-        ><input
-          v-model="query"
-          placeholder="输入活动名称"
-          maxlength="100" /></label
-      ><select v-model="category" aria-label="活动分类" @change="applyFilters">
+    <p v-if="reopenNotice" role="status" class="success-box">
+      {{ reopenNotice }}
+    </p>
+    <form
+      class="activity-filters"
+      role="search"
+      aria-label="筛选活动"
+      @submit.prevent="applyFilters"
+    >
+      <input
+        v-model="query"
+        class="activity-search"
+        type="search"
+        aria-label="活动名称"
+        placeholder="搜索活动名称"
+        maxlength="100"
+        @input="scheduleSearch"
+      />
+      <select v-model="category" aria-label="活动分类" @change="applyFilters">
         <option value="">全部分类</option>
         <option v-for="(label, key) in categories" :key="key" :value="key">
           {{ label }}
-        </option></select
-      ><select v-model="status" aria-label="活动状态" @change="applyFilters">
+        </option>
+      </select>
+      <select v-model="status" aria-label="活动状态" @change="applyFilters">
         <option value="">全部状态</option>
         <option v-for="(label, key) in statuses" :key="key" :value="key">
           {{ label }}
-        </option></select
-      ><label class="filter-checkbox"><input v-model="upcomingFull" type="checkbox" @change="applyFilters" />即将开始且满员</label>
-      <button class="secondary" type="submit" :disabled="busy">筛选</button
-      ><button
-        class="secondary"
+        </option>
+      </select>
+      <button
+        class="full-filter"
         type="button"
-        :disabled="busy"
+        :aria-pressed="upcomingFull"
+        @click="toggleUpcomingFull"
+      >
+        <AppIcon
+          name="check"
+          :size="14"
+          :class="{ 'filter-check-hidden': !upcomingFull }"
+        />即将开始且满员
+      </button>
+      <button
+        v-if="hasFilters && (error || result.items.length) && !loadingResults"
+        class="text-button"
+        type="button"
         @click="resetFilters"
       >
-        重置
+        清除筛选
       </button>
-      <span class="filter-count" aria-live="polite"
-        >共 {{ result.total }} 场</span
-      >
     </form>
     <UiState v-if="error" kind="error" compact>
-      {{ error }} <button class="text-button" @click="load">重新加载</button>
+      {{ error }}
+      <button type="button" class="text-button" @click="load()">重试</button>
     </UiState>
-    <UiState v-else-if="busy" kind="loading" compact>正在加载活动…</UiState>
-    <UiState v-else-if="!result.items.length" compact>
-      暂无匹配活动
+    <UiState v-else-if="loadingResults" kind="loading" compact
+      >正在加载活动…</UiState
+    >
+    <UiState v-else-if="!result.items.length" class="activity-empty">
+      <strong>{{ hasFilters ? "暂无匹配活动" : "暂无活动" }}</strong>
       <button
-        v-if="appliedQuery || category || status || upcomingFull"
-        class="secondary"
+        v-if="hasFilters"
+        type="button"
+        class="text-button"
         @click="resetFilters"
       >
         清除筛选
@@ -177,15 +259,25 @@ onUnmounted(() => {
         <tbody>
           <tr v-for="item in result.items" :key="item.id">
             <td class="activity-cell">
-              <img
-                class="activity-cover"
-                :src="item.coverUrl"
-                alt=""
-                loading="lazy"
-              />
+              <span class="activity-cover">
+                <AppIcon name="mountain" :size="22" />
+                <img
+                  v-if="item.coverUrl"
+                  :key="item.coverUrl"
+                  :src="item.coverUrl"
+                  alt=""
+                  loading="lazy"
+                  @error="($event.target as HTMLImageElement).hidden = true"
+                />
+              </span>
               <div>
                 <RouterLink
-                  :to="{ path: '/activities/' + item.id + '/edit', query: route?.fullPath.includes('?') ? { list: route.fullPath } : undefined }"
+                  :to="{
+                    path: '/activities/' + item.id + '/edit',
+                    query: route?.fullPath.includes('?')
+                      ? { list: route.fullPath }
+                      : undefined,
+                  }"
                   class="activity-title"
                   >{{ item.title }}</RouterLink
                 >
@@ -218,12 +310,24 @@ onUnmounted(() => {
                 :class="`tone-${activityStatusTone(item.status)}`"
                 >{{ statuses[item.status] }}</span
               >
+              <small v-if="isExpired(item)" class="expired-tag">已过期</small>
             </td>
             <td class="activity-actions">
               <RouterLink
-                :to="{ path: '/activities/' + item.id + '/edit', query: route?.fullPath.includes('?') ? { list: route.fullPath } : undefined }"
+                :to="{
+                  path: '/activities/' + item.id + '/edit',
+                  query: route?.fullPath.includes('?')
+                    ? { list: route.fullPath }
+                    : undefined,
+                }"
                 class="table-action"
                 >编辑</RouterLink
+              ><button
+                type="button"
+                class="table-action button-link"
+                @click="reopenTarget = item"
+              >
+                重开一期</button
               ><RouterLink :to="rosterLink(item)" class="table-action">{{
                 item.priceCents > 0 ? "订单" : "名单"
               }}</RouterLink>
@@ -232,49 +336,111 @@ onUnmounted(() => {
         </tbody>
       </table>
     </div>
-    <PaginationBar :page="page" :page-size="result.size" :total="result.total" :has-more="result.hasMore" :busy="busy" label="活动分页" @change="(next) => page = next" />
+    <PaginationBar
+      v-if="!error && !loadingResults && (result.hasMore || page > 0)"
+      :page="page"
+      :page-size="result.size"
+      :total="result.total"
+      :has-more="result.hasMore"
+      :busy="busy"
+      label="活动分页"
+      @change="(next) => (page = next)"
+    />
+    <p
+      v-else-if="!error && !loadingResults && result.items.length"
+      class="activity-count"
+    >
+      共 {{ result.total }} 场活动
+    </p>
+    <ActivityReopenModal
+      :activity="reopenTarget"
+      @close="reopenTarget = null"
+      @created="onReopened"
+    />
   </main>
 </template>
 <style scoped>
-.activity-heading {
+.heading-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 24px;
-  min-height: 60px;
   flex-wrap: wrap;
-}
-.activity-heading h1 {
-  font-size: 28px;
-  font-weight: 600;
-  margin: 0;
-  color: var(--admin-ink);
-}
-.activity-filterbar {
   align-items: center;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-}
-.activity-filterbar .search-label {
-  min-width: 180px;
-  flex: 1 1 220px;
-}
-.filter-checkbox { display: flex; gap: 8px; align-items: center; margin: 0; white-space: nowrap; }
-.filter-checkbox input { width: auto; margin: 0; }
-.filter-count {
-  margin-left: auto;
-  color: var(--admin-muted);
-  font-size: 13px;
-}
-.filterbar-actions {
-  display: inline-flex;
   gap: 8px;
 }
+.expired-tag {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--rf-muted);
+}
+.button-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+.activity-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.activity-search {
+  width: min(100%, 20rem);
+  border-color: var(--rf-field-line);
+}
+.activity-filters select {
+  width: 9rem;
+  max-width: 100%;
+}
+.full-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-inline: 12px;
+  border-color: var(--rf-field-line);
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+}
+.filter-check-hidden {
+  visibility: hidden;
+}
+.full-filter:hover,
+.full-filter[aria-pressed="true"] {
+  border-color: var(--rf-primary);
+  background: var(--rf-soft);
+  color: var(--rf-primary-text);
+}
+.activity-empty {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 176px;
+  padding: 20px;
+  text-align: center;
+}
+.activity-empty :deep(.ui-state-content) {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+}
+.activity-empty :deep(.ui-state-content button) {
+  margin-left: 0;
+}
+.activity-empty strong {
+  color: var(--rf-ink);
+  font-size: 14px;
+}
+.activity-count {
+  margin: 12px 0 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+}
 .activity-table-wrap {
-  margin: 18px 0;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 .activity-table {
   min-width: 0;
@@ -295,12 +461,23 @@ onUnmounted(() => {
   min-height: 76px;
 }
 .activity-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
   width: 64px;
   height: 48px;
-  object-fit: cover;
+  overflow: hidden;
   border-radius: 6px;
   flex-shrink: 0;
   background: var(--admin-tint);
+  color: var(--rf-primary-text);
+}
+.activity-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .activity-title {
   color: var(--admin-ink);
@@ -342,16 +519,6 @@ onUnmounted(() => {
   min-width: 44px;
   color: var(--rf-primary-text);
 }
-.pagination {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.pagination-summary {
-  margin-right: auto;
-  color: var(--admin-muted);
-  font-size: 13px;
-}
 @media (max-width: 1199px) {
   .activity-table-wrap {
     overflow: visible;
@@ -373,9 +540,10 @@ onUnmounted(() => {
     display: grid;
     grid-template-columns: 1fr 1fr;
     border: 1px solid var(--admin-line);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 14px;
+    padding: 14px;
     background: var(--admin-surface);
+    box-shadow: var(--rf-shadow-sm);
   }
   .activity-table td {
     border: 0;
@@ -402,11 +570,12 @@ onUnmounted(() => {
   .activity-table tbody {
     grid-template-columns: minmax(0, 1fr);
   }
-  .filterbar-actions {
-    flex-wrap: wrap;
+  .activity-search {
+    width: 100%;
   }
-  .filter-count {
-    display: none;
+  .activity-filters select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
   }
 }
 </style>

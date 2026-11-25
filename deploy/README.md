@@ -4,14 +4,16 @@
 
 独立的 `api.wildboy.com.cn:443` 入口及生产支付配置见 [公网 HTTPS API](https-api.md)。
 
-一台 Linux 服务器（当前：阿里云轻量应用服务器）上的完整部署单元。所有步骤固化为
-`deploy/deploy.sh`，在服务器的仓库检出里执行（要求服务器能访问 GitHub；链路不稳定时用 release.sh 的 SSH 直推流程）：
+## 单独部署 Web 后端
+
+在开发机仓库根目录运行，需要 Java 21、Maven、POSIX shell、SSH 和 curl。Windows 可使用 Git Bash，将 Maven 的 JAVA_HOME 指向 JDK 21。
 
 ```sh
-ssh root<at><server>
-cd /root/Wildboy
-sh deploy/deploy.sh
+export WILDBOY_DEPLOY_HOST=<服务器地址>
+sh deploy/deploy-api.sh
 ```
+
+脚本使用当前工作区的后端源码执行 Maven `clean verify`。通过后将 JAR 上传到独立发布目录，校验 SHA-256，并以只读方式挂载到现有 API 镜像的 `/app/app.jar`。仅重建 API 容器。服务器须已有生产 API 运行时镜像、Compose 项目和数据库。启动或服务器本机冒烟检查失败时，恢复上一套 Compose 配置。
 
 ## 拓扑
 
@@ -24,17 +26,6 @@ sh deploy/deploy.sh
 浏览器（管理员）
   → :8081 wildboy-admin nginx（Vue 静态包 + /api 反代；过渡期临时对公网开放 HTTP）
 ```
-
-## 部署脚本做什么
-
-1. `git fetch` + `git reset --hard origin/main` —— 检出目录是纯部署物，本地改动一律丢弃
-   （`.env`、凭证文件不入库，不受影响）。
-2. `docker compose up -d --build db api` —— 重建 API 镜像（多阶段构建内含测试）并滚动启动，
-   数据库结构由 Flyway 迁移自动升级。
-3. 用 docker 化 Node 构建 `admin/dist`（服务器无需安装 Node）。
-4. 渲染 `nginx-edge.conf`（注入 AnyService 凭证）并重建 `wildboy-edge`、`wildboy-admin`
-   两个 nginx 容器（host 网络、`--restart unless-stopped`）。
-5. 冒烟检查：API 健康、edge 带凭证 200 / 匿名 403、后台健康。
 
 ## 服务器 .env（/root/Wildboy/.env，不入库）
 
@@ -52,6 +43,4 @@ sh deploy/deploy.sh
 
 ## 回滚
 
-优先使用 [RELEASE.md](RELEASE.md) 的回退方法（revert 后走 release.sh）。服务器端手动方式：
-`cd /root/Wildboy && git checkout <旧版本> && sh deploy/deploy.sh`。数据库迁移
-（Flyway）只前进不回退；重大回滚前先备份 `wildboy-data` 卷。
+应用代码回滚后，从开发机再运行 `sh deploy/deploy-api.sh`。Flyway 已应用的迁移会保留，旧版应用必须兼容当前库结构。服务器上的 JAR 与 Compose 覆盖文件位于 `/root/wildboy-deploy/`。手动重建 API 容器时，使用当前容器 `com.docker.compose.project.config_files` 标签列出的全部 Compose 文件。

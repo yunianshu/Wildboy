@@ -20,6 +20,8 @@ export const shortcutIcons: Record<string, string> = {
 export const shortcutPages: Record<string, string> = {
   WEEKLY: "/pages/activities/index",
   DOMESTIC: "/pages/activities/index",
+  HOLIDAY: "/pages/activities/index",
+  LEISURE: "/pages/activities/index",
   ACTIVITIES: "/pages/activities/index",
   SHOP: "/pages/shop/index",
   PROFILE: "/pages/mine/index",
@@ -73,6 +75,52 @@ export function safeShortcutImage(value: string): string {
   )
     return value;
   return "";
+}
+export function safeWechatArticleUrl(value: string): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (
+    trimmed.length > 2048 ||
+    /[\s<>"'\\@]/.test(trimmed) ||
+    !(
+      trimmed.startsWith("https://mp.weixin.qq.com/s/") ||
+      trimmed.startsWith("https://mp.weixin.qq.com/s?")
+    )
+  )
+    return "";
+  return trimmed;
+}
+export function openWechatOfficialArticle(rawUrl: string): boolean {
+  const url = safeWechatArticleUrl(rawUrl);
+  if (!url) {
+    wx.showToast({ title: "公众号文章链接无效", icon: "none" });
+    return false;
+  }
+  const fallbackCopy = () => {
+    if (typeof wx.showModal === "function") {
+      wx.showModal({
+        title: "打开公众号文章",
+        content: "当前微信版本暂不支持内嵌打开，是否复制文章链接到微信聊天中查看？",
+        confirmText: "复制链接",
+        success: (res) => {
+          if (res.confirm && typeof wx.setClipboardData === "function") {
+            wx.setClipboardData({ data: url });
+          }
+        },
+      });
+    } else if (typeof wx.showToast === "function") {
+      wx.showToast({ title: "请升级微信版本后查看公众号文章", icon: "none" });
+    }
+  };
+  if (typeof wx.openOfficialAccountArticle === "function") {
+    wx.openOfficialAccountArticle({
+      url,
+      fail: () => fallbackCopy(),
+    });
+    return true;
+  }
+  fallbackCopy();
+  return false;
 }
 export function shortcutViews(config: ShortcutConfig) {
   if (

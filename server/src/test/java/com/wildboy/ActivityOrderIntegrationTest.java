@@ -83,6 +83,48 @@ class ActivityOrderIntegrationTest {
     assertThatThrownBy(()->activities.register(a.id(),u.id(),input(1))).hasMessageContaining("报名订单");
     assertThat(activities.get(a.id(),true).registeredCount()).isZero();
   }
+  @Test void boardingChoicesAreValidatedAndSavedForEveryParticipant() {
+    var start = OffsetDateTime.now().plusDays(7);
+    var details = new ActivityInput("QA boarding", Category.WEEKLY, "/assets/hiking.jpg",
+        List.of(), "Summary", "Description", "Xiamen", "Park", start, start.plusHours(4),
+        start.minusDays(1), 4, 0, null, true, List.of(" North gate ", "South gate"));
+    var people = new RegistrationInput(List.of(
+        new ParticipantInput("QA First", "11010519491231002X", "13800138000", "North gate"),
+        new ParticipantInput("QA Second", "110105194912310011", "13900139000", "South gate")), 1L, 1L);
+    var missingStop = new RegistrationInput(List.of(
+        new ParticipantInput("QA First", "11010519491231002X", "13800138000")), 1L, 1L);
+    var missingId = new RegistrationInput(List.of(
+        new ParticipantInput("QA First", "", "13800138000", "North gate")), 1L, 1L);
+    var freeDraft = activities.create(details, "fixture");
+    var free = activities.publish(freeDraft.id(), freeDraft.version(), "fixture");
+    assertThat(free.boardingPoints()).containsExactly("North gate", "South gate");
+    var freeUser = user();
+    assertThatThrownBy(() -> activities.register(free.id(), freeUser.id(), missingStop))
+        .hasMessageContaining("上车地点");
+    assertThatThrownBy(() -> activities.register(free.id(), freeUser.id(), missingId))
+        .hasMessageContaining("身份证号");
+    var registration = activities.register(free.id(), freeUser.id(), people).registration();
+    assertThat(registration.participants()).extracting(Participant::boardingPoint)
+        .containsExactly("North gate", "South gate");
+    assertThat(registration.participants()).extracting(Participant::idNumber)
+        .noneMatch("11010519491231002X"::equals);
+
+    var paidDraft = activities.create(details, "fixture");
+    var priced = orders.setPrice(paidDraft.id(), 1000, paidDraft.version(), "fixture");
+    var paidActivity = activities.publish(priced.id(), priced.version(), "fixture");
+    var paidUser = user();
+    assertThatThrownBy(() -> orders.reserve(paidActivity.id(), paidUser.id(), missingStop,
+        quote(1, 1000), "missing-boarding-stop")).hasMessageContaining("上车地点");
+    var order = orders.reserve(paidActivity.id(), paidUser.id(), people, quote(2, 1000), "boarding");
+    orders.completePayment(paid(order));
+    assertThat(activities.exportRoster(paidActivity.id(), null, null))
+        .extracting(ActivityService.RosterExportRow::boardingPoint)
+        .containsExactly("North gate", "South gate");
+    assertThatThrownBy(() -> orders.reserve(paidActivity.id(), paidUser.id(),
+        new RegistrationInput(List.of(new ParticipantInput("QA First", "11010519491231002X",
+            "13800138000", "South gate"), people.participants().get(1)), 1L, 1L),
+        quote(2, 1000), "boarding")).isInstanceOf(ApiException.class);
+  }
   @Test void paidRosterExportsEveryConfirmedParticipantAndMasksPhones() {
     var a = activity(6);
     var paidOrder = reserve(a, user(), 2, 1000);
