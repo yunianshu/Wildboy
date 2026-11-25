@@ -2,7 +2,12 @@
 import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
 import { computed, nextTick, onUnmounted, reactive, ref, watch } from "vue";
-import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
+import {
+  useRoute,
+  useRouter,
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+} from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Activity, Page } from "../types";
 import { articleStatusTone } from "../statusTone";
@@ -31,6 +36,7 @@ const route = useRoute(),
   current = ref<Article | null>(null),
   loading = ref(false),
   saving = ref(false),
+  createUncertain = ref(false),
   error = ref(""),
   success = ref(""),
   dialog = ref<"publish" | "official" | null>(null);
@@ -186,6 +192,7 @@ function articleFields() {
 async function saveMetaRequest(): Promise<boolean> {
   if (!validateTitle()) return false;
   const previousVersion = current.value?.version;
+  const newContent = !id.value ? rich.value?.readContent() : null;
   const n = epoch,
     actor = currentUser.value;
   error.value = "";
@@ -198,17 +205,30 @@ async function saveMetaRequest(): Promise<boolean> {
         method: id.value ? "PUT" : "POST",
         body: JSON.stringify({
           ...articleFields(),
+          ...(newContent ? { markdown: newContent.markdown } : {}),
           version: previousVersion,
         }),
       },
     );
     if (n !== epoch || actor !== currentUser.value || !alive) return false;
     fill(a, previousVersion);
+    if (newContent)
+      rich.value?.markSaved(
+        { markdown: newContent.markdown, version: a.version },
+        newContent.version,
+      );
     success.value = "已保存。";
     if (!id.value) await router.replace(`/articles/${a.id}/edit`);
     return true;
   } catch (e) {
-    if (alive) error.value = articleError(e);
+    if (n === epoch && actor === currentUser.value && alive) {
+      createUncertain.value =
+        !id.value &&
+        (!(e instanceof ApiError) || e.status === 0 || e.status >= 500);
+      error.value = createUncertain.value
+        ? "保存结果待核对。请返回文章列表查看草稿，当前输入已保留。"
+        : articleError(e);
+    }
     return false;
   }
 }
@@ -252,7 +272,9 @@ async function savePublished() {
 async function save() {
   if (saving.value || coverBusy.value || rich.value?.busy || !currentUser.value)
     return;
+  if (rich.value && !rich.value.validateLength()) return;
   if (!id.value) {
+    if (createUncertain.value || !rich.value?.ready) return;
     saving.value = true;
     try {
       await saveMetaRequest();
@@ -369,8 +391,11 @@ async function canLeave() {
   );
 }
 onBeforeRouteLeave(async (to) => to.path === "/login" || (await canLeave()));
+onBeforeRouteUpdate(
+  async (to, from) => to.params.id === from.params.id || (await canLeave()),
+);
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (dirty.value || rich.value?.dirty) {
+  if (dirty.value || rich.value?.dirty || rich.value?.writeBusy) {
     event.preventDefault();
     event.returnValue = "";
   }
@@ -417,13 +442,13 @@ useForegroundRefresh(() => {
 
     <p v-if="error" role="alert" class="error-box">
       {{ error }}
-      <button v-if="id && current" class="text-button" @click="reload">
+      <button v-if="id" class="text-button" @click="reload">
         {{ dirty || rich?.dirty ? "采用最新版本" : "重试" }}
       </button>
     </p>
     <UiState v-if="loading" kind="loading" compact>正在加载文章…</UiState>
 
-    <template v-else>
+    <template v-else-if="!id || current">
       <div class="article-layout">
         <section class="article-writing-panel" aria-label="文章写作区">
           <div class="article-title-field">
@@ -465,25 +490,17 @@ useForegroundRefresh(() => {
           </div>
           <div class="article-body-heading">
             <h2>正文</h2>
-            <small v-if="id">支持粘贴图片与 Markdown 格式</small>
-          </div>
-          <div v-if="!id" class="article-body-empty">
-            <AppIcon name="document" :size="26" />
-            <div>
-              <strong>保存草稿后，继续撰写正文</strong>
-              <p>已填写的标题、摘要与发布设置会自动保留。</p>
-            </div>
+            <small>点击或拖入组件，也可直接粘贴图片</small>
           </div>
           <MarkdownEditor
-            v-else
             ref="rich"
             :key="id"
             class="article-body-editor"
             managed-navigation
-            :components="false"
+            components
             :height="620"
             placeholder="从这里开始撰写正文，可粘贴图片或输入 / 插入格式…"
-            :path="`/admin/articles/${id}/content`"
+            :path="id ? `/admin/articles/${id}/content` : undefined"
             :disabled="saving"
             @saved="contentSaved"
           />
@@ -493,7 +510,6 @@ useForegroundRefresh(() => {
           <section class="article-settings-card">
             <header class="article-settings-heading">
               <h2>发布设置</h2>
-              <p>完善封面与关联信息</p>
             </header>
             <div class="setting-group cover-setting">
               <div class="setting-label">
@@ -555,9 +571,6 @@ useForegroundRefresh(() => {
               >
                 {{ sourceBusy ? "正在加载…" : "加载更多活动" }}
               </button>
-              <small class="setting-hint"
-                >便于读者从文章进一步了解相关活动。</small
-              >
             </div>
           </section>
           <section class="article-publish-card">
@@ -574,7 +587,7 @@ useForegroundRefresh(() => {
                   ? "修改与正文一起发布；保存前，小程序仍展示线上版本。"
                   : id
                     ? "发布前请确认标题、摘要、封面和正文完整。"
-                    : "先保存草稿，再撰写正文并发布。"
+                    : "草稿仅管理员可见，可随时回来继续写。"
               }}
             </p>
             <div class="article-publish-meta">
@@ -603,7 +616,7 @@ useForegroundRefresh(() => {
         >{{ success || `内容已保存 · 版本 ${current?.version}` }}</span
       >
       <span v-else class="footer-status article-save-hint" role="status">
-        填写标题后保存草稿，继续撰写正文
+        草稿尚未保存
       </span>
       <div class="footer-actions">
         <template v-if="current?.status === 'PUBLISHED'">
@@ -657,7 +670,13 @@ useForegroundRefresh(() => {
         <button
           v-else-if="!id"
           class="primary"
-          :disabled="saving || coverBusy"
+          :disabled="
+            saving ||
+            coverBusy ||
+            createUncertain ||
+            !!rich?.busy ||
+            !rich?.ready
+          "
           @click="save"
         >
           {{ saving ? "正在保存…" : "保存草稿" }}

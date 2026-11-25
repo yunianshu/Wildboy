@@ -1,0 +1,26 @@
+/* Imported content has its own typography. Inline styles take precedence over
+   these defaults, including in Vditor's <pre> preview and an activity modal. */
+.wechat-prose.wechat-prose.wechat-prose {
+  font:
+    16px/1.75 system-ui,
+    sans-serif;
+  color: #222;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.wechat-prose.wechat-prose.wechat-prose :where(*) {
+  all: revert;
+}
+.wechat-prose.wechat-prose.wechat-prose :where(table) {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+.wechat-prose.wechat-prose.wechat-prose :where(th, td) {
+  border: 1px solid #ccc;
+  padding: 0.3em 0.5em;
+}
+.wechat-prose.wechat-prose.wechat-prose :where(img) {
+  max-width: 100%;
+  height: auto;
+}

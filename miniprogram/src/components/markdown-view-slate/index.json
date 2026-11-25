@@ -1,4 +1,6 @@
 {
   "component": true,
-  "usingComponents": {}
+  "usingComponents": {
+    "wechat-fragment": "../wechat-fragment/index"
+  }
 }

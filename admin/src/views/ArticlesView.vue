@@ -8,6 +8,7 @@ import type { Page } from "../types";
 import { articleStatusTone } from "../statusTone";
 import AppIcon from "../components/AppIcon.vue";
 import UiState from "../components/UiState.vue";
+import FormModal from "../components/FormModal.vue";
 // 文章编辑已迁移到独立页面 /articles/new 与 /articles/:id/edit（文档画布）。
 type Article = {
   id: string;
@@ -20,6 +21,16 @@ type Article = {
   version: number;
 };
 const router = useRouter();
+const copySource = ref<Article | null>(null);
+const copyTitle = ref("");
+const copyBusy = ref(false);
+const copyError = ref("");
+const copyConflict = ref(false);
+const pendingCopies = new Map<
+  string,
+  { requestId: string; title: string; version: number }
+>();
+const copyUncertain = ref(false);
 const items = ref<Article[]>([]),
   page = ref(0),
   pageTotal = ref<number>(),
@@ -37,6 +48,9 @@ function reset() {
   items.value = [];
   loading.value = false;
   error.value = "";
+  copySource.value = null;
+  copyBusy.value = false;
+  pendingCopies.clear();
 }
 watch(currentUser, (u, old) => {
   if (u !== old) {
@@ -71,6 +85,71 @@ function edit(article: Article) {
 }
 function create() {
   void router.push("/articles/new");
+}
+function openCopy(article: Article) {
+  const pending = pendingCopies.get(article.id);
+  copySource.value = article;
+  const suffix = "（副本）";
+  copyTitle.value =
+    pending?.title ??
+    (article.title.length + suffix.length <= 120
+      ? article.title + suffix
+      : article.title);
+  copyConflict.value = false;
+  copyError.value = pending
+    ? "上次保存结果待确认，重试后将打开同一份草稿。"
+    : "";
+  copyUncertain.value = !!pending;
+}
+function closeCopy() {
+  if (copyBusy.value) return;
+  copySource.value = null;
+  if (copyConflict.value) void load(page.value);
+}
+async function saveCopy() {
+  const source = copySource.value;
+  const actor = currentUser.value;
+  const title = copyTitle.value.trim();
+  if (!source || !actor || !title || copyBusy.value || copyConflict.value)
+    return;
+  const n = epoch;
+  const body = pendingCopies.get(source.id) ?? {
+    title,
+    version: source.version,
+    requestId:
+      globalThis.crypto?.randomUUID?.() ??
+      `copy-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  };
+  pendingCopies.set(source.id, body);
+  copyBusy.value = true;
+  copyError.value = "";
+  try {
+    const draft = await request<Article>(
+      `/admin/articles/${encodeURIComponent(source.id)}/copy`,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+      },
+    );
+    if (epoch !== n || actor !== currentUser.value) return;
+    pendingCopies.delete(source.id);
+    copySource.value = null;
+    await router.push(`/articles/${draft.id}/edit`);
+  } catch (e) {
+    if (epoch !== n || actor !== currentUser.value) return;
+    const knownFailure =
+      e instanceof ApiError && e.status >= 400 && e.status < 500;
+    if (knownFailure) pendingCopies.delete(source.id);
+    copyUncertain.value = !knownFailure;
+    copyConflict.value = e instanceof ApiError && e.status === 409;
+    copyError.value = copyConflict.value
+      ? "原文已更新，请返回列表刷新后重新复制。"
+      : copyUncertain.value
+        ? "保存结果待确认，请重试以打开同一份草稿。"
+        : errorMessage(e);
+  } finally {
+    if (epoch === n) copyBusy.value = false;
+  }
 }
 onMounted(() => void load());
 useForegroundRefresh(() => {
@@ -125,13 +204,26 @@ useForegroundRefresh(() => {
               class="article-row"
               @click="edit(article)"
             >
-              <td role="cell" data-cell="title" class="article-title">
-                {{ article.title
-                }}<span
-                  v-if="article.isOfficial"
-                  class="status-pill inline tone-info article-official"
-                  >官方介绍</span
-                >
+              <td role="cell" data-cell="title">
+                <div class="article-identity">
+                  <span class="article-cover" aria-hidden="true">
+                    <AppIcon name="document" :size="20" />
+                    <img
+                      v-if="article.coverUrl"
+                      :key="article.coverUrl"
+                      :src="article.coverUrl"
+                      alt=""
+                      loading="lazy"
+                      @error="($event.target as HTMLImageElement).hidden = true"
+                    />
+                  </span>
+                  <div class="article-text">
+                    <strong class="article-title">{{ article.title }}</strong>
+                    <p v-if="article.summary" class="article-summary">
+                      {{ article.summary }}
+                    </p>
+                  </div>
+                </div>
               </td>
               <td role="cell" data-label="状态">
                 <span
@@ -151,13 +243,23 @@ useForegroundRefresh(() => {
                 }}
               </td>
               <td role="cell" data-cell="actions">
-                <RouterLink
-                  class="text-button"
-                  :to="`/articles/${article.id}/edit`"
-                  @click.stop
-                >
-                  编辑文章
-                </RouterLink>
+                <div class="article-row-actions">
+                  <RouterLink
+                    class="text-button"
+                    :to="`/articles/${article.id}/edit`"
+                    @click.stop
+                  >
+                    编辑文章
+                  </RouterLink>
+                  <button
+                    type="button"
+                    class="text-button"
+                    :aria-label="`复制文章「${article.title}」`"
+                    @click.stop="openCopy(article)"
+                  >
+                    复制文章
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -174,6 +276,57 @@ useForegroundRefresh(() => {
       label="文章分页"
       @change="load"
     />
+    <FormModal
+      v-if="copySource"
+      title="复制文章"
+      size="sm"
+      :busy="copyBusy"
+      @close="closeCopy"
+    >
+      <form
+        id="copy-article-form"
+        class="article-copy-form"
+        @submit.prevent="saveCopy"
+      >
+        <p class="muted">沿用原文的正文、封面和关联活动。</p>
+        <label for="copy-article-title">副本标题</label>
+        <input
+          id="copy-article-title"
+          v-model="copyTitle"
+          maxlength="120"
+          required
+          :disabled="copyBusy || copyUncertain || copyConflict"
+        />
+        <p v-if="copyError" class="error-box" role="alert">{{ copyError }}</p>
+      </form>
+      <template #footer>
+        <div class="dialog-actions">
+          <button
+            class="secondary"
+            type="button"
+            :disabled="copyBusy"
+            @click="closeCopy"
+          >
+            {{ copyConflict ? "返回并刷新" : "取消" }}
+          </button>
+          <button
+            v-if="!copyConflict"
+            class="primary"
+            type="submit"
+            form="copy-article-form"
+            :disabled="copyBusy || !copyTitle.trim()"
+          >
+            {{
+              copyBusy
+                ? "正在保存…"
+                : copyUncertain
+                  ? "重试并打开"
+                  : "保存草稿并编辑"
+            }}
+          </button>
+        </div>
+      </template>
+    </FormModal>
   </main>
 </template>
 <style scoped>
@@ -189,17 +342,71 @@ useForegroundRefresh(() => {
   width: 14%;
 }
 .article-table th:nth-child(3) {
-  width: 24%;
+  width: 19%;
 }
 .article-table th:last-child {
-  width: 116px;
+  width: 184px;
+}
+.article-row-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+}
+.article-row-actions .text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13px;
+}
+.article-copy-form {
+  display: grid;
+  gap: 8px;
+}
+.article-copy-form label,
+.article-copy-form input {
+  margin: 0;
+}
+.article-copy-form p {
+  margin: 0 0 8px;
 }
 .article-title {
   font-weight: 650;
   overflow-wrap: anywhere;
 }
-.article-official {
-  margin-left: 8px;
+.article-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.article-cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 56px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--rf-soft);
+  color: var(--rf-primary-text);
+}
+.article-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.article-text {
+  min-width: 0;
+}
+.article-summary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--rf-muted);
+  margin: 4px 0 0;
+  font-size: 12px;
 }
 .article-entry {
   color: var(--admin-muted);
@@ -209,8 +416,5 @@ useForegroundRefresh(() => {
 }
 .article-row:hover .article-title {
   color: var(--rf-primary-text);
-}
-.article-more {
-  margin-top: 12px;
 }
 </style>

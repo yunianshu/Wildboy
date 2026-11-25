@@ -2,17 +2,22 @@
 import UiState from "./UiState.vue";
 import AppIcon from "./AppIcon.vue";
 import { askConfirm } from "../confirm";
-import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import Vditor from "vditor";
 import "vditor/dist/index.css";
 import { ApiError, request, currentUser, errorMessage } from "../api";
+import MarkdownBlockOrganizer from "./MarkdownBlockOrganizer.vue";
+import WechatFragmentDialog from "./WechatFragmentDialog.vue";
+import { cleanWechatPreview, readWechatClipboard } from "../wechatPaste";
+import { decodeWechatFence, encodeWechatFence } from "./wechatFence";
+import { serializeBlockOrder } from "./markdownBlockOrder";
 
 // Markdown 编辑器（Vditor WYSIWYG 模式），内嵌在内容编辑页文档流中。
 // 保存动作由所属编辑页触发（expose save），组件只负责正文内容的加载、编辑与上传。
 // 服务端把 Markdown 转成小程序原生渲染使用的结构化节点。
 const props = defineProps<{
-  path: string;
+  path?: string;
   disabled?: boolean;
   managedNavigation?: boolean;
   /** 编辑器高度（px），默认 520。 */
@@ -32,11 +37,22 @@ const loaded = ref(false);
 const dirty = ref(false);
 const ready = ref(false);
 const choosingImage = ref(false);
-const writeBusy = computed(() => busy.value || choosingImage.value);
+const fragment = shallowRef<{
+  index?: number;
+  initial?: string;
+  paste?: string;
+  placement?: Placement;
+}>();
+const writeBusy = computed(
+  () => busy.value || choosingImage.value || !!fragment.value,
+);
 const workflowBusy = computed(() => loading.value || writeBusy.value);
 const body = ref<HTMLElement>();
 const imageInput = ref<HTMLInputElement>();
 const markerTop = ref<number>();
+const fragmentValidation = ref("");
+const articleLimit = 200000;
+const arranged = shallowRef<Element[] | null>(null);
 const componentMime = "application/x-wildboy-article-component";
 const contentComponents = [
   { kind: "text", label: "段落" },
@@ -74,10 +90,14 @@ async function load() {
   loaded.value = false;
   dirty.value = false;
   error.value = "";
+  arranged.value = null;
+  fragment.value = undefined;
   versionConflict.value = false;
   loading.value = true;
   try {
-    const d = await request<{ markdown: string; version: number }>(props.path);
+    const d = props.path
+      ? await request<{ markdown: string; version: number }>(props.path)
+      : { markdown: "", version: 0 };
     if (n === generation && actor === currentUser.value) {
       markdown = d.markdown ?? "";
       version.value = d.version;
@@ -120,6 +140,130 @@ function activeEditor() {
 }
 function canInsert() {
   return ready.value && loaded.value && !workflowBusy.value && !props.disabled;
+}
+function readElements() {
+  // Lute parses whole top-level Markdown elements, including nested lists and fenced code.
+  const template = document.createElement("template");
+  const value = editorValue();
+  if (vditor && value?.trim())
+    template.innerHTML = vditor.vditor.lute.Md2VditorDOM(value);
+  return Array.from(template.content.children);
+}
+function editorValue() {
+  const value = vditor?.getValue() ?? "";
+  if (
+    value.startsWith("---\n") &&
+    vditor?.getCurrentMode?.() === "wysiwyg" &&
+    activeEditor()?.firstElementChild?.tagName === "HR"
+  ) {
+    return value.replace(/^---/, "***");
+  }
+  return value;
+}
+function startArrange() {
+  if (canInsert()) arranged.value = readElements();
+}
+function applyArrangement(elements: Element[]) {
+  if (!canInsert() || !vditor) return;
+  vditor.setValue(serializeBlockOrder(elements, vditor.vditor.lute));
+  syncDirty();
+}
+async function resumeWriting(index?: number) {
+  arranged.value = null;
+  await nextTick();
+  const editor = activeEditor();
+  if (!editor || !vditor) return;
+  vditor.focus();
+  if (index === undefined) return;
+  const initial = readElements()[index]?.querySelector(
+    "pre > code.language-wildboy-wechat",
+  )?.textContent;
+  if (initial) {
+    fragment.value = { index, initial: decodeWechatFence(initial) };
+    return;
+  }
+  const element = editor.children[index];
+  if (!element) return;
+  const target = element.querySelector("td, th, li, code") ?? element;
+  const range = document.createRange();
+  range.selectNodeContents(target);
+  range.collapse(false);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  element.scrollIntoView({ block: "nearest" });
+}
+function pasteWechat(event: ClipboardEvent) {
+  if (!props.components || !canInsert()) return;
+  const paste = readWechatClipboard(event);
+  if (!paste) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  fragment.value = { paste, placement: selectedPlacement() };
+}
+function applyWechat(html: string) {
+  const draft = fragment.value;
+  if (!draft || props.disabled || !vditor) return;
+  const elements = readElements();
+  const fence = "```";
+  const value =
+    fence + "wildboy-wechat\n" + encodeWechatFence(html) + "\n" + fence;
+  if (draft.index === undefined) {
+    const template = document.createElement("template");
+    template.innerHTML = vditor.vditor.lute.Md2VditorDOM(value);
+    const imported = template.content.firstElementChild;
+    if (!imported) return;
+    const target = draft.placement;
+    const before = target?.before
+      ? Array.from(target.editor.children).indexOf(target.before)
+      : -1;
+    elements.splice(before >= 0 ? before : elements.length, 0, imported);
+  } else {
+    const code = elements[draft.index]?.querySelector(
+      "pre > code.language-wildboy-wechat",
+    );
+    if (!code) return;
+    code.textContent = encodeWechatFence(html);
+  }
+  const next = serializeBlockOrder(elements, vditor.vditor.lute);
+  if (next.length > articleLimit) {
+    fragmentValidation.value =
+      "加入片段后正文超过 20 万字符。请精简本次粘贴的内容，或分篇保存。";
+    return;
+  }
+  fragment.value = undefined;
+  fragmentValidation.value = "";
+  vditor.setValue(next);
+  syncDirty();
+}
+function renderWechat(panel: HTMLElement) {
+  const preview = document.createElement("div");
+  preview.className = "wechat-fragment-preview wechat-prose";
+  preview.innerHTML = cleanWechatPreview(
+    decodeWechatFence(panel.firstElementChild?.textContent ?? ""),
+  );
+  preview.inert = true;
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "wechat-fragment-edit";
+  edit.textContent = "编辑公众号片段";
+  panel.replaceChildren(preview, edit);
+}
+function editWechat(event: MouseEvent) {
+  const target =
+    event.target instanceof Element
+      ? event.target.closest(".vditor-wysiwyg__block, .vditor-ir__node")
+      : null;
+  const code = target?.querySelector("pre > code.language-wildboy-wechat");
+  if (!target || !code || !canInsert()) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const index = Array.from(activeEditor()?.children ?? []).indexOf(target);
+  if (index >= 0)
+    fragment.value = {
+      index,
+      initial: decodeWechatFence(code.textContent ?? ""),
+    };
 }
 function selectedPlacement(): Placement | undefined {
   const editor = activeEditor();
@@ -345,6 +489,7 @@ function maybeInit() {
       cdn: "/vditor",
       lang: "zh_CN",
       mode: "wysiwyg",
+      customRenders: [{ language: "wildboy-wechat", render: renderWechat }],
       value: markdown,
       height: props.height ?? 520,
       placeholder:
@@ -401,11 +546,18 @@ function maybeInit() {
 }
 function syncDirty() {
   if (!applying && loaded.value && vditor)
-    dirty.value = vditor.getValue() !== markdown;
+    dirty.value = editorValue() !== markdown;
+}
+function validateLength() {
+  if (props.components && editorValue().length > articleLimit) {
+    error.value = "正文超过 20 万字符，请精简后再保存。";
+    return false;
+  }
+  return true;
 }
 function readContent() {
   if (!loaded.value || !vditor) return null;
-  return { markdown: vditor.getValue(), version: version.value };
+  return { markdown: editorValue(), version: version.value };
 }
 function markSaved(
   content: { markdown?: string; version: number },
@@ -415,12 +567,12 @@ function markSaved(
   version.value = content.version;
   if (content.markdown !== undefined) {
     markdown = content.markdown;
-    dirty.value = (vditor?.getValue() ?? markdown) !== markdown;
+    dirty.value = !!vditor && editorValue() !== markdown;
   }
 }
 async function save() {
   const content = readContent();
-  if (workflowBusy.value || props.disabled || !content) return;
+  if (workflowBusy.value || props.disabled || !content || !props.path) return;
   const n = ++generation,
     actor = currentUser.value;
   busy.value = true;
@@ -444,6 +596,7 @@ async function save() {
   }
 }
 async function canLeave() {
+  if (writeBusy.value) return false;
   syncDirty();
   return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
@@ -457,6 +610,7 @@ defineExpose({
   save,
   load,
   readContent,
+  validateLength,
   markSaved,
   versionConflict,
 });
@@ -484,14 +638,38 @@ onUnmounted(() => {
     >
       重试
     </button>
-    <div class="md-layout" :class="{ 'has-component-panel': components }">
-      <aside v-if="components" class="component-panel" aria-label="正文组件">
-        <header class="component-panel-header">
-          <h2>正文组件</h2>
-          <p v-if="disabled">正文只读</p>
-          <p v-else-if="busy && loaded" role="status">正在上传图片…</p>
-          <p v-else>拖入正文，也可点击插入</p>
-        </header>
+    <div class="md-layout">
+      <nav v-if="components" class="writing-tools" aria-label="正文编辑方式">
+        <button
+          type="button"
+          :aria-pressed="!arranged"
+          :disabled="!canInsert()"
+          @click="arranged && resumeWriting()"
+        >
+          <AppIcon name="text" :size="16" />写正文
+        </button>
+        <button
+          type="button"
+          :aria-pressed="!!arranged"
+          :disabled="!canInsert()"
+          @click="!arranged && startArrange()"
+        >
+          <AppIcon name="grip" :size="16" />整理内容块
+        </button>
+      </nav>
+      <MarkdownBlockOrganizer
+        v-if="arranged"
+        :elements="arranged"
+        :disabled="!canInsert()"
+        @change="applyArrangement"
+        @edit="resumeWriting"
+      />
+      <aside
+        v-if="components"
+        v-show="!arranged"
+        class="component-panel"
+        aria-label="正文组件"
+      >
         <div class="component-grid">
           <button
             v-for="item in contentComponents"
@@ -507,22 +685,32 @@ onUnmounted(() => {
             <AppIcon :name="item.kind" />{{ item.label }}
           </button>
         </div>
-        <h3>形状</h3>
-        <div class="component-grid">
-          <button
-            v-for="item in shapeComponents"
-            :key="item.kind"
-            type="button"
-            class="component-button"
-            :disabled="!canInsert()"
-            :draggable="canInsert()"
-            @dragstart="startDrag($event, item.kind)"
-            @dragend="stopDrag"
-            @click="insertComponent(item.kind)"
-          >
-            <AppIcon :name="item.kind" />{{ item.label }}
-          </button>
-        </div>
+        <button
+          type="button"
+          class="component-button"
+          :disabled="!canInsert()"
+          @click="fragment = { placement: selectedPlacement() }"
+        >
+          <AppIcon name="document" :size="16" />粘贴公众号
+        </button>
+        <details class="shape-menu">
+          <summary>形状</summary>
+          <div class="component-grid">
+            <button
+              v-for="item in shapeComponents"
+              :key="item.kind"
+              type="button"
+              class="component-button"
+              :disabled="!canInsert()"
+              :draggable="canInsert()"
+              @dragstart="startDrag($event, item.kind)"
+              @dragend="stopDrag"
+              @click="insertComponent(item.kind)"
+            >
+              <AppIcon :name="item.kind" />{{ item.label }}
+            </button>
+          </div>
+        </details>
         <input
           ref="imageInput"
           type="file"
@@ -533,9 +721,12 @@ onUnmounted(() => {
         />
       </aside>
       <div
+        v-show="!arranged"
         ref="body"
         class="md-body"
         @input="syncDirty"
+        @paste.capture="pasteWechat"
+        @click.capture="editWechat"
         @dragover.capture="dragOver"
         @dragleave="dragLeave"
         @drop.capture="drop"
@@ -553,48 +744,75 @@ onUnmounted(() => {
         ></span>
       </div>
     </div>
+    <WechatFragmentDialog
+      v-if="fragment"
+      :initial="fragment.initial"
+      :paste="fragment.paste"
+      :validation="fragmentValidation"
+      @apply="applyWechat"
+      @close="
+        fragment = undefined;
+        fragmentValidation = '';
+      "
+    />
   </section>
 </template>
 <style scoped>
 .md-editor {
   margin-top: 4px;
 }
-.md-layout.has-component-panel {
+.md-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 13rem;
-  grid-template-areas: "body components";
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
-  gap: 16px;
+  gap: 10px;
 }
 .md-body {
-  grid-area: body;
   position: relative;
   min-width: 0;
 }
 .component-panel {
-  grid-area: components;
-  padding: 14px;
-  border: 1px solid var(--rf-line);
-  border-radius: 12px;
-  background: var(--rf-bg);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: flex-start;
 }
-.component-panel h2,
-.component-panel h3 {
-  margin: 0;
-  color: var(--rf-ink);
+.writing-tools,
+.component-grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.writing-tools {
+  width: fit-content;
+  padding: 3px;
+  background: var(--rf-bg);
+  border: 1px solid var(--rf-line);
+  border-radius: 8px;
+}
+.writing-tools button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--rf-muted);
+  font-size: 14px;
+}
+.writing-tools button[aria-pressed="true"] {
+  color: var(--rf-primary-text);
+  background: var(--rf-surface);
+  border-color: var(--rf-line);
+}
+.shape-menu summary {
+  padding: 8px 4px;
+  cursor: pointer;
+  color: var(--rf-muted);
   font-size: 13px;
 }
-.component-panel h3 {
-  margin-block: 16px 8px;
-}
-.component-panel-header p {
-  margin: 4px 0 12px;
-  color: var(--rf-muted);
-  font-size: 12px;
-}
 .component-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
 }
 .component-button {
@@ -602,7 +820,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  padding-inline: 4px;
+  padding-inline: 10px;
   border: 1px solid var(--rf-line);
   background: var(--rf-surface);
   color: var(--rf-ink);
@@ -633,15 +851,6 @@ onUnmounted(() => {
   height: 2px;
   background: var(--rf-primary);
   pointer-events: none;
-}
-@media (max-width: 1050px) {
-  .md-layout.has-component-panel {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: "components" "body";
-  }
-  .component-grid {
-    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  }
 }
 /* 定制 vditor 皮肤：去掉默认边框与阴影，融入文档画布。 */
 .md-editor :deep(.vditor) {
@@ -730,6 +939,31 @@ onUnmounted(() => {
 }
 .md-editor :deep(.vditor-wysiwyg img) {
   border-radius: 8px;
+}
+.md-editor
+  :deep(
+    .vditor-wysiwyg__block:has(code.language-wildboy-wechat)
+      > .vditor-wysiwyg__pre
+  ) {
+  display: none !important;
+}
+.md-editor :deep(.wechat-fragment-preview) {
+  max-height: 340px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  font-family: var(--rf-font, system-ui, sans-serif);
+  background: var(--rf-surface);
+}
+.md-editor :deep(.wechat-fragment-preview img) {
+  max-width: 100%;
+  height: auto;
+}
+.md-editor :deep(.wechat-fragment-edit) {
+  margin: 6px 0;
+  color: var(--rf-primary-text);
+  border: 1px solid var(--rf-line);
+  background: var(--rf-surface);
 }
 .md-editor :deep(.vditor-wysiwyg code) {
   background: var(--admin-paper);

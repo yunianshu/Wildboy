@@ -15,6 +15,7 @@ public class ArticleController {
   @GetMapping("/admin/articles") Models.Page<Article> adminList(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return service.list(page,size,true);}
   @GetMapping("/admin/articles/{id}") Article adminGet(@PathVariable String id){return service.get(id,true);}
   @PostMapping("/admin/articles") Article create(@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.create(in,user.id());}
+  @PostMapping("/admin/articles/{id}/copy") Article copy(@PathVariable String id,@Valid @RequestBody CopyInput in,@AuthenticationPrincipal Models.User user){return service.copy(id,in,user.id());}
   @PutMapping("/admin/articles/{id}") Article update(@PathVariable String id,@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.update(id,in,user.id());}
   @GetMapping("/admin/articles/{id}/content") ArticleContent content(@PathVariable String id){return service.content(id);}
   @PutMapping("/admin/articles/{id}/content") ArticleContent saveContent(@PathVariable String id,@Valid @RequestBody ArticleContentInput in,@AuthenticationPrincipal Models.User user){return service.saveContent(id,in,user.id());}

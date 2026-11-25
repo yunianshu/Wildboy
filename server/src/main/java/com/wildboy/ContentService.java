@@ -21,6 +21,18 @@ public class ContentService {
     return stored(type, id).document();
   }
 
+  record PublicActivityContent(List<Object> blocks, long version) {}
+  PublicActivityContent publicActivity(String id) {
+    var document = get("activity", id, false);
+    List<Object> blocks = new ArrayList<>();
+    for (var block : document.blocks()) {
+      if ("wechat".equals(block.type()))
+        blocks.add(Map.of("type", "wechat", "nodes", new WechatFragment(block.text()).nodes()));
+      else blocks.add(block);
+    }
+    return new PublicActivityContent(blocks, document.version());
+  }
+
   private StoredContent stored(String type, String id) {
     var found=db.query("SELECT blocks,version,markdown FROM rich_content WHERE entity_type=? AND entity_id=?",(r,n)-> {
       try {
@@ -107,10 +119,15 @@ public class ContentService {
   }
   static void validate(List<Block> blocks) {
     if(blocks==null || blocks.size()>30) bad();
-    int chars=0;
+    int chars=0, formattedChars=0;
     for(var b:blocks) {
       if(b==null || b.type()==null) bad();
       switch(b.type()) {
+        case "wechat" -> {
+          if (b.text()==null || b.text().isBlank() || b.text().length()>WechatFragment.MAX_HTML ||
+              b.url()!=null || b.caption()!=null || b.rows()!=null) bad();
+          formattedChars += b.text().length();
+        }
         case "text" -> { if(b.text()==null || b.text().isBlank() || b.text().length()>10000 || b.url()!=null || b.rows()!=null) bad(); chars+=b.text().length(); }
         case "image" -> { if(!safeImage(b.url()) || b.caption()!=null && b.caption().length()>300 || b.text()!=null || b.rows()!=null) bad(); }
         case "table" -> { if(b.rows()==null || b.rows().isEmpty() || b.rows().size()>30 || b.url()!=null || b.text()!=null) bad();
@@ -121,18 +138,27 @@ public class ContentService {
         default -> bad();
       }
     }
-    if(chars>30000) bad();
+    if(chars>30000 || formattedChars>ArticleMarkdown.MAX_LENGTH) bad();
   }
   static void bad(){throw new ApiException(400,"INVALID_CONTENT","图文内容格式或长度无效");}
   @Transactional public Document save(String type,String id,Input in,String actor) {
     validate(in.blocks());
+    List<Block> blocks = new ArrayList<>();
+    for (var block : in.blocks()) {
+      if ("wechat".equals(block.type())) {
+        if (!"activity".equals(type)) bad();
+        var fragment = new WechatFragment(block.text());
+        if (!fragment.hasContent()) throw WechatFragment.invalid("公众号排版块为空，请补充内容或移除");
+        blocks.add(new Block("wechat", fragment.html(), null, null, null));
+      } else blocks.add(block);
+    }
     lockEntity(type, id);
     var old = stored(type, id);
     checkVersion(in.version(), old.document().version());
     if (old.markdown() != null)
       throw ApiException.conflict("CONTENT_CONFLICT", "请使用商品图文工作台编辑此内容");
-    saveContent(type, id, in.blocks(), null, actor);
-    return new Document(in.blocks(), old.document().version() + 1);
+    saveContent(type, id, blocks, null, actor);
+    return new Document(blocks, old.document().version() + 1);
   }
 
   private void lockEntity(String type, String id) {

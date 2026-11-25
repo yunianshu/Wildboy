@@ -18,4 +18,6 @@ public final class ArticleModels {
     }
   }
   public record VersionInput(@NotNull @Min(0) Long version) {}
+  public record CopyInput(@NotBlank @Size(max=120) String title, @NotNull @Min(0) Long version,
+      @NotBlank @Size(max=80) String requestId) {}
 }

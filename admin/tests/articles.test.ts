@@ -165,22 +165,25 @@ async function typeContent(w: VueWrapper, text: string) {
 }
 const writes = () => fetcher.mock.calls.filter((c: any) => c[1]?.method);
 describe("article editor page", () => {
-  it("creates a draft before loading its structured content", async () => {
+  it("writes title and body together when creating a draft", async () => {
     const w = await view("/articles/new");
-    expect(vditorInstances.length).toBe(0);
-    expect(w.text()).toContain("保存草稿后，继续撰写正文");
+    await loadRich(w);
+    expect(w.text()).toContain("整理内容块");
+    await typeContent(w, "## 新文章的正文");
     await w.get('[aria-label="文章标题"]').setValue("新文章");
     await button(w, "保存草稿").trigger("click");
     await flushPromises();
     expect(writes()[0][1].method).toBe("POST");
     expect(JSON.parse(writes()[0][1].body).activityId).toBeNull();
+    expect(JSON.parse(writes()[0][1].body).markdown).toBe("## 新文章的正文");
     expect(w.vm.$route.path).toBe("/articles/article-1/edit");
     await loadRich(w);
-    expect(vditorInstances.length).toBe(1);
+    expect(vditorInstances.at(-1)!.value).toBe("## 新文章的正文");
     w.unmount();
   });
   it("refuses to save a draft without a title", async () => {
     const w = await view("/articles/new");
+    await loadRich(w);
     await button(w, "保存草稿").trigger("click");
     await flushPromises();
     expect(w.text()).toContain("请填写文章标题");

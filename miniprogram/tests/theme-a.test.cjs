@@ -10,7 +10,7 @@ const hash = s => crypto.createHash("sha256").update(s).digest("hex");
 // were refreshed for the explicitly requested modular homepage customization.
 const protectedFiles = {
   "pages/home/index.ts": "1dfffeaaee33623af8d369d616cbc97610cfecadb46df78d5ab0907e9a4e9ce0",
-  "pages/home/index.wxml": "8fc2c78674f28ec9e828aa81ac1fca246f72cc72aa6785be0073b92ddad1252f",
+  "pages/home/index.wxml": "81e0e7fa95a1395b5cf5c30574b2a8565801bc53c911438483255a9551341632",
   "pages/home/index.json": "5983938690a29e5e0c2c102a4d679490c6642acaa5b7db74d517b7785c686f12",
   "custom-tab-bar/index.ts": "a9747f588099ea16f0891c2e32b93f985990f2aec7eace78febe0381536d9730",
   "custom-tab-bar/index.wxml": "a4eee778aa15c73f03f5d642cac763afd3550ddb075f383f281d09c05d546b76",

@@ -74,7 +74,7 @@
               <view class="card-detail">{{item.location}}</view>
               <view class="card-footer">
                 <text class="free">{{item.priceLabel}}</text>
-                <text class="muted">{{item.available}} 个余位</text>
+                <text class="muted">{{item.enabled ? item.available + ' 个余位' : item.label}}</text>
               </view>
             </view>
           </view>

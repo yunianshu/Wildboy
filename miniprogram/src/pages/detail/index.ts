@@ -162,6 +162,7 @@ Page({
     loading: true,
     error: "",
     registrationError: "",
+    registrationSyncing: false,
     deadline: "",
     endDate: "",
     cancelling: false,
@@ -188,6 +189,7 @@ Page({
       activeOrderText: "",
       cancelling: false,
       navPickerOpen: false,
+      registrationSyncing: false,
     });
   },
   onUnload() {
@@ -196,7 +198,7 @@ Page({
     epoch.invalidate();
   },
   onPullDownRefresh() {
-    void Promise.all([this.load(), this.loadAttendees()]).finally(() =>
+    void Promise.all([this.load(), this.loadAttendees(), this.loadRichContent()]).finally(() =>
       wx.stopPullDownRefresh(),
     );
   },
@@ -204,6 +206,7 @@ Page({
     const n = epoch.next();
     this.setData({
       loading: !this.data.activity,
+      registrationSyncing: hasSession(),
       error: "",
       registrationError: "",
       registration: null,
@@ -269,7 +272,7 @@ Page({
     } catch (e) {
       if (epoch.valid(n)) this.setData({ error: message(e) });
     } finally {
-      if (epoch.valid(n)) this.setData({ loading: false });
+      if (epoch.valid(n)) this.setData({ loading: false, registrationSyncing: false });
     }
   },
   async loadAttendees() {
@@ -441,6 +444,7 @@ Page({
     });
   },
   register() {
+    if (this.data.registrationSyncing) return;
     if (this.data.activeOrder) this.activityOrders();
     else if (this.data.activity?.enabled && !this.data.registrationError)
       wx.navigateTo({ url: `/pages/register/index?id=${this.data.id}` });

@@ -3,49 +3,42 @@
   <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
   <block wx:elif="{{activity}}">
     <view class="article-cover-wrap">
-      <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" data-url="{{activity.coverUrl}}" bindtap="previewPhoto" />
+      <image class="article-cover" src="{{activity.coverUrl}}" mode="aspectFill" data-url="{{activity.coverUrl}}" bindtap="previewPhoto" aria-label="查看活动封面" />
       <button open-type="share" class="share" aria-label="分享活动" hover-class="share-pressed"><image class="share-icon" src="/assets/icons-slate/share.svg" mode="aspectFit" aria-hidden="{{true}}" /></button>
     </view>
     <view class="article-head">
       <view class="article-title">{{activity.title}}</view>
-      <view class="article-meta">Wildboy 户外俱乐部 · {{activity.dateText}} 出发</view>
-      <view class="article-meta">{{activity.categoryName}} · {{activity.location}}</view>
+      <view class="article-meta">{{activity.categoryName}} · {{activity.dateText}} 出发</view>
     </view>
     <view class="article-intro">{{activity.summary}}</view>
-    <view class="article-gallery" wx:if="{{activity.galleryUrls.length}}">
-      <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load data-url="{{item}}" bindtap="previewPhoto" />
-    </view>
     <view class="notice" wx:if="{{activity.status === 'CANCELLED'}}">该活动已被主理人取消，请勿按原计划前往。</view>
-    <view class="notice" wx:if="{{activity.priceCents > 0}}">
-      标准费用 {{activity.priceLabel}}，会员优惠以报名报价为准。
-    </view>
     <view class="article-section">
       <view class="section-bar section-bar-row">
         <text>活动安排</text>
-        <view wx:if="{{navPoints.length}}" class="nav-entry-pill" aria-role="button" bindtap="openAllNavPicker">
+        <view wx:if="{{navPoints.length}}" class="nav-entry-pill" aria-role="button" hover-class="action-pressed" bindtap="openAllNavPicker">
           <image class="nav-pin-icon" src="/assets/icons/location.svg" mode="aspectFit" aria-hidden="{{true}}" />
           <text>{{navPoints.length > 1 ? '选择地点导航' : '打开地图导航'}}</text>
         </view>
       </view>
       <view class="section-body facts">
-        <view><text>【出发时间】</text><text>{{activity.dateText}}</text></view>
-        <view><text>【结束时间】</text><text>{{endDate}}</text></view>
-        <view class="nav-fact-row" aria-role="button" bindtap="tapDestinationNav">
-          <text>【活动地点】</text>
+        <view class="fact-row"><text class="fact-label">出发时间</text><text>{{activity.dateText}}</text></view>
+        <view class="fact-row"><text class="fact-label">结束时间</text><text>{{endDate}}</text></view>
+        <view class="fact-row nav-fact-row" aria-role="button" hover-class="action-pressed" bindtap="tapDestinationNav">
+          <text class="fact-label">活动地点</text>
           <view class="nav-fact-value">
-            <text>{{activity.location}}</text>
+            <text class="address-text">{{activity.location}}</text>
             <text class="nav-action-tag">{{destHasCoord ? '导航' : '复制'}}</text>
           </view>
         </view>
-        <view class="nav-fact-row" aria-role="button" bindtap="tapMeetingNav">
-          <text>【集合地点】</text>
-          <view class="nav-fact-value nav-meeting-wrap">
-            <text class="meeting-point">{{activity.meetingPoint}}</text>
+        <view class="fact-row nav-fact-row" aria-role="button" hover-class="action-pressed" bindtap="tapMeetingNav">
+          <text class="fact-label">集合地点</text>
+          <view class="nav-fact-value">
+            <text class="address-text">{{activity.meetingPoint}}</text>
             <text class="nav-action-tag">{{meetHasCoord ? '导航' : '复制'}}</text>
           </view>
         </view>
-        <view wx:if="{{boardingStops.length}}" class="boarding-fact-block">
-          <text>【上车地点】</text>
+        <view wx:if="{{boardingStops.length}}" class="fact-row boarding-fact-block">
+          <text class="fact-label">上车地点</text>
           <view class="boarding-stop-list">
             <view
               class="boarding-stop-chip"
@@ -53,6 +46,7 @@
               wx:key="label"
               data-index="{{index}}"
               aria-role="button"
+              hover-class="action-pressed"
               bindtap="tapBoardingStop"
             >
               <text class="boarding-stop-name">{{item.label}}</text>
@@ -60,11 +54,20 @@
             </view>
           </view>
         </view>
-        <view><text>【报名截止】</text><text>{{deadline}}</text></view>
-        <view><text>【同行名额】</text><text>{{activity.registeredCount}} / {{activity.capacity}} 人占用<text wx:if="{{activity.pendingPaymentCount}}"> · {{activity.pendingPaymentCount}} 人待付款</text></text></view>
+        <view class="fact-row"><text class="fact-label">报名截止</text><text>{{deadline}}</text></view>
+        <view class="fact-row"><text class="fact-label">同行名额</text><text>共 {{activity.capacity}} 位，已占 {{activity.registeredCount}} 位<text wx:if="{{activity.pendingPaymentCount}}">（含 {{activity.pendingPaymentCount}} 位待付款）</text></text></view>
+        <view class="fact-row"><text class="fact-label">标准费用</text><view><text class="fact-price">{{activity.priceLabel}}</text><text wx:if="{{activity.priceCents > 0}}" class="fee-note">会员优惠以报名报价为准</text></view></view>
       </view>
     </view>
 
+    <view wx:if="{{activity.galleryUrls.length}}" class="article-section">
+      <view class="section-bar">活动相册</view>
+      <scroll-view class="article-gallery" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="gallery-strip">
+          <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load data-url="{{item}}" bindtap="previewPhoto" aria-label="查看第 {{index + 1}} 张活动照片" />
+        </view>
+      </scroll-view>
+    </view>
     <view class="article-section" wx:if="{{attendees.length}}">
       <view class="section-bar section-bar-row">
         <text>已报名同行伙伴（{{attendeeTotalParticipants}} 人）</text>
@@ -100,15 +103,17 @@
         <view class="participant-line" wx:for="{{registration.participants}}" wx:key="id">参与人 {{index + 1}} · {{item.participantName}}</view>
       </view>
     </view>
-    <view class="notice error" wx:if="{{registrationError}}">报名状态暂未同步：{{registrationError}}<text bindtap="retry">· 点击重试</text></view>
+    <view class="notice error" wx:if="{{registrationError}}">报名状态暂未同步：{{registrationError}}</view>
     <view class="article-section">
       <view class="section-bar">注意事项</view>
       <view class="section-body signup-copy">天气、路况可能变化，请量力报名、备齐装备、出发前核对安排，并听从领队、不留痕迹。取消规则以报名截止和活动开始时间为准。</view>
     </view>
     <view class="sticky-action">
-      <button wx:if="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
+      <button wx:if="{{registrationSyncing}}" class="secondary" loading disabled>正在查询报名状态</button>
+      <button wx:elif="{{registrationError}}" class="secondary" bindtap="retry">重试报名状态查询</button>
+      <button wx:elif="{{registration && registration.status === 'CONFIRMED'}}" class="secondary" loading="{{cancelling}}" disabled="{{cancelling || !activity.canCancel}}" bindtap="cancel">{{activity.status === 'CANCELLED' ? '活动已取消' : (!activity.canCancel ? '已报名 · 已过取消截止时间' : '已报名 · 取消报名')}}</button>
       <button wx:elif="{{activeOrder}}" class="primary" bindtap="activityOrders">{{activeOrderText}} · 查看订单</button>
-      <block wx:else><button class="primary" disabled="{{!activity.enabled || !activity.available || !!registrationError}}" bindtap="register">{{activity.available ? activity.label : '名额已满'}}</button></block>
+      <button wx:else class="primary" disabled="{{!activity.enabled}}" bindtap="register">{{activity.label}}</button>
     </view>
   </block>
 </view>

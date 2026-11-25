@@ -3,49 +3,48 @@
 .article-page { padding-bottom: calc(110px + env(safe-area-inset-bottom)); background: var(--rf-bg); }
 /* Native navigation stays above this cover; do not position into its capsule area. */
 .article-cover-wrap { position: relative; }
-.article-cover { width: 100%; height: 240px; background: var(--rf-soft); }
-.article-head { padding: 20px 16px 16px; background: var(--rf-surface); }
-.article-title { color: var(--rf-ink); font-size: 24px; font-weight: 700; line-height: 1.45; }
+.article-cover { width: 100%; height: 46vw; max-height: 240px; background: var(--rf-soft); }
+.article-head { padding: 18px 16px 0; background: var(--rf-surface); }
+.article-title { color: var(--rf-ink); font-size: 24px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .article-meta { margin-top: 8px; color: var(--rf-muted); font-size: 12px; line-height: 1.6; }
 /* The native share button imposes its own width. Keep this icon control square. */
 button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: flex; align-items: center; justify-content: center; width: 44px !important; min-width: 44px !important; max-width: 44px; height: 44px; min-height: 44px; padding: 0; margin: 0; line-height: 1; border: 1px solid var(--rf-line); border-radius: 50%; background: var(--rf-surface); box-shadow: 0 2px 8px rgba(32, 55, 44, .12); }
 .share::after { border: 0; }
 .share-pressed { background: var(--rf-soft); }
 .share-icon { width: 22px; height: 22px; }
-.article-intro { padding: 16px; background: var(--rf-surface); color: var(--rf-muted); font-size: 14px; line-height: 1.8; }
-.article-gallery { padding: 0 16px; }
-.article-gallery image { width: 100%; height: 220px; margin-top: 12px; border-radius: 12px; background: var(--rf-soft); }
-.article-section { margin: 16px 16px 0; border-radius: 12px; background: var(--rf-surface); overflow: hidden; }
-.section-bar { padding: 16px 16px 12px; font-size: 18px; font-weight: 600; color: var(--rf-ink); }
-.section-body { padding: 16px; font-size: 14px; line-height: 1.8; color: var(--rf-ink); }
-.facts view { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 6px 0; }
-.facts view text:first-child { flex-shrink: 0; color: var(--rf-muted); }
-.facts view text:last-child { text-align: right; overflow-wrap: break-word; }
-.facts view text.meeting-point {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  white-space: pre-line;
-}
+.article-intro { padding: 10px 16px 18px; background: var(--rf-surface); color: var(--rf-ink); font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+.article-gallery { width: 100%; white-space: nowrap; }
+.gallery-strip { display: inline-flex; gap: 8px; padding: 2px 16px 16px; vertical-align: top; }
+.gallery-strip image { width: 132px; height: 88px; border-radius: 8px; background: var(--rf-soft); }
+.article-section { margin: 12px 16px 0; border-radius: 12px; background: var(--rf-surface); overflow: hidden; }
+.section-bar { padding: 16px 16px 8px; font-size: 18px; font-weight: 600; color: var(--rf-ink); }
+.section-body { padding: 4px 16px 16px; font-size: 14px; line-height: 1.75; color: var(--rf-ink); }
+.fact-row { display: grid; grid-template-columns: 4.5em minmax(0, 1fr); gap: 8px; align-items: baseline; padding: 7px 0; overflow-wrap: anywhere; }
+.fact-row + .fact-row { border-top: 1px solid var(--rf-line); }
+.fact-label { color: var(--rf-muted); }
+.fact-price { color: var(--rf-primary-text); font-weight: 600; }
+.fee-note { display: block; color: var(--rf-muted); font-size: 12px; }
 .signup-copy { display: block; }
 .registration-count { margin-bottom: 8px; font-weight: 600; color: var(--rf-primary-text); }
 .participant-line { padding: 4px 0; }
-.article-page > .notice { margin: 16px 16px 0; padding: 12px; }
+.article-page > .notice { margin: 12px 16px 0; padding: 12px; }
 .article-page .sticky-action button { width: 100%; }
 
 .section-bar-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px 8px;
+  flex-wrap: wrap;
+  padding-top: 12px;
 }
 .nav-entry-pill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--rf-soft);
+  min-height: 44px;
+  padding: 0 4px;
+  border-radius: 6px;
   color: var(--rf-primary-text);
   font-size: 12px;
   font-weight: 600;
@@ -55,18 +54,21 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   height: 14px;
 }
 .nav-fact-row {
+  min-height: 44px;
+  align-items: center;
   cursor: pointer;
 }
 .nav-fact-value {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px;
-  flex: 1;
   min-width: 0;
 }
-.nav-meeting-wrap {
-  justify-content: space-between;
+.address-text {
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .nav-action-tag {
   flex-shrink: 0;
@@ -74,15 +76,12 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   border-radius: 999px;
   background: var(--rf-soft);
   color: var(--rf-primary-text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   line-height: 1.5;
 }
-.boarding-fact-block {
-  flex-direction: column;
-  align-items: stretch !important;
-  gap: 8px !important;
-}
+.boarding-fact-block { align-items: start; }
+.boarding-fact-block .fact-label { padding-top: 9px; }
 .boarding-stop-list {
   display: flex;
   flex-direction: column;
@@ -94,20 +93,25 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 10px;
+  padding: 6px 8px;
+  min-height: 44px;
   border-radius: 8px;
   background: var(--rf-bg);
 }
 .boarding-stop-name {
   flex: 1;
   min-width: 0;
-  text-align: left !important;
-  color: var(--rf-ink) !important;
-  font-size: 13px;
+  overflow-wrap: anywhere;
+  color: var(--rf-ink);
+  font-size: 14px;
 }
+.action-pressed { background: var(--rf-soft); }
 
 /* Confirmed Attendees Avatars & Nicknames */
 .attendee-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
   font-size: 13px;
   font-weight: 500;
   color: var(--rf-primary-text);
@@ -198,7 +202,11 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   color: var(--rf-ink);
 }
 .nav-sheet-close {
-  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   font-size: 14px;
   color: var(--rf-muted);
 }
@@ -237,11 +245,14 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   font-weight: 600;
 }
 .nav-sheet-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 14px;
   font-weight: 600;
   color: var(--rf-ink);
 }
 .nav-sheet-addr {
+  overflow-wrap: anywhere;
   font-size: 12px;
   color: var(--rf-muted);
 }

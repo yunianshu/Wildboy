@@ -33,6 +33,8 @@ Page({
     topInset: 48,
     categories,
     selected: "",
+    searchInput: "",
+    searchTitle: "",
     items: [] as ReturnType<typeof activityView>[],
     loading: false,
     loadingMore: false,
@@ -44,7 +46,6 @@ Page({
   // Guard for the category strip: one counter invalidates pending native
   // queries, late renderer callbacks and staged animation commits together.
   _loaded: false,
-  _title: "",
   filterEpoch: 0,
   filterActive: true,
   onLoad() {
@@ -153,12 +154,21 @@ Page({
     this.setData({ filterScrollLeft: visualCurrent });
     this.setData({ filterScrollLeft: target });
   },
-  search(event: WechatMiniprogram.Input) {
-    const title = event.detail.value.trim().slice(0, 100);
-    if (title === this._title) return;
-    this._title = title;
-    this.setData({ items: [] });
-    void this.load(true);
+  updateSearchInput(event: WechatMiniprogram.Input) {
+    this.setData({ searchInput: event.detail.value });
+  },
+  search(event: WechatMiniprogram.Input | WechatMiniprogram.TouchEvent) {
+    const value = "value" in event.detail ? event.detail.value : this.data.searchInput;
+    this.applySearch(value);
+  },
+  clearSearch() {
+    this.applySearch("");
+  },
+  applySearch(value: string) {
+    const title = value.trim().slice(0, 100);
+    const changed = title !== this.data.searchTitle;
+    this.setData({ searchInput: title, searchTitle: title });
+    if (changed) void this.load(true);
   },
   async load(reset = true) {
     if (
@@ -175,7 +185,7 @@ Page({
     });
     try {
       const p = await request<PageResult<Activity>>(
-        `/activities?page=${reset ? 0 : this.data.page + 1}&size=10${this.data.selected ? "&category=" + this.data.selected : ""}${this._title ? "&title=" + encodeURIComponent(this._title) : ""}`,
+        `/activities?page=${reset ? 0 : this.data.page + 1}&size=10${this.data.selected ? "&category=" + this.data.selected : ""}${this.data.searchTitle ? "&title=" + encodeURIComponent(this.data.searchTitle) : ""}`,
       );
       if (epoch.valid(n)) {
         this._loaded = true;

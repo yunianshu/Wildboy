@@ -70,6 +70,7 @@ const auditLabels: Record<string, string> = {
   TEMPLATE_GENERATE: "生成草稿",
   TEMPLATE_DELETE: "删除模板",
   ARTICLE_CREATE: "创建文章",
+  ARTICLE_COPY: "复制文章",
   ARTICLE_UPDATE: "编辑文章",
   ARTICLE_CONTENT_UPDATE: "保存文章正文",
   ARTICLE_PUBLISHED: "发布文章",

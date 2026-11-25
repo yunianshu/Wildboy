@@ -43,6 +43,15 @@ test("state spinner has one bounded speed, compact sizing and a reduced-motion f
   assert.doesNotMatch(css, /opacity:\s*0(?:;|\s|})|visibility:\s*hidden/);
 });
 
+test("order lists expose a single first-load recovery and reserve payment for payable orders", () => {
+  const shopOrders = read("pages/orders/index.wxml");
+  assert.match(shopOrders, /wx:elif="{{error && !items.length}}"[^>]*kind="error"[\s\S]*?bindtap="retry"/);
+  assert.match(shopOrders, /wx:if="{{error && items.length}}"[^>]*kind="error"/);
+  const payButton = shopOrders.match(/<button\b[^>]*catchtap="pay"[^>]*>/)[0];
+  assert.match(payButton, /item.status === 'PENDING_PAYMENT' && !item.reconciliationRequired/);
+  assert.match(read("pages/activity-orders/index.wxml"), /wx:if="{{loggedIn && error && !items.length}}"[^>]*kind="error"[\s\S]*?bindtap="retry"/);
+});
+
 test("user icon controls share assets and retain their accessible actions", () => {
   for (const route of routes) {
     const markup = read(route + ".wxml");

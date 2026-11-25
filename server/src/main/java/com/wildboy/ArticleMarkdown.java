@@ -202,6 +202,14 @@ public final class ArticleMarkdown {
       return Map.of("type", "quote", "blocks", inner);
     }
     if (n instanceof FencedCodeBlock code) {
+      if (WechatFragment.FENCE.equals(code.getInfo())) {
+        try {
+          return Map.of("type", "wechat", "nodes", WechatFragment.fromFence(code.getLiteral()).nodes());
+        } catch (ApiException e) {
+          // A hand-written Markdown fence is still a valid document.
+          return Map.of("type", "paragraph", "spans", List.of(Map.of("t", "text", "s", e.getMessage())));
+        }
+      }
       return Map.of("type", "code", "text", code.getLiteral().strip());
     }
     if (n instanceof IndentedCodeBlock code) {

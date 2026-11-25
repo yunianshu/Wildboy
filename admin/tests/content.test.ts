@@ -3,6 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import MarkdownEditor from "../src/components/MarkdownEditor.vue";
+import RichContentEditor from "../src/components/RichContentEditor.vue";
+import {
+  decodeWechatFence,
+  encodeWechatFence,
+} from "../src/components/wechatFence";
 import ImageUpload from "../src/components/ImageUpload.vue";
 import ProductContentView from "../src/views/ProductContentView.vue";
 import { clearSession, acceptAuth } from "../src/api";
@@ -74,6 +79,14 @@ async function mountEditor(
 }
 
 describe("markdown article content editor", () => {
+  it("keeps formatted fragments with literal Markdown fences and HTML entities through storage", () => {
+    const html = "<p>露营🌲</p><pre>&lt;tag&gt;\n```\n&amp;</pre>";
+    const encoded = encodeWechatFence(html);
+    expect(encoded).toMatch(/^base64:[A-Za-z0-9+/=]+$/);
+    expect(decodeWechatFence(encoded + "\n")).toBe(html);
+    expect(decodeWechatFence(html)).toBe(html);
+    expect(decodeWechatFence("base64:!!")).toBe("");
+  });
   it("loads markdown into the editor, saves with version and reports the new one", async () => {
     const fetch = vi
       .fn()
@@ -276,6 +289,58 @@ describe("product content page", () => {
       tab: "products",
     });
     w.unmount();
+  });
+});
+
+describe("activity content blocks", () => {
+  it("copies a table independently and persists the resulting order without editor keys", async () => {
+    const original = {
+      type: "table",
+      rows: [
+        ["日期", "路线"],
+        ["周六", "山野"],
+      ],
+    };
+    const fetch = vi.fn(async (_url: string, options: RequestInit = {}) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        options.body
+          ? { ...JSON.parse(String(options.body)), version: 4 }
+          : { blocks: [original, { type: "text", text: "集合" }], version: 3 },
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [{ path: "/", component: { template: "<div/>" } }],
+    });
+    await router.push("/");
+    const wrapper = mount(RichContentEditor, {
+      props: { path: "/admin/activities/a/content" },
+      global: { plugins: [router] },
+      attachTo: document.body,
+    });
+    await flushPromises();
+    await wrapper.get('[aria-label="复制第1块并编辑"]').trigger("click");
+    const copy = wrapper.findAll('[aria-label="图文表格"]')[1];
+    expect(document.activeElement).toBe(copy.element);
+    await copy.setValue("副本\t路线");
+    await wrapper.get('[aria-label="上移第3块"]').trigger("click");
+    await wrapper.get(".rich-footer button").trigger("click");
+    await flushPromises();
+    const put = fetch.mock.calls.find(
+      ([, options]) => options?.method === "PUT",
+    )!;
+    expect(JSON.parse(String(put[1]?.body))).toEqual({
+      version: 3,
+      blocks: [
+        original,
+        { type: "text", text: "集合" },
+        { type: "table", rows: [["副本", "路线"]] },
+      ],
+    });
+    expect(wrapper.get('[role="status"]').text()).toBe("图文已保存");
+    wrapper.unmount();
   });
 });
 

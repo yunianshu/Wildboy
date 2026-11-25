@@ -1,13 +1,17 @@
 <view class="page article-page page-motion {{pageMotionClass}}">
   <ui-state wx:if="{{loading}}" kind="loading">正在读取文章…</ui-state>
-  <ui-state wx:elif="{{error}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
+  <ui-state wx:elif="{{error}}" kind="error">{{error}}<button wx:if="{{canRetry}}" class="secondary ui-button ui-button-block" bindtap="retry">重试</button><navigator wx:else class="article-explore" open-type="switchTab" url="/pages/home/index">返回探索页</navigator></ui-state>
   <ui-state wx:elif="{{empty}}" kind="empty">{{empty}}</ui-state>
   <block wx:elif="{{article}}">
-    <image wx:if="{{article.coverUrl}}" class="article-cover" src="{{article.coverUrl}}" mode="widthFix" bindtap="previewCover" aria-label="查看封面大图" />
-    <view class="title">{{article.title}}</view>
-    <view wx:if="{{article.summary}}" class="article-summary">{{article.summary}}</view>
+    <view class="article-heading">
+      <view class="title" aria-role="heading">{{article.title}}</view>
+      <view wx:if="{{article.summary}}" class="article-summary">{{article.summary}}</view>
+    </view>
+    <image wx:if="{{article.coverUrl}}" class="article-cover" src="{{article.coverUrl}}" mode="aspectFill" bindtap="previewCover" aria-label="查看封面大图" />
     <markdown-view nodes="{{article.contentNodes}}" preview-images="{{true}}" />
+    <view class="article-actions">
       <button wx:if="{{article.activityId}}" class="primary ui-button ui-button-block" bindtap="openActivity">查看关联活动</button>
-    <button class="secondary ui-button ui-button-block" open-type="share">分享文章</button>
+      <button class="secondary ui-button ui-button-block" open-type="share">分享文章</button>
+    </view>
   </block>
 </view>

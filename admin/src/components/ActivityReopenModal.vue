@@ -16,7 +16,7 @@ const emit = defineEmits<{
 }>();
 
 const nextStart = ref("");
-const publishImmediately = ref(true);
+const publishImmediately = ref(false);
 const saving = ref(false);
 const error = ref("");
 const pendingRequests = new Map<string, string>();
@@ -27,13 +27,16 @@ watch(
     if (!act) return;
     error.value = "";
     saving.value = false;
-    publishImmediately.value = act.status === "PUBLISHED";
-    // Default to +7 days at the same time of day, or next week 09:00 if in the past
+    publishImmediately.value = false;
+    // Keep the original weekday and allow enough time before registration closes.
     const origMs = Date.parse(act.startAt);
     const nowMs = Date.now();
-    let candidate = Number.isFinite(origMs) ? origMs : nowMs + 7 * 86400_000;
-    while (candidate <= nowMs + 3600_000) {
-      candidate += 7 * 86400_000;
+    const week = 7 * 86400_000;
+    const lead =
+      Math.max(0, origMs - Date.parse(act.registrationDeadline)) || 0;
+    let candidate = Number.isFinite(origMs) ? origMs : nowMs + week;
+    while (candidate <= nowMs + Math.max(lead, 3600_000)) {
+      candidate += week;
     }
     nextStart.value = toShanghaiInput(new Date(candidate).toISOString());
   },
@@ -48,8 +51,9 @@ const previewSchedule = computed(() => {
   const origStart = Date.parse(props.activity.startAt);
   const origEnd = Date.parse(props.activity.endAt);
   const origDeadline = Date.parse(props.activity.registrationDeadline);
-  const durationMs = Math.max(3600_000, origEnd - origStart);
+  const durationMs = origEnd - origStart;
   const leadMs = Math.max(0, origStart - origDeadline);
+  if (!Number.isFinite(durationMs) || !Number.isFinite(leadMs)) return null;
   return {
     endText: toShanghaiInput(
       new Date(startMs + durationMs).toISOString(),
@@ -104,22 +108,20 @@ async function submit() {
 <template>
   <FormModal v-if="activity" :busy="saving" @close="!saving && emit('close')">
     <div class="reopen-modal">
-      <h2>换时间重开一期</h2>
+      <h2>复制活动</h2>
       <p class="muted">
-        基于「{{
-          activity.title
-        }}」完整复用图文详情、封面相册、上车/导航地点与报名价格（¥{{
-          (activity.priceCents / 100).toFixed(2)
-        }}），往期名单与订单保持独立不受影响。
+        沿用「{{ activity.title }}」的图文、地点和价格。新一期单独接收报名。
       </p>
       <p v-if="error" role="alert" class="error-box">{{ error }}</p>
-      <DateTimeField
-        id="reopen-start-at"
-        v-model="nextStart"
-        label="新一期开始时间"
-        :presets="['08:00', '09:00', '14:00']"
-        required
-      />
+      <fieldset class="copy-schedule-field" :disabled="saving">
+        <DateTimeField
+          id="reopen-start-at"
+          v-model="nextStart"
+          label="新一期开始时间"
+          :presets="['08:00', '09:00', '14:00']"
+          required
+        />
+      </fieldset>
       <div v-if="previewSchedule" class="schedule-preview">
         <span>自动推算结束时间：{{ previewSchedule.endText }}</span>
         <span>自动推算报名截止：{{ previewSchedule.deadlineText }}</span>
@@ -130,7 +132,7 @@ async function submit() {
           type="checkbox"
           :disabled="saving"
         />
-        创建后立即发布上线（不勾选则保存为草稿继续微调）
+        立即发布新一期
       </label>
       <div class="dialog-actions">
         <button
@@ -152,7 +154,7 @@ async function submit() {
               ? "正在生成…"
               : publishImmediately
                 ? "重开并立即发布"
-                : "生成新一期草稿"
+                : "保存草稿并编辑"
           }}
         </button>
       </div>
@@ -169,6 +171,12 @@ async function submit() {
 .reopen-modal h2 {
   margin: 0;
   font-size: 18px;
+}
+.copy-schedule-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
 }
 .schedule-preview {
   display: flex;

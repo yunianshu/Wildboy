@@ -21,6 +21,15 @@ function isExpired(item: Activity) {
 }
 function onReopened(created: Activity) {
   reopenTarget.value = null;
+  if (created.status === "DRAFT" && router) {
+    void router.push({
+      path: `/activities/${created.id}/edit`,
+      query: route?.fullPath.includes("?")
+        ? { list: route.fullPath }
+        : undefined,
+    });
+    return;
+  }
   reopenNotice.value = `已生成新一期活动「${created.title}」（${statuses[created.status]}）。`;
   void load();
 }
@@ -327,7 +336,7 @@ useForegroundRefresh(() => {
                 class="table-action button-link"
                 @click="reopenTarget = item"
               >
-                重开一期</button
+                复制活动</button
               ><RouterLink :to="rosterLink(item)" class="table-action">{{
                 item.priceCents > 0 ? "订单" : "名单"
               }}</RouterLink>

@@ -64,8 +64,23 @@ public class ArticleService {
   void audit(String actor,String id,String action){db.update("INSERT INTO audit_event(id,actor_id,entity_id,action) VALUES(?,?,?,?)",UUID.randomUUID().toString(),actor,id,action);}
   @Transactional public Article create(Input in,String actor){
     validate(in);String id=UUID.randomUUID().toString();
-    db.update("INSERT INTO article(id,title,summary,cover_url,activity_id) VALUES(?,?,?,?,?)",id,in.title().strip(),empty(in.summary()),empty(in.coverUrl()),empty(in.activityId()).isEmpty()?null:in.activityId());
+    db.update("INSERT INTO article(id,title,summary,cover_url,activity_id,markdown) VALUES(?,?,?,?,?,?)",id,in.title().strip(),empty(in.summary()),empty(in.coverUrl()),empty(in.activityId()).isEmpty()?null:in.activityId(),in.markdown());
     audit(actor,id,"ARTICLE_CREATE");return get(id,true);
+  }
+  @Transactional public Article copy(String sourceId, CopyInput input, String actor) {
+    lock();
+    // A retry after a lost response reopens the same administrator's saved copy.
+    String key = String.join(":", "article-copy", actor, sourceId, input.requestId());
+    String copyId = UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+    var saved = db.query(SELECT + "WHERE a.id=?", (r, n) -> map(r, n, true), copyId);
+    if (!saved.isEmpty()) return saved.getFirst();
+    checkVersion(sourceId, input.version());
+    db.update("""
+        INSERT INTO article (id, title, summary, cover_url, activity_id, blocks, markdown)
+        SELECT ?, ?, summary, cover_url, activity_id, blocks, markdown FROM article WHERE id=?
+        """, copyId, input.title().strip(), sourceId);
+    audit(actor, copyId, "ARTICLE_COPY");
+    return get(copyId, true);
   }
   @Transactional public Article update(String id,Input in,String actor){
     lock();

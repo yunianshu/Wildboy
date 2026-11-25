@@ -20,7 +20,7 @@ public class DisplayProfileService {
   private final AuthService auth;
   private final ActivityService activities;
   private final Path root;
-  public DisplayProfileService(JdbcTemplate db, AuthService auth, ActivityService activities, MediaController media) {
+  public DisplayProfileService(JdbcTemplate db, AuthService auth, ActivityService activities, MediaService media) {
     this.db = db; this.auth = auth; this.activities = activities; this.root = media.root;
   }
 

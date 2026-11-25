@@ -7,12 +7,17 @@ const props = defineProps<{
   label?: string;
   preview?: string;
   previewAlt?: string;
+  compact?: boolean;
 }>();
 const emit = defineEmits<{ uploaded: [url: string]; busy: [value: boolean] }>();
 const busy = ref(false),
   error = ref("");
 const input = ref<HTMLInputElement>();
 const dragging = ref(false);
+function chooseFile() {
+  if (!props.disabled && !busy.value) input.value?.click();
+}
+defineExpose({ chooseFile });
 let alive = true;
 onUnmounted(() => {
   alive = false;
@@ -96,12 +101,15 @@ async function upload(file: File) {
     <button
       type="button"
       class="drop-zone"
-      :class="{ 'is-dragging': dragging, 'has-preview': !!preview }"
+      :class="{ 'is-dragging': dragging, 'has-preview': !!preview, compact }"
       :disabled="disabled || busy"
       :aria-label="label || '上传图片'"
-      @click="input?.click()"
+      @click="chooseFile"
     >
-      <span v-if="preview" class="upload-thumbnail">
+      <template v-if="compact"
+        ><AppIcon name="upload" :size="16" />{{ label || "上传图片" }}</template
+      >
+      <span v-else-if="preview" class="upload-thumbnail">
         <img
           :src="preview"
           :alt="previewAlt || '已上传图片'"
@@ -109,7 +117,7 @@ async function upload(file: File) {
         />
       </span>
       <AppIcon v-else name="upload" :size="24" />
-      <span class="upload-copy">
+      <span v-if="!compact" class="upload-copy">
         <strong>{{
           dragging
             ? "松开即可上传"
@@ -162,6 +170,17 @@ async function upload(file: File) {
   background: var(--rf-soft);
 }
 .drop-zone.is-dragging {
+  border-style: solid;
+}
+.drop-zone.compact {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: auto;
+  min-height: 40px;
+  padding: 6px 12px;
+  background: var(--rf-surface);
   border-style: solid;
 }
 .drop-zone.has-preview {

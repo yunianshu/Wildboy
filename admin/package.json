@@ -1,6 +1,6 @@
 {
   "name": "wildboy-admin",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "Wildboy outdoor activity administration",
   "directories": {
     "test": "tests"
@@ -20,6 +20,7 @@
   "type": "module",
   "private": true,
   "dependencies": {
+    "dompurify": "^3.5.0",
     "vditor": "^3.11.1",
     "vue": "3.5.44",
     "vue-router": "5.4.0"

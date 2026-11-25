@@ -111,6 +111,44 @@ test("normal My page navigates to registrations", async () => {
   p.onHide();
   assert.equal(p.data.user.id, "u");
 });
+test("search clear restores the selected category and ignores a late keyword response", async () => {
+  const p = page("activities");
+  p.setData({ selected: "WEEKLY" });
+  let resolveSearch;
+  response = () => new Promise(resolve => { resolveSearch = resolve; });
+  p.updateSearchInput({ detail: { value: " 海岸 " } });
+  assert.equal(calls.length, 0);
+  p.search({ detail: {} });
+  assert.equal(p.data.searchTitle, "海岸");
+  assert.ok(calls[0].path.endsWith("&category=WEEKLY&title=" + encodeURIComponent("海岸")));
+
+  response = async () => ({ items: [activity], page: 0, hasMore: false });
+  p.clearSearch();
+  assert.equal(p.data.searchTitle, "");
+  assert.equal(p.data.searchInput, "");
+  assert.ok(calls[1].path.endsWith("&category=WEEKLY"));
+  resolveSearch({ items: [], page: 0, hasMore: false });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(p.data.items.map(item => item.id), [activity.id]);
+});
+
+test("detail will not start a new registration during the existing registration check", async () => {
+  const p = page("detail");
+  p.setData({ id: activity.id, activity: { ...activity, enabled: true } });
+  let resolveRegistration;
+  response = path => path.endsWith("/registrations/me")
+    ? new Promise(resolve => { resolveRegistration = resolve; })
+    : Promise.resolve(activity);
+  const pending = p.load();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(p.data.registrationSyncing, true);
+  p.register();
+  assert.deepEqual(navigations, []);
+  resolveRegistration(registration);
+  await pending;
+  assert.equal(p.data.registrationSyncing, false);
+  assert.equal(p.data.registration.id, registration.id);
+});
 test("My failed account load cannot retain identity", async () => {
   role = "USER";
   const p = page("mine");

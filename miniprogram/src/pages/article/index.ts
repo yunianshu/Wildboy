@@ -10,6 +10,7 @@ Page({
     loading: true,
     error: "",
     empty: "",
+    canRetry: false,
   },
   _epoch: 0,
   _path: "",
@@ -20,6 +21,7 @@ Page({
     else if (id && options.official === undefined)
       this._path = `/articles/${id}`;
     else this.setData({ loading: false, error: "文章链接无效" });
+    if (this._path) this.setData({ canRetry: true });
   },
   onShow() {
     enterPage(this);

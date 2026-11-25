@@ -36,7 +36,11 @@
   </view>
   <view class="{{loggedIn ? 'section-tab-panel' : ''}}">
     <ui-state wx:if="{{loading}}" kind="loading">正在加载活动订单…</ui-state>
-    <view wx:if="{{error}}" class="error">{{error}}</view>
+    <ui-state wx:if="{{loggedIn && error && !items.length}}" kind="error">
+      {{error}}
+      <button class="secondary ui-button ui-button-block" bindtap="retry" disabled="{{loading || loadingMore || busyId}}">重新加载订单</button>
+    </ui-state>
+    <view wx:elif="{{error}}" class="error">{{error}}</view>
 
     <view wx:for="{{items}}" wx:key="id" class="order-card">
       <view class="order-head">

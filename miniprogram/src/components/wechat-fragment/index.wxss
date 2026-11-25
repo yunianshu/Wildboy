@@ -1,0 +1,16 @@
+:host {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+}
+.fragment-scroll {
+  width: 100%;
+  max-width: 100%;
+}
+.fragment-body {
+  display: block;
+  width: 100%;
+  line-height: 1.75;
+  word-break: normal;
+  overflow-wrap: break-word;
+}

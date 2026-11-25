@@ -1,7 +1,7 @@
 /* 文章 Markdown 渲染样式：原生组件 + 页面类样式 */
 .md {
-  font-size: 15px;
-  line-height: 1.85;
+  font-size: 16px;
+  line-height: 1.8;
   color: var(--rf-ink);
   overflow-wrap: anywhere;
   word-break: normal;
@@ -80,6 +80,7 @@
 }
 .md-li-text {
   flex: 1;
+  min-width: 0;
 }
 .md-quote-block {
   background: var(--rf-soft);
@@ -106,23 +107,30 @@
   white-space: nowrap;
 }
 .md-table {
-  display: inline-flex;
-  flex-direction: column;
+  display: table;
+  width: 100%;
+  border-spacing: 0;
+  border: 1px solid var(--rf-line);
   border-radius: 12rpx;
   overflow: hidden;
 }
 .md-tr {
-  display: flex;
-  flex-direction: row;
+  display: table-row;
 }
 .md-tr-head {
   background: var(--rf-soft);
 }
 .md-th,
 .md-td {
-  padding: 12rpx 20rpx;
-  min-width: 140rpx;
-  max-width: 480rpx;
+  display: table-cell;
+  padding: 9px 12px;
+  min-width: 80px;
+  max-width: 230px;
+  vertical-align: top;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .md-th {
   font-weight: 700;
@@ -131,6 +139,6 @@
   background: var(--rf-bg);
 }
 .md-hr {
-  border-top: 1rpx solid var(--rf-soft);
+  border-top: 1px solid var(--rf-line);
   margin: 28rpx 0;
 }

@@ -112,6 +112,45 @@ class ArticleIntegrationTest {
   assertThat(rendered).doesNotContain("alert(1)").contains("图片已移除");
   assertThat(nodes.stream().map(n->((java.util.Map<?,?>)n).get("type")).noneMatch("html"::equals)).isTrue();
  }
+ @Test void createsDraftWithItsFirstMarkdownBodyInOneRequest() throws Exception {
+  for (String markdown : List.of("", "# 出发前\n\n携带饮水")) {
+   var payload = new ArticleModels.Input("出发指南", "", "", null, null, markdown);
+   var response = mvc.perform(post("/api/v1/admin/articles").header("Authorization", admin)
+       .contentType("application/json").content(json.writeValueAsString(payload)))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+       .andExpect(jsonPath("$.version").value(0)).andReturn().getResponse();
+   String id = json.readTree(response.getContentAsByteArray()).get("id").asText();
+   assertThat(db.queryForObject("SELECT markdown FROM article WHERE id=?", String.class, id))
+       .isEqualTo(markdown);
+  }
+ }
+ @Test void copiesOfficialArticleIntoIndependentDraftAndRetriesSafely() throws Exception {
+  var source = published();
+  var official = articles.action(source.id(), source.version(), "official", actor);
+  String path = "/api/v1/admin/articles/" + official.id() + "/copy";
+  var input = new ArticleModels.CopyInput("下期活动回顾", official.version(), UUID.randomUUID().toString());
+  String body = json.writeValueAsString(input);
+  mvc.perform(post(path).header("Authorization", user).contentType("application/json").content(body))
+      .andExpect(status().isForbidden());
+  var response = mvc.perform(post(path).header("Authorization", admin).contentType("application/json").content(body))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("DRAFT"))
+      .andExpect(jsonPath("$.isOfficial").value(false)).andExpect(jsonPath("$.version").value(0))
+      .andExpect(jsonPath("$.title").value(input.title())).andExpect(jsonPath("$.coverUrl").value(source.coverUrl()))
+      .andExpect(jsonPath("$.summary").value(source.summary())).andExpect(jsonPath("$.contentNodes[0].spans[0].s").value("文章正文"))
+      .andReturn().getResponse();
+  String id = json.readTree(response.getContentAsByteArray()).get("id").asText();
+  assertThat(id).isNotEqualTo(source.id());
+  mvc.perform(post(path).header("Authorization", admin).contentType("application/json").content(body))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(id));
+  assertThat(articles.list(0,20,true).total()).isEqualTo(2);
+  articles.saveContent(id, new ArticleModels.ArticleContentInput("只编辑副本", 0L), actor);
+  assertThat(articles.content(source.id()).markdown()).isEqualTo("文章正文");
+  assertThat(articles.official().id()).isEqualTo(source.id());
+  mvc.perform(get("/api/v1/articles/" + id)).andExpect(status().isNotFound());
+  mvc.perform(post(path).header("Authorization", admin).contentType("application/json")
+      .content(json.writeValueAsString(new ArticleModels.CopyInput("过时副本", 0L, "stale"))))
+      .andExpect(status().isConflict());
+ }
  @Test void legacyBlocksLazilyConvertToMarkdown()throws Exception{
   var a=create();
   String blocks=json.writeValueAsString(List.of(
@@ -120,6 +159,8 @@ class ArticleIntegrationTest {
     java.util.Map.of("type","table","rows",List.of(List.of("日期","集合"),List.of("11/21","东直门")))));
   db.update("UPDATE article SET blocks=? WHERE id=?",blocks,a.id());
   var content=articles.content(a.id());
+  var copied=articles.copy(a.id(), new ArticleModels.CopyInput("旧文副本", a.version(), "legacy"), actor);
+  assertThat(articles.content(copied.id()).markdown()).isEqualTo(content.markdown());
   assertThat(content.markdown()).contains("旧正文段落").contains("![装备图](/assets/equipment.jpg)").contains("*装备图*").contains("| 日期 | 集合 |");
   // 旧正文可直接发布（effectiveMarkdown 懒转换），公开页拿到结构化节点
   articles.action(a.id(),content.version(),"publish",actor);

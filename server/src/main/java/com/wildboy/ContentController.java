@@ -7,7 +7,7 @@ import static com.wildboy.ContentModels.*;
 public class ContentController {
   final ContentService service;
   public ContentController(ContentService service){this.service=service;}
-  @GetMapping("/activities/{id}/content") Document activity(@PathVariable String id){return service.get("activity",id,false);}
+  @GetMapping("/activities/{id}/content") ContentService.PublicActivityContent activity(@PathVariable String id){return service.publicActivity(id);}
   @GetMapping("/shop/products/{id}/content") ProductDocument product(@PathVariable String id){return service.publicProduct(id);}
   @GetMapping("/admin/activities/{id}/content") Document adminActivity(@PathVariable String id){return service.get("activity",id,true);}
   @GetMapping("/admin/shop/products/{id}/content") Document adminProduct(@PathVariable String id){return service.get("product",id,true);}

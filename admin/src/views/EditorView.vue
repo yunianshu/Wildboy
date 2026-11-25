@@ -20,7 +20,6 @@ import { fromShanghaiInput, toShanghaiInput, validateActivity } from "../forms";
 import { activityStatusTone } from "../statusTone";
 import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
-import FormModal from "../components/FormModal.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import NavigationPointsField from "../components/NavigationPointsField.vue";
 import RichContentEditor from "../components/RichContentEditor.vue";
@@ -33,6 +32,7 @@ const reopenOpen = ref(false);
 const contentEditor = ref<{
   canLeave: () => Promise<boolean>;
   busy: boolean;
+  dirty: boolean;
 } | null>(null);
 const route = useRoute(),
   router = useRouter(),
@@ -496,7 +496,7 @@ async function closeContent() {
   contentOpen.value = false;
 }
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (dirty.value) {
+  if (dirty.value || contentEditor.value?.dirty || contentEditor.value?.busy) {
     event.preventDefault();
     event.returnValue = "";
   }
@@ -509,7 +509,9 @@ onBeforeRouteLeave(
 );
 onBeforeRouteUpdate(
   async () =>
-    !dirty.value || (await askConfirm("修改尚未保存，确定切换活动吗？")),
+    !saving.value &&
+    (!contentEditor.value || (await contentEditor.value.canLeave())) &&
+    (!dirty.value || (await askConfirm("修改尚未保存，确定切换活动吗？"))),
 );
 onMounted(() => {
   void load();
@@ -814,15 +816,6 @@ useForegroundRefresh(() => {
               <div>
                 <h2>活动详情</h2>
               </div>
-              <button
-                v-if="id"
-                type="button"
-                class="secondary"
-                :disabled="saving"
-                @click="contentOpen = true"
-              >
-                编辑图文详情
-              </button>
             </div>
             <fieldset :disabled="saving || readonly">
               <label
@@ -837,6 +830,27 @@ useForegroundRefresh(() => {
                 }}</small></label
               >
             </fieldset>
+            <div class="activity-content-entry">
+              <div>
+                <strong>图文详情</strong>
+                <p>
+                  {{
+                    id
+                      ? "编排行程文字、路线图片和表格。"
+                      : "保存活动后，可添加图片和表格。"
+                  }}
+                </p>
+              </div>
+              <button
+                v-if="id"
+                type="button"
+                class="secondary"
+                :disabled="saving"
+                @click="contentOpen = true"
+              >
+                <AppIcon name="document" :size="16" />编辑图文详情
+              </button>
+            </div>
           </section>
         </div>
         <aside class="editor-aside">
@@ -957,18 +971,13 @@ useForegroundRefresh(() => {
     @close="reopenOpen = false"
     @created="handleReopened"
   />
-  <FormModal
-    :busy="saving || !!contentEditor?.busy"
+  <RichContentEditor
     v-if="id && contentOpen"
-    size="lg"
+    ref="contentEditor"
+    :path="`/admin/activities/${id}/content`"
+    :disabled="saving || readonly"
     @close="closeContent"
-  >
-    <RichContentEditor
-      ref="contentEditor"
-      :path="`/admin/activities/${id}/content`"
-      :disabled="saving || readonly"
-    />
-  </FormModal>
+  />
   <ConfirmDialog
     v-if="dialog"
     :busy="saving"
@@ -984,3 +993,30 @@ useForegroundRefresh(() => {
     @cancel="!saving && (dialog = null)"
   />
 </template>
+<style scoped>
+.activity-content-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--rf-line);
+  border-radius: 8px;
+  background: var(--rf-bg);
+}
+.activity-content-entry strong {
+  font-size: 15px;
+}
+.activity-content-entry p {
+  margin: 4px 0 0;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.activity-content-entry button {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+}
+</style>

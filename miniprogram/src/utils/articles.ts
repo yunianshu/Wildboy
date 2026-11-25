@@ -1,3 +1,5 @@
+import type { WechatRichTextNode } from "./wechat-rich-text";
+
 export interface ArticleSummary {
   id: string;
   title: string;
@@ -8,8 +10,21 @@ export interface ArticleSummary {
   publishedAt: string | null;
   version: number;
 }
-/** 服务端 commonmark 解析出的结构化节点（原生组件渲染，不含 HTML）。 */
-export type MarkdownNode = Record<string, any>;
+type InlineSpan = {
+  t: "text" | "bold" | "italic" | "code" | "link";
+  s: string;
+  href?: string;
+};
+export type MarkdownNode = { quote?: boolean } & (
+  | { type: "heading"; level: number; spans: InlineSpan[] }
+  | { type: "paragraph"; spans: InlineSpan[] }
+  | { type: "image"; url: string; caption?: string }
+  | { type: "code"; text: string }
+  | { type: "hr" }
+  | { type: "list"; ordered: boolean; level?: number; items: { spans: InlineSpan[] }[] }
+  | { type: "table"; head: InlineSpan[][]; rows: InlineSpan[][][] }
+  | { type: "wechat"; nodes: WechatRichTextNode[] }
+);
 export interface Article extends ArticleSummary {
   contentNodes: MarkdownNode[];
 }
