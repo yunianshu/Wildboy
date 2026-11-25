@@ -294,3 +294,41 @@ test("activity detail displays confirmed attendee avatars/nicknames and supports
   assert.equal(openedLocations.length, 2);
   assert.equal(openedLocations[1].name, "海沧阿罗海广场");
 });
+
+test("plain destination and meeting addresses copy their own text when only boarding has coordinates", () => {
+  const copied = [];
+  wx.setClipboardData = ({ data }) => copied.push(data);
+  const detail = mountPage("detail");
+  detail.setData({
+    activity: { location: "徒步终点", meetingPoint: "山下停车场" },
+    navPoints: [{ kind: "BOARDING", label: "市区上车点", latitude: 24.48, longitude: 118.08 }],
+  });
+  detail.tapDestinationNav();
+  detail.tapMeetingNav();
+  assert.deepEqual(copied, ["徒步终点", "山下停车场"]);
+  assert.deepEqual(openedLocations, []);
+});
+
+test("a single QR keeps its configured label and full-size preview", () => {
+  const home = mountPage("home");
+  const image = { url: "https://example.com/qr.png", label: "领队微信" };
+  home.showPopupDialog("扫码", "", [image]);
+  assert.deepEqual(home.data.popupImages, [image]);
+  let preview;
+  wx.previewImage = (options) => { preview = options; };
+  home.previewPopupQr({ currentTarget: { dataset: { url: image.url } } });
+  assert.deepEqual(preview, { current: image.url, urls: [image.url] });
+  const markup = require("node:fs").readFileSync("dist/pages/home/index.wxml", "utf8");
+  assert.match(markup, /popupImages\.length === 1[\s\S]*?{{popupImages\[0\]\.label}}/);
+});
+
+test("an explicit empty shortcut image list clears a legacy QR", () => {
+  const { normalizePublicHomeLayout } = require("../dist/utils/home-layout.js");
+  const legacy = { name: "二维码", type: "POPUP", popupImageUrl: "/assets/equipment.jpg" };
+  const result = normalizePublicHomeLayout({ layout: {
+    modules: [], shortcuts: { items: [legacy, { ...legacy, popupImages: [] }] },
+  } });
+  assert.deepEqual(result.shortcuts[0].popupImages, [{ url: legacy.popupImageUrl, label: "" }]);
+  assert.deepEqual(result.shortcuts[1].popupImages, []);
+  assert.equal(result.shortcuts[1].popupImageUrl, "");
+});

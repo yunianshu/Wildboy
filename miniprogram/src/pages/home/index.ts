@@ -119,22 +119,25 @@ Page({
     void this.load().finally(() => wx.stopPullDownRefresh());
   },
   async load() {
-    this._layoutManaged = false;
-    await Promise.all([
-      this.loadLayout(),
-      this.loadArticles(),
-      this.loadShortcuts(),
-      this.loadEquipment(),
-      this.loadActivities(),
-    ]);
+    await Promise.all([this.loadHomeSections(), this.loadArticles()]);
   },
-  async loadLayout(): Promise<boolean> {
+  async loadHomeSections() {
     const n = layoutEpoch.next();
+    await this.loadLayout(n);
+    if (!layoutEpoch.valid(n)) return;
+    if (this._layoutManaged) {
+      if (this.data.galleryConfig.mode === "AUTO_ARTICLES") {
+        await this.loadEquipment(true);
+      }
+      return;
+    }
+    await Promise.all([this.loadShortcuts(), this.loadEquipment(), this.loadActivities()]);
+  },
+  async loadLayout(n: number) {
     try {
       const payload = await request<unknown>("/home/layout");
-      if (!layoutEpoch.valid(n) || !isPublicHomeLayout(payload)) return false;
+      if (!layoutEpoch.valid(n) || !isPublicHomeLayout(payload)) return;
       const normalized = normalizePublicHomeLayout(payload);
-      this._layoutManaged = true;
       const featuredActivities = Array.isArray(payload.featuredActivities)
         ? homeActivitySlots(
             payload.featuredActivities.map((x) => ({
@@ -153,12 +156,18 @@ Page({
             imageUrl: mediaUrl(item.imageUrl),
           }))
         : [];
+      this._layoutManaged = true;
+      epoch.invalidate();
+      equipmentEpoch.invalidate();
+      shortcutEpoch.invalidate();
+      tapEpoch.invalidate();
       this.setData({
         modules: normalized.modules,
         hero: normalized.hero,
         shortcutColumns: normalized.shortcutColumns,
         categories: normalized.shortcuts,
         shortcutLoading: false,
+        shortcutBusy: false,
         shortcutError: "",
         activitiesHeader: normalized.activitiesHeader,
         items: featuredActivities,
@@ -173,26 +182,8 @@ Page({
         popup: null,
         popupImages: [],
       });
-      return true;
     } catch {
-      return false;
-    }
-  },
-  async loadBannersOnly() {
-    const n = equipmentEpoch.next();
-    try {
-      const home = await request<Home>("/home");
-      if (!equipmentEpoch.valid(n)) return;
-      this.setData({
-        banners: home.banners.length
-          ? home.banners.map((item) => ({
-              ...item,
-              imageUrl: mediaUrl(item.imageUrl),
-            }))
-          : fallbackBanners,
-      });
-    } catch {
-      // Keep fallback banners if /home is unreachable
+      // Keep the last valid layout, or use the legacy sections on a first load.
     }
   },
   async loadActivities() {
@@ -206,7 +197,7 @@ Page({
       const page = await request<PageResult<Activity>>(
         `/activities?page=0&size=${HOME_ACTIVITY_COUNT}`,
       );
-      if (!epoch.valid(n) || this._layoutManaged) return;
+      if (!epoch.valid(n)) return;
       this.setData({
         items: homeActivitySlots(
           page.items.map((x) => ({ ...x, coverUrl: mediaUrl(x.coverUrl) })),
@@ -218,14 +209,14 @@ Page({
       if (epoch.valid(n)) this.setData({ loading: false });
     }
   },
-  async loadEquipment() {
+  async loadEquipment(bannersOnly = false) {
     const n = equipmentEpoch.next();
-    this.setData({ equipmentLoading: true, equipmentError: "" });
+    if (!bannersOnly) this.setData({ equipmentLoading: true, equipmentError: "" });
     try {
       const home = await request<Home>("/home");
       if (!equipmentEpoch.valid(n)) return;
       this.setData({
-        ...(this._layoutManaged
+        ...(bannersOnly
           ? {}
           : {
               equipment: homeEquipmentSlots(home.equipment).map((item) => ({
@@ -241,13 +232,13 @@ Page({
           : fallbackBanners,
       });
     } catch (e) {
-      if (equipmentEpoch.valid(n)) this.setData({ equipmentError: message(e) });
+      if (!bannersOnly && equipmentEpoch.valid(n)) this.setData({ equipmentError: message(e) });
     } finally {
-      if (equipmentEpoch.valid(n)) this.setData({ equipmentLoading: false });
+      if (!bannersOnly && equipmentEpoch.valid(n)) this.setData({ equipmentLoading: false });
     }
   },
   retryEquipment() {
-    return this.loadEquipment();
+    return this._layoutManaged ? this.loadHomeSections() : this.loadEquipment();
   },
   async loadArticles() {
     const n = articleEpoch.next();
@@ -291,7 +282,7 @@ Page({
     }
   },
   retry() {
-    void this.loadActivities();
+    return this._layoutManaged ? this.loadHomeSections() : this.loadActivities();
   },
   openActivity(e: WechatMiniprogram.TouchEvent) {
     const id = safeId(e.currentTarget.dataset.id);
@@ -309,7 +300,7 @@ Page({
     });
     try {
       const cfg = await request<ShortcutConfig>("/home/shortcuts");
-      if (!shortcutEpoch.valid(n) || this._layoutManaged) return;
+      if (!shortcutEpoch.valid(n)) return;
       this.setData({ categories: shortcutViews(cfg) });
     } catch (e) {
       if (shortcutEpoch.valid(n)) this.setData({ shortcutError: message(e) });
@@ -318,7 +309,7 @@ Page({
     }
   },
   retryShortcuts() {
-    void this.loadShortcuts();
+    return this._layoutManaged ? this.loadHomeSections() : this.loadShortcuts();
   },
   showPopupDialog(title: string, text: string, images: HomeQrImage[]) {
     const firstUrl = images[0]?.url || "";
@@ -329,7 +320,7 @@ Page({
           text: text.trim(),
           image: firstUrl,
         },
-        popupImages: images.length > 1 ? images : [],
+        popupImages: images,
         popupImageError: false,
         popupGeneration: this.data.popupGeneration + 1,
         popupBodyHeight: 0,
@@ -444,11 +435,7 @@ Page({
   previewPopupQr(e: WechatMiniprogram.TouchEvent) {
     const current = String(e.currentTarget.dataset.url || "");
     if (!current || typeof wx.previewImage !== "function") return;
-    const urls = this.data.popupImages.length
-      ? this.data.popupImages.map((x) => x.url)
-      : this.data.popup?.image
-        ? [this.data.popup.image]
-        : [];
+    const urls = this.data.popupImages.map((x) => x.url);
     if (urls.length) wx.previewImage({ current, urls });
   },
   previewFollowQr(e: WechatMiniprogram.TouchEvent) {

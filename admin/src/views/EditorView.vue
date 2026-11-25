@@ -41,12 +41,14 @@ const route = useRoute(),
   ),
   current = ref<Activity | null>(null),
   loading = ref(false),
+  refreshing = ref(false),
   saving = ref(false),
   error = ref(""),
   success = ref(""),
   conflict = ref(false),
   uncertainCreate = ref(false),
   addingBoardingPoint = ref(false),
+  addingNavigationPoint = ref(false),
   identityLockedByServer = ref(false),
   dialog = ref<"publish" | "cancel" | null>(null);
 const fields = reactive({
@@ -119,9 +121,13 @@ const priceDirty = computed(
       Math.round(Number(priceYuan.value) * 100) !==
         (current.value?.priceCents ?? 0)),
 );
-const dirty = computed(
-    () => metadataDirty.value || priceDirty.value || addingBoardingPoint.value,
-  ),
+const metadataDraftDirty = computed(
+  () =>
+    metadataDirty.value ||
+    addingBoardingPoint.value ||
+    addingNavigationPoint.value,
+);
+const dirty = computed(() => metadataDraftDirty.value || priceDirty.value),
   readonly = computed(() => false);
 const identityLocked = computed(
   () =>
@@ -149,25 +155,49 @@ function assign(data: Activity) {
     capacity: data.capacity,
   });
   baseline.value = JSON.stringify(fields);
+  addingBoardingPoint.value = false;
+  addingNavigationPoint.value = false;
   conflict.value = false;
   identityLockedByServer.value = false;
   errors.value = {};
 }
-async function load() {
+function canRefresh() {
+  return (
+    !!id.value &&
+    !dirty.value &&
+    !saving.value &&
+    !loading.value &&
+    !conflict.value &&
+    !contentOpen.value &&
+    !reopenOpen.value &&
+    !dialog.value
+  );
+}
+async function load(background = false) {
   const activityId = id.value || current.value?.id;
   if (!activityId) return;
   const actor = currentUser.value;
-  loading.value = true;
-  error.value = "";
+  const beforeRefresh = current.value;
+  if (background) refreshing.value = true;
+  else {
+    loading.value = true;
+    error.value = "";
+  }
   try {
     const data = await request<Activity>(
       `/admin/activities/${encodeURIComponent(activityId)}`,
     );
-    if (alive && actor === currentUser.value) assign(data);
+    if (
+      alive &&
+      actor === currentUser.value &&
+      (!background || (canRefresh() && current.value === beforeRefresh))
+    )
+      assign(data);
   } catch (e) {
-    if (alive) error.value = errorMessage(e);
+    if (alive && !background) error.value = errorMessage(e);
   } finally {
-    if (alive) loading.value = false;
+    if (background) refreshing.value = false;
+    else if (alive) loading.value = false;
   }
 }
 function activityDateInput(value: string, original?: string) {
@@ -223,6 +253,11 @@ async function save() {
   if (addingBoardingPoint.value) {
     editSection.value = "schedule";
     error.value = "请先保存或取消新增的上车地点。";
+    return;
+  }
+  if (addingNavigationPoint.value) {
+    editSection.value = "schedule";
+    error.value = "请先添加或取消当前导航点。";
     return;
   }
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
@@ -331,7 +366,7 @@ function putDraftPrice(activity: Activity, priceCents: number) {
 async function savePrice() {
   if (saving.value || conflict.value || !current.value || !priceEditable.value)
     return;
-  if (metadataDirty.value) {
+  if (metadataDraftDirty.value) {
     error.value = "请先保存活动信息，再设置报名价格。";
     return;
   }
@@ -485,14 +520,7 @@ onUnmounted(() => {
   window.removeEventListener("beforeunload", beforeUnload);
 });
 useForegroundRefresh(() => {
-  if (
-    id.value &&
-    !dirty.value &&
-    !saving.value &&
-    !loading.value &&
-    !contentOpen.value
-  )
-    void load();
+  if (canRefresh() && !refreshing.value) void load(true);
 });
 </script>
 <template>
@@ -546,7 +574,7 @@ useForegroundRefresh(() => {
       {{ error }}
       <button v-if="conflict" class="text-button" @click="reload">
         采用最新版本</button
-      ><button v-else-if="id && !current" class="text-button" @click="load">
+      ><button v-else-if="id && !current" class="text-button" @click="load()">
         重试
       </button>
       <button
@@ -770,8 +798,9 @@ useForegroundRefresh(() => {
                 :error="errors.boardingPoints"
               />
               <NavigationPointsField
-                v-if="editSection === 'schedule'"
+                v-if="editSection === 'schedule' || addingNavigationPoint"
                 v-model="fields.navigationPoints"
+                v-model:adding="addingNavigationPoint"
                 :disabled="saving"
                 :location="fields.location"
                 :meeting-point="fields.meetingPoint"
@@ -850,7 +879,7 @@ useForegroundRefresh(() => {
               v-if="current && priceEditable"
               type="button"
               class="secondary"
-              :disabled="saving || conflict || metadataDirty"
+              :disabled="saving || conflict || metadataDraftDirty"
               @click="savePrice"
             >
               保存报名价格

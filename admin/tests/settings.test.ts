@@ -60,6 +60,9 @@ async function view() {
 }
 it("edits exactly four entries with allowed page and published article choices", async () => {
   const w = await view();
+  expect(w.find('a[href="/home-layout?section=SHORTCUTS"]').exists()).toBe(
+    true,
+  );
   expect(w.findAll("[data-slot]")).toHaveLength(4);
   expect(w.text()).toContain("未添加文字或图片");
   expect(w.text()).toContain("已发布文章");

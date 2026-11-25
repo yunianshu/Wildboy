@@ -1,7 +1,7 @@
 {
   "name": "wildboy-miniprogram",
   "private": true,
-  "version": "0.2.12",
+  "version": "0.2.13",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node scripts/clean.cjs && tsc && node scripts/copy-static.cjs",

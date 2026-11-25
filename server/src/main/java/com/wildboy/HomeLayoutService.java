@@ -44,7 +44,7 @@ public class HomeLayoutService {
 
   static boolean validWechatArticleUrl(String value) {
     if (value == null || value.length() > 2048) return false;
-    if (value.chars().anyMatch(c -> Character.isWhitespace(c) || c == '<' || c == '>' || c == '"' || c == '\'' || c == '\\'))
+    if (value.chars().anyMatch(c -> Character.isWhitespace(c) || c == '<' || c == '>' || c == '"' || c == '\'' || c == '\\' || c == '@'))
       return false;
     if (!(value.startsWith("https://mp.weixin.qq.com/s/")
         || value.startsWith("https://mp.weixin.qq.com/s?"))) return false;
@@ -266,7 +266,7 @@ public class HomeLayoutService {
 
   private List<QrImage> validateQrImages(List<QrImage> images, String legacySingle, int maxCount) {
     var source = new ArrayList<QrImage>();
-    if (images != null && !images.isEmpty()) {
+    if (images != null) {
       source.addAll(images);
     } else if (legacySingle != null && !legacySingle.isBlank()) {
       source.add(new QrImage(legacySingle, ""));
@@ -322,7 +322,7 @@ public class HomeLayoutService {
       case "WECHAT_ARTICLE" -> {
         wechatUrl = clean(in.wechatArticleUrl());
         if (!validWechatArticleUrl(wechatUrl)) {
-          bad("微信公众号文章链接须以 https://mp.weixin.qq.com/s/ 开头");
+          bad("请填写以 https://mp.weixin.qq.com/s/ 或 https://mp.weixin.qq.com/s? 开头的公众号文章链接");
         }
       }
       case "POPUP" -> {

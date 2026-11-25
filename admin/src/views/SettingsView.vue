@@ -505,7 +505,7 @@ useForegroundRefresh(() => {
   <main class="workspace settings-workspace">
     <div class="page-heading">
       <h1>基础配置</h1>
-      <RouterLink class="primary button" to="/home-layout">
+      <RouterLink class="primary button" to="/home-layout?section=SHORTCUTS">
         <AppIcon name="dashboard" :size="16" />打开首页自由装修工作台
       </RouterLink>
     </div>
@@ -559,7 +559,10 @@ useForegroundRefresh(() => {
         class="shortcut-card shortcut-index"
         aria-labelledby="shortcut-list-heading"
       >
-        <h2 id="shortcut-list-heading">首页入口</h2>
+        <h2 id="shortcut-list-heading">首页前四个入口</h2>
+        <p class="shortcut-note">
+          完整入口列表、公众号文章和多张二维码可在首页自由装修工作台编辑。
+        </p>
         <div class="shortcut-options" aria-label="选择首页入口">
           <button
             v-for="entry in config.items"

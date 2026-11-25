@@ -22,7 +22,7 @@ class MembershipMergeMigrationTest {
     var boardingMigrations = Set.of("V34__activity_boarding_points.sql",
         "V35__activity_boarding_point_catalog.sql",
         "V36__home_page_layout.sql",
-        "V37__activity_navigation_locations.sql");
+        "V37__activity_navigation_locations.sql", "V38__merge_legacy_home_shortcuts.sql");
     try (var files = Files.list(Path.of("src/main/resources/db/migration"))) {
       for (var file : files.toList()) {
         String name = file.getFileName().toString();
@@ -89,7 +89,7 @@ class MembershipMergeMigrationTest {
       assertThat(db.queryForList("SELECT name FROM activity_boarding_point ORDER BY name", String.class))
           .containsExactly("North station", "South gate");
       var latest = Flyway.configure().dataSource(source).load();
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(3);
       latest.validate();
       assertThat(latest.migrate().migrationsExecuted).isZero();
     }

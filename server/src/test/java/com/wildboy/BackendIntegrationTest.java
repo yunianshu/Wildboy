@@ -90,7 +90,7 @@ class BackendIntegrationTest {
   }
 
   ActivityInput input(int capacity) {
-    var start = OffsetDateTime.now().plusDays(7);
+    var start = OffsetDateTime.now().plusDays(7).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     return new ActivityInput(
         "Test hiking",
         Category.WEEKLY,
@@ -479,8 +479,7 @@ class BackendIntegrationTest {
                 0,
                 emptyStarted.version()),
             "fixture");
-    assertThat(rescheduled.startAt().toInstant())
-        .isEqualTo(in.startAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS).toInstant());
+    assertThat(rescheduled.startAt().toInstant()).isEqualTo(in.startAt().toInstant());
 
     Activity enrolled = publish(2);
     activities.register(enrolled.id(), user().id(), registrationInput("已有报名人", "13800000088"));
@@ -509,6 +508,39 @@ class BackendIntegrationTest {
             true);
     assertThatThrownBy(() -> activities.edit(enrolled.id(), updated, "fixture"))
         .hasMessageContaining("重开一期");
+  }
+
+  @Test
+  void cancelledFreeRegistrationsProtectPriorParticipantsAndDates() throws Exception {
+    Activity activity = publish(2);
+    var registration = activities.register(activity.id(), user().id(),
+        registrationInput("Previous attendee", "13800000088")).registration();
+    var current = activities.get(activity.id(), true);
+    var cancelled = activities.cancel(current.id(), current.version(), "fixture");
+    assertThat(cancelled.registeredCount()).isZero();
+    String path = "/api/v1/admin/activities/" + activity.id();
+    String token = bearer(auth.user("fixture:history-editor", "Admin", "ADMIN"));
+    var version = json.createObjectNode().put("version", cancelled.version());
+    mvc.perform(post(path + "/reopen").header("Authorization", token)
+            .contentType("application/json").content(version.toString()))
+        .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ACTIVITY_HAS_HISTORY"));
+    mvc.perform(post(path + "/price").header("Authorization", token)
+            .contentType("application/json").content(version.put("priceCents", 1200).toString()))
+        .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ACTIVITY_HAS_REGISTRATIONS"));
+
+    db.update("""
+        UPDATE activity SET start_at=CURRENT_TIMESTAMP-INTERVAL '2 hours',
+            end_at=CURRENT_TIMESTAMP-INTERVAL '1 hour', registration_deadline=CURRENT_TIMESTAMP-INTERVAL '3 hours'
+        WHERE id=?
+        """, activity.id());
+    var changes = json.<ObjectNode>valueToTree(input(2)).put("version", cancelled.version());
+    mvc.perform(put(path).header("Authorization", token)
+            .contentType("application/json").content(changes.toString()))
+        .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("ACTIVITY_HAS_HISTORY"));
+    assertThat(db.queryForObject("SELECT status FROM registration WHERE id=?", String.class, registration.id()))
+        .isEqualTo("CANCELLED");
+    assertThat(db.queryForList("SELECT participant_name FROM registration_participant WHERE registration_id=?",
+        String.class, registration.id())).containsExactly("Previous attendee");
   }
 
   @Test
@@ -808,7 +840,7 @@ class BackendIntegrationTest {
     Activity second = activities.create(input(2), "fixture");
     db.update("UPDATE activity SET title=? WHERE id=?", "FOREST 100% loop", second.id());
     Activity unrelated = activities.create(input(2), "fixture");
-    db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100X loop", unrelated.id());
+    db.update("UPDATE activity SET title=?, location=? WHERE id=?", "Forest 100X loop", "Forest 100% park", unrelated.id());
     Activity published = publish(2);
     db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100% ridge", published.id());
 
@@ -826,6 +858,15 @@ class BackendIntegrationTest {
         .andExpect(jsonPath("$.items[0].id").value(second.id()))
         .andExpect(jsonPath("$.hasMore").value(false));
     mvc.perform(get(path).param("title", "a".repeat(101)).header("Authorization", token))
+        .andExpect(status().isBadRequest());
+    mvc.perform(get(path).param("keyword", "  forest 100% ").param("status", "DRAFT")
+            .header("Authorization", token))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(3));
+    mvc.perform(get(path).param("keyword", "100% PARK").param("title", "loop")
+            .param("status", "DRAFT").header("Authorization", token))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1))
+        .andExpect(jsonPath("$.items[0].id").value(unrelated.id()));
+    mvc.perform(get(path).param("keyword", "a".repeat(101)).header("Authorization", token))
         .andExpect(status().isBadRequest());
   }
 

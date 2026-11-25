@@ -437,6 +437,29 @@ test("checkout automatically reconciles an attempted payment on return", async (
   assert.equal(p.data.order.status,"PAID");
   assert.deepEqual(requests,[{path:"/orders/order-1/verify",method:"POST"}]);
 });
+test("cold checkout waits for recovery before verifying an attempted payment", async () => {
+  const key = shop.checkoutRequestId("user-1", "product-1", 1);
+  let finishRecovery;
+  api.request = async (path, method = "GET") => {
+    requests.push({ path, method });
+    if (path === `/orders/by-request/${key}`) {
+      return new Promise((resolve) => { finishRecovery = resolve; });
+    }
+    assert.equal(path, "/orders/order-1/verify");
+    return { ...baseOrder, status: "PAID" };
+  };
+  const p = page("checkout");
+  p.onLoad({ id: "product-1" });
+  const show = p.onShow();
+  await flush();
+  finishRecovery({ ...baseOrder, paymentInitiated: true });
+  await show;
+  assert.deepEqual(requests, [
+    { path: `/orders/by-request/${key}`, method: "GET" },
+    { path: "/orders/order-1/verify", method: "POST" },
+  ]);
+  assert.equal(p.data.order.status, "PAID");
+});
 test("returning to an unattempted checkout does not contact payment endpoints", async () => {
   const p = checkout();
   p.data.order = { ...baseOrder, paymentInitiated: false, reconciliationRequired: false };

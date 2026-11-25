@@ -18,21 +18,22 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest @AutoConfigureMockMvc
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class HomeShortcutIntegrationTest {
   static final EmbeddedPostgres pg;
   static {try {pg=EmbeddedPostgres.builder().setServerConfig("unix_socket_directories","").start();} catch(Exception e){throw new ExceptionInInitializerError(e);}}
   @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",()->pg.getJdbcUrl("postgres","postgres"));r.add("spring.datasource.username",()->"postgres");r.add("spring.datasource.password",()->"");}
   @Autowired AuthService auth; @Autowired JdbcTemplate db; @Autowired MockMvc mvc;
   @Autowired ObjectMapper json; @Autowired HomeShortcutService shortcuts; @Autowired ArticleService articles;
-  String admin,user,actor;
+  @Autowired HomeLayoutService layouts;
+  String admin,user,actor,defaultLayout;
+  @BeforeAll void captureDefaults() {
+    defaultLayout = db.queryForObject("SELECT config_json FROM home_page_settings WHERE id=1",String.class);
+  }
   @BeforeEach void setup() throws Exception {
     var a=auth.user("shortcut-admin:"+UUID.randomUUID(),"QA","ADMIN");actor=a.id();admin="Bearer "+auth.login(a).token();
     user="Bearer "+auth.login(auth.user("shortcut-user:"+UUID.randomUUID(),"QA","USER")).token();
-    db.update("UPDATE home_shortcut_settings SET version=0,items=? WHERE id=1",json.writeValueAsString(List.of(
-      new Item(1,"本周活动","WEEKLY","PAGE","WEEKLY","","","",""),
-      new Item(2,"国内游行","DOMESTIC","PAGE","DOMESTIC","","","",""),
-      new Item(3,"二维码","QRCODE","POPUP","","","二维码","",""),
-      new Item(4,"野小子","INTRO","ARTICLE","","OFFICIAL","","",""))));
+    db.update("UPDATE home_page_settings SET version=0,config_json=? WHERE id=1", defaultLayout);
   }
   @AfterAll static void cleanup()throws Exception{pg.close();}
   Configuration replace(int slot, Item item) {
@@ -100,5 +101,40 @@ class HomeShortcutIntegrationTest {
       var a=pool.submit(save);var b=pool.submit(save);start.countDown();
       assertThat(List.of(a.get(10,TimeUnit.SECONDS),b.get(10,TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
     }
+  }
+
+  @Test void bothEditorsShareVersionAndLegacyWritesPreserveRichSlotsAndQrImages() throws Exception {
+    var stale = shortcuts.get(true);
+    var config = json.valueToTree(layouts.get(true));
+    var items = config.withObject("/shortcuts").withArray("items");
+    var popup = (com.fasterxml.jackson.databind.node.ObjectNode) items.get(2);
+    popup.withArray("popupImages").addObject().put("url", "/assets/first.jpg").put("label", "领队");
+    popup.withArray("popupImages").addObject().put("url", "/assets/second.jpg").put("label", "社群");
+    var modern = (com.fasterxml.jackson.databind.node.ObjectNode) items.get(3);
+    modern.put("type", "WECHAT_ARTICLE").put("wechatArticleUrl", "https://mp.weixin.qq.com/s?mid=3");
+    items.add(modern.deepCopy().put("id","extra").put("name","第五项"));
+    var saved = layouts.save(json.treeToValue(config, HomeLayoutModels.LayoutConfig.class), actor);
+    assertThatThrownBy(() -> shortcuts.save(stale, actor)).isInstanceOf(ApiException.class);
+    var display = shortcuts.get(false);
+    assertThat(display.version()).isEqualTo(saved.version());
+    assertThat(display.items()).hasSize(4);
+    assertThat(display.items().get(2).popupImageUrl()).isEqualTo("/assets/first.jpg");
+    assertThat(display.items().get(3).type()).isEqualTo("POPUP");
+    var edited = shortcuts.save(replace(3,popup("/assets/replace.jpg")),actor);
+    var updated = layouts.get(true);
+    assertThat(updated.version()).isEqualTo(edited.version());
+    assertThat(updated.shortcuts().items()).hasSize(5);
+    assertThat(updated.shortcuts().items().get(3)).isEqualTo(saved.shortcuts().items().get(3));
+    assertThat(updated.shortcuts().items().get(2).popupImages()).containsExactly(
+        new HomeLayoutModels.QrImage("/assets/replace.jpg", "领队"),
+        new HomeLayoutModels.QrImage("/assets/second.jpg", "社群"));
+    assertThatThrownBy(() -> layouts.save(saved, actor)).isInstanceOf(ApiException.class);
+
+    var clear = json.valueToTree(updated);
+    ((com.fasterxml.jackson.databind.node.ObjectNode) clear.at("/shortcuts/items/2")).putArray("popupImages");
+    var cleared = layouts.save(json.treeToValue(clear, HomeLayoutModels.LayoutConfig.class), actor);
+    assertThat(cleared.shortcuts().items().get(2).popupImageUrl()).isEmpty();
+    assertThat(shortcuts.get(false).items().get(2).popupImageUrl()).isEmpty();
+    assertThat(HomeLayoutService.validWechatArticleUrl("https://mp.weixin.qq.com/s?id=@user")).isFalse();
   }
 }

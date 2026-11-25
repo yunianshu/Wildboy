@@ -305,7 +305,7 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
         const legacyImg = item.popupImageUrl
           ? safeShortcutImage(item.popupImageUrl)
           : "";
-        if (!popupImgs.length && legacyImg) {
+        if (item.popupImages == null && legacyImg) {
           popupImgs.push({ url: legacyImg, label: "" });
         }
         const type =

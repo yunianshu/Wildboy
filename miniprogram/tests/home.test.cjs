@@ -296,6 +296,7 @@ test("late refresh cannot overwrite newer activities", async () => {
               });
   const p = page();
   const old = p.load();
+  await new Promise((resolve) => setImmediate(resolve));
   responses([activity("new")]);
   await p.load();
   resolveOld({ items: [activity("old")] });
@@ -321,10 +322,54 @@ test("unload invalidates inflight home response", async () => {
               });
   const p = page();
   const pending = p.load();
+  await new Promise((resolve) => setImmediate(resolve));
   p.onUnload();
   finish({ items: [activity("old")] });
   await pending;
   assert.deepEqual(p.data.items, []);
+});
+test("a managed home ignores late legacy failures and keeps curated content on retries", async () => {
+  let layoutAvailable = false;
+  let rejectLegacy;
+  const legacyPending = new Promise((_, reject) => { rejectLegacy = reject; });
+  const layout = {
+    layout: {
+      modules: [],
+      shop: { bannerImageUrl: "/assets/equipment-banner.jpg" },
+      shortcuts: { items: [{ name: "商城", type: "PAGE", page: "SHOP" }] },
+    },
+    featuredActivities: [activity("pinned")],
+    featuredEquipment: [equipment("selected")],
+  };
+  api.request = async (path) => {
+    calls.push(path);
+    if (path === "/home/layout") return layoutAvailable ? layout : null;
+    if (path.startsWith("/articles")) return { items: [] };
+    if (!layoutAvailable) return legacyPending;
+    throw new Error("旧接口离线");
+  };
+  const p = page();
+  const old = p.load();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.ok(calls.includes("/home/shortcuts"));
+  layoutAvailable = true;
+  calls.length = 0;
+  await p.load();
+  rejectLegacy(new Error("过期的请求"));
+  await old;
+  await p.retry();
+  await p.retryEquipment();
+  await p.retryShortcuts();
+  assert.ok(!calls.includes("/home/shortcuts"));
+  assert.ok(!calls.some((path) => path.startsWith("/activities")));
+  assert.deepEqual(p.data.items.map((x) => x.id), ["pinned"]);
+  assert.deepEqual(p.data.equipment.map((x) => x.id), ["selected"]);
+  assert.equal(p.data.shopConfig.bannerImageUrl, "/assets/equipment-banner.jpg");
+  assert.equal(p.data.error, "");
+  assert.equal(p.data.equipmentError, "");
+  assert.equal(p.data.shortcutError, "");
+  await p.openCategory({ currentTarget: { dataset: { slot: 1 } } });
+  assert.deepEqual(navigation, ["/pages/shop/index"]);
 });
 test("all activities clears an earlier category and keeps separate pagination route", async () => {
   const p = page();

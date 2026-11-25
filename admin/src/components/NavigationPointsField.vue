@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, onUnmounted, ref } from "vue";
 import { errorMessage, request } from "../api";
 import AppIcon from "./AppIcon.vue";
 import type {
@@ -33,7 +33,7 @@ const kindLabels: Record<NavigationPointKind, string> = {
   BOARDING: "上车地点",
 };
 
-const adding = ref(false);
+const adding = defineModel<boolean>("adding", { default: false });
 const draftKind = ref<NavigationPointKind>("MEETING");
 const draftLabel = ref("");
 const draftAddress = ref("");
@@ -48,6 +48,7 @@ const savedLocations = ref<BoardingPointLocation[]>([]);
 const loadedCatalog = ref(false);
 const dragIndex = ref<number | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
+onUnmounted(() => clearTimeout(searchTimer));
 
 function parseLocalCoordinate(
   raw: string,

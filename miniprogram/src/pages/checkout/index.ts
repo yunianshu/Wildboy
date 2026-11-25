@@ -81,8 +81,7 @@ Page({
       : 1;
     this._hadSession = hasSession();
     this.setData({ id, quantity, session: sessionVersion() });
-    if (id) void this.load();
-    else this.setData({ loading: false, error: "商品链接无效" });
+    if (!id) this.setData({ loading: false, error: "商品链接无效" });
   },
   _showGeneration: 0,
   async onShow() {

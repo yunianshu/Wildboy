@@ -202,6 +202,21 @@ class ActivityOrderIntegrationTest {
     orders.cancel(o.id(),u.id());assertThat(activities.get(a.id(),true).registeredCount()).isZero();
     assertThat(orders.get(o.id(),u.id()).status()).isEqualTo("CLOSED");
   }
+  @Test void closedOrderPreventsChangingEnrollmentModeOrReusingTheActivity() {
+    var activity = activity(1);
+    var customer = user();
+    var order = reserve(activity, customer, 1, 0);
+    assertThat(orders.cancel(order.id(), customer.id()).status()).isEqualTo("CLOSED");
+    var empty = activities.get(activity.id(), true);
+    assertThat(empty.registeredCount()).isZero();
+    assertThatThrownBy(() -> orders.setPrice(empty.id(), 0, empty.version(), "fixture"))
+        .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code).isEqualTo("ACTIVITY_HAS_REGISTRATIONS"));
+    var repriced = orders.setPrice(empty.id(), 1200, empty.version(), "fixture");
+    var cancelled = activities.cancel(repriced.id(), repriced.version(), "fixture");
+    assertThatThrownBy(() -> activities.reopenToDraft(cancelled.id(), cancelled.version(), "fixture"))
+        .isInstanceOfSatisfying(ApiException.class, e -> assertThat(e.code).isEqualTo("ACTIVITY_HAS_HISTORY"));
+    assertThat(orders.get(order.id(), customer.id()).activityId()).isEqualTo(activity.id());
+  }
   @Test void missingGatewayRollsBackReservation(){
     var a=activity(1);var u=user();doThrow(new ApiException(503,"PAYMENT_NOT_CONFIGURED","微信支付尚未配置")).when(pay).requireConfigured();
     assertThatThrownBy(()->reserve(a,u,1,1000)).hasMessageContaining("未配置");

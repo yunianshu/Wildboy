@@ -367,10 +367,6 @@ Page({
       });
       return;
     }
-    if (this.data.navPoints.length > 0) {
-      this.openAllNavPicker();
-      return;
-    }
     this.copyPlainAddress(this.data.activity?.location || "");
   },
   tapMeetingNav() {
@@ -385,10 +381,6 @@ Page({
         navPickerTitle: "选择集合地点导航",
         navPickerItems: meets,
       });
-      return;
-    }
-    if (this.data.navPoints.length > 0) {
-      this.openAllNavPicker();
       return;
     }
     this.copyPlainAddress(this.data.activity?.meetingPoint || "");

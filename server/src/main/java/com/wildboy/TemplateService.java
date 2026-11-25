@@ -65,7 +65,7 @@ public class TemplateService {
     // Sources/templates are server-owned snapshots; preserve their base price without
     // relaxing the public creation DTO or publishing a copied activity automatically.
     if(input.priceCents()<0 || input.priceCents()>100000000)throw new ApiException(400,"INVALID_PRICE","模板价格超出范围");
-    var draft=activities.create(input,actor);
+    var draft=activities.insertDraft(input,actor);
     if(input.priceCents()==0)return draft;
     db.update("UPDATE activity SET price_cents=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.priceCents(),draft.id());
     return activities.get(draft.id(),true);

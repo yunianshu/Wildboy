@@ -19,7 +19,7 @@ const nextStart = ref("");
 const publishImmediately = ref(true);
 const saving = ref(false);
 const error = ref("");
-let requestId = "";
+const pendingRequests = new Map<string, string>();
 
 watch(
   () => props.activity,
@@ -28,7 +28,6 @@ watch(
     error.value = "";
     saving.value = false;
     publishImmediately.value = act.status === "PUBLISHED";
-    requestId = `reopen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     // Default to +7 days at the same time of day, or next week 09:00 if in the past
     const origMs = Date.parse(act.startAt);
     const nowMs = Date.now();
@@ -62,31 +61,40 @@ const previewSchedule = computed(() => {
 });
 
 async function submit() {
-  if (!props.activity || saving.value) return;
+  const activity = props.activity;
+  if (!activity || saving.value) return;
   const iso = fromShanghaiInput(nextStart.value);
-  if (!iso || Date.parse(iso) <= Date.now()) {
+  const publish = publishImmediately.value;
+  const intent = JSON.stringify([activity.id, iso, publish]);
+  const pendingRequestId = pendingRequests.get(intent);
+  if (!iso || (!pendingRequestId && Date.parse(iso) <= Date.now())) {
     error.value = "请选择未来的新出发时间";
     return;
   }
   saving.value = true;
   error.value = "";
+  const requestId =
+    pendingRequestId ??
+    globalThis.crypto?.randomUUID?.() ??
+    `reopen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  pendingRequests.set(intent, requestId);
   try {
     const created = await request<Activity>(
-      `/admin/activities/${encodeURIComponent(props.activity.id)}/copy`,
+      `/admin/activities/${encodeURIComponent(activity.id)}/copy`,
       {
         method: "POST",
         body: JSON.stringify({
           startAt: iso,
           requestId,
-          version: props.activity.version,
-          publishImmediately: publishImmediately.value,
+          version: activity.version,
+          publishImmediately: publish,
         }),
       },
     );
+    pendingRequests.delete(intent);
     emit("created", created);
   } catch (e) {
     error.value = errorMessage(e);
-    requestId = `reopen-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   } finally {
     saving.value = false;
   }

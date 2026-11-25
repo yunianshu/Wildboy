@@ -99,10 +99,11 @@ public class ApiController {
       @RequestParam(required = false) Category category,
       @RequestParam(required = false) ActivityStatus status,
       @RequestParam(required = false) String title,
+      @RequestParam(required = false) String keyword,
       @RequestParam(defaultValue = "false") boolean upcomingFull,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return activities.list(category, status, title, page, size, true, upcomingFull);
+    return activities.list(category, status, title, keyword, page, size, true, upcomingFull);
   }
 
   @GetMapping("/admin/activities/{id}")

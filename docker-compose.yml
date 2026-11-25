@@ -29,6 +29,7 @@ services:
       # Browsers always send Origin on POST; without the admin origin in the
       # whitelist Spring's CORS filter rejects logins with 403.
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      TENCENT_MAP_KEY: ${TENCENT_MAP_KEY:-}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?Set a BCrypt admin password hash}
       IDENTITY_ENCRYPTION_KEY: ${IDENTITY_ENCRYPTION_KEY:-}

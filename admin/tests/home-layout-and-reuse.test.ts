@@ -64,7 +64,7 @@ const sampleLayout = () => ({
         wechatArticleUrl: "",
         popupTitle: "扫码加群",
         popupText: "",
-        popupImageUrl: "",
+        popupImageUrl: "/assets/equipment.jpg",
         popupImages: [
           { url: "/assets/equipment.jpg", label: "客服微信" },
           { url: "/assets/hero-hiking.jpg", label: "活动交流群" },
@@ -146,7 +146,33 @@ describe("HomeLayoutView modular workbench", () => {
               : sampleLayout(),
         };
       }
+      if (url.endsWith("/admin/shop/products")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            { id: "pack", name: "轻量背包", status: "ON_SALE" },
+            { id: "off-sale", name: "旧款背包", status: "OFF_SALE" },
+          ],
+        };
+      }
       if (url.includes("/admin/activities?")) {
+        const query = new URL(url, "http://localhost").searchParams;
+        if (query.get("keyword") === "武夷山" || query.get("page") === "1") {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              items: [
+                { id: "act-later", title: "远足新路线", location: "武夷山" },
+              ],
+              total: query.has("keyword") ? 1 : 51,
+              page: Number(query.get("page")),
+              size: 50,
+              hasMore: false,
+            }),
+          };
+        }
         return {
           ok: true,
           status: 200,
@@ -174,10 +200,10 @@ describe("HomeLayoutView modular workbench", () => {
                 status: "PUBLISHED",
               },
             ],
-            total: 3,
+            total: 51,
             page: 0,
             size: 50,
-            hasMore: false,
+            hasMore: true,
           }),
         };
       }
@@ -208,18 +234,48 @@ describe("HomeLayoutView modular workbench", () => {
       .filter((b) => b.text() === "前移");
     await moveFrontBtns[1]!.trigger("click");
 
+    await w
+      .findAll("button")
+      .find((b) => b.text() === "下一页")!
+      .trigger("click");
+    await flushPromises();
+    expect(w.get(".candidate-list").text()).toContain("远足新路线");
+    await w.get('input[type="search"]').setValue("武夷山");
+    await vi.waitFor(() => {
+      expect(w.get(".candidate-list").text()).toContain("远足新路线");
+      expect(
+        fetch.mock.calls.some(([url]) => url.includes("keyword=%E6%AD%A6")),
+      ).toBe(true);
+    });
+    await w.get(".candidate-list button").trigger("click");
+
     // Switch to SHORTCUTS and set "野小子" to WECHAT_ARTICLE
     await w
       .findAll(".module-card")
       .find((c) => c.text().includes("快捷入口区"))!
       .trigger("click");
     const chips = w.findAll(".shortcut-chip");
+    await chips[1]!.trigger("click");
+    for (let remaining = 2; remaining > 0; remaining--) {
+      await w
+        .findAll(".qr-card-actions button")
+        .find((button) => button.text() === "删除")!
+        .trigger("click");
+    }
     await chips[2]!.trigger("click");
     const actionSelect = w.findAll("select")[2]!;
     await actionSelect.setValue("WECHAT_ARTICLE");
     await w
       .get('input[placeholder="https://mp.weixin.qq.com/s/..."]')
-      .setValue("https://mp.weixin.qq.com/s/WildboyIntro2026");
+      .setValue("https://mp.weixin.qq.com/s?__biz=example&mid=123");
+
+    await w
+      .findAll(".module-card")
+      .find((c) => c.text().includes("装备横幅与商品"))!
+      .trigger("click");
+    const products = w.findAll(".product-pick-btn");
+    expect(products.map((b) => b.text())).toEqual(["轻量背包"]);
+    await products[0]!.trigger("click");
 
     // Switch to FOOTER and change brandWidthPx
     await w
@@ -241,11 +297,14 @@ describe("HomeLayoutView modular workbench", () => {
       "act-1",
       "act-2",
       "act-3",
+      "act-later",
     ]);
     expect(saved.shortcuts.items[2].type).toBe("WECHAT_ARTICLE");
+    expect(saved.shortcuts.items[1].popupImages).toEqual([]);
     expect(saved.shortcuts.items[2].wechatArticleUrl).toBe(
-      "https://mp.weixin.qq.com/s/WildboyIntro2026",
+      "https://mp.weixin.qq.com/s?__biz=example&mid=123",
     );
+    expect(saved.shop.featuredProductIds).toEqual(["pack"]);
     expect(saved.footer.brandWidthPx).toBe(300);
     expect(w.text()).toContain("首页自由装修配置已保存");
     w.unmount();
@@ -254,6 +313,7 @@ describe("HomeLayoutView modular workbench", () => {
 
 describe("Anytime activity editing, navigation points and reopen modal", () => {
   it("allows editing cancelled activities, adding navigation points, and reopening for a new date", async () => {
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
     const cancelledAct = {
       id: "act-old",
       title: "往期山海徒步",
@@ -279,6 +339,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
       updatedAt: "2026-05-01T00:00:00Z",
     };
 
+    let copyAttempts = 0;
     const fetch = vi.fn(async (url: string, opts: any = {}) => {
       if (url.endsWith("/activity-boarding-points")) {
         return { ok: true, status: 200, json: async () => [] };
@@ -287,6 +348,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
         return { ok: true, status: 200, json: async () => [] };
       }
       if (url.endsWith("/copy")) {
+        if (++copyAttempts === 1) throw new Error("响应连接中断");
         return {
           ok: true,
           status: 200,
@@ -331,7 +393,6 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     // Cancelled activity is NOT disabled anymore!
     const titleInput = w.get('input[placeholder="活动名称"]');
     expect(titleInput.attributes("disabled")).toBeUndefined();
-    await titleInput.setValue("往期山海徒步（更新版）");
 
     // Switch to schedule tab, import navigation points and fill coordinates
     await w
@@ -339,6 +400,25 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
       .find((b) => b.text().includes("时间与地点"))!
       .trigger("click");
     await flushPromises();
+    await w
+      .findAll("button")
+      .find((b) => b.text().includes("添加导航点"))!
+      .trigger("click");
+    const navDraft = w.get<HTMLInputElement>(
+      'input[placeholder="如：岛内SM一期北门"]',
+    );
+    await navDraft.setValue("尚未提交的导航点");
+    window.dispatchEvent(new Event("focus"));
+    await flushPromises();
+    expect(navDraft.element.value).toBe("尚未提交的导航点");
+    expect(
+      fetch.mock.calls.filter(([url]) => url.endsWith("/act-old")),
+    ).toHaveLength(1);
+    await w
+      .findAll(".nav-add-panel button")
+      .find((b) => b.text() === "取消")!
+      .trigger("click");
+    await titleInput.setValue("往期山海徒步（更新版）");
     await w
       .findAll("button")
       .find((b) => b.text() === "从上方地点一键导入")!
@@ -365,16 +445,37 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
       .findAll("button")
       .find((b) => b.text() === "换时间重开一期")!
       .trigger("click");
-    await w
-      .findAll("button")
-      .find(
-        (b) =>
-          b.text().includes("生成新一期草稿") ||
-          b.text().includes("重开并立即发布"),
-      )!
-      .trigger("click");
+    await w.get(".reopen-modal input[type='checkbox']").setValue(true);
+    await w.get("#reopen-start-at-time").setValue("14:30");
+    vi.spyOn(Date, "now").mockReturnValueOnce(Date.now() + 1000);
+    document.dispatchEvent(new Event("visibilitychange"));
     await flushPromises();
-    expect(fetch.mock.calls.some((c) => c[0].endsWith("/copy"))).toBe(true);
+    expect(w.get<HTMLInputElement>("#reopen-start-at-time").element.value).toBe(
+      "14:30",
+    );
+    expect(
+      w.get<HTMLInputElement>(".reopen-modal input[type='checkbox']").element
+        .checked,
+    ).toBe(true);
+    expect(
+      fetch.mock.calls.filter(([url]) => url.endsWith("/act-old")),
+    ).toHaveLength(2);
+    const submitCopy = () =>
+      w
+        .findAll("button")
+        .find((b) => b.text().includes("重开并立即发布"))!
+        .trigger("click");
+    await submitCopy();
+    await flushPromises();
+    expect(w.text()).toContain("响应连接中断");
+    await submitCopy();
+    await flushPromises();
+    const submissions = fetch.mock.calls
+      .filter(([url]) => url.endsWith("/copy"))
+      .map(([, opts]) => JSON.parse(opts.body));
+    expect(submissions).toHaveLength(2);
+    expect(submissions[0].requestId).toBeTruthy();
+    expect(submissions[1]).toEqual(submissions[0]);
     w.unmount();
   });
 });

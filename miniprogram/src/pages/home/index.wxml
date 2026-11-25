@@ -187,7 +187,10 @@
             <image class="shortcut-image" src="{{item.url}}" mode="widthFix" show-menu-by-longpress data-url="{{item.url}}" data-generation="{{popupGeneration}}" bindtap="previewPopupQr" bindload="resizePopup" binderror="popupImageFailed" />
           </view>
         </view>
-        <image wx:elif="{{popup.image && !popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-url="{{popup.image}}" data-generation="{{popupGeneration}}" bindtap="previewPopupQr" bindload="resizePopup" binderror="popupImageFailed" />
+        <block wx:elif="{{popupImages.length === 1}}">
+          <view wx:if="{{popupImages[0].label}}" class="shortcut-qr-label">{{popupImages[0].label}}</view>
+          <image wx:if="{{!popupImageError}}" class="shortcut-image" src="{{popup.image}}" mode="widthFix" show-menu-by-longpress data-url="{{popup.image}}" data-generation="{{popupGeneration}}" bindtap="previewPopupQr" bindload="resizePopup" binderror="popupImageFailed" />
+        </block>
         <view wx:if="{{popupImageError}}" class="shortcut-message">图片加载失败，请关闭后重试</view>
         <view wx:if="{{popup.text}}" class="shortcut-text">{{popup.text}}</view>
         <view wx:if="{{!popup.image && !popupImages.length && !popup.text}}" class="shortcut-message">暂未配置内容，请联系主理人。</view>

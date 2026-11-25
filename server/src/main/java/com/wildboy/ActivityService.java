@@ -143,13 +143,13 @@ public class ActivityService {
 
   public Page<Activity> list(
       Category category, ActivityStatus status, String title, int page, int size, boolean admin) {
-    return list(category, status, title, page, size, admin, false);
+    return list(category, status, title, null, page, size, admin, false);
   }
 
   static final String FULL_CAPACITY_FILTER = "registered_count>=capacity";
 
   public Page<Activity> list(
-      Category category, ActivityStatus status, String title, int page, int size, boolean admin,
+      Category category, ActivityStatus status, String title, String keyword, int page, int size, boolean admin,
       boolean upcomingFull) {
     pageCheck(page, size);
     var args = new ArrayList<Object>();
@@ -170,6 +170,14 @@ public class ActivityService {
       if (term.length() > 100)
         throw new ApiException(400, "INVALID_ACTIVITY_TITLE_FILTER", "标题筛选最多 100 个字符");
       where += " AND strpos(lower(title), lower(?)) > 0";
+      args.add(term);
+    }
+    if (keyword != null && !keyword.isBlank()) {
+      String term = keyword.strip();
+      if (term.length() > 100)
+        throw new ApiException(400, "INVALID_ACTIVITY_KEYWORD", "活动搜索最多 100 个字符");
+      where += " AND (strpos(lower(title), lower(?)) > 0 OR strpos(lower(location), lower(?)) > 0)";
+      args.add(term);
       args.add(term);
     }
     long total =
@@ -328,12 +336,12 @@ public class ActivityService {
     }
   }
 
-  private void rememberNavigationBoardingPoints(List<NavigationPoint> normalized) {
-    for (NavigationPoint p : normalized) {
-      if ("BOARDING".equals(p.kind())) {
-        saveBoardingPointLocation(new BoardingPointLocation(p.label(), p.address(), p.latitude(), p.longitude()));
-      }
-    }
+  private Set<BoardingPointLocation> boardingLocations(List<NavigationPoint> points) {
+    var locations = new LinkedHashSet<BoardingPointLocation>();
+    for (NavigationPoint p : points)
+      if ("BOARDING".equals(p.kind()))
+        locations.add(new BoardingPointLocation(p.label(), p.address(), p.latitude(), p.longitude()));
+    return locations;
   }
 
   private void rememberBoardingPoints(String pointsJson) {
@@ -347,6 +355,13 @@ public class ActivityService {
 
   @Transactional
   public Activity create(ActivityInput i, String actor) {
+    Activity created = insertDraft(i, actor);
+    boardingLocations(created.navigationPoints()).forEach(this::saveBoardingPointLocation);
+    return created;
+  }
+
+  // A template or activity copy restores its own coordinates without updating shared locations.
+  Activity insertDraft(ActivityInput i, String actor) {
     validate(i);
     String id = UUID.randomUUID().toString();
     List<String> points = i.boardingPoints() == null ? List.of() : i.boardingPoints();
@@ -373,21 +388,16 @@ public class ActivityService {
         pointsJson,
         navJson);
     if (!points.isEmpty()) rememberBoardingPoints(pointsJson);
-    if (!navPoints.isEmpty()) rememberNavigationBoardingPoints(navPoints);
     audit(actor, id, "ACTIVITY_CREATE");
     return get(id, true);
   }
 
   public boolean hasEnrollmentHistory(String activityId, int registeredCount) {
     if (registeredCount > 0) return true;
-    Integer freeCount = db.queryForObject(
-        "SELECT COUNT(*) FROM registration WHERE activity_id=? AND status='CONFIRMED'",
-        Integer.class, activityId);
-    if (freeCount != null && freeCount > 0) return true;
-    Integer orderCount = db.queryForObject(
-        "SELECT COUNT(*) FROM activity_order WHERE activity_id=? AND status IN ('PENDING_PAYMENT','PAID','CONFIRMED_FREE','REFUND_PENDING','REFUNDED')",
-        Integer.class, activityId);
-    return orderCount != null && orderCount > 0;
+    return Boolean.TRUE.equals(db.queryForObject("""
+        SELECT EXISTS(SELECT 1 FROM registration WHERE activity_id=?)
+            OR EXISTS(SELECT 1 FROM activity_order WHERE activity_id=?)
+        """, Boolean.class, activityId, activityId));
   }
 
   @Transactional
@@ -400,19 +410,19 @@ public class ActivityService {
       throw ApiException.conflict("CAPACITY_BELOW_ENROLLED", "人数上限不能小于已报名人数");
     if(a.registeredCount()>0&&i.identityRequired()!=null&&i.identityRequired()!=a.identityRequired())
       throw ApiException.conflict("ACTIVITY_IDENTITY_LOCKED","活动已有报名或待付款占位，暂不能更改实名要求");
-    if (a.status().equals("PUBLISHED")) {
-      OffsetDateTime now = OffsetDateTime.now();
-      boolean upcoming = a.startAt().isAfter(now);
-      if (upcoming && !i.startAt().isAfter(now)) {
-        throw ApiException.conflict("ACTIVITY_STARTED", "未开始活动的开始时间必须晚于当前时间");
+    OffsetDateTime now = OffsetDateTime.now();
+    boolean published = a.status().equals("PUBLISHED");
+    boolean wasUpcoming = a.startAt().isAfter(now);
+    boolean willBeUpcoming = i.startAt().isAfter(now);
+    if (published && wasUpcoming && !willBeUpcoming) {
+      throw ApiException.conflict("ACTIVITY_STARTED", "未开始活动的开始时间必须晚于当前时间");
+    }
+    if (!wasUpcoming && willBeUpcoming) {
+      if (hasEnrollmentHistory(id, a.registeredCount())) {
+        throw ApiException.conflict("ACTIVITY_HAS_HISTORY", "已开始的活动已有往期报名或订单记录，请点击「换时间重开一期」以保留往期名单");
       }
-      if (!upcoming && i.startAt().isAfter(now)) {
-        if (hasEnrollmentHistory(id, a.registeredCount())) {
-          throw ApiException.conflict("ACTIVITY_HAS_HISTORY", "已开始的活动已有往期报名或订单记录，请点击「换时间重开一期」以保留往期名单");
-        }
-        if (!i.registrationDeadline().isAfter(now)) {
-          throw ApiException.conflict("ACTIVITY_EXPIRED", "改期复用时，请将报名截止时间也调整到未来时间");
-        }
+      if (published && !i.registrationDeadline().isAfter(now)) {
+        throw ApiException.conflict("ACTIVITY_EXPIRED", "改期复用时，请将报名截止时间也调整到未来时间");
       }
     }
     List<String> points = i.boardingPoints() == null ? a.boardingPoints() : i.boardingPoints();
@@ -441,7 +451,9 @@ public class ActivityService {
         navJson,
         id);
     if (!points.isEmpty() && !points.equals(a.boardingPoints())) rememberBoardingPoints(pointsJson);
-    if (!navPoints.isEmpty()) rememberNavigationBoardingPoints(navPoints);
+    var changedLocations = boardingLocations(navPoints);
+    changedLocations.removeAll(boardingLocations(a.navigationPoints()));
+    changedLocations.forEach(this::saveBoardingPointLocation);
     audit(actor, id, "ACTIVITY_EDIT");
     Activity edited = get(id, true);
     if (a.status().equals("PUBLISHED") && (!a.startAt().equals(edited.startAt()) || !a.meetingPoint().equals(edited.meetingPoint()) || !a.location().equals(edited.location()))) notifications.activityNotice(edited, "ACTIVITY_CHANGED", "时间或集合地点已更新，请查看活动");

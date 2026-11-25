@@ -49,7 +49,7 @@ export class ApiError extends Error {
   }
 }
 export function mediaUrl(value: string): string {
-  return /^\/assets\/(hero-hiking|category-weekly|category-domestic|category-holiday|category-leisure|equipment)\.jpg$/.test(
+  return /^\/assets\/(hero-hiking|category-weekly|category-domestic|category-holiday|category-leisure|equipment|equipment-banner)\.jpg$/.test(
     value,
   )
     ? value

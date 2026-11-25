@@ -245,6 +245,31 @@ class HomeLayoutAndActivityUpgradeTest {
   }
 
   @Test
+  @org.springframework.transaction.annotation.Transactional
+  void oldActivityEditsCopiesAndTemplatesPreserveNewerSharedBoardingCoordinates() throws Exception {
+    var oldStop = new NavigationPoint("north", "BOARDING", "North pier", "Old dock", 24.5, 118.1);
+    var secondStop = new NavigationPoint("south", "BOARDING", "South pier", "South dock", 24.4, 118.2);
+    var source = createPublished("Pier trip", 90, List.of(oldStop, secondStop));
+    var template = templates.save(null, new TemplateService.Input("Pier template", source.id(), source.version(), null), actorId);
+    var newNorth = new NavigationPoint("updated", "BOARDING", "North pier", "New dock", 24.6, 118.3);
+    createPublished("Updated trip", 91, List.of(newNorth));
+
+    var input = json.<com.fasterxml.jackson.databind.node.ObjectNode>valueToTree(templates.snapshot(source))
+        .put("title", "Updated pier trip").put("version", source.version());
+    var newSouth = new NavigationPoint("south", "BOARDING", "South pier", "New south dock", 24.7, 118.4);
+    input.set("navigationPoints", json.valueToTree(List.of(oldStop, newSouth)));
+    var edited = activities.edit(source.id(), json.treeToValue(input, ActivityInput.class), actorId);
+    var nextStart = source.startAt().plusWeeks(1);
+    var copied = templates.copy(source.id(), new TemplateService.Copy(nextStart, "pier-copy", edited.version(), true), actorId);
+    var generated = templates.generate(template.id(), new TemplateService.Generate(List.of(nextStart), template.version()), actorId);
+    assertThat(copied.navigationPoints()).containsExactly(oldStop, newSouth);
+    assertThat(generated.getFirst().navigationPoints()).containsExactly(oldStop, secondStop);
+    assertThat(activities.listBoardingPointLocations()).contains(
+        new BoardingPointLocation("North pier", "New dock", 24.6, 118.3),
+        new BoardingPointLocation("South pier", "New south dock", 24.7, 118.4));
+  }
+
+  @Test
   void navigationPointsAttendeesCancelledEditAndOneClickCopyPublishWork() throws Exception {
     var navs =
         List.of(

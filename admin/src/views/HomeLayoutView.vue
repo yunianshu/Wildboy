@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
 import ImageUpload from "../components/ImageUpload.vue";
+import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import {
   categories,
@@ -72,7 +73,13 @@ const conflict = ref(false);
 const error = ref("");
 const success = ref("");
 
-const allActivities = ref<Activity[]>([]);
+const ACTIVITY_PAGE_SIZE = 50;
+const activityCatalog = reactive(new Map<string, Activity>());
+const allActivities = computed(() => [...activityCatalog.values()]);
+const activityPage = ref<Page<Activity> | null>(null);
+const activityLoading = ref(false);
+const activityError = ref("");
+let activityRequest: AbortController | undefined;
 const allProducts = ref<Product[]>([]);
 const allArticles = ref<ArticleOption[]>([]);
 const activityFilter = ref("");
@@ -106,11 +113,8 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
   copy.shortcuts.columns = copy.shortcuts.columns || 4;
   copy.shortcuts.items = (copy.shortcuts.items || []).map((item, idx) => {
     const imgs =
-      item.popupImages && item.popupImages.length
-        ? item.popupImages
-        : item.popupImageUrl
-          ? [{ url: item.popupImageUrl, label: "" }]
-          : [];
+      item.popupImages ??
+      (item.popupImageUrl ? [{ url: item.popupImageUrl, label: "" }] : []);
     return {
       ...item,
       id: item.id || `slot-${idx + 1}`,
@@ -151,7 +155,7 @@ async function load() {
     ) {
       activeModule.value = route.query.section as HomeModuleId;
     }
-    void loadCatalogs();
+    void loadCatalogs(normalized.activities.featuredActivityIds);
   } catch (e) {
     error.value = errorMessage(e);
   } finally {
@@ -159,31 +163,77 @@ async function load() {
   }
 }
 
-async function loadCatalogs() {
+async function loadActivityPage(page = 0) {
+  activityRequest?.abort();
+  const controller = new AbortController();
+  activityRequest = controller;
+  activityLoading.value = true;
+  activityError.value = "";
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(ACTIVITY_PAGE_SIZE),
+    status: "PUBLISHED",
+  });
+  const keyword = activityFilter.value.trim();
+  if (keyword) params.set("keyword", keyword);
   try {
-    const [actRes, prodRes, artRes] = await Promise.all([
-      request<Page<Activity>>(
-        "/admin/activities?page=0&size=50&status=PUBLISHED",
-      ),
-      request<{ items: Product[] }>("/admin/shop/products"),
-      request<{ items: ArticleOption[] }>("/admin/articles?page=0&size=50"),
-    ]);
-    allActivities.value = actRes.items || [];
-    allProducts.value = (prodRes.items || []).filter(
-      (p) => p.status === "ON_SALE",
+    const result = await request<Page<Activity>>(
+      `/admin/activities?${params}`,
+      {
+        signal: controller.signal,
+      },
     );
-    allArticles.value = (artRes.items || []).filter(
-      (a) => a.status === "PUBLISHED",
-    );
-  } catch {
-    // Catalogs are assistive; keep editor usable even if one fails
+    if (controller.signal.aborted) return;
+    activityPage.value = result;
+    for (const activity of result.items)
+      activityCatalog.set(activity.id, activity);
+  } catch (e) {
+    if (!controller.signal.aborted) activityError.value = errorMessage(e);
+  } finally {
+    if (!controller.signal.aborted) activityLoading.value = false;
   }
+}
+
+watch(activityFilter, (_value, _previous, onCleanup) => {
+  activityRequest?.abort();
+  activityPage.value = null;
+  activityLoading.value = true;
+  activityError.value = "";
+  const timer = setTimeout(() => void loadActivityPage(), 250);
+  onCleanup(() => clearTimeout(timer));
+});
+
+async function loadCatalogs(featuredIds: string[]) {
+  await Promise.allSettled([
+    loadActivityPage().then(() => loadFeaturedActivities(featuredIds)),
+    request<Product[]>("/admin/shop/products").then((products) => {
+      allProducts.value = products.filter((p) => p.status === "ON_SALE");
+    }),
+    request<Page<ArticleOption>>("/admin/articles?page=0&size=50").then(
+      (page) => {
+        allArticles.value = page.items.filter((a) => a.status === "PUBLISHED");
+      },
+    ),
+  ]);
+}
+
+async function loadFeaturedActivities(ids: string[]) {
+  await Promise.allSettled(
+    ids
+      .filter((id) => !activityCatalog.has(id))
+      .map(async (id) => {
+        const activity = await request<Activity>(
+          `/admin/activities/${encodeURIComponent(id)}`,
+        );
+        if (activity.status === "PUBLISHED") activityCatalog.set(id, activity);
+      }),
+  );
 }
 
 const selectedActivities = computed(() => {
   if (!layout.value) return [];
   return layout.value.activities.featuredActivityIds.map((id) => {
-    const found = allActivities.value.find((a) => a.id === id);
+    const found = activityCatalog.get(id);
     return (
       found || {
         id,
@@ -198,16 +248,9 @@ const selectedActivities = computed(() => {
 });
 
 const candidateActivities = computed(() => {
-  if (!layout.value) return [];
+  if (!layout.value || !activityPage.value) return [];
   const chosen = new Set(layout.value.activities.featuredActivityIds);
-  const kw = activityFilter.value.trim().toLowerCase();
-  return allActivities.value.filter(
-    (a) =>
-      !chosen.has(a.id) &&
-      (!kw ||
-        a.title.toLowerCase().includes(kw) ||
-        a.location.toLowerCase().includes(kw)),
-  );
+  return activityPage.value.items.filter((a) => !chosen.has(a.id));
 });
 
 const activeShortcut = computed<HomeShortcutItem | null>(() => {
@@ -343,17 +386,6 @@ async function save() {
   if (!layout.value || saving.value || conflict.value) return;
   error.value = "";
   success.value = "";
-  // Client pre-check for WeChat Official Account URL
-  const badWechatShortcut = layout.value.shortcuts.items.find(
-    (s) =>
-      s.type === "WECHAT_ARTICLE" &&
-      !s.wechatArticleUrl.trim().startsWith("https://mp.weixin.qq.com/s/"),
-  );
-  if (badWechatShortcut) {
-    activeModule.value = "SHORTCUTS";
-    error.value = `快捷入口「${badWechatShortcut.name}」的公众号文章链接须以 https://mp.weixin.qq.com/s/ 开头。`;
-    return;
-  }
   saving.value = true;
   try {
     const saved = await request<HomeLayoutConfig>("/admin/home/layout", {
@@ -404,6 +436,7 @@ onMounted(() => {
   window.addEventListener("beforeunload", protectBeforeUnload);
 });
 onUnmounted(() => {
+  activityRequest?.abort();
   window.removeEventListener("beforeunload", protectBeforeUnload);
 });
 </script>
@@ -1036,10 +1069,24 @@ onUnmounted(() => {
                 type="search"
                 class="compact-search"
                 placeholder="搜索活动名称或地点…"
+                maxlength="100"
               />
             </div>
-            <ul v-if="candidateActivities.length" class="candidate-list">
-              <li v-for="act in candidateActivities.slice(0, 15)" :key="act.id">
+            <p v-if="activityLoading" role="status" class="muted">
+              正在加载活动…
+            </p>
+            <p v-else-if="activityError" role="alert" class="error-box">
+              {{ activityError }}
+              <button
+                type="button"
+                class="text-button"
+                @click="loadActivityPage()"
+              >
+                重试
+              </button>
+            </p>
+            <ul v-else-if="candidateActivities.length" class="candidate-list">
+              <li v-for="act in candidateActivities" :key="act.id">
                 <div>
                   <strong>{{ act.title }}</strong>
                   <small class="muted"> · {{ act.location }}</small>
@@ -1054,7 +1101,17 @@ onUnmounted(() => {
                 </button>
               </li>
             </ul>
-            <p v-else class="muted">没有更多可添加的已发布活动。</p>
+            <p v-else class="muted">本页没有可添加的已发布活动。</p>
+            <PaginationBar
+              v-if="activityPage && !activityError"
+              :page="activityPage.page"
+              :page-size="activityPage.size"
+              :total="activityPage.total"
+              :has-more="activityPage.hasMore"
+              :busy="activityLoading"
+              label="可选活动分页"
+              @change="loadActivityPage"
+            />
           </div>
         </div>
 
