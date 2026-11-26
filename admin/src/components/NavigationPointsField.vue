@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, ref } from "vue";
 import { request } from "../api";
 import AppIcon from "./AppIcon.vue";
 import NavigationMapPicker from "./NavigationMapPicker.vue";
@@ -46,6 +46,7 @@ const dragIndex = ref<number | null>(null);
 const pickerAvailable = Boolean(mapKey());
 const pickerOpen = ref(false);
 const pickerInitial = ref<Coordinate>();
+const draftNameInput = ref<HTMLInputElement>();
 
 function openMapPicker(event: MouseEvent) {
   if (!adding.value || props.disabled || !pickerAvailable) return;
@@ -65,6 +66,14 @@ function acceptMapPlace(place: MapPlace) {
   draftLng.value = place.longitude.toFixed(6);
   draftError.value = "";
   pickerOpen.value = false;
+}
+
+async function enterManually() {
+  pickerOpen.value = false;
+  await nextTick();
+  // Let FormModal restore focus before moving it to the draft.
+  await nextTick();
+  draftNameInput.value?.focus();
 }
 
 function pasteCoordinates(event: Event) {
@@ -420,13 +429,16 @@ function quickFillCoord(index: number, raw: string) {
         <small v-if="!pickerAvailable" class="field-hint">
           后台地图尚未配置。可使用已保存地点，或手动填写坐标。
         </small>
+        <small v-else class="field-hint">
+          WildBoy 共用腾讯地图配额：地点搜索每天 200 次，关键词提示和地址反查各每天 6,000 次，每项每秒最多 5 次。配额用完时可手工填写下方的地址和经纬度。
+        </small>
       </div>
 
       <NavigationMapPicker
         v-if="pickerOpen && !disabled"
         :initial="pickerInitial"
-        :keyword="draftLabel"
         @close="pickerOpen = false"
+        @manual="enterManually"
         @select="acceptMapPlace"
       />
 
@@ -445,6 +457,7 @@ function quickFillCoord(index: number, raw: string) {
         <label>
           显示名称 <span>*</span>
           <input
+            ref="draftNameInput"
             v-model="draftLabel"
             maxlength="200"
             placeholder="如：岛内SM一期北门"

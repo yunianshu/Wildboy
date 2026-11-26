@@ -1,108 +1,52 @@
-export type Coordinate = [longitude: number, latitude: number];
+export type Coordinate = { latitude: number; longitude: number };
+export type MapPlace = Coordinate & { title: string; address: string };
 
-export type MapPlace = {
-  title: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-};
-
-type LngLat = { getLng(): number; getLat(): number };
-type MapInstance = {
-  on(event: "click", callback: (event: { lnglat: LngLat }) => void): void;
-  setCenter(center: Coordinate): void;
-  destroy(): void;
-};
-type MapSdk = {
-  Map: new (
-    container: HTMLElement,
-    options: { center: Coordinate; zoom: number },
-  ) => MapInstance;
-  Marker: new (options: { map: MapInstance; position: Coordinate }) => {
-    setPosition(position: Coordinate): void;
-  };
-  PlaceSearch: new (options: { pageSize: number }) => {
-    search(
-      keyword: string,
-      callback: (
-        status: string,
-        result: {
-          poiList?: {
-            pois?: { name?: string; address?: string; location?: LngLat }[];
-          };
-        },
-      ) => void,
-    ): void;
-  };
-  Geocoder: new () => {
-    getAddress(
-      coordinate: Coordinate,
-      callback: (
-        status: string,
-        result: {
-          regeocode?: { formattedAddress?: string };
-        },
-      ) => void,
-    ): void;
-  };
-};
-type MapWindow = Window & {
-  AMap?: MapSdk;
-  _AMapSecurityConfig?: { serviceHost: string };
-};
+export const pickerOrigin = "https://apis.map.qq.com";
+export const mapKey = () =>
+  (import.meta.env.VITE_TENCENT_MAP_PICKER_KEY || "").trim();
 
 export function coordinate(lng: unknown, lat: unknown): Coordinate | null {
   return typeof lng === "number" &&
     Math.abs(lng) <= 180 &&
     typeof lat === "number" &&
     Math.abs(lat) <= 90
-    ? [lng, lat]
+    ? { latitude: lat, longitude: lng }
     : null;
 }
 
-export function readLngLat(value?: LngLat): Coordinate | null {
-  return coordinate(value?.getLng?.(), value?.getLat?.());
+export function pickerUrl(
+  point: Coordinate = { latitude: 24.479834, longitude: 118.089425 },
+) {
+  const url = new URL("/tools/locpicker", pickerOrigin);
+  url.search = new URLSearchParams({
+    type: "1",
+    search: "1",
+    referer: "WildBoy",
+    key: mapKey(),
+    coordtype: "5",
+    coord: `${point.latitude},${point.longitude}`,
+  }).toString();
+  return url.href;
 }
 
-export const mapKey = () => (import.meta.env.VITE_AMAP_JS_KEY || "").trim();
-
-let loading: Promise<MapSdk> | undefined;
-export function loadNavigationMap(): Promise<MapSdk> {
-  const key = mapKey();
-  if (!key) return Promise.reject(new Error("Missing map key"));
-  if (loading) return loading;
-  const browser = window as MapWindow;
-  browser._AMapSecurityConfig = {
-    serviceHost: location.origin + "/_AMapService",
+export function readSelection(data: unknown): MapPlace | null {
+  if (!data || typeof data !== "object") return null;
+  const result = data as Record<string, unknown>;
+  if (
+    result.module !== "locationPicker" ||
+    !result.latlng ||
+    typeof result.latlng !== "object"
+  )
+    return null;
+  const { lat, lng } = result.latlng as Record<string, unknown>;
+  const point = coordinate(lng, lat);
+  if (!point) return null;
+  const name = typeof result.poiname === "string" ? result.poiname.trim() : "";
+  const address =
+    typeof result.poiaddress === "string" ? result.poiaddress.trim() : "";
+  return {
+    ...point,
+    title: (name || address || "地图标记点").slice(0, 200),
+    address: address.slice(0, 300),
   };
-  loading = new Promise<MapSdk>((resolve, reject) => {
-    const script = document.createElement("script");
-    const url = new URL("https://webapi.amap.com/maps");
-    url.search = new URLSearchParams({
-      v: "2.0",
-      key,
-      plugin: "AMap.PlaceSearch,AMap.Geocoder",
-    }).toString();
-    script.src = url.href;
-    script.async = true;
-    const timeout = window.setTimeout(fail, 10000);
-    function fail() {
-      window.clearTimeout(timeout);
-      script.remove();
-      reject(new Error("Map SDK unavailable"));
-    }
-    script.onerror = fail;
-    script.onload = () => {
-      window.clearTimeout(timeout);
-      const sdk = browser.AMap;
-      if (sdk?.Map && sdk.Marker && sdk.PlaceSearch && sdk.Geocoder)
-        resolve(sdk);
-      else fail();
-    };
-    document.head.append(script);
-  }).catch((error) => {
-    loading = undefined;
-    throw error;
-  });
-  return loading;
 }
