@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { errorMessage, request } from "../api";
 import AppIcon from "./AppIcon.vue";
+import FormModal from "./FormModal.vue";
 import type {
   BoardingPointLocation,
   NavigationPoint,
@@ -49,6 +50,85 @@ const loadedCatalog = ref(false);
 const dragIndex = ref<number | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | undefined;
 onUnmounted(() => clearTimeout(searchTimer));
+
+const pickerOrigin = "https://apis.map.qq.com";
+const pickerKey = (import.meta.env.VITE_TENCENT_MAP_PICKER_KEY || "").trim();
+const pickerUrl = ref("");
+const pickerFrame = ref<HTMLIFrameElement | null>(null);
+const pickerError = ref("");
+
+function openMapPicker() {
+  if (!adding.value || props.disabled || !pickerKey) return;
+  const url = new URL("/tools/locpicker", pickerOrigin);
+  url.search = new URLSearchParams({
+    type: "1",
+    search: "1",
+    coordtype: "5",
+    key: pickerKey,
+    referer: "WildBoy",
+  }).toString();
+  const lat = Number(draftLat.value);
+  const lng = Number(draftLng.value);
+  if (
+    draftLat.value.trim() &&
+    draftLng.value.trim() &&
+    Number.isFinite(lat) &&
+    Math.abs(lat) <= 90 &&
+    Number.isFinite(lng) &&
+    Math.abs(lng) <= 180
+  )
+    url.searchParams.set("coord", `${lat},${lng}`);
+  pickerError.value = "";
+  pickerUrl.value = url.toString();
+}
+
+function closeMapPicker() {
+  pickerUrl.value = "";
+}
+
+function readMapSelection(event: MessageEvent<unknown>) {
+  if (
+    !pickerUrl.value ||
+    !adding.value ||
+    props.disabled ||
+    event.origin !== pickerOrigin ||
+    !pickerFrame.value?.contentWindow ||
+    event.source !== pickerFrame.value.contentWindow ||
+    !event.data ||
+    typeof event.data !== "object"
+  )
+    return;
+  const point = event.data as Record<string, unknown>;
+  if (
+    point.module !== "locationPicker" ||
+    !point.latlng ||
+    typeof point.latlng !== "object"
+  )
+    return;
+  const { lat, lng } = point.latlng as Record<string, unknown>;
+  if (
+    typeof lat !== "number" ||
+    !Number.isFinite(lat) ||
+    Math.abs(lat) > 90 ||
+    typeof lng !== "number" ||
+    !Number.isFinite(lng) ||
+    Math.abs(lng) > 180
+  )
+    return;
+  const title = typeof point.poiname === "string" ? point.poiname.trim() : "";
+  const address =
+    typeof point.poiaddress === "string" ? point.poiaddress.trim() : "";
+  applyCandidate({
+    title: (title || address || "地图选点").slice(0, 200),
+    address: address.slice(0, 300),
+    latitude: lat,
+    longitude: lng,
+  });
+  closeMapPicker();
+}
+
+onMounted(() => window.addEventListener("message", readMapSelection));
+onUnmounted(() => window.removeEventListener("message", readMapSelection));
 
 function parseLocalCoordinate(
   raw: string,
@@ -107,6 +187,7 @@ function openAdd(kind: NavigationPointKind = "MEETING") {
 }
 
 function closeAdd() {
+  closeMapPicker();
   adding.value = false;
   suggestions.value = [];
   searchError.value = "";
@@ -429,6 +510,47 @@ function quickFillCoord(index: number, raw: string) {
         </label>
       </div>
 
+      <div class="map-picker-entry">
+        <button
+          type="button"
+          class="secondary"
+          :disabled="disabled || !pickerKey"
+          @click="openMapPicker"
+        >
+          <AppIcon name="location" :size="16" /> 地图选点
+        </button>
+        <small v-if="!pickerKey" class="field-hint"
+          >网页地图尚未配置，可搜索地点或粘贴坐标。</small
+        >
+      </div>
+
+      <FormModal v-if="pickerUrl" size="xl" @close="closeMapPicker">
+        <template #title><h2>在地图上选择导航点</h2></template>
+        <p class="map-picker-note">
+          搜索地点或移动地图，确认后会填入表单，不会直接保存活动。
+        </p>
+        <p v-if="pickerError" role="alert" class="error-box">
+          {{ pickerError }}
+        </p>
+        <iframe
+          v-else
+          ref="pickerFrame"
+          class="map-picker-frame"
+          :src="pickerUrl"
+          title="腾讯地图选点"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="geolocation 'none'"
+          @error="
+            pickerError = '地图未能加载，请关闭后重试，或使用搜索及手动坐标。'
+          "
+        />
+        <template #footer>
+          <button type="button" class="secondary" @click="closeMapPicker">
+            返回填写
+          </button>
+        </template>
+      </FormModal>
+
       <label>
         搜索地点 / 粘贴坐标或地图分享链接
         <div class="search-inline">
@@ -515,6 +637,27 @@ function quickFillCoord(index: number, raw: string) {
 </template>
 
 <style scoped>
+.map-picker-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.map-picker-note {
+  margin: 0 0 10px;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.map-picker-frame {
+  display: block;
+  width: 100%;
+  height: min(57dvh, 550px);
+  min-height: 235px;
+  border: 1px solid var(--rf-line);
+  border-radius: 8px;
+}
+
 .nav-points-box {
   margin-top: 14px;
   padding: 14px;
