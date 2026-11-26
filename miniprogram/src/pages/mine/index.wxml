@@ -50,7 +50,7 @@
         <view bindtap="terms">用户协议<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
         <view wx:if="{{user}}" bindtap="signOut">退出当前账号<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       </view>
-      <view class="app-version">小程序版本 {{version}}</view>
+      <view class="app-version">{{version}}</view>
     </view>
   </view>
 </view>
