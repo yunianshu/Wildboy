@@ -394,10 +394,9 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     const titleInput = w.get('input[placeholder="活动名称"]');
     expect(titleInput.attributes("disabled")).toBeUndefined();
 
-    // Switch to schedule tab, import navigation points and fill coordinates
+    // Expand activity settings, import navigation points and fill coordinates
     await w
-      .findAll("button")
-      .find((b) => b.text().includes("时间与地点"))!
+      .get('button[aria-controls="activity-advanced-options"]')
       .trigger("click");
     await flushPromises();
     await w

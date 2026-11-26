@@ -209,6 +209,79 @@ describe("editor workflow", () => {
     expect(JSON.parse(creates[1]?.[1].body).title).toBe("修正后的标题");
     wrapper.unmount();
   });
+  it("edits an existing activity on one page and preserves closed options on save", async () => {
+    const published = {
+      ...base,
+      status: "PUBLISHED",
+      galleryUrls: ["/assets/existing.png"],
+      boardingPoints: ["海滨公园东门"],
+      identityRequired: false,
+    };
+    const fetch = vi.fn(async (_path: string, options?: RequestInit) => ({
+      ok: true,
+      status: 200,
+      json: async () =>
+        options?.method === "PUT"
+          ? { ...published, ...JSON.parse(String(options.body)), version: 3 }
+          : published,
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    expect(wrapper.find(".task-tabs").exists()).toBe(false);
+    const title = wrapper.get('input[placeholder="活动名称"]');
+    const end = wrapper.get("#activity-end-time");
+    const description = wrapper.get('textarea[maxlength="20000"]');
+    expect(title.isVisible()).toBe(true);
+    expect(end.isVisible()).toBe(true);
+    expect(description.isVisible()).toBe(true);
+    expect(wrapper.get("#activity-media-options").isVisible()).toBe(false);
+    expect(wrapper.get("#activity-advanced-options").isVisible()).toBe(false);
+    await title.setValue("更新后的活动");
+    await end.setValue("18:00");
+    await description.setValue("请在出发前检查装备。");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(fetch.mock.calls[1]?.[1]?.method).toBe("PUT");
+    expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toMatchObject({
+      title: "更新后的活动",
+      endAt: expect.stringContaining("T18:00"),
+      description: "请在出发前检查装备。",
+      coverUrl: published.coverUrl,
+      galleryUrls: published.galleryUrls,
+      boardingPoints: published.boardingPoints,
+      identityRequired: false,
+      version: 2,
+    });
+    expect(wrapper.get('[role="status"]').text()).toBe("活动修改已保存。");
+    wrapper.unmount();
+  });
+
+  it("reveals a required cover problem even when media settings were closed", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => base,
+    });
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    const toggle = wrapper.get(
+      'button[aria-controls="activity-media-options"]',
+    );
+    await toggle.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "移除封面")!
+      .trigger("click");
+    await toggle.trigger("click");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    await wrapper.get("form").trigger("submit");
+    expect(toggle.attributes("aria-expanded")).toBe("true");
+    expect(toggle.text()).toContain("待修正");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
   it("renders paid occupancy separately and locks ID policy when seats are occupied", async () => {
     const paid = {
       ...base,
@@ -304,8 +377,7 @@ describe("editor workflow", () => {
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
     await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "时间与地点")!
+      .get('button[aria-controls="activity-advanced-options"]')
       .trigger("click");
     await flushPromises();
     const choices = wrapper.get('select[aria-label="选择已有上车地点"]');

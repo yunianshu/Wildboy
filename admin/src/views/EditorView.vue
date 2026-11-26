@@ -72,6 +72,8 @@ const fields = reactive({
   baseline = ref(JSON.stringify(fields));
 // 封面与更多图片一律通过上传获得，不再提供 /assets/ 预设选图
 const priceYuan = ref("0.00");
+const showMedia = ref(false);
+const showAdvanced = ref(false);
 const editSection = ref<"basic" | "schedule" | "detail">("basic");
 const sections = [
   { id: "basic", label: "基本信息" },
@@ -251,17 +253,22 @@ async function save() {
   if (saving.value || readonly.value || conflict.value || uncertainCreate.value)
     return;
   if (addingBoardingPoint.value) {
+    showAdvanced.value = true;
     editSection.value = "schedule";
     error.value = "请先保存或取消新增的上车地点。";
     return;
   }
   if (addingNavigationPoint.value) {
+    showAdvanced.value = true;
     editSection.value = "schedule";
     error.value = "请先添加或取消当前导航点。";
     return;
   }
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
   if (Object.keys(errors.value).length) {
+    if (errors.value.coverUrl || errors.value.galleryUrls)
+      showMedia.value = true;
+    if (errors.value.boardingPoints) showAdvanced.value = true;
     editSection.value =
       sections.find(({ id }) => sectionErrorCount(id))?.id ?? "basic";
     error.value = "请检查标记的内容后再保存。";
@@ -589,7 +596,7 @@ useForegroundRefresh(() => {
     </p>
     <UiState v-if="loading" kind="loading" compact>正在加载活动…</UiState>
     <form v-else-if="!id || current" @submit.prevent="save">
-      <nav class="task-tabs" aria-label="编辑活动章节">
+      <nav v-if="!id" class="task-tabs" aria-label="编辑活动章节">
         <button
           v-for="section in sections"
           :key="section.id"
@@ -607,12 +614,12 @@ useForegroundRefresh(() => {
           </span>
         </button>
       </nav>
-      <div class="editor-grid">
+      <div class="editor-grid" :class="{ 'existing-activity': id }">
         <div class="editor-main">
-          <section v-show="editSection === 'basic'" class="form-section">
+          <section v-show="id || editSection === 'basic'" class="form-section">
             <div class="section-title">
               <div>
-                <h2>基本信息</h2>
+                <h2>{{ id ? "活动信息" : "基本信息" }}</h2>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
@@ -638,7 +645,7 @@ useForegroundRefresh(() => {
                   ><small class="field-error">{{
                     errors.category
                   }}</small></label
-                ><label class="field checkbox-field"
+                ><label v-if="!id" class="field checkbox-field"
                   ><input
                     v-model="fields.identityRequired"
                     type="checkbox"
@@ -672,74 +679,94 @@ useForegroundRefresh(() => {
                   placeholder="活动简介"
                 /><small class="field-error">{{ errors.summary }}</small></label
               >
-              <div class="preset-heading">活动封面（上传）</div>
-              <ImageUpload
-                label="上传活动封面"
-                :disabled="saving || readonly"
-                @uploaded="fields.coverUrl = $event"
-              />
-              <img
-                v-if="fields.coverUrl"
-                class="cover-preview"
-                :src="fields.coverUrl"
-                alt="封面预览"
-              />
               <button
-                v-if="fields.coverUrl"
+                v-if="id"
                 type="button"
-                class="text-button"
-                @click="fields.coverUrl = ''"
+                class="secondary section-disclosure"
+                aria-controls="activity-media-options"
+                :aria-expanded="showMedia"
+                @click="showMedia = !showMedia"
               >
-                移除封面
-              </button>
-              <small class="field-error">{{ errors.coverUrl }}</small>
-              <div class="preset-heading">更多图片（可选，最多 8 张）</div>
-              <div class="gallery-grid">
-                <div
-                  v-for="(url, i) in fields.galleryUrls"
-                  :key="i"
-                  class="gallery-item"
+                <AppIcon name="chevron-down" :size="16" /> 封面与图片
+                <span
+                  v-if="errors.coverUrl || errors.galleryUrls"
+                  class="status-pill tone-danger"
+                  >待修正</span
                 >
-                  <img :src="url" alt="更多图片" loading="lazy" />
-                  <div class="action-row">
+              </button>
+              <div v-show="!id || showMedia" id="activity-media-options">
+                <div class="preset-heading">活动封面（上传）</div>
+                <ImageUpload
+                  label="上传活动封面"
+                  :disabled="saving || readonly"
+                  @uploaded="fields.coverUrl = $event"
+                />
+                <img
+                  v-if="fields.coverUrl"
+                  class="cover-preview"
+                  :src="fields.coverUrl"
+                  alt="封面预览"
+                />
+                <button
+                  v-if="fields.coverUrl"
+                  type="button"
+                  class="text-button"
+                  @click="fields.coverUrl = ''"
+                >
+                  移除封面
+                </button>
+                <small class="field-error">{{ errors.coverUrl }}</small>
+                <div class="preset-heading">更多图片（可选，最多 8 张）</div>
+                <div class="gallery-grid">
+                  <div
+                    v-for="(url, i) in fields.galleryUrls"
+                    :key="i"
+                    class="gallery-item"
+                  >
+                    <img :src="url" alt="更多图片" loading="lazy" />
+                    <div class="action-row">
+                      <button
+                        type="button"
+                        class="text-button"
+                        :disabled="i === 0"
+                        @click="moveGalleryImage(i, -1)"
+                      >
+                        上移
+                      </button>
+                      <button
+                        type="button"
+                        class="text-button"
+                        :disabled="i === fields.galleryUrls.length - 1"
+                        @click="moveGalleryImage(i, 1)"
+                      >
+                        下移
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      class="text-button"
-                      :disabled="i === 0"
-                      @click="moveGalleryImage(i, -1)"
+                      class="gallery-remove"
+                      :disabled="saving || readonly"
+                      @click="fields.galleryUrls.splice(i, 1)"
                     >
-                      上移
-                    </button>
-                    <button
-                      type="button"
-                      class="text-button"
-                      :disabled="i === fields.galleryUrls.length - 1"
-                      @click="moveGalleryImage(i, 1)"
-                    >
-                      下移
+                      移除
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    class="gallery-remove"
+                  <ImageUpload
+                    v-if="fields.galleryUrls.length < 8"
+                    :key="`gallery-${fields.galleryUrls.length}`"
+                    label="上传更多活动图片"
                     :disabled="saving || readonly"
-                    @click="fields.galleryUrls.splice(i, 1)"
-                  >
-                    移除
-                  </button>
+                    @uploaded="fields.galleryUrls.push($event)"
+                  />
                 </div>
-                <ImageUpload
-                  v-if="fields.galleryUrls.length < 8"
-                  :key="`gallery-${fields.galleryUrls.length}`"
-                  label="上传更多活动图片"
-                  :disabled="saving || readonly"
-                  @uploaded="fields.galleryUrls.push($event)"
-                />
+                <small class="field-error">{{ errors.galleryUrls }}</small>
               </div>
-              <small class="field-error">{{ errors.galleryUrls }}</small>
             </fieldset>
           </section>
-          <section v-show="editSection === 'schedule'" class="form-section">
+          <section
+            v-show="id || editSection === 'schedule'"
+            class="form-section"
+          >
             <div class="section-title">
               <div>
                 <h2>时间与地点</h2>
@@ -791,27 +818,62 @@ useForegroundRefresh(() => {
                   errors.meetingPoint
                 }}</small></label
               >
-              <BoardingPointsField
-                v-if="editSection === 'schedule' || addingBoardingPoint"
-                v-model="fields.boardingPoints"
-                v-model:adding="addingBoardingPoint"
-                :disabled="saving"
-                :readonly="readonly"
-                :error="errors.boardingPoints"
-              />
-              <NavigationPointsField
-                v-if="editSection === 'schedule' || addingNavigationPoint"
-                v-model="fields.navigationPoints"
-                v-model:adding="addingNavigationPoint"
-                :disabled="saving"
-                :location="fields.location"
-                :meeting-point="fields.meetingPoint"
-                :boarding-points="fields.boardingPoints"
-                @sync-boarding-points="fields.boardingPoints = $event"
-              />
+              <button
+                v-if="id"
+                type="button"
+                class="secondary section-disclosure"
+                aria-controls="activity-advanced-options"
+                :aria-expanded="showAdvanced"
+                @click="showAdvanced = !showAdvanced"
+              >
+                <AppIcon name="chevron-down" :size="16" /> 上车、导航与证件设置
+                <span
+                  v-if="errors.boardingPoints"
+                  class="status-pill tone-danger"
+                  >待修正</span
+                >
+              </button>
+              <div v-show="!id || showAdvanced" id="activity-advanced-options">
+                <label v-if="id" class="field checkbox-field"
+                  ><input
+                    v-model="fields.identityRequired"
+                    type="checkbox"
+                    :disabled="identityLocked"
+                  />
+                  {{
+                    identityLocked
+                      ? "核验身份证（已有名额占用，设置已锁定）"
+                      : "核验身份证（仅必要时开启，须说明用途）"
+                  }}</label
+                >
+                <BoardingPointsField
+                  v-if="
+                    (id ? showAdvanced : editSection === 'schedule') ||
+                    addingBoardingPoint
+                  "
+                  v-model="fields.boardingPoints"
+                  v-model:adding="addingBoardingPoint"
+                  :disabled="saving"
+                  :readonly="readonly"
+                  :error="errors.boardingPoints"
+                />
+                <NavigationPointsField
+                  v-if="
+                    (id ? showAdvanced : editSection === 'schedule') ||
+                    addingNavigationPoint
+                  "
+                  v-model="fields.navigationPoints"
+                  v-model:adding="addingNavigationPoint"
+                  :disabled="saving"
+                  :location="fields.location"
+                  :meeting-point="fields.meetingPoint"
+                  :boarding-points="fields.boardingPoints"
+                  @sync-boarding-points="fields.boardingPoints = $event"
+                />
+              </div>
             </fieldset>
           </section>
-          <section v-show="editSection === 'detail'" class="form-section">
+          <section v-show="id || editSection === 'detail'" class="form-section">
             <div class="section-title">
               <div>
                 <h2>活动详情</h2>
@@ -822,7 +884,7 @@ useForegroundRefresh(() => {
                 >活动说明（纯文本） <span>*</span
                 ><textarea
                   v-model="fields.description"
-                  rows="13"
+                  :rows="id ? 6 : 13"
                   maxlength="20000"
                   placeholder="填写行程、路线难度、装备及安全提示"
                 /><small class="field-error">{{
@@ -994,6 +1056,25 @@ useForegroundRefresh(() => {
   />
 </template>
 <style scoped>
+.existing-activity .editor-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.existing-activity .editor-aside .editor-tip {
+  order: -1;
+  margin-top: 0;
+}
+.section-disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-disclosure[aria-expanded="true"] :deep(svg) {
+  transform: rotate(180deg);
+}
+
 .activity-content-entry {
   display: flex;
   justify-content: space-between;
