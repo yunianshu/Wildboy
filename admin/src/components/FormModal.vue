@@ -118,7 +118,7 @@ onMounted(() => {
     if (!heading.id) heading.id = generatedHeadingId;
     headingId.value = heading.id;
   }
-  if (isTopmost()) dialog.value?.focus();
+  if (isTopmost()) dialog.value?.focus({ preventScroll: true });
   document.addEventListener("keydown", keydown, true);
   document.addEventListener("focusin", containFocus);
 });
@@ -136,8 +136,8 @@ onUnmounted(() => {
       previousFocus?.isConnected &&
       (!remaining || remaining.contains(previousFocus))
     )
-      previousFocus.focus();
-    else remaining?.focus();
+      previousFocus.focus({ preventScroll: true });
+    else remaining?.focus({ preventScroll: true });
   });
 });
 </script>

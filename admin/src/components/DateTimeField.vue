@@ -90,7 +90,9 @@ const calendarDays = computed(() => {
     };
   });
 });
-function openPicker() {
+function openPicker(event: Event) {
+  // Pointer presses avoid the native picker; focus the actual opener before mounting the dialog.
+  (event.currentTarget as HTMLInputElement).focus({ preventScroll: true });
   draftDate.value = datePart.value;
   visibleMonth.value = (draftDate.value || today).slice(0, 7);
   const current = timePart.value || props.presets[0] || "09:00";

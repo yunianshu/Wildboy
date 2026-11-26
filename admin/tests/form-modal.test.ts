@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { defineComponent, ref } from "vue";
 import FormModal from "../src/components/FormModal.vue";
+import DateTimeField from "../src/components/DateTimeField.vue";
 import ConfirmDialog from "../src/components/ConfirmDialog.vue";
 
 const wrappers: VueWrapper[] = [];
@@ -56,6 +57,35 @@ describe("form modal keyboard behavior", () => {
     wrappers.pop();
     await flushPromises();
     expect(document.activeElement).toBe(outside);
+  });
+
+  it("restores the clicked time field without scrolling to previously focused content", async () => {
+    const outside = document.createElement("button");
+    document.body.append(outside);
+    outside.focus();
+    const wrapper = render(DateTimeField, {
+      props: {
+        id: "activity-start",
+        label: "开始时间",
+        modelValue: "2027-02-03T09:00",
+      },
+    });
+    const trigger = wrapper.get<HTMLInputElement>("#activity-start-time");
+    const focus = vi.spyOn(trigger.element, "focus");
+    await trigger.trigger("mousedown");
+    await trigger.trigger("click");
+    await flushPromises();
+    expect(document.activeElement).toBe(wrapper.get('[role="dialog"]').element);
+    expect(press("Escape").defaultPrevented).toBe(true);
+    await flushPromises();
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false);
+    expect(document.activeElement).toBe(trigger.element);
+    expect(focus.mock.calls).toEqual(
+      [{ preventScroll: true }, { preventScroll: true }].map((options) => [
+        options,
+      ]),
+    );
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
   });
 
   it("requests Escape closure without bypassing a consumer's draft guard", async () => {
