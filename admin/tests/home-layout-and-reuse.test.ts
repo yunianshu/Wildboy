@@ -223,6 +223,7 @@ describe("HomeLayoutView modular workbench", () => {
     });
     await flushPromises();
 
+    expect(w.get("h1").text()).toBe("小程序首页配置");
     expect(w.get(".editor-panel h2").text()).toBe("首页精选活动");
     // Add act-3 and reorder featured activities
     const addBtn = w
@@ -307,7 +308,7 @@ describe("HomeLayoutView modular workbench", () => {
     );
     expect(saved.shop.featuredProductIds).toEqual(["pack"]);
     expect(saved.footer.brandWidthPx).toBe(300);
-    expect(w.text()).toContain("首页自由装修配置已保存");
+    expect(w.text()).toContain("首页配置已保存");
     w.unmount();
   });
 });

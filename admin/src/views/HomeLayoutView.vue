@@ -395,8 +395,7 @@ async function save() {
     const normalized = normalizeLoaded(saved);
     layout.value = normalized;
     snapshot.value = JSON.stringify(normalized);
-    success.value =
-      "首页自由装修配置已保存，小程序下拉或重新进入首页即刻生效。";
+    success.value = "首页配置已保存，小程序下拉或重新进入首页即刻生效。";
   } catch (e) {
     conflict.value = e instanceof ApiError && e.status === 409;
     error.value = conflict.value
@@ -426,7 +425,7 @@ onBeforeRouteLeave(
   async (to) =>
     to.path === "/login" ||
     (!saving.value &&
-      (!dirty.value || (await askConfirm("首页装修尚未保存，确定离开吗？")))),
+      (!dirty.value || (await askConfirm("首页配置尚未保存，确定离开吗？")))),
 );
 watch(currentUser, (u) => {
   if (u) void load();
@@ -445,7 +444,7 @@ onUnmounted(() => {
   <main class="workspace layout-workspace">
     <header class="page-heading">
       <div>
-        <h1>小程序首页装修</h1>
+        <h1>小程序首页配置</h1>
         <p class="muted">
           在这里统一管理小程序首页的快捷入口、精选活动和其他展示板块。
         </p>
@@ -473,9 +472,7 @@ onUnmounted(() => {
     <p v-if="success" role="status" class="success-box">{{ success }}</p>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
 
-    <UiState v-if="loading" kind="loading" compact
-      >正在加载首页装修配置…</UiState
-    >
+    <UiState v-if="loading" kind="loading" compact>正在加载首页配置…</UiState>
 
     <div v-else-if="layout" class="builder-grid">
       <!-- Left: Draggable module rail -->

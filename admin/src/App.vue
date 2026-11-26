@@ -47,7 +47,7 @@ const navigation = [
     label: "内容与设置",
     key: "content",
     items: [
-      { path: "/home-layout", title: "首页装修", icon: "dashboard" },
+      { path: "/home-layout", title: "首页配置", icon: "dashboard" },
       { path: "/articles", title: "文章管理", icon: "document" },
       { path: "/legal", title: "协议管理", icon: "document" },
       { path: "/settings", title: "基础配置", icon: "dashboard" },
