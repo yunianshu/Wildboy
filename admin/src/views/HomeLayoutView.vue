@@ -31,11 +31,11 @@ const moduleLabels: Record<HomeModuleId, { title: string; desc: string }> = {
   HERO: { title: "顶部主视觉", desc: "头图、品牌标语与主标题" },
   SHORTCUTS: {
     title: "快捷入口区",
-    desc: "支持增删排序、多二维码、公众号文章",
+    desc: "首页入口、跳转链接和二维码",
   },
   ACTIVITIES: {
-    title: "精选 6 场活动",
-    desc: "拖拽排列小程序首页活动显示位置",
+    title: "首页精选活动",
+    desc: "选择活动并调整显示顺序",
   },
   SHOP: { title: "装备横幅与商品", desc: "横幅图文与首页精选装备" },
   GALLERY: { title: "山野之间轮播", desc: "自动取文章或自定义轮播图" },
@@ -445,10 +445,9 @@ onUnmounted(() => {
   <main class="workspace layout-workspace">
     <header class="page-heading">
       <div>
-        <h1>小程序首页自由装修</h1>
+        <h1>小程序首页装修</h1>
         <p class="muted">
-          拖拽模块调整上下布局、排定首页 6
-          场活动顺序、上传多张二维码、配置公众号文章跳转及底部野小子品牌图大小。
+          在这里统一管理小程序首页的快捷入口、精选活动和其他展示板块。
         </p>
       </div>
       <div class="heading-actions">
@@ -483,7 +482,7 @@ onUnmounted(() => {
       <aside class="module-rail" aria-label="首页板块排序与显隐">
         <div class="rail-header">
           <h2>板块顺序与显隐</h2>
-          <small>可上下拖动模块调整顺序</small>
+          <small>选择板块编辑，也可拖动调整顺序</small>
         </div>
         <ul class="module-list">
           <li
@@ -501,7 +500,15 @@ onUnmounted(() => {
             @click="activeModule = mod.id"
           >
             <div class="module-card-top">
-              <strong>{{ idx + 1 }}. {{ moduleLabels[mod.id]?.title }}</strong>
+              <button
+                type="button"
+                class="text-button module-select"
+                :aria-pressed="activeModule === mod.id"
+                @click.stop="activeModule = mod.id"
+              >
+                <span aria-hidden="true">{{ idx + 1 }}.</span>
+                {{ moduleLabels[mod.id]?.title }}
+              </button>
               <label class="switch-inline" @click.stop>
                 <input v-model="mod.enabled" type="checkbox" />
                 <span>{{ mod.enabled ? "显示" : "隐藏" }}</span>
@@ -961,7 +968,7 @@ onUnmounted(() => {
 
         <!-- 3. ACTIVITIES (Drag-sort 6 activities!) -->
         <div v-else-if="activeModule === 'ACTIVITIES'" class="editor-panel">
-          <h2>首页精选活动编排（拖拽调整 6 个活动显示位置）</h2>
+          <h2>首页精选活动</h2>
           <div class="field-row">
             <label>
               英文眉题
@@ -1686,6 +1693,12 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 6px;
   font-size: 13px;
+}
+.module-select {
+  padding: 0;
+  text-align: start;
+  font-size: inherit;
+  font-weight: 600;
 }
 .switch-inline {
   display: inline-flex;

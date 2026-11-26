@@ -172,12 +172,6 @@ useForegroundRefresh(() => {
     <header class="page-heading">
       <h1>活动管理</h1>
       <div class="heading-actions">
-        <RouterLink
-          class="secondary button"
-          to="/home-layout?section=ACTIVITIES"
-        >
-          <AppIcon name="dashboard" :size="16" />首页 6 活动排序
-        </RouterLink>
         <RouterLink class="primary button" to="/activities/new">
           <AppIcon name="plus" :size="16" />新建活动
         </RouterLink>

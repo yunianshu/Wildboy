@@ -223,6 +223,7 @@ describe("HomeLayoutView modular workbench", () => {
     });
     await flushPromises();
 
+    expect(w.get(".editor-panel h2").text()).toBe("首页精选活动");
     // Add act-3 and reorder featured activities
     const addBtn = w
       .findAll("button")
@@ -251,8 +252,8 @@ describe("HomeLayoutView modular workbench", () => {
 
     // Switch to SHORTCUTS and set "野小子" to WECHAT_ARTICLE
     await w
-      .findAll(".module-card")
-      .find((c) => c.text().includes("快捷入口区"))!
+      .findAll(".module-select")
+      .find((button) => button.text().includes("快捷入口区"))!
       .trigger("click");
     const chips = w.findAll(".shortcut-chip");
     await chips[1]!.trigger("click");
