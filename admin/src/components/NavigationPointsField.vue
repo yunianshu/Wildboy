@@ -305,7 +305,7 @@ function quickFillCoord(index: number, raw: string) {
 
 <template>
   <fieldset class="nav-points-box" :disabled="disabled">
-    <legend>地图导航地址（小程序点击直接打开地图导航，多地址支持选择）</legend>
+    <legend>地图导航</legend>
     <div class="nav-toolbar">
       <button type="button" class="secondary" @click="openAdd('MEETING')">
         <AppIcon name="location" :size="15" /> 添加导航点
@@ -314,7 +314,7 @@ function quickFillCoord(index: number, raw: string) {
         从上方地点一键导入
       </button>
       <small class="field-hint">
-        可拖动排序或上下移动；配置经纬度后，小程序端点击地址即可调起微信地图导航。
+        配置经纬度后，小程序可直接打开地图。多个导航点可排序和切换。
       </small>
     </div>
 

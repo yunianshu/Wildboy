@@ -755,40 +755,82 @@ useForegroundRefresh(() => {
                   >待修正</span
                 >
               </button>
-              <div v-show="!id || showMedia" id="activity-media-options">
-                <div class="preset-heading">活动封面（上传）</div>
-                <ImageUpload
-                  label="上传活动封面"
-                  :disabled="saving || readonly"
-                  @uploaded="fields.coverUrl = $event"
-                />
-                <img
-                  v-if="fields.coverUrl"
-                  class="cover-preview"
-                  :src="fields.coverUrl"
-                  alt="封面预览"
-                />
-                <button
-                  v-if="fields.coverUrl"
-                  type="button"
-                  class="text-button"
-                  @click="fields.coverUrl = ''"
+              <div
+                v-show="!id || showMedia"
+                id="activity-media-options"
+                class="activity-media"
+              >
+                <div class="activity-cover-row">
+                  <img
+                    v-if="fields.coverUrl"
+                    class="cover-preview"
+                    :src="fields.coverUrl"
+                    alt="封面预览"
+                  />
+                  <div class="activity-cover-controls">
+                    <h3>活动封面</h3>
+                    <p class="media-hint">
+                      用于活动列表和详情页。支持 JPG / PNG，超限会自动压缩。
+                    </p>
+                    <div class="media-actions">
+                      <ImageUpload
+                        :label="
+                          fields.coverUrl ? '更换活动封面' : '上传活动封面'
+                        "
+                        compact
+                        :disabled="saving || readonly"
+                        @uploaded="fields.coverUrl = $event"
+                      />
+                      <button
+                        v-if="fields.coverUrl"
+                        type="button"
+                        class="text-button"
+                        @click="fields.coverUrl = ''"
+                      >
+                        移除封面
+                      </button>
+                    </div>
+                    <small v-if="errors.coverUrl" class="field-error">{{
+                      errors.coverUrl
+                    }}</small>
+                  </div>
+                </div>
+                <div class="activity-gallery-head">
+                  <div>
+                    <h3>
+                      更多图片
+                      <small>{{ fields.galleryUrls.length }} / 8</small>
+                    </h3>
+                    <p class="media-hint">选填，按这里的顺序展示。</p>
+                  </div>
+                  <ImageUpload
+                    v-if="fields.galleryUrls.length < 8"
+                    :key="`gallery-${fields.galleryUrls.length}`"
+                    label="添加图片"
+                    compact
+                    :disabled="saving || readonly"
+                    @uploaded="fields.galleryUrls.push($event)"
+                  />
+                </div>
+                <div
+                  v-if="fields.galleryUrls.length"
+                  class="gallery-grid activity-gallery"
                 >
-                  移除封面
-                </button>
-                <small class="field-error">{{ errors.coverUrl }}</small>
-                <div class="preset-heading">更多图片（可选，最多 8 张）</div>
-                <div class="gallery-grid">
                   <div
                     v-for="(url, i) in fields.galleryUrls"
                     :key="i"
                     class="gallery-item"
                   >
-                    <img :src="url" alt="更多图片" loading="lazy" />
-                    <div class="action-row">
+                    <img
+                      :src="url"
+                      :alt="`第 ${i + 1} 张活动图片`"
+                      loading="lazy"
+                    />
+                    <div class="activity-gallery-actions">
                       <button
                         type="button"
                         class="text-button"
+                        :aria-label="`上移第 ${i + 1} 张图片`"
                         :disabled="i === 0"
                         @click="moveGalleryImage(i, -1)"
                       >
@@ -797,30 +839,27 @@ useForegroundRefresh(() => {
                       <button
                         type="button"
                         class="text-button"
+                        :aria-label="`下移第 ${i + 1} 张图片`"
                         :disabled="i === fields.galleryUrls.length - 1"
                         @click="moveGalleryImage(i, 1)"
                       >
                         下移
                       </button>
+                      <button
+                        type="button"
+                        class="text-button danger-text"
+                        :aria-label="`移除第 ${i + 1} 张图片`"
+                        :disabled="saving || readonly"
+                        @click="fields.galleryUrls.splice(i, 1)"
+                      >
+                        移除
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      class="gallery-remove"
-                      :disabled="saving || readonly"
-                      @click="fields.galleryUrls.splice(i, 1)"
-                    >
-                      移除
-                    </button>
                   </div>
-                  <ImageUpload
-                    v-if="fields.galleryUrls.length < 8"
-                    :key="`gallery-${fields.galleryUrls.length}`"
-                    label="上传更多活动图片"
-                    :disabled="saving || readonly"
-                    @uploaded="fields.galleryUrls.push($event)"
-                  />
                 </div>
-                <small class="field-error">{{ errors.galleryUrls }}</small>
+                <small v-if="errors.galleryUrls" class="field-error">{{
+                  errors.galleryUrls
+                }}</small>
               </div>
             </fieldset>
           </section>
@@ -891,19 +930,11 @@ useForegroundRefresh(() => {
                   >待修正</span
                 >
               </button>
-              <div v-show="!id || showAdvanced" id="activity-advanced-options">
-                <label v-if="id" class="field checkbox-field"
-                  ><input
-                    v-model="fields.identityRequired"
-                    type="checkbox"
-                    :disabled="identityLocked"
-                  />
-                  {{
-                    identityLocked
-                      ? "核验身份证（已有名额占用，设置已锁定）"
-                      : "核验身份证（仅必要时开启，须说明用途）"
-                  }}</label
-                >
+              <div
+                v-show="!id || showAdvanced"
+                id="activity-advanced-options"
+                class="activity-advanced"
+              >
                 <BoardingPointsField
                   v-if="
                     (id ? showAdvanced : editSection === 'schedule') ||
@@ -928,6 +959,21 @@ useForegroundRefresh(() => {
                   :boarding-points="fields.boardingPoints"
                   @sync-boarding-points="fields.boardingPoints = $event"
                 />
+                <label v-if="id" class="activity-identity field checkbox-field">
+                  <input
+                    v-model="fields.identityRequired"
+                    type="checkbox"
+                    :disabled="identityLocked"
+                  />
+                  <span>
+                    <strong>核验身份证</strong>
+                    <small>{{
+                      identityLocked
+                        ? "已有名额占用，设置已锁定。"
+                        : "仅在活动确有需要时开启，并在活动说明中告知用途。"
+                    }}</small>
+                  </span>
+                </label>
               </div>
             </fieldset>
           </section>
@@ -1281,6 +1327,128 @@ useForegroundRefresh(() => {
 }
 .section-disclosure[aria-expanded="true"] :deep(svg) {
   transform: rotate(180deg);
+}
+
+.activity-media,
+.activity-advanced {
+  display: grid;
+  gap: 16px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rf-line);
+}
+.activity-cover-row,
+.activity-gallery-head,
+.media-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.activity-cover-row .cover-preview {
+  width: min(100%, 164px);
+  height: 96px;
+  margin: 0;
+  object-fit: cover;
+}
+.activity-cover-controls {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.activity-media h3 {
+  margin: 0;
+  color: var(--rf-ink);
+  font-size: 14px;
+}
+.activity-media h3 small {
+  margin-inline-start: 5px;
+  color: var(--rf-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.media-hint {
+  margin: 3px 0 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+}
+.media-actions {
+  margin-top: 8px;
+}
+.media-actions :deep(.image-upload),
+.activity-gallery-head :deep(.image-upload) {
+  width: auto;
+}
+.activity-gallery-head {
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid var(--rf-line);
+}
+.activity-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+.activity-gallery .gallery-item {
+  width: 100%;
+}
+.activity-gallery .gallery-item img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+}
+.activity-gallery-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  padding-top: 4px;
+}
+.activity-gallery-actions button {
+  min-height: 34px;
+  padding: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.activity-advanced :deep(fieldset) {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 1px solid var(--rf-line);
+  border-radius: 0;
+  background: transparent;
+}
+.activity-advanced :deep(legend) {
+  max-width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  color: var(--rf-ink);
+  font-size: 14px;
+}
+.activity-advanced :deep(.nav-toolbar .field-hint) {
+  flex-basis: 100%;
+}
+.activity-advanced :deep(.nav-toolbar) {
+  gap: 8px;
+}
+.activity-identity {
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+.activity-identity strong,
+.activity-identity small {
+  display: block;
+}
+.activity-identity small {
+  margin-top: 3px;
+  color: var(--rf-muted);
+  font-weight: 400;
+  line-height: 1.5;
+}
+@media (max-width: 420px) {
+  .activity-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .activity-content-entry {
