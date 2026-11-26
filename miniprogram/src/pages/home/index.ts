@@ -33,6 +33,10 @@ import { syncTabBar } from "../../utils/tab-bar";
 import { resetTabSwipe, tabSwipeHandlers } from "../../utils/tab-swipe";
 import { enterPage } from "../../utils/page-motion";
 
+// Keep in sync with the mask gutters and dialog padding/gap in index.wxss.
+const POPUP_EDGE_GUTTER = 24;
+const POPUP_DIALOG_CHROME = 44;
+
 const layoutEpoch = new RequestEpoch();
 const shortcutEpoch = new RequestEpoch();
 const tapEpoch = new RequestEpoch();
@@ -68,6 +72,7 @@ Page({
     popupImageError: false,
     popupGeneration: 0,
     popupBodyHeight: 0,
+    popupScrollable: false,
     items: [] as ReturnType<typeof homeActivitySlots>,
     articles: [] as ArticleSummary[],
     articleLoading: false,
@@ -324,6 +329,7 @@ Page({
         popupImageError: false,
         popupGeneration: this.data.popupGeneration + 1,
         popupBodyHeight: 0,
+        popupScrollable: false,
       },
       () => this.resizePopup(),
     );
@@ -451,6 +457,7 @@ Page({
       popupImages: [],
       popupImageError: false,
       popupBodyHeight: 0,
+      popupScrollable: false,
     });
   },
   keepPopup() {},
@@ -482,12 +489,13 @@ Page({
         return;
       const maxHeight = Math.max(
         1,
-        Math.floor(wx.getWindowInfo().windowHeight * 0.8) -
-          44 -
-          (heading?.height || 44),
+        Math.floor(wx.getWindowInfo().windowHeight - 2 * POPUP_EDGE_GUTTER -
+          POPUP_DIALOG_CHROME - (heading?.height || 44)),
       );
+      const contentHeight = Math.ceil(content.height);
       this.setData({
-        popupBodyHeight: Math.min(Math.ceil(content.height), maxHeight),
+        popupBodyHeight: Math.min(contentHeight, maxHeight),
+        popupScrollable: contentHeight > maxHeight,
       });
     });
   },

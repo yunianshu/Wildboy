@@ -238,12 +238,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32rpx;
+  padding: 24px 32rpx;
 }
 .shortcut-dialog {
   width: 100%;
   max-width: 600rpx;
-  max-height: 80vh;
+  max-height: calc(100vh - 48px);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -288,7 +288,6 @@ button.shortcut-close {
 .shortcut-close image { width: 24px; height: 24px; }
 .shortcut-body {
   min-height: 0;
-  max-height: calc(80vh - 88px);
   flex-shrink: 1;
 }
 .shortcut-content { display: flex; flex-direction: column; gap: 12px; }

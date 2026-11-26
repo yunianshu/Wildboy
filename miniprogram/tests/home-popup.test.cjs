@@ -36,9 +36,15 @@ test('configured text keeps internal line breaks and only trims surrounding whit
   measure(52); assert.equal(p.data.popupBodyHeight,52);
 });
 test('short content hugs its height and long content gets a bounded scroll viewport', async () => {
-  const p=page(); await open(p); measure(1200); assert.equal(p.data.popupBodyHeight,552);
-  viewport=400; p.onResize(); measure(1200); assert.equal(p.data.popupBodyHeight,232);
+  const p=page(); await open(p); measure(630); assert.equal(p.data.popupBodyHeight,630);
+  assert.equal(p.data.popupScrollable,false);
+  p.resizePopup(); measure(664); assert.equal(p.data.popupScrollable,false);
+  p.resizePopup(); measure(1200); assert.equal(p.data.popupBodyHeight,664);
+  assert.equal(p.data.popupScrollable,true);
+  viewport=400; p.onResize(); measure(1200, 52); assert.equal(p.data.popupBodyHeight,256);
+  assert.equal(p.data.popupScrollable,true);
   p.resizePopup(); measure(60); assert.equal(p.data.popupBodyHeight,60);
+  assert.equal(p.data.popupScrollable,false);
 });
 test('closed or superseded popup ignores stale image and measurement callbacks', async () => {
   const p=page(); await open(p); const old=measurements.shift(); const generation=p.data.popupGeneration;
@@ -59,6 +65,7 @@ test('popup template has only a top-right accessible close control and optional 
   assert.match(wxml,/class="shortcut-close"[^>]*bindtap="closePopup"[^>]*aria-label="关闭弹窗"/);
   assert.ok(wxml.indexOf('shortcut-close')<wxml.indexOf('shortcut-body'));
   assert.match(wxml,/mode="widthFix" show-menu-by-longpress/); assert.match(wxml,/bindload="resizePopup"/);
+  assert.match(wxml,/scroll-y="\{\{popupScrollable\}\}" enhanced show-scrollbar="\{\{false\}\}"/);
   assert.match(wxml,/popupBodyHeight/); assert.doesNotMatch(wxml,/>关闭<\/button>/);
   const css=fs.readFileSync('src/pages/home/index.wxss','utf8');
   assert.doesNotMatch(css,/height:\s*55vh/); assert.match(css,/button\.shortcut-close\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;/s);
