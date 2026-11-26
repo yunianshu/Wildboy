@@ -357,7 +357,18 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
         return { ok: true, status: 200, json: async () => [] };
       }
       if (url.endsWith("/activity-boarding-point-locations")) {
-        return { ok: true, status: 200, json: async () => [] };
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              name: "东门",
+              address: "东门",
+              latitude: 24.479834,
+              longitude: 118.089425,
+            },
+          ],
+        };
       }
       if (url.endsWith("/copy")) {
         if (++copyAttempts === 1) throw new Error("响应连接中断");
@@ -406,38 +417,19 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     const titleInput = w.get('input[placeholder="活动名称"]');
     expect(titleInput.attributes("disabled")).toBeUndefined();
 
-    // Expand activity settings, import navigation points and fill coordinates
     await w
       .get('button[aria-controls="activity-advanced-options"]')
       .trigger("click");
     await flushPromises();
-    await w
-      .findAll("button")
-      .find((b) => b.text().includes("添加导航点"))!
-      .trigger("click");
-    const navDraft = w.get<HTMLInputElement>(
-      'input[placeholder="如：岛内SM一期北门"]',
-    );
-    await navDraft.setValue("尚未提交的导航点");
+    const stop = w.get<HTMLInputElement>(".point-choice input");
+    await stop.setValue(true);
     window.dispatchEvent(new Event("focus"));
     await flushPromises();
-    expect(navDraft.element.value).toBe("尚未提交的导航点");
+    expect(stop.element.checked).toBe(true);
     expect(
       fetch.mock.calls.filter(([url]) => url.endsWith("/act-old")),
     ).toHaveLength(1);
-    await w
-      .findAll(".nav-add-panel button")
-      .find((b) => b.text() === "取消")!
-      .trigger("click");
     await titleInput.setValue("往期山海徒步（更新版）");
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "从上方地点一键导入")!
-      .trigger("click");
-    await flushPromises();
-    const coordInput = w.findAll(".coord-quick-input")[0]!;
-    await coordInput.setValue("24.479834, 118.089425");
-    await coordInput.trigger("change");
 
     await w.get("form").trigger("submit");
     await flushPromises();
@@ -446,7 +438,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     );
     expect(putBody.title).toBe("往期山海徒步（更新版）");
     expect(putBody.navigationPoints[0]).toMatchObject({
-      kind: "DESTINATION",
+      kind: "BOARDING",
       latitude: 24.479834,
       longitude: 118.089425,
     });

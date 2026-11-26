@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
-import NavigationPointsField from "../src/components/NavigationPointsField.vue";
+import BoardingPointSettingsView from "../src/views/BoardingPointSettingsView.vue";
 
 const pickerOrigin = "https://apis.map.qq.com";
 const testKey = "synthetic-test-key";
@@ -17,13 +17,24 @@ async function openDraft(key = testKey) {
   vi.stubEnv("VITE_TENCENT_MAP_PICKER_KEY", key);
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => ({ ok: true, status: 200, json: async () => [] })),
+    vi.fn(async (_path, options) => ({
+      ok: true,
+      status: 200,
+      json: async () => (options?.body ? JSON.parse(options.body) : []),
+    })),
   );
-  wrapper = mount(NavigationPointsField, {
-    props: { modelValue: [] },
+  wrapper = mount(BoardingPointSettingsView, {
     attachTo: document.body,
   });
-  await button("添加导航点").trigger("click");
+  await flushPromises();
+  await button("新增上车点").trigger("click");
+}
+
+function posted() {
+  const call = vi
+    .mocked(fetch)
+    .mock.calls.find(([, options]) => options?.method === "POST");
+  return call ? JSON.parse(String(call[1]?.body)) : undefined;
 }
 
 function button(name: string) {
@@ -33,8 +44,7 @@ function button(name: string) {
 function input(placeholder: string) {
   return wrapper.get<HTMLInputElement>(`input[placeholder="${placeholder}"]`);
 }
-const label = () => input("如：岛内SM一期北门");
-const address = () => input("导航面板展示的详细地址");
+const address = () => input("填写详细上车地址");
 const latitude = () => input("如 24.501111");
 const longitude = () => input("如 118.126666");
 
@@ -66,19 +76,19 @@ describe("Tencent navigation point picker", () => {
     expect(button("地图选点").element.disabled).toBe(true);
     expect(wrapper.find("iframe").exists()).toBe(false);
 
-    await label().setValue("东门");
+    await address().setValue("东门");
     await input("例如 24.5011, 118.1266").setValue("24.5011, 118.1266");
     expect(latitude().element.value).toBe("24.501100");
     expect(longitude().element.value).toBe("118.126600");
     await longitude().setValue("118.1234");
-    await button("确认添加导航点").trigger("click");
-    expect(wrapper.emitted("update:modelValue")?.[0]?.[0]).toEqual([
+    await button("保存上车点").trigger("click");
+    expect(posted()).toEqual(
       expect.objectContaining({
-        label: "东门",
+        name: "东门",
         latitude: 24.5011,
         longitude: 118.1234,
       }),
-    ]);
+    );
   });
 
   it("fills an unnamed draft from the official picker and adds only on confirmation", async () => {
@@ -94,26 +104,24 @@ describe("Tencent navigation point picker", () => {
     sendSelection(frame.contentWindow, { origin: "https://mapapi.qq.com" });
     await flushPromises();
     expect(wrapper.find("iframe").exists()).toBe(false);
-    expect(label().element.value).toBe(selection.poiname);
     expect(address().element.value).toBe(selection.poiaddress);
     expect(latitude().element.value).toBe("24.479834");
     expect(longitude().element.value).toBe("118.089425");
-    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    expect(posted()).toBeUndefined();
 
-    await button("确认添加导航点").trigger("click");
-    expect(wrapper.emitted("update:modelValue")?.[0]?.[0]).toEqual([
+    await button("保存上车点").trigger("click");
+    expect(posted()).toEqual(
       expect.objectContaining({
-        label: selection.poiname,
+        name: selection.poiaddress,
         address: selection.poiaddress,
         latitude: selection.latlng.lat,
         longitude: selection.latlng.lng,
       }),
-    ]);
+    );
   });
 
-  it("keeps a custom name when a new point replaces the draft coordinates", async () => {
+  it("replaces the address and coordinates when a new point is selected", async () => {
     await openDraft();
-    await label().setValue("队伍集合点");
     await address().setValue("原来地址");
     await latitude().setValue("24.5");
     await longitude().setValue("118.1");
@@ -122,7 +130,6 @@ describe("Tencent navigation point picker", () => {
 
     sendSelection(frame.contentWindow);
     await flushPromises();
-    expect(label().element.value).toBe("队伍集合点");
     expect(address().element.value).toBe(selection.poiaddress);
     expect(latitude().element.value).toBe("24.479834");
     expect(longitude().element.value).toBe("118.089425");
@@ -152,14 +159,13 @@ describe("Tencent navigation point picker", () => {
     expect(wrapper.find("iframe").exists()).toBe(true);
     expect(latitude().element.value).toBe("");
     expect(longitude().element.value).toBe("");
-    expect(label().element.value).toBe("");
     expect(address().element.value).toBe("");
-    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    expect(posted()).toBeUndefined();
   });
 
   it("cancels without editing the draft and ignores replies from the closed picker", async () => {
     await openDraft();
-    await label().setValue("东门");
+    await address().setValue("东门");
     await latitude().setValue("24.5");
     await longitude().setValue("118.1");
     const source = (await openPicker()).contentWindow;
@@ -167,7 +173,7 @@ describe("Tencent navigation point picker", () => {
     expect(wrapper.find("iframe").exists()).toBe(false);
     sendSelection(source);
     await flushPromises();
-    expect(label().element.value).toBe("东门");
+    expect(address().element.value).toBe("东门");
     expect(latitude().element.value).toBe("24.5");
     expect(longitude().element.value).toBe("118.1");
 
@@ -176,33 +182,33 @@ describe("Tencent navigation point picker", () => {
     await flushPromises();
     expect(wrapper.get("iframe").element).toBe(reopened);
     expect(latitude().element.value).toBe("24.5");
-    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    expect(posted()).toBeUndefined();
   });
 
   it("shows the quota and lets an administrator continue with manual entry", async () => {
     await openDraft();
     expect(wrapper.text()).toContain("地点搜索每天 200 次");
     expect(wrapper.text()).toContain("各每天 6,000 次，每项每秒最多 5 次");
-    await label().setValue("集合点");
+    await address().setValue("集合点");
     await openPicker();
     expect(wrapper.text()).toContain("如果提示配额用完");
 
     await button("手工输入").trigger("click");
     await flushPromises();
     expect(wrapper.find("iframe").exists()).toBe(false);
-    expect(document.activeElement).toBe(label().element);
-    expect(label().element.value).toBe("集合点");
+    expect(document.activeElement).toBe(address().element);
+    expect(address().element.value).toBe("集合点");
     await address().setValue("厦门市思明区");
     await latitude().setValue("24.5");
     await longitude().setValue("118.1");
-    await button("确认添加导航点").trigger("click");
-    expect(wrapper.emitted("update:modelValue")?.[0]?.[0]).toEqual([
+    await button("保存上车点").trigger("click");
+    expect(posted()).toEqual(
       expect.objectContaining({
-        label: "集合点",
+        name: "厦门市思明区",
         address: "厦门市思明区",
         latitude: 24.5,
         longitude: 118.1,
       }),
-    ]);
+    );
   });
 });

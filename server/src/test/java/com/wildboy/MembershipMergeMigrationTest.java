@@ -92,8 +92,18 @@ class MembershipMergeMigrationTest {
       String legacyBlocks = "[{\"type\":\"text\",\"text\":\"Legacy template\"}]";
       db.update("INSERT INTO activity_template(id,name,payload,rich_blocks) VALUES (?,?,?,?)",
           "legacy-template", "Legacy name", "{}", legacyBlocks);
+      var previous = Flyway.configure().dataSource(source).target("40").load();
+      assertThat(previous.migrate().migrationsExecuted).isEqualTo(5);
+      db.update("UPDATE activity SET navigation_points=? WHERE id='first'", """
+          [{"kind":"MEETING","label":"示例集合点","address":"厦门北站南广场","latitude":24.6,"longitude":118.1},
+           {"kind":"MEETING","label":"示例集合点","address":"厦门北站南广场"},
+           {"kind":"MEETING","label":"集合处","address":"景区大门"}]
+          """);
       var latest = Flyway.configure().dataSource(source).load();
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(1);
+      assertThat(db.queryForMap("SELECT address, latitude FROM activity_boarding_point WHERE name='厦门北站南广场'"))
+          .containsEntry("address", "厦门北站南广场").containsEntry("latitude", 24.6);
+      assertThat(db.queryForObject("SELECT COUNT(*) FROM activity_boarding_point WHERE address='景区大门'", Integer.class)).isZero();
       assertThat(db.queryForMap("SELECT rich_blocks,rich_markdown FROM activity_template WHERE id='legacy-template'"))
           .containsEntry("rich_blocks",legacyBlocks).containsEntry("rich_markdown",null);
       assertThat(db.queryForList("SELECT draft_contact FROM legal_document_state", String.class))

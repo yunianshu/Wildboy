@@ -132,10 +132,18 @@ export function safeId(id: unknown): string {
 export function message(error: unknown): string {
   return error instanceof Error ? error.message : "暂时无法连接，请稍后重试";
 }
+export function boardingAddress(a: Activity, name: string) {
+  return a.navigationPoints?.find((p) => p.kind === "BOARDING" && p.label === name)?.address?.trim() || name;
+}
 export function activityView(a: Activity) {
+  const meetingPoint = a.meetingPoint === "示例集合点"
+    ? a.navigationPoints?.find((p) => p.kind === "MEETING" && p.address?.trim() && p.address.trim() !== a.meetingPoint)?.address.trim() || ""
+    : a.meetingPoint;
   const price = priceText(a.priceCents);
   return {
     ...a,
+    meetingPoint,
+    showMeeting: !!meetingPoint && !(a.boardingPoints || []).some((name) => boardingAddress(a, name).slice(0, 200) === meetingPoint),
     canCancel:
       a.status === "PUBLISHED" &&
       Date.parse(a.registrationDeadline) > Date.now() &&

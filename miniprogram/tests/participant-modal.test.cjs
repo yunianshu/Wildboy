@@ -81,7 +81,13 @@ test("required identity remains mandatory and duplicates cannot be added", () =>
 test("each participant selects their own boarding stop", () => {
   const p = page(true);
   p.data.activity.boardingPoints = ["North gate", "South gate"];
-  p.data.boardingChoices = ["请选择上车地点", ...p.data.activity.boardingPoints];
+  p.data.activity.navigationPoints = [
+    { kind: "BOARDING", label: "North gate", address: "North road 15" },
+    { kind: "BOARDING", label: "South gate", address: "South road 32" },
+  ];
+  const { boardingAddress } = require("../dist/utils/domain.js");
+  p.data.boardingChoices = ["请选择上车地点", ...p.data.activity.boardingPoints.map(name => boardingAddress(p.data.activity, name))];
+  assert.deepEqual(p.data.boardingChoices.slice(1), ["North road 15", "South road 32"]);
   const choose = (value, index) =>
     p.chooseBoardingPoint({ currentTarget: { dataset: { index } }, detail: { value } });
   choose("1", 0);

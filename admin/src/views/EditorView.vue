@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { activityStops } from "../boarding";
 import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
 import {
@@ -29,7 +30,6 @@ import { activityStatusTone } from "../statusTone";
 import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import ImageUpload from "../components/ImageUpload.vue";
-import NavigationPointsField from "../components/NavigationPointsField.vue";
 import MarkdownEditor from "../components/MarkdownEditor.vue";
 import AppIcon from "../components/AppIcon.vue";
 import BoardingPointsField from "../components/BoardingPointsField.vue";
@@ -73,8 +73,6 @@ const route = useRoute(),
   success = ref(""),
   conflict = ref(false),
   uncertainCreate = ref(false),
-  addingBoardingPoint = ref(false),
-  addingNavigationPoint = ref(false),
   identityLockedByServer = ref(false),
   dialog = ref<"publish" | "cancel" | null>(null);
 watch(id, () => {
@@ -154,13 +152,7 @@ const priceDirty = computed(
       Math.round(Number(priceYuan.value) * 100) !==
         (current.value?.priceCents ?? 0)),
 );
-const metadataDraftDirty = computed(
-  () =>
-    metadataDirty.value ||
-    addingBoardingPoint.value ||
-    addingNavigationPoint.value,
-);
-const dirty = computed(() => metadataDraftDirty.value || priceDirty.value),
+const dirty = computed(() => metadataDirty.value || priceDirty.value),
   readonly = computed(() => false);
 const identityLocked = computed(
   () =>
@@ -170,6 +162,7 @@ let alive = true;
 function assign(data: Activity) {
   current.value = data;
   priceYuan.value = (data.priceCents / 100).toFixed(2);
+  const stops = activityStops(data);
   Object.assign(fields, {
     title: data.title,
     category: data.category,
@@ -178,9 +171,9 @@ function assign(data: Activity) {
     summary: data.summary,
     description: data.description,
     location: data.location,
-    meetingPoint: data.meetingPoint,
-    boardingPoints: [...(data.boardingPoints ?? [])],
-    navigationPoints: (data.navigationPoints ?? []).map((p) => ({ ...p })),
+    meetingPoint: stops.meetingPoint,
+    boardingPoints: stops.boardingPoints,
+    navigationPoints: stops.navigationPoints,
     startAt: toShanghaiInput(data.startAt),
     endAt: toShanghaiInput(data.endAt),
     registrationDeadline: toShanghaiInput(data.registrationDeadline),
@@ -188,8 +181,6 @@ function assign(data: Activity) {
     capacity: data.capacity,
   });
   baseline.value = JSON.stringify(fields);
-  addingBoardingPoint.value = false;
-  addingNavigationPoint.value = false;
   conflict.value = false;
   identityLockedByServer.value = false;
   errors.value = {};
@@ -246,7 +237,15 @@ function input(): ActivityInput {
     summary: fields.summary.trim(),
     description: fields.description.trim(),
     location: fields.location.trim(),
-    meetingPoint: fields.meetingPoint.trim(),
+    meetingPoint:
+      fields.meetingPoint.trim() ||
+      (
+        fields.navigationPoints.find(
+          (p) => p.kind === "BOARDING" && p.label === fields.boardingPoints[0],
+        )?.address ||
+        fields.boardingPoints[0] ||
+        ""
+      ).slice(0, 200),
     boardingPoints: [...fields.boardingPoints],
     ...(fields.navigationPoints.length ||
     current.value?.navigationPoints?.length
@@ -283,18 +282,6 @@ async function save() {
   if (editSection.value === "rich") return;
   if (saving.value || readonly.value || conflict.value || uncertainCreate.value)
     return;
-  if (addingBoardingPoint.value) {
-    showAdvanced.value = true;
-    editSection.value = "schedule";
-    error.value = "请先保存或取消新增的上车地点。";
-    return;
-  }
-  if (addingNavigationPoint.value) {
-    showAdvanced.value = true;
-    editSection.value = "schedule";
-    error.value = "请先添加或取消当前导航点。";
-    return;
-  }
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
   if (Object.keys(errors.value).length) {
     if (errors.value.coverUrl || errors.value.galleryUrls)
@@ -322,8 +309,13 @@ async function save() {
       ...(current.value ? { version: current.value.version } : {}),
     });
     started = true;
+    // The editor can recover saved addresses from the former meeting-point format.
+    const originalNavigation = current.value?.navigationPoints || [];
+    const sameNavigation =
+      JSON.stringify(originalNavigation) ===
+      JSON.stringify(fields.navigationPoints);
     const data =
-      activityId && !metadataDirty.value && current.value
+      activityId && !metadataDirty.value && sameNavigation && current.value
         ? current.value
         : await request<Activity>(
             activityId
@@ -404,7 +396,7 @@ function putDraftPrice(activity: Activity, priceCents: number) {
 async function savePrice() {
   if (saving.value || conflict.value || !current.value || !priceEditable.value)
     return;
-  if (metadataDraftDirty.value) {
+  if (metadataDirty.value) {
     error.value = "请先保存活动信息，再设置报名价格。";
     return;
   }
@@ -906,6 +898,8 @@ useForegroundRefresh(() => {
                   errors.location
                 }}</small></label
               ><label
+                v-if="!fields.boardingPoints.length || fields.meetingPoint"
+              >
                 >具体集合地点 <span>*</span
                 ><input
                   v-model="fields.meetingPoint"
@@ -923,7 +917,7 @@ useForegroundRefresh(() => {
                 :aria-expanded="showAdvanced"
                 @click="showAdvanced = !showAdvanced"
               >
-                <AppIcon name="chevron-down" :size="16" /> 上车、导航与证件设置
+                <AppIcon name="chevron-down" :size="16" /> 上车点与证件设置
                 <span
                   v-if="errors.boardingPoints"
                   class="status-pill tone-danger"
@@ -936,28 +930,11 @@ useForegroundRefresh(() => {
                 class="activity-advanced"
               >
                 <BoardingPointsField
-                  v-if="
-                    (id ? showAdvanced : editSection === 'schedule') ||
-                    addingBoardingPoint
-                  "
+                  v-if="id ? showAdvanced : editSection === 'schedule'"
                   v-model="fields.boardingPoints"
-                  v-model:adding="addingBoardingPoint"
-                  :disabled="saving"
-                  :readonly="readonly"
+                  v-model:navigation="fields.navigationPoints"
+                  :disabled="saving || readonly"
                   :error="errors.boardingPoints"
-                />
-                <NavigationPointsField
-                  v-if="
-                    (id ? showAdvanced : editSection === 'schedule') ||
-                    addingNavigationPoint
-                  "
-                  v-model="fields.navigationPoints"
-                  v-model:adding="addingNavigationPoint"
-                  :disabled="saving"
-                  :location="fields.location"
-                  :meeting-point="fields.meetingPoint"
-                  :boarding-points="fields.boardingPoints"
-                  @sync-boarding-points="fields.boardingPoints = $event"
                 />
                 <label v-if="id" class="activity-identity field checkbox-field">
                   <input
@@ -1133,7 +1110,7 @@ useForegroundRefresh(() => {
               v-if="current && priceEditable"
               type="button"
               class="secondary"
-              :disabled="saving || conflict || metadataDraftDirty"
+              :disabled="saving || conflict || metadataDirty"
               @click="savePrice"
             >
               保存报名价格

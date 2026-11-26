@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from "vue-router";
 import { currentUser } from "./api";
 import LoginView from "./views/LoginView.vue";
 import ActivitiesView from "./views/ActivitiesView.vue";
+import BoardingPointSettingsView from "./views/BoardingPointSettingsView.vue";
 import EditorView from "./views/EditorView.vue";
 import RosterView from "./views/RosterView.vue";
 import LegalView from "./views/LegalView.vue";
@@ -27,6 +28,7 @@ export const router = createRouter({
     { path: "/login", component: LoginView },
     { path: "/", redirect: "/activities" },
     { path: "/activities", component: ActivitiesView },
+    { path: "/boarding-points", component: BoardingPointSettingsView },
     { path: "/shop", component: ShopView },
     { path: "/shop/categories", component: ProductCategoriesView },
     { path: "/shop/products/:id/content", component: ProductContentView },

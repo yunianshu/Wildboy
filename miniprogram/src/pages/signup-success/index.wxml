@@ -18,7 +18,9 @@
           ><text>出发时间</text><view>{{activity.dateText}}</view></view
         ><view class="trip-row"
           ><text>活动地点</text><view>{{activity.location}}</view></view
-        ><view class="trip-row"
+        ><view wx:if="{{boardingAddresses}}" class="trip-row"
+          ><text>上车地点</text><view>{{boardingAddresses}}</view></view
+        ><view wx:if="{{activity.showMeeting}}" class="trip-row"
           ><text>集合地点</text><view>{{activity.meetingPoint}}</view></view
         ></view
       ></view

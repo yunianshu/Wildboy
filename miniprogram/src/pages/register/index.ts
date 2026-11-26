@@ -21,6 +21,7 @@ import {
 } from "../../utils/models";
 import {
   activityView,
+  boardingAddress,
   message,
   safeId,
   validateParticipants,
@@ -173,9 +174,17 @@ Page({
     try {
       const a = await request<Activity>(`/activities/${this.data.id}`);
       if (!epoch.valid(n) || !isSessionCurrent(session)) return;
+      const stops = a.boardingPoints || [];
+      const restoreChoice = (person: ParticipantForm): ParticipantForm => {
+        if (!person.boardingPoint) return person;
+        const index = stops.indexOf(person.boardingPoint);
+        return { ...person, boardingPoint: stops[index] || "", boardingChoice: index + 1 };
+      };
       this.setData({
         activity: activityView(a),
-        boardingChoices: a.boardingPoints?.length ? ["请选择上车地点", ...a.boardingPoints] : [],
+        boardingChoices: stops.length ? ["请选择上车地点", ...stops.map((name) => boardingAddress(a, name))] : [],
+        participants: this.data.participants.map(restoreChoice),
+        participantDraft: restoreChoice(this.data.participantDraft),
       });
       this.clearQuote();
       if (a.priceCents > 0 && hasSession()) {
@@ -296,7 +305,7 @@ Page({
     if (this.data.submitting || this.data.recoveryNeeded || this.data.success) return;
     const selection = Number(e.detail.value);
     if (!Number.isInteger(selection) || selection < 0 || selection >= this.data.boardingChoices.length) return;
-    const point = selection > 0 ? this.data.boardingChoices[selection] : "";
+    const point = this.data.activity?.boardingPoints?.[selection - 1] || "";
     if (this.data.participantModalOpen) {
       this.setData({
         participantDraft: { ...this.data.participantDraft, boardingPoint: point, boardingChoice: selection },

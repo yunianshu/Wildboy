@@ -34,7 +34,7 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
 <template>
   <FormModal size="xl" title="腾讯地图选点" @close="emit('close')">
     <p class="field-hint map-picker-hint">
-      如果提示配额用完、查询失败或地图无法加载，请改用手工输入，填写地点名称、地址和经纬度。
+      如果提示配额用完、查询失败或地图无法加载，请改用手工输入，填写上车地址和经纬度。
     </p>
     <iframe
       ref="frame"

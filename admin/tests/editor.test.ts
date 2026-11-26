@@ -365,6 +365,63 @@ describe("editor workflow", () => {
     });
     wrapper.unmount();
   });
+  it("recovers both addresses from equally named legacy meeting points on explicit save", async () => {
+    const addresses = ["湖滨北路辅路", "气象台路85号"];
+    const activity = {
+      ...base,
+      meetingPoint: "示例集合点",
+      boardingPoints: [],
+      navigationPoints: addresses.map((address, i) => ({
+        id: "old-" + i,
+        kind: "MEETING",
+        label: "示例集合点",
+        address,
+        latitude: 24.48 + i / 100,
+        longitude: 118.09,
+      })),
+    };
+    const fetcher = vi.fn(async (path: string, options: RequestInit = {}) => {
+      const data = path.endsWith("/activity-boarding-point-locations")
+        ? activity.navigationPoints.map((p) => ({ ...p, name: p.address }))
+        : options.method === "PUT"
+          ? { ...activity, ...JSON.parse(String(options.body)) }
+          : activity;
+      return { ok: true, status: 200, json: async () => data };
+    });
+    vi.stubGlobal("fetch", fetcher);
+    const { wrapper } = await render("/activities/activity-1/edit");
+    await wrapper
+      .get('button[aria-controls="activity-advanced-options"]')
+      .trigger("click");
+    await flushPromises();
+    expect(wrapper.findAll(".point-choice").map((c) => c.text())).toEqual(
+      addresses,
+    );
+    expect(
+      wrapper
+        .findAll<HTMLInputElement>(".point-choice input")
+        .every((c) => c.element.checked),
+    ).toBe(true);
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    const saved = JSON.parse(
+      String(
+        fetcher.mock.calls.find(([, opts]) => opts?.method === "PUT")?.[1]
+          ?.body,
+      ),
+    );
+    expect(saved.boardingPoints).toEqual(addresses);
+    expect(saved.meetingPoint).toBe(addresses[0]);
+    expect(saved.navigationPoints).toEqual(
+      activity.navigationPoints.map((p) => ({
+        ...p,
+        kind: "BOARDING",
+        label: p.address,
+      })),
+    );
+    wrapper.unmount();
+  });
+
   it("selects and saves boarding points on a started activity", async () => {
     const started = {
       ...base,
@@ -375,14 +432,24 @@ describe("editor workflow", () => {
       boardingPoints: ["海滨公园东门"],
     };
     const fetch = vi.fn(async (path: string, options: RequestInit = {}) => {
-      if (path.endsWith("/activity-boarding-points")) {
+      if (path.endsWith("/activity-boarding-point-locations")) {
         return {
           ok: true,
           status: 200,
-          json: async () =>
-            options.method === "POST"
-              ? { name: "会展中心东门" }
-              : ["厦门北站", "海滨公园东门"],
+          json: async () => [
+            {
+              name: "旧站名",
+              address: "厦门北站南广场",
+              latitude: 24.6,
+              longitude: 118.1,
+            },
+            {
+              name: "会展中心东门",
+              address: "",
+              latitude: null,
+              longitude: null,
+            },
+          ],
         };
       }
       const data =
@@ -397,38 +464,43 @@ describe("editor workflow", () => {
       .get('button[aria-controls="activity-advanced-options"]')
       .trigger("click");
     await flushPromises();
-    const choices = wrapper.get('select[aria-label="选择已有上车地点"]');
-    expect(choices.findAll("option").map((option) => option.text())).toEqual([
-      "选择已有地点",
-      "厦门北站",
+    const choices = wrapper.findAll(".point-choice");
+    expect(choices.map((choice) => choice.text())).toEqual([
+      "厦门北站南广场",
+      "会展中心东门",
+      "海滨公园东门",
     ]);
-    await choices.setValue("厦门北站");
-    await wrapper
-      .get('button[aria-label="移除上车地点 海滨公园东门"]')
-      .trigger("click");
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "新增地点")!
-      .trigger("click");
-    await wrapper.get(".new-point input").setValue("  会展中心东门  ");
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "保存地点")!
-      .trigger("click");
-    await flushPromises();
-    expect(JSON.parse(String(fetch.mock.calls[2]?.[1]?.body))).toEqual({
-      name: "会展中心东门",
-    });
-    expect(wrapper.find(".new-point input").exists()).toBe(false);
-    expect(wrapper.get(".selected-points").text()).toContain("会展中心东门");
+    for (const choice of choices)
+      await choice.get("input").setValue(choice.text() !== "海滨公园东门");
     expect(
-      fetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+      fetch.mock.calls.some(([, options]) => options?.method === "POST"),
     ).toBe(false);
-
     await wrapper.get("form").trigger("submit");
     await flushPromises();
-    expect(JSON.parse(String(fetch.mock.calls[3]?.[1]?.body))).toMatchObject({
-      boardingPoints: ["厦门北站", "会展中心东门"],
+    expect(
+      JSON.parse(
+        String(
+          fetch.mock.calls.find(([, opts]) => opts?.method === "PUT")?.[1]
+            ?.body,
+        ),
+      ),
+    ).toMatchObject({
+      boardingPoints: ["厦门北站南广场", "会展中心东门"],
+      navigationPoints: [
+        expect.objectContaining({
+          kind: "BOARDING",
+          label: "厦门北站南广场",
+          address: "厦门北站南广场",
+          latitude: 24.6,
+          longitude: 118.1,
+        }),
+        expect.objectContaining({
+          kind: "BOARDING",
+          address: "会展中心东门",
+          latitude: null,
+          longitude: null,
+        }),
+      ],
       startAt: started.startAt,
       endAt: started.endAt,
       version: 2,

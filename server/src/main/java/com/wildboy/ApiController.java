@@ -4,6 +4,7 @@ import static com.wildboy.Models.*;
 
 import jakarta.validation.Valid;
 import java.util.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -129,6 +130,12 @@ public class ApiController {
   @PostMapping("/admin/activity-boarding-point-locations")
   BoardingPointLocation saveBoardingPointLocation(@Valid @RequestBody BoardingPointLocation input) {
     return activities.saveBoardingPointLocation(input);
+  }
+
+  @DeleteMapping("/admin/activity-boarding-point-locations")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  void deleteBoardingPointLocation(@RequestParam String name) {
+    activities.deleteBoardingPointLocation(name);
   }
 
   @PostMapping("/admin/activities")

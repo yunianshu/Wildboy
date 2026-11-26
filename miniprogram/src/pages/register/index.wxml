@@ -110,7 +110,7 @@
         <view wx:if="{{activity.boardingPoints.length}}" class="field">
           <text class="label">上车地点</text>
           <picker mode="selector" range="{{boardingChoices}}" value="{{item.boardingChoice || 0}}" data-index="{{index}}" bindchange="chooseBoardingPoint" disabled="{{submitting || recoveryNeeded || participantModalOpen}}">
-            <view class="boarding-picker"><text>{{item.boardingPoint || "请选择上车地点"}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
+            <view class="boarding-picker"><text>{{boardingChoices[item.boardingChoice || 0]}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
           </picker>
         </view>
       </view>
@@ -131,7 +131,7 @@
           <view wx:if="{{activity.boardingPoints.length}}" class="field">
             <text class="label">上车地点</text>
             <picker mode="selector" range="{{boardingChoices}}" value="{{participantDraft.boardingChoice || 0}}" bindchange="chooseBoardingPoint" disabled="{{submitting}}">
-              <view class="boarding-picker"><text>{{participantDraft.boardingPoint || "请选择上车地点"}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
+              <view class="boarding-picker"><text>{{boardingChoices[participantDraft.boardingChoice || 0]}}</text><view class="boarding-picker-chevron" aria-hidden="true" /></view>
             </picker>
           </view>
           <view wx:if="{{participantError}}" class="error form-error">{{participantError}}</view>

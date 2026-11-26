@@ -46,7 +46,33 @@ export function readSelection(data: unknown): MapPlace | null {
     typeof result.poiaddress === "string" ? result.poiaddress.trim() : "";
   return {
     ...point,
-    title: (name || address || "地图标记点").slice(0, 200),
+    title: (name || address).slice(0, 200),
     address: address.slice(0, 300),
   };
+}
+
+export function parseLocalCoordinate(
+  raw: string,
+): { lat: number; lng: number } | null {
+  const text = raw.trim();
+  if (!text) return null;
+  const latParam = text.match(/(?:lat|latitude)=?(-?\d{1,3}\.\d{3,10})/i);
+  const lngParam = text.match(/(?:lng|lon|longitude)=?(-?\d{1,3}\.\d{3,10})/i);
+  if (latParam && lngParam) {
+    const lat = Number(latParam[1]);
+    const lng = Number(lngParam[1]);
+    if (Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return { lat, lng };
+  }
+  const pair = text.match(
+    /(-?\d{1,3}\.\d{3,10})\s*[,，\s]\s*(-?\d{1,3}\.\d{3,10})/,
+  );
+  if (pair) {
+    const a = Number(pair[1]);
+    const b = Number(pair[2]);
+    if (Math.abs(a) > 90 && Math.abs(b) <= 90 && Math.abs(a) <= 180)
+      return { lat: b, lng: a };
+    if (a >= 70 && a <= 138 && b >= 3 && b <= 55) return { lat: b, lng: a };
+    if (Math.abs(a) <= 90 && Math.abs(b) <= 180) return { lat: a, lng: b };
+  }
+  return null;
 }

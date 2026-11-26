@@ -8,6 +8,7 @@ import {
 import { Activity, Registration } from "../../utils/models";
 import {
   activityView,
+  boardingAddress,
   message,
   safeId,
   RequestEpoch,
@@ -23,6 +24,7 @@ Page({
     loading: true,
     error: "",
     confirmed: false,
+    boardingAddresses: "",
     activity: null as ReturnType<typeof activityView> | null,
     registration: null as Registration | null,
   },
@@ -89,6 +91,8 @@ Page({
       }
       this.setData({
         confirmed: true,
+        boardingAddresses: [...new Set((r.participants || []).map((p) =>
+          p.boardingPoint ? boardingAddress(a, p.boardingPoint) : "").filter(Boolean))].join("、"),
         activity: activityView({ ...a, coverUrl: mediaUrl(a.coverUrl) }),
         registration: r,
       });

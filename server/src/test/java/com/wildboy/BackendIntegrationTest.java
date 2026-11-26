@@ -575,7 +575,7 @@ class BackendIntegrationTest {
         .andExpect(jsonPath("$.boardingPoints[1]").value("North station"));
     mvc.perform(get(path).header("Authorization", token))
         .andExpect(status().isOk())
-        .andExpect(content().json("[\"North station\", \"South gate\"]"));
+        .andExpect(content().json("[\"North station\"]"));
   }
 
   @Test

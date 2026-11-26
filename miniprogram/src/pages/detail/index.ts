@@ -68,7 +68,8 @@ function extractNavItems(points?: NavigationPoint[]): NavDisplayItem[] {
       Number.isFinite(p.latitude) &&
       Number.isFinite(p.longitude) &&
       typeof p.label === "string" &&
-      p.label.trim()
+      p.label.trim() &&
+      (p.label !== "示例集合点" || (!!p.address?.trim() && p.address.trim() !== p.label))
     ) {
       const kind =
         p.kind === "DESTINATION" || p.kind === "MEETING" || p.kind === "BOARDING"
@@ -78,7 +79,7 @@ function extractNavItems(points?: NavigationPoint[]): NavDisplayItem[] {
         id: p.id || `nav-${idx}`,
         kind,
         kindLabel: kindTextMap[kind],
-        label: p.label.trim(),
+        label: (kind === "BOARDING" || p.label === "示例集合点") && p.address?.trim() ? p.address.trim() : p.label.trim(),
         address: (p.address || p.label).trim(),
         latitude: p.latitude,
         longitude: p.longitude,
@@ -393,10 +394,10 @@ Page({
     const stop = this.data.boardingStops[idx];
     if (!stop) return;
     if (stop.hasCoord) {
-      this.openWxMap(stop);
+      this.openWxMap({ ...stop, label: stop.address });
       return;
     }
-    this.copyPlainAddress(stop.label);
+    this.copyPlainAddress(stop.address);
   },
   openAllNavPicker() {
     if (!this.data.navPoints.length) return;

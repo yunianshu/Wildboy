@@ -278,22 +278,19 @@ public class ActivityService {
     String point = input.name().strip();
     String address = input.address() == null ? "" : input.address().strip();
     validateCoordinates(input.latitude(), input.longitude());
-    db.update("""
+    return db.queryForObject("""
         INSERT INTO activity_boarding_point(name, address, latitude, longitude)
         VALUES (?, ?, ?, ?)
         ON CONFLICT (name) DO UPDATE SET
-          address = CASE WHEN EXCLUDED.address <> '' THEN EXCLUDED.address ELSE activity_boarding_point.address END,
-          latitude = COALESCE(EXCLUDED.latitude, activity_boarding_point.latitude),
-          longitude = COALESCE(EXCLUDED.longitude, activity_boarding_point.longitude)
-        """, point, address, input.latitude(), input.longitude());
-    return db.query(
-        "SELECT name, address, latitude, longitude FROM activity_boarding_point WHERE name=?",
-        (r, n) -> new BoardingPointLocation(
-            r.getString("name"),
-            r.getString("address") == null ? "" : r.getString("address"),
-            r.getObject("latitude", Double.class),
-            r.getObject("longitude", Double.class)),
-        point).getFirst();
+          address = EXCLUDED.address, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude
+        RETURNING name, address, latitude, longitude
+        """, (r, n) -> new BoardingPointLocation(r.getString("name"), r.getString("address"),
+            r.getObject("latitude", Double.class), r.getObject("longitude", Double.class)),
+        point, address, input.latitude(), input.longitude());
+  }
+
+  public void deleteBoardingPointLocation(String name) {
+    db.update("DELETE FROM activity_boarding_point WHERE name=?", name);
   }
 
   private void validateCoordinates(Double lat, Double lng) {
@@ -336,28 +333,9 @@ public class ActivityService {
     }
   }
 
-  private Set<BoardingPointLocation> boardingLocations(List<NavigationPoint> points) {
-    var locations = new LinkedHashSet<BoardingPointLocation>();
-    for (NavigationPoint p : points)
-      if ("BOARDING".equals(p.kind()))
-        locations.add(new BoardingPointLocation(p.label(), p.address(), p.latitude(), p.longitude()));
-    return locations;
-  }
-
-  private void rememberBoardingPoints(String pointsJson) {
-    db.update("""
-        INSERT INTO activity_boarding_point(name)
-        SELECT name FROM json_array_elements_text(?::json) AS point(name)
-        ORDER BY name
-        ON CONFLICT (name) DO NOTHING
-        """, pointsJson);
-  }
-
   @Transactional
   public Activity create(ActivityInput i, String actor) {
-    Activity created = insertDraft(i, actor);
-    boardingLocations(created.navigationPoints()).forEach(this::saveBoardingPointLocation);
-    return created;
+    return insertDraft(i, actor);
   }
 
   // A template or activity copy restores its own coordinates without updating shared locations.
@@ -387,7 +365,6 @@ public class ActivityService {
         i.capacity(), Boolean.TRUE.equals(i.identityRequired()),
         pointsJson,
         navJson);
-    if (!points.isEmpty()) rememberBoardingPoints(pointsJson);
     audit(actor, id, "ACTIVITY_CREATE");
     return get(id, true);
   }
@@ -450,10 +427,6 @@ public class ActivityService {
         pointsJson,
         navJson,
         id);
-    if (!points.isEmpty() && !points.equals(a.boardingPoints())) rememberBoardingPoints(pointsJson);
-    var changedLocations = boardingLocations(navPoints);
-    changedLocations.removeAll(boardingLocations(a.navigationPoints()));
-    changedLocations.forEach(this::saveBoardingPointLocation);
     audit(actor, id, "ACTIVITY_EDIT");
     Activity edited = get(id, true);
     if (a.status().equals("PUBLISHED") && (!a.startAt().equals(edited.startAt()) || !a.meetingPoint().equals(edited.meetingPoint()) || !a.location().equals(edited.location()))) notifications.activityNotice(edited, "ACTIVITY_CHANGED", "时间或集合地点已更新，请查看活动");

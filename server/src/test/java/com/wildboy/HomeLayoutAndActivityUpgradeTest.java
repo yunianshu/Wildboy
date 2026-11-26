@@ -252,6 +252,8 @@ class HomeLayoutAndActivityUpgradeTest {
     var source = createPublished("Pier trip", 90, List.of(oldStop, secondStop));
     var template = templates.save(null, new TemplateService.Input("Pier template", source.id(), source.version(), null), actorId);
     var newNorth = new NavigationPoint("updated", "BOARDING", "North pier", "New dock", 24.6, 118.3);
+    activities.saveBoardingPointLocation(new BoardingPointLocation("North pier", "New dock", 24.6, 118.3));
+    activities.saveBoardingPointLocation(new BoardingPointLocation("South pier", "South dock", null, null));
     createPublished("Updated trip", 91, List.of(newNorth));
 
     var input = json.<com.fasterxml.jackson.databind.node.ObjectNode>valueToTree(templates.snapshot(source))
@@ -266,7 +268,12 @@ class HomeLayoutAndActivityUpgradeTest {
     assertThat(generated.getFirst().navigationPoints()).containsExactly(oldStop, secondStop);
     assertThat(activities.listBoardingPointLocations()).contains(
         new BoardingPointLocation("North pier", "New dock", 24.6, 118.3),
-        new BoardingPointLocation("South pier", "New south dock", 24.7, 118.4));
+        new BoardingPointLocation("South pier", "South dock", null, null));
+    activities.saveBoardingPointLocation(new BoardingPointLocation("North pier", "New dock", null, null));
+    assertThat(activities.listBoardingPointLocations()).contains(new BoardingPointLocation("North pier", "New dock", null, null));
+    activities.deleteBoardingPointLocation("North pier");
+    assertThat(activities.get(copied.id(), true).navigationPoints()).contains(oldStop);
+    assertThat(activities.listBoardingPointLocations()).noneMatch(p -> p.name().equals("North pier"));
   }
 
   @Test
@@ -281,15 +288,6 @@ class HomeLayoutAndActivityUpgradeTest {
                 "n3", "BOARDING", "海沧阿罗海广场", "厦门市海沧区滨湖北二路", 24.484444, 118.033333));
     var published = createPublished("多上车点徒步", 5, navs);
     assertThat(published.navigationPoints()).hasSize(3);
-
-    // Boarding point locations catalog automatically remembered coordinates
-    var savedCatalog = activities.listBoardingPointLocations();
-    assertThat(savedCatalog)
-        .anySatisfy(
-            loc -> {
-              assertThat(loc.name()).isEqualTo("岛内SM城市广场");
-              assertThat(loc.latitude()).isEqualTo(24.501111);
-            });
 
     // Coordinate & link parser works without external API key
     assertThat(geo.parseCoordinateOrLink("24.479834, 118.089425"))

@@ -3,8 +3,9 @@ import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
 import DateTimeField from "../components/DateTimeField.vue";
+import { activityStops } from "../boarding";
 import { categories, statuses } from "../types";
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Activity, ActivityInput, Page } from "../types";
 import FormModal from "../components/FormModal.vue";
@@ -28,6 +29,17 @@ const items = ref<Template[]>([]),
   sourcePage = ref(0),
   sourceMore = ref(false);
 const preview = ref<Template | null>(null);
+const previewStops = computed(() =>
+  preview.value ? activityStops(preview.value.activity) : null,
+);
+const previewNavigation = computed(
+  () =>
+    previewStops.value?.navigationPoints.filter(
+      (p) =>
+        p.kind !== "BOARDING" ||
+        !previewStops.value?.boardingPoints.includes(p.label),
+    ) || [],
+);
 const editor = ref(false),
   editing = ref<Template | null>(null),
   name = ref(""),
@@ -143,6 +155,10 @@ function openEditor(t: Template | null = null) {
   name.value = t?.name || "";
   sourceId.value = "";
   content.value = t ? { ...t.activity } : null;
+  if (content.value?.meetingPoint === "示例集合点") {
+    const stops = activityStops(content.value);
+    content.value.meetingPoint = stops.meetingPoint || stops.addresses[0] || "";
+  }
   replaceFromSource.value = false;
   priceYuan.value = (t?.activity.priceCents || 0) / 100;
   galleryText.value = (t?.activity.galleryUrls || []).join("\n");
@@ -555,9 +571,9 @@ useForegroundRefresh(() => {
           <dt>活动地点</dt>
           <dd>{{ preview.activity.location || "未填写" }}</dd>
         </div>
-        <div>
+        <div v-if="previewStops?.meetingPoint">
           <dt>集合地点</dt>
-          <dd>{{ preview.activity.meetingPoint || "未填写" }}</dd>
+          <dd>{{ previewStops.meetingPoint }}</dd>
         </div>
         <div>
           <dt>人数上限</dt>
@@ -589,23 +605,23 @@ useForegroundRefresh(() => {
           <dt>身份证核验</dt>
           <dd>{{ preview.activity.identityRequired ? "需要" : "不需要" }}</dd>
         </div>
-        <div v-if="preview.activity.boardingPoints?.length">
+        <div v-if="previewStops?.addresses.length">
           <dt>上车地点</dt>
-          <dd>{{ preview.activity.boardingPoints.join("、") }}</dd>
+          <dd>{{ previewStops.addresses.join("、") }}</dd>
         </div>
-        <div
-          v-if="preview.activity.navigationPoints?.length"
-          class="template-detail-wide"
-        >
+        <div v-if="previewNavigation.length" class="template-detail-wide">
           <dt>导航地点</dt>
           <dd>
             <ul>
-              <li
-                v-for="point in preview.activity.navigationPoints"
-                :key="point.id"
-              >
-                {{ point.label
-                }}{{ point.address ? " · " + point.address : "" }}
+              <li v-for="point in previewNavigation" :key="point.id">
+                {{
+                  point.address &&
+                  point.label !== point.address &&
+                  point.kind !== "BOARDING" &&
+                  point.label !== "示例集合点"
+                    ? point.label + " · " + point.address
+                    : point.address || point.label
+                }}
               </li>
             </ul>
           </dd>
