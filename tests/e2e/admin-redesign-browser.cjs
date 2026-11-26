@@ -61,7 +61,7 @@ const viewportCases = [
   ],
   ["/activity-orders", /活动订单/, "/admin/activity-orders"],
   ["/operations", /运营工作台/, "/admin/dashboard"],
-  ["/templates", /活动模板/, "/admin/templates"],
+  ["/boarding-points", /上车点设置/, "/admin/activity-boarding-point-locations"],
   ["/shop", /商城运营|商品管理|商城管理/, "/admin/shop/products"],
   ["/shop?tab=orders", /装备订单|商城订单|订单与发货/, "/admin/orders"],
   ["/shop/categories", /商品分类/, "/admin/shop/categories"],
@@ -1205,42 +1205,21 @@ async function userOrderHistory(page, activity, order) {
   await visible(linked);
 }
 
-async function templateWorkflow(page, activity) {
-  await route(page, "/templates", /活动模板/);
-  await button(page, /新建模板/).click();
-  const editor = dialog(page, /保存模板|新建模板/);
-  await editor.getByLabel(/模板名称/).fill(qa("模板"));
-  await editor.getByLabel(/来源活动/).selectOption(activity.id);
-  const saved = await write(page, "/admin/templates", "POST", () =>
-    button(editor, /^保存$/).click(),
+async function copyActivityWorkflow(page, activity) {
+  await route(page, `/activities/${activity.id}/edit`, /编辑活动/);
+  await button(page, /换时间重开一期/).click();
+  const editor = dialog(page, /复制活动/);
+  assert.ok(await editor.locator("#reopen-start-at").inputValue());
+  await editor.getByRole("checkbox").uncheck();
+  const copied = await write(page, `/admin/activities/${activity.id}/copy`, "POST", () =>
+    button(editor, /保存草稿并编辑/).click(),
   );
-  report.fixtures.template = saved.id;
-  const row = page
-    .locator("section, tr")
-    .filter({ has: heading(page, new RegExp(saved.name)) })
-    .last();
-  await button(row, /生成草稿/).click();
-  const generator = dialog(page, /生成草稿/);
-  await generator.getByLabel(/开始时间/).fill(datetimeLocal(17 * 24));
-  await generator.getByLabel(/生成场次/).fill("2");
-  await generator.getByLabel(/间隔天数/).fill("2");
-  const generated = await write(
-    page,
-    `/admin/templates/${saved.id}/generate`,
-    "POST",
-    () => button(generator, /生成草稿/).click(),
-  );
-  assert.equal(generated.length, 2);
-  for (const draft of generated) {
-    const actual = await admin("GET", `/admin/activities/${draft.id}`);
-    assert.equal(actual.status, "DRAFT");
-    assert.equal(actual.priceCents, activity.priceCents);
-  }
-  assert.equal(
-    Date.parse(generated[1].startAt) - Date.parse(generated[0].startAt),
-    2 * 86400000,
-  );
-  report.fixtures.generatedActivities = generated.map((item) => item.id);
+  const actual = await admin("GET", `/admin/activities/${copied.id}`);
+  assert.notEqual(actual.id, activity.id);
+  assert.equal(actual.status, "DRAFT");
+  assert.equal(actual.registeredCount, 0);
+  assert.equal(actual.priceCents, activity.priceCents);
+  report.fixtures.copiedActivity = actual.id;
 }
 
 async function articleWorkflow(page) {
@@ -1514,8 +1493,8 @@ async function functions(browser) {
         );
     }
     if (activity)
-      await check("活动模板保存及生成两条继承价格的草稿", page, () =>
-        templateWorkflow(page, activity),
+      await check("复制旧活动为继承价格的新草稿", page, () =>
+        copyActivityWorkflow(page, activity),
       );
     let article;
     await check("文章草稿、图文、取消发布与真实公开发布", page, async () => {

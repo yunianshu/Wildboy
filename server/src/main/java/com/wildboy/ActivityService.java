@@ -338,7 +338,7 @@ public class ActivityService {
     return insertDraft(i, actor);
   }
 
-  // A template or activity copy restores its own coordinates without updating shared locations.
+  // An activity copy restores its own coordinates without updating shared locations.
   Activity insertDraft(ActivityInput i, String actor) {
     validate(i);
     String id = UUID.randomUUID().toString();

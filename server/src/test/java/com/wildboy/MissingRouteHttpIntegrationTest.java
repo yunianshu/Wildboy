@@ -68,6 +68,12 @@ class MissingRouteHttpIntegrationTest {
     missing("POST", "/api/v1/activities/retired/waitlist", userToken);
     missing("POST", "/api/v1/waitlist/retired/confirm", userToken);
     missing("DELETE", "/api/v1/waitlist/retired", userToken);
+    missing("GET", "/api/v1/admin/templates", adminToken);
+    missing("POST", "/api/v1/admin/templates", adminToken);
+    missing("PUT", "/api/v1/admin/templates/retired/content", adminToken);
+    missing("PUT", "/api/v1/admin/templates/retired", adminToken);
+    missing("POST", "/api/v1/admin/templates/retired/generate", adminToken);
+    missing("DELETE", "/api/v1/admin/templates/retired", adminToken);
     missing("GET", "/api/v1/admin/missing-fixture-route", adminToken);
     var after = request("GET", "/api/v1/me", userToken);
     assertThat(after.statusCode()).isEqualTo(200);

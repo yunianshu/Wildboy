@@ -191,8 +191,8 @@ status, after = request('GET', f"/shop/products/{product['id']}")
 check('cancellation restores product stock', status == 200 and after['stock']==original_stock, after)
 status, body = request('GET', '/home')
 check('home payment flag reflects missing merchant config', status == 200 and body['paymentEnabled'] is False, body)
-# Operations batch: real HTTP routing, persisted content/templates and fail-closed adapters.
-for path in ['/admin/dashboard', '/admin/templates', '/admin/exceptions', '/admin/audit', '/admin/refunds', '/admin/notifications', '/admin/waitlist']:
+# Operations batch: real HTTP routing, persisted activity copies and fail-closed adapters.
+for path in ['/admin/dashboard', '/admin/exceptions', '/admin/audit', '/admin/refunds', '/admin/notifications', '/admin/waitlist']:
     status, body = request('GET', path, token=user)
     check('user cannot access ' + path, status == 403, body)
     status, body = request('GET', path, token=admin)
@@ -205,15 +205,13 @@ status, content = request('PUT', f'/admin/activities/{source}/content', {'blocks
 check('structured content persists', status == 200 and content['version']==1, content)
 status, body = request('GET', f'/activities/{source}/content')
 check('draft content remains private', status == 404, body)
-status, template = request('POST', '/admin/templates', {'name':'HTTP fixture', 'sourceId':source, 'sourceVersion':draft['version']}, admin)
-check('template snapshot created', status == 200, template)
-payload = {'starts':[iso(30)], 'version':template['version']}
-status, generated = request('POST', f"/admin/templates/{template['id']}/generate", payload, admin)
-check('template creates only empty draft', status == 200 and generated[0]['status']=='DRAFT' and generated[0]['registeredCount']==0, generated)
-status, repeated = request('POST', f"/admin/templates/{template['id']}/generate", payload, admin)
-check('template HTTP replay is idempotent', status == 200 and repeated[0]['id']==generated[0]['id'], repeated)
-status, body = request('GET', f"/admin/activities/{generated[0]['id']}/content", token=admin)
-check('generated draft carries safe content snapshot', status == 200 and body['blocks'][0]['text']==blocks[0]['text'], body)
+payload = {'startAt': iso(30), 'version': draft['version'], 'requestId': 'copy-' + source}
+status, copied = request('POST', f'/admin/activities/{source}/copy', payload, admin)
+check('copy creates an empty draft', status == 200 and copied['status']=='DRAFT' and copied['registeredCount']==0, copied)
+status, repeated = request('POST', f'/admin/activities/{source}/copy', payload, admin)
+check('copy HTTP replay is idempotent', status == 200 and repeated['id']==copied['id'], repeated)
+status, body = request('GET', f"/admin/activities/{copied['id']}/content", token=admin)
+check('copied draft carries safe content snapshot', status == 200 and body['blocks'][0]['text']==blocks[0]['text'], body)
 status, body = request('GET', '/notifications/config', token=user)
 check('notifications fail closed without real configuration', status == 200 and body.get('ready') is False, body)
 status, body = request('POST', f"/orders/{order['id']}/refund", {'reason':'隔离验收'}, user)

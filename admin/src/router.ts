@@ -11,7 +11,6 @@ import ProductContentView from "./views/ProductContentView.vue";
 import ProductCategoriesView from "./views/ProductCategoriesView.vue";
 import UsersView from "./views/UsersView.vue";
 import AdminAccountView from "./views/AdminAccountView.vue";
-import TemplatesView from "./views/TemplatesView.vue";
 import OperationsView from "./views/OperationsView.vue";
 import RefundsView from "./views/RefundsView.vue";
 import NotificationsView from "./views/NotificationsView.vue";
@@ -35,7 +34,6 @@ export const router = createRouter({
     { path: "/users", component: UsersView },
     { path: "/memberships", component: MembershipsView },
     { path: "/activity-orders", component: ActivityOrdersView },
-    { path: "/templates", component: TemplatesView },
     { path: "/waitlist", redirect: "/operations" },
     { path: "/operations", component: OperationsView },
     { path: "/refunds", component: RefundsView },

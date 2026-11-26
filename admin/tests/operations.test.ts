@@ -1,22 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
-import TemplatesView from "../src/views/TemplatesView.vue";
 import OperationsView from "../src/views/OperationsView.vue";
 import { acceptAuth, clearSession } from "../src/api";
-const source = {
-  id: "source",
-  title: "路线",
-  status: "PUBLISHED",
-  version: 4,
-  capacity: 12,
-};
-const template = {
-  id: "template",
-  name: "周末徒步",
-  version: 0,
-  activity: source,
-};
 beforeEach(() => {
   clearSession();
   vi.restoreAllMocks();
@@ -30,20 +16,6 @@ function fetcher() {
     ok: true,
     status: 200,
     json: async () => {
-      if (path.includes("/generate"))
-        return [
-          {
-            id: "draft",
-            title: "路线",
-            startAt: "2027-05-01T00:00:00Z",
-            status: "DRAFT",
-          },
-        ];
-      if (path.includes("/admin/activities"))
-        return { items: [source], hasMore: false };
-      if (path.includes("/templates") && options.method) return template;
-      if (path.includes("/templates"))
-        return { items: [template], hasMore: false };
       if (path.includes("/dashboard"))
         return {
           activities: { total: 2, registrations: 10, capacity: 20, full: 1 },
@@ -81,48 +53,6 @@ const mountView = (c: any) =>
     },
   });
 describe("operational workflows", () => {
-  it("cancel template editor has no write and source is required", async () => {
-    const f = fetcher();
-    const w = mountView(TemplatesView);
-    await flushPromises();
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "新建模板")!
-      .trigger("click");
-    await flushPromises();
-    await w.get("form").trigger("submit");
-    expect(w.text()).toContain("请选择来源活动");
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "取消")!
-      .trigger("click");
-    expect(w.find('[role="dialog"]').exists()).toBe(false);
-    expect(f.mock.calls.filter(([, o]) => o?.method)).toHaveLength(0);
-    w.unmount();
-  });
-  it("generates drafts with Beijing timezone dates and bounded repeats", async () => {
-    const f = fetcher();
-    const w = mountView(TemplatesView);
-    await flushPromises();
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "生成草稿")!
-      .trigger("click");
-    await w.get("#template-start").setValue("2027-05-01");
-    await w.get("#template-start-time").setValue("09:00");
-    const nums = w.findAll('input[type="number"]');
-    await nums[0].setValue("2");
-    await nums[1].setValue("7");
-    await w.get("form").trigger("submit");
-    await flushPromises();
-    const call = f.mock.calls.find(([p]) => String(p).includes("/generate"))!;
-    expect(JSON.parse(call[1].body)).toEqual({
-      starts: ["2027-05-01T01:00:00.000Z", "2027-05-08T01:00:00.000Z"],
-      version: 0,
-    });
-    expect(w.text()).toContain("已生成 1 场草稿");
-    w.unmount();
-  });
   it("shows net settled value, owner data clears on logout, exceptions route to real action", async () => {
     const f = fetcher();
     const w = mountView(OperationsView);

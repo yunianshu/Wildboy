@@ -49,7 +49,7 @@ class HomeLayoutAndActivityUpgradeTest {
   @Autowired HomeLayoutService homeLayout;
   @Autowired ActivityService activities;
   @Autowired ActivityOrderService activityOrders;
-  @Autowired TemplateService templates;
+  @Autowired ActivityCopyService copies;
   @Autowired LegalService legal;
   @Autowired GeoLocationService geo;
 
@@ -246,26 +246,23 @@ class HomeLayoutAndActivityUpgradeTest {
 
   @Test
   @org.springframework.transaction.annotation.Transactional
-  void oldActivityEditsCopiesAndTemplatesPreserveNewerSharedBoardingCoordinates() throws Exception {
+  void oldActivityEditsAndCopiesPreserveNewerSharedBoardingCoordinates() throws Exception {
     var oldStop = new NavigationPoint("north", "BOARDING", "North pier", "Old dock", 24.5, 118.1);
     var secondStop = new NavigationPoint("south", "BOARDING", "South pier", "South dock", 24.4, 118.2);
     var source = createPublished("Pier trip", 90, List.of(oldStop, secondStop));
-    var template = templates.save(null, new TemplateService.Input("Pier template", source.id(), source.version(), null), actorId);
     var newNorth = new NavigationPoint("updated", "BOARDING", "North pier", "New dock", 24.6, 118.3);
     activities.saveBoardingPointLocation(new BoardingPointLocation("North pier", "New dock", 24.6, 118.3));
     activities.saveBoardingPointLocation(new BoardingPointLocation("South pier", "South dock", null, null));
     createPublished("Updated trip", 91, List.of(newNorth));
 
-    var input = json.<com.fasterxml.jackson.databind.node.ObjectNode>valueToTree(templates.snapshot(source))
+    var input = json.<com.fasterxml.jackson.databind.node.ObjectNode>valueToTree(copies.snapshot(source))
         .put("title", "Updated pier trip").put("version", source.version());
     var newSouth = new NavigationPoint("south", "BOARDING", "South pier", "New south dock", 24.7, 118.4);
     input.set("navigationPoints", json.valueToTree(List.of(oldStop, newSouth)));
     var edited = activities.edit(source.id(), json.treeToValue(input, ActivityInput.class), actorId);
     var nextStart = source.startAt().plusWeeks(1);
-    var copied = templates.copy(source.id(), new TemplateService.Copy(nextStart, "pier-copy", edited.version(), true), actorId);
-    var generated = templates.generate(template.id(), new TemplateService.Generate(List.of(nextStart), template.version()), actorId);
+    var copied = copies.copy(source.id(), new ActivityCopyService.Copy(nextStart, "pier-copy", edited.version(), true), actorId);
     assertThat(copied.navigationPoints()).containsExactly(oldStop, newSouth);
-    assertThat(generated.getFirst().navigationPoints()).containsExactly(oldStop, secondStop);
     assertThat(activities.listBoardingPointLocations()).contains(
         new BoardingPointLocation("North pier", "New dock", 24.6, 118.3),
         new BoardingPointLocation("South pier", "South dock", null, null));
@@ -333,9 +330,9 @@ class HomeLayoutAndActivityUpgradeTest {
     var current = activities.get(published.id(), true);
     var nextWeek = OffsetDateTime.now().plusDays(14);
     var reopened =
-        templates.copy(
+        copies.copy(
             current.id(),
-            new TemplateService.Copy(nextWeek, "reuse-req-1", current.version(), true),
+            new ActivityCopyService.Copy(nextWeek, "reuse-req-1", current.version(), true),
             actorId);
     assertThat(reopened.status()).isEqualTo("PUBLISHED");
     assertThat(reopened.navigationPoints()).hasSize(3);

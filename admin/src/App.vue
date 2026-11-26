@@ -22,7 +22,6 @@ const navigation = [
     items: [
       { path: "/activities", title: "活动管理", icon: "mountain" },
       { path: "/boarding-points", title: "上车点设置", icon: "location" },
-      { path: "/templates", title: "活动模板", icon: "template" },
       { path: "/activity-orders", title: "活动订单", icon: "order" },
     ],
   },
