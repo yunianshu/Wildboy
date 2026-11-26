@@ -361,7 +361,8 @@ async function action(
         : kind === "approve" || kind === "reject" || kind === "retry"
           ? `refund/${kind}`
           : kind;
-  let refreshing = false;
+  let refreshing = false,
+    failure = "";
   try {
     const result = await request<Order | Refund>(
       `/admin/activity-orders/${encodeURIComponent(o.id)}/${suffix}`,
@@ -412,11 +413,22 @@ async function action(
     if (n !== epoch) return;
     fail(e);
     if (n !== epoch) return;
+    const uncertain =
+      !(e instanceof ApiError) || e.status === 0 || e.status >= 500;
+    if (!refreshing)
+      // 自动重新加载会清掉 error，先记下原因，加载后再说明操作为何没有提交。
+      failure = uncertain
+        ? "网络或服务异常，结果待核对"
+        : e instanceof ApiError && e.status === 409
+          ? e.code === "STALE_REFUND"
+            ? "原退款申请已被替换"
+            : e.code === "STALE_VERSION" || e.code === "REQUEST_FAILED"
+              ? "订单或退款版本已变化"
+              : e.message
+          : errorMessage(e);
     if (
       refreshing ||
-      (kind !== "verify" &&
-        kind !== "refundVerify" &&
-        (!(e instanceof ApiError) || e.status === 0 || e.status >= 500))
+      (kind !== "verify" && kind !== "refundVerify" && uncertain)
     ) {
       conflict.value = true;
       error.value = "请重新加载订单和退款资料，核对服务端结果后再操作。";
@@ -426,8 +438,11 @@ async function action(
       busy.value = false;
       if (conflict.value && !hasDraft() && selected.value) {
         await open(selected.value);
-        if (n === epoch && selected.value && !error.value)
-          notice.value = "订单资料已更新，请核对后继续。";
+        if (n === epoch && selected.value && !error.value) {
+          if (refreshing) notice.value = "订单资料已更新，请核对后继续。";
+          else
+            error.value = `刚才的操作没有提交：${failure}。已重新加载最新资料，请核对后重新操作。`;
+        }
       }
     }
   }
@@ -633,7 +648,9 @@ useForegroundRefresh(() => {
           ? "没有符合条件的活动订单"
           : orderId
             ? "没有找到此订单"
-            : "暂无活动订单"
+            : activityId
+              ? "此活动暂无订单"
+              : "暂无活动订单"
       }}
       <button
         v-if="hasFilters && !orderId"

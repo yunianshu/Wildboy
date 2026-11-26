@@ -80,6 +80,20 @@ async function mountEditor(
 }
 
 describe("markdown article content editor", () => {
+  it("lets navigation leave before the editor finished initializing", async () => {
+    // 新建文章页刚打开就跳走时，Vditor 尚未完成初始化，读取正文会抛错。
+    const w = await mountEditor({ path: undefined });
+    const instance = instances[0];
+    instance.getValue = () => {
+      throw new TypeError(
+        "Cannot read properties of undefined (reading 'VditorDOM2Md')",
+      );
+    };
+    expect(() => instance.fireInput()).not.toThrow();
+    await expect(w.vm.canLeave()).resolves.toBe(true);
+    expect(dirtyOf(w)).toBe(false);
+    w.unmount();
+  });
   it("keeps formatted fragments with literal Markdown fences and HTML entities through storage", () => {
     const html = "<p>露营🌲</p><pre>&lt;tag&gt;\n```\n&amp;</pre>";
     const encoded = encodeWechatFence(html);

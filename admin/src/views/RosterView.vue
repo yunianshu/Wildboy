@@ -323,6 +323,7 @@ onUnmounted(() => {
               v-if="index === 0"
               :rowspan="item.participants.length"
               role="cell"
+              data-label="状态"
             >
               <span
                 class="status-pill inline"

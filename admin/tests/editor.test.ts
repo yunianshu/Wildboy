@@ -91,16 +91,85 @@ async function fillNew(wrapper: ReturnType<typeof mount>) {
   await dates[2]!.setValue("2027-05-01");
   await times[2]!.setValue("18:00");
 }
+const sectionButton = (wrapper: ReturnType<typeof mount>, label: string) =>
+  wrapper
+    .get(".activity-section-nav")
+    .findAll("button")
+    .find((b) => b.find(".section-label").text() === label)!;
+// 各板块表单控件的顺序与类型，用来核对新建和编辑的内容一致。
+function workbenchSnapshot(wrapper: ReturnType<typeof mount>) {
+  const children = (element: Element) => [...element.children];
+  const controls = (section: Element) =>
+    [
+      ...section.querySelectorAll<HTMLInputElement>("input, select, textarea"),
+    ].map((control) =>
+      [
+        control.tagName.toLowerCase(),
+        control.type,
+        control.id,
+        control.placeholder,
+      ].join("|"),
+    );
+  const sections = children(wrapper.get(".editor-main").element)
+    .filter((section) => section.classList.contains("form-section"))
+    .filter((section) => !section.classList.contains("activity-rich-pending"))
+    .map((section) => ({
+      title: section.querySelector("h2")?.textContent?.trim(),
+      controls: controls(section),
+      groups: [...section.querySelectorAll("h3")].map((heading) =>
+        heading.childNodes[0]?.textContent?.trim(),
+      ),
+    }));
+  return {
+    columns: children(wrapper.get(".activity-workbench").element).map(
+      (column) => column.className,
+    ),
+    nav: wrapper
+      .get(".activity-section-nav")
+      .findAll(".section-label")
+      .map((label) => label.text()),
+    sections,
+    preview: {
+      label: wrapper.get(".editor-aside .preview-label").text(),
+      parts: children(wrapper.get(".preview-copy").element).map((part) =>
+        part.tagName.toLowerCase(),
+      ),
+    },
+  };
+}
 describe("editor workflow", () => {
   it("rejects incomplete new activity without making a request", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/new");
     expect(wrapper.get("h1").text()).toBe("新建活动");
-    expect(wrapper.text()).toContain("核验身份证（仅必要时开启，须说明用途）");
+    expect(wrapper.text()).toContain("核验身份证");
+    expect(wrapper.text()).toContain("仅在活动确有需要时开启");
     expect(wrapper.text()).toContain("价格随草稿保存");
     expect(wrapper.text()).toContain("时间均为北京时间");
     expect(wrapper.find(".eyebrow").exists()).toBe(false);
+    // 新建也使用左侧板块导航，不再有顶部标签页。
+    expect(wrapper.find(".task-tabs").exists()).toBe(false);
+    expect(
+      wrapper
+        .get(".activity-section-nav")
+        .findAll(".section-label")
+        .map((label) => label.text()),
+    ).toEqual(["基本信息", "时间与地点", "活动详情", "图文详情"]);
+    expect(
+      wrapper
+        .get(".editor-aside")
+        .findAll(
+          ".preview-label, .preview-image, .preview-copy, .preview-footer, .editor-tip",
+        )
+        .map((part) => part.isVisible()),
+    ).toEqual([true, true, true, true, true]);
+    // 新活动默认不收身份证；还没保存过时不能显示“内容已保存”。
+    expect(
+      (wrapper.get(".activity-identity input").element as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    expect(wrapper.get(".footer-status").text()).toBe("尚未保存");
     await wrapper.get("form").trigger("submit");
     expect(wrapper.get("[role=alert]").text()).toContain("请检查");
     expect(fetch).not.toHaveBeenCalled();
@@ -109,12 +178,14 @@ describe("editor workflow", () => {
   it("uses separate date and time inputs with quick time presets", async () => {
     vi.stubGlobal("fetch", vi.fn());
     const { wrapper } = await render("/activities/new");
-    await wrapper.get("#activity-start").setValue("2027-05-02");
     const start = wrapper.get(".datetime-field");
-    await start
-      .findAll("button")
-      .find((button) => button.text() === "09:00")!
-      .trigger("click");
+    const preset = () =>
+      start.findAll("button").find((button) => button.text() === "09:00")!;
+    // 没有日期时快捷时间不能单独生效。
+    expect(preset().attributes("disabled")).toBeDefined();
+    await wrapper.get("#activity-start").setValue("2027-05-02");
+    expect(preset().attributes("disabled")).toBeUndefined();
+    await preset().trigger("click");
     expect(
       (wrapper.get("#activity-start-time").element as HTMLInputElement).value,
     ).toBe("09:00");
@@ -217,13 +288,15 @@ describe("editor workflow", () => {
       boardingPoints: ["海滨公园东门"],
       identityRequired: false,
     };
-    const fetch = vi.fn(async (_path: string, options?: RequestInit) => ({
+    const fetch = vi.fn(async (path: string, options?: RequestInit) => ({
       ok: true,
       status: 200,
-      json: async () =>
-        options?.method === "PUT"
+      json: async () => {
+        if (path.endsWith("/activity-boarding-point-locations")) return [];
+        return options?.method === "PUT"
           ? { ...published, ...JSON.parse(String(options.body)), version: 3 }
-          : published,
+          : published;
+      },
     }));
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
@@ -241,14 +314,29 @@ describe("editor workflow", () => {
     expect(isActive(title.element as HTMLElement)).toBe(true);
     expect(isActive(end.element as HTMLElement)).toBe(false);
     expect(isActive(description.element as HTMLElement)).toBe(false);
-    expect(wrapper.get("#activity-media-options").isVisible()).toBe(false);
+    // 封面与图片、身份证核验不再折叠，位置与新建页一致。
+    expect(wrapper.get("#activity-media-options").isVisible()).toBe(true);
+    expect(wrapper.get(".activity-identity input").isVisible()).toBe(true);
     await title.setValue("更新后的活动");
     expect(wrapper.get(".preview-copy h3").text()).toBe("更新后的活动");
 
     await section("时间与地点").trigger("click");
     expect(isActive(end.element as HTMLElement)).toBe(true);
     expect(isActive(title.element as HTMLElement)).toBe(false);
-    expect(wrapper.get("#activity-advanced-options").isVisible()).toBe(false);
+    expect(wrapper.get(".point-choice").isVisible()).toBe(true);
+    // 身份证核验固定在基本信息，不再混在上车点里。
+    expect(
+      wrapper
+        .get("#activity-advanced-options")
+        .find(".activity-identity")
+        .exists(),
+    ).toBe(false);
+    expect(
+      wrapper.get(".activity-identity").element.closest(".form-section"),
+    ).toBe((title.element as HTMLElement).closest(".form-section"));
+    expect(
+      wrapper.findAll("button").map((button) => button.text()),
+    ).not.toContain("上车点与证件设置");
     await end.setValue("18:00");
     await section("活动详情").trigger("click");
     expect(isActive(description.element as HTMLElement)).toBe(true);
@@ -258,9 +346,11 @@ describe("editor workflow", () => {
     expect((title.element as HTMLInputElement).value).toBe("更新后的活动");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
-    expect(fetch).toHaveBeenCalledTimes(2);
-    expect(fetch.mock.calls[1]?.[1]?.method).toBe("PUT");
-    expect(JSON.parse(String(fetch.mock.calls[1]?.[1]?.body))).toMatchObject({
+    const saves = fetch.mock.calls.filter(
+      ([, options]) => options?.method === "PUT",
+    );
+    expect(saves).toHaveLength(1);
+    expect(JSON.parse(String(saves[0]?.[1]?.body))).toMatchObject({
       title: "更新后的活动",
       endAt: expect.stringContaining("T18:00"),
       description: "请在出发前检查装备。",
@@ -274,7 +364,7 @@ describe("editor workflow", () => {
     wrapper.unmount();
   });
 
-  it("reveals a required cover problem even when media settings were closed", async () => {
+  it("keeps a missing required cover visible on the basic section and blocks the save", async () => {
     const fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -282,20 +372,149 @@ describe("editor workflow", () => {
     });
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
-    const toggle = wrapper.get(
-      'button[aria-controls="activity-media-options"]',
-    );
-    await toggle.trigger("click");
+    expect(wrapper.get("#activity-media-options").isVisible()).toBe(true);
     await wrapper
       .findAll("button")
       .find((button) => button.text() === "移除封面")!
       .trigger("click");
-    await toggle.trigger("click");
-    expect(toggle.attributes("aria-expanded")).toBe("false");
     await wrapper.get("form").trigger("submit");
-    expect(toggle.attributes("aria-expanded")).toBe("true");
-    expect(toggle.text()).toContain("待修正");
+    expect(wrapper.get("[role=alert]").text()).toContain("请检查");
+    expect(wrapper.get("#activity-media-options").text()).toContain(
+      "封面须为 HTTPS 图片地址",
+    );
+    expect(sectionButton(wrapper, "基本信息").text()).toContain("1 处待修正");
+    expect(sectionButton(wrapper, "基本信息").attributes("aria-pressed")).toBe(
+      "true",
+    );
     expect(fetch).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("gives new and edit the same workbench: section nav, fields per section and preview", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.endsWith("/activity-boarding-point-locations")
+            ? []
+            : { ...base, registeredCount: 0 },
+      })),
+    );
+    const created = await render("/activities/new");
+    const draft = workbenchSnapshot(created.wrapper);
+    // 左侧板块导航、中间板块内容、右侧预览，三栏顺序固定。
+    expect(draft.columns).toEqual([
+      "activity-section-nav",
+      "editor-main",
+      "editor-aside",
+    ]);
+    expect(draft.nav).toEqual([
+      "基本信息",
+      "时间与地点",
+      "活动详情",
+      "图文详情",
+    ]);
+    expect(draft.preview).toEqual({
+      label: "小程序活动卡片预览",
+      parts: ["p", "h3", "p", "span", "div"],
+    });
+    expect(draft.sections).toEqual([
+      {
+        title: "基本信息",
+        groups: ["活动封面", "更多图片"],
+        controls: [
+          "input|text||活动名称",
+          "select|select-one||",
+          "input|number||",
+          "input|checkbox||",
+          "textarea|textarea||活动简介",
+          "input|file||",
+          "input|file||",
+        ],
+      },
+      {
+        title: "时间与地点",
+        groups: [],
+        controls: [
+          "input|date|activity-start|选择日期",
+          "input|time|activity-start-time|选择时间",
+          "input|date|activity-end|选择日期",
+          "input|time|activity-end-time|选择时间",
+          "input|date|activity-deadline|选择日期",
+          "input|time|activity-deadline-time|选择时间",
+          "input|text||城市 / 路线 / 目的地",
+          "input|text||写明集合位置、交通指引",
+        ],
+      },
+      {
+        title: "活动详情",
+        groups: [],
+        controls: ["textarea|textarea||填写行程、路线难度、装备及安全提示"],
+      },
+    ]);
+    created.wrapper.unmount();
+    const edited = await render("/activities/activity-1/edit");
+    expect(workbenchSnapshot(edited.wrapper)).toEqual(draft);
+    edited.wrapper.unmount();
+  });
+
+  it("explains rich content on a new activity and still saves the draft from that section", async () => {
+    const fetch = vi.fn();
+    withMedia(fetch, () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ ...base, id: "created-1", registeredCount: 0 }),
+    }));
+    vi.stubGlobal("fetch", fetch);
+    const { wrapper, router } = await render("/activities/new");
+    await sectionButton(wrapper, "图文详情").trigger("click");
+    const pending = wrapper.get(".activity-rich-pending");
+    expect(pending.isVisible()).toBe(true);
+    expect(wrapper.find(".activity-rich-card").exists()).toBe(false);
+    expect(pending.text()).toContain("保存活动后可编辑图文详情");
+    // 新建页的图文板块只是说明，右侧报名价格和底部保存栏仍然可用。
+    expect(wrapper.get(".editor-actions").isVisible()).toBe(true);
+    expect(wrapper.get(".editor-actions").text()).toContain("保存草稿");
+    expect(wrapper.get(".editor-tip").isVisible()).toBe(true);
+    await fillNew(wrapper);
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("12.34");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    const writes = fetch.mock.calls.filter(
+      (c: any) => !c[0].includes("/admin/media"),
+    );
+    expect(
+      writes.map((c: any) => [c[0].replace("/api/v1", ""), c[1].method]),
+    ).toEqual([
+      ["/admin/activities", "POST"],
+      ["/admin/activities/created-1/price", "POST"],
+    ]);
+    expect(JSON.parse(writes[1]?.[1].body)).toEqual({
+      priceCents: 1234,
+      version: 2,
+    });
+    expect(router.currentRoute.value.path).toBe("/activities/created-1/edit");
+    wrapper.unmount();
+  });
+
+  it("mirrors departure time, price and seats in the card preview", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const { wrapper } = await render("/activities/new");
+    const preview = () => wrapper.get(".preview-copy").text();
+    expect(preview()).toContain("时间待定");
+    expect(preview()).toContain("免费参与");
+    expect(preview()).toContain("余 20 位");
+    await wrapper.get("#activity-start").setValue("2027-05-02");
+    await wrapper.get("#activity-start-time").setValue("09:00");
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("99.5");
+    await wrapper.get('input[type="number"]').setValue(8);
+    expect(preview()).toContain("05月02日 09:00 出发");
+    expect(preview()).toContain("¥99.50 / 人");
+    expect(preview()).toContain("余 8 位");
+    await wrapper.get('[aria-label="活动报名原价"]').setValue("12.345");
+    expect(preview()).toContain("价格待确认");
     wrapper.unmount();
   });
 
@@ -391,7 +610,9 @@ describe("editor workflow", () => {
     vi.stubGlobal("fetch", fetcher);
     const { wrapper } = await render("/activities/activity-1/edit");
     await wrapper
-      .get('button[aria-controls="activity-advanced-options"]')
+      .get(".activity-section-nav")
+      .findAll("button")
+      .find((button) => button.text() === "时间与地点")!
       .trigger("click");
     await flushPromises();
     expect(wrapper.findAll(".point-choice").map((c) => c.text())).toEqual(
@@ -461,7 +682,9 @@ describe("editor workflow", () => {
     vi.stubGlobal("fetch", fetch);
     const { wrapper } = await render("/activities/activity-1/edit");
     await wrapper
-      .get('button[aria-controls="activity-advanced-options"]')
+      .get(".activity-section-nav")
+      .findAll("button")
+      .find((button) => button.text() === "时间与地点")!
       .trigger("click");
     await flushPromises();
     const choices = wrapper.findAll(".point-choice");

@@ -600,7 +600,7 @@ useForegroundRefresh(() => {
           </option>
         </select>
         <button type="submit" class="secondary" :disabled="busy || loading">
-          搜索
+          查询
         </button>
       </form>
       <UiState v-if="loading && !users.length" kind="loading" compact
@@ -952,6 +952,13 @@ useForegroundRefresh(() => {
   margin-top: 14px;
   padding-top: 12px;
   border-top: 1px solid var(--admin-line);
+}
+/* 窄屏下表格转为卡片，数字列与其它字段一样左对齐。 */
+@media (max-width: 720px) {
+  .member-number {
+    max-width: none;
+    text-align: left;
+  }
 }
 @media (max-width: 600px) {
   .member-rules {

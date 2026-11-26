@@ -544,7 +544,7 @@ useForegroundRefresh(() => {
   <main class="workspace">
     <section class="page-heading">
       <div>
-        <h1>商城运营</h1>
+        <h1>商城管理</h1>
       </div>
       <div v-show="tab === 'products'" class="action-row">
         <button class="primary" @click="openNew">
@@ -615,8 +615,8 @@ useForegroundRefresh(() => {
           @change="rememberFilters"
         >
           <option value="">全部销售状态</option>
-          <option value="ON_SALE">已上架</option>
-          <option value="OFF_SALE">已下架</option>
+          <option value="ON_SALE">上架</option>
+          <option value="OFF_SHELF">下架</option>
         </select>
         <RouterLink v-if="route?.query.productId" class="text-button" to="/shop"
           >查看全部商品</RouterLink
@@ -693,7 +693,20 @@ useForegroundRefresh(() => {
                 >
                 {{ money(product.priceCents) }}
               </td>
-              <td role="cell" data-label="库存">{{ product.stock }}</td>
+              <td role="cell" data-label="库存">
+                <span
+                  :class="{
+                    'stock-warning':
+                      product.status === 'ON_SALE' && !product.stock,
+                  }"
+                  >{{ product.stock }}</span
+                >
+                <small
+                  v-if="product.status === 'ON_SALE' && !product.stock"
+                  class="stock-hint"
+                  >缺货，无法下单</small
+                >
+              </td>
               <td role="cell" data-label="销售状态">
                 {{ product.status === "ON_SALE" ? "上架" : "下架" }}
               </td>
@@ -889,6 +902,25 @@ useForegroundRefresh(() => {
       >
 
       <p>请确认商品已交给物流。</p>
+      <!-- 弹窗打开后背景变暗，列出来自哪个订单，避免发错货。 -->
+      <dl v-if="shipping" class="ship-order-summary">
+        <div>
+          <dt>订单号</dt>
+          <dd>{{ shipping.orderNo }}</dd>
+        </div>
+        <div>
+          <dt>收货人</dt>
+          <dd>{{ shipping.recipientName }}</dd>
+        </div>
+        <div>
+          <dt>商品</dt>
+          <dd>
+            <span v-for="item in shipping.items" :key="item.id">
+              {{ item.productName }} × {{ item.quantity }}
+            </span>
+          </dd>
+        </div>
+      </dl>
       <p v-if="shippingError" role="alert" class="error-box">
         {{ shippingError }}
       </p>
@@ -897,7 +929,11 @@ useForegroundRefresh(() => {
           v-model="shipCompany"
           maxlength="64"
           :disabled="busy"
-          placeholder="名称或编码，如顺丰速运 / SF"
+          :placeholder="
+            shipping.status === 'PAID'
+              ? '微信支付订单必填，如顺丰速运 / SF'
+              : '选填，如顺丰速运 / SF'
+          "
       /></label>
       <label
         >运单号<input
@@ -1012,7 +1048,7 @@ useForegroundRefresh(() => {
         /></label>
         <label
           >销售状态<select v-model="form.status" :disabled="busy">
-            <option value="ON_SALE">上架销售</option>
+            <option value="ON_SALE">上架</option>
             <option value="OFF_SHELF">下架</option>
           </select></label
         >
@@ -1119,6 +1155,42 @@ useForegroundRefresh(() => {
   gap: 4px 12px;
   color: var(--admin-muted);
   font-size: 12px;
+}
+.ship-order-summary {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 10px;
+  background: var(--rf-bg);
+  font-size: 13px;
+}
+.ship-order-summary > div {
+  display: grid;
+  grid-template-columns: 4.5em minmax(0, 1fr);
+  gap: 8px;
+}
+.ship-order-summary dt {
+  color: var(--admin-muted);
+}
+.ship-order-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.ship-order-summary dd span {
+  display: block;
+}
+.stock-warning {
+  color: var(--rf-warning);
+  font-weight: 600;
+}
+.stock-hint {
+  display: block;
+  margin-top: 2px;
+  color: var(--rf-warning);
+  font-size: 12px;
+  white-space: nowrap;
 }
 .order-detail {
   margin: 12px 0;

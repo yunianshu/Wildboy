@@ -188,10 +188,16 @@ fieldset {
   --button-background: transparent;
   --button-hover: var(--rf-soft);
   --button-border: transparent;
-  padding: 4px 6px;
-  min-height: 28px;
+  padding: 4px 8px;
+  min-height: 32px;
   font-size: 12px;
   color: var(--rf-primary-text);
+}
+/* 必填星号：与说明文字区分开。 */
+.required-mark,
+label > .required-mark {
+  color: var(--rf-danger);
+  font-weight: 600;
 }
 a.text-button:hover {
   text-decoration: underline;
@@ -1250,9 +1256,9 @@ td strong {
   color: var(--tone-neutral);
 }
 .record-id {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--rf-muted);
-  letter-spacing: 0.4px;
+  letter-spacing: 0.2px;
   word-break: break-all;
   margin: 6px 0 0;
 }
@@ -1291,9 +1297,9 @@ td strong {
   margin: 0 0 20px;
 }
 .user-detail-grid dt {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--admin-muted);
-  letter-spacing: 0.6px;
+  letter-spacing: 0.2px;
 }
 .user-detail-grid dd {
   margin: 4px 0 0;

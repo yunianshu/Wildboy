@@ -63,7 +63,7 @@ const viewportCases = [
   ["/operations", /运营工作台/, "/admin/dashboard"],
   ["/boarding-points", /上车点设置/, "/admin/activity-boarding-point-locations"],
   ["/shop", /商城运营|商品管理|商城管理/, "/admin/shop/products"],
-  ["/shop?tab=orders", /装备订单|商城订单|订单与发货/, "/admin/orders"],
+  ["/shop?tab=orders", /商城管理/, "/admin/orders"],
   ["/shop/categories", /商品分类/, "/admin/shop/categories"],
   ["/refunds", /退款售后|商城退款/, "/admin/refunds"],
   ["/notifications", /活动通知|消息管理/, "/admin/notifications"],
@@ -74,7 +74,7 @@ const viewportCases = [
   ["/articles/:articleId/edit", null, "/admin/articles/:articleId"],
   ["/shipping-reports", /发货上报/, "/admin/shipping-reports"],
   ["/legal", /协议管理/, "/admin/legal/PRIVACY"],
-  ["/settings", /基础配置|首页配置/, "/admin/home/shortcuts"],
+  ["/settings", /基础配置/, "/admin/wechat-order-center/status"],
   ["/settings/admin-account", /管理员账号/, "/admin/settings/admin-account"],
 ];
 
@@ -112,6 +112,8 @@ const button = (root, name) => root.getByRole("button", { name });
 const heading = (page, name) => page.getByRole("heading", { name }).first();
 const dialog = (page, name) => page.getByRole("dialog", { name });
 const qa = (name) => `QA ${name} ${stamp}`;
+// 登录跳转会带 ?redirect=，不能按完整 URL 匹配。
+const atLogin = (url) => url.hash.startsWith("#/login");
 
 async function route(page, destination, name) {
   await page.evaluate((hash) => {
@@ -315,7 +317,7 @@ async function layouts(browser) {
     try {
       await check(`登录界面 ${width}×${height}`, page, async () => {
         await page.goto(`${web}/#/activity-orders`);
-        await page.waitForURL("**/#/login", headingTimeout);
+        await page.waitForURL(atLogin, headingTimeout);
         await visible(heading(page, /管理员登录/));
         const dimensions = await layout(page);
         report.screens.push({ route: "/login", width, height, ...dimensions });
@@ -419,7 +421,8 @@ async function operationsWorkflow(page) {
       }),
     { times: 1 },
   );
-  await button(page, /异常待办/).click();
+  // 精确匹配：页面上另有「查看异常待办」入口。
+  await button(page, /^异常待办$/).click();
   await visible(
     page.getByRole("alert").filter({ hasText: "验收模拟：暂时无法读取待办" }),
   );
@@ -583,9 +586,12 @@ async function notificationRecovery(browser) {
     );
     await route(page, "/notifications", /活动通知|消息管理/);
     const row = page.getByRole("row").filter({ hasText: "合成通知" });
-    const disabled = button(row, /暂不可重试/);
-    await visible(disabled);
-    assert.equal(await disabled.isDisabled(), true);
+    await visible(row);
+    // 配置未就绪时不提供重试入口，就绪后才出现「确认授权」。
+    assert.equal(
+      await row.getByRole("button", { name: /确认授权|重新发送|重新排队/ }).count(),
+      0,
+    );
     ready = true;
     await route(page, "/operations", /运营工作台/);
     await route(page, "/notifications", /活动通知|消息管理/);
@@ -689,10 +695,12 @@ async function activityRefundReplacement(browser) {
       () => useConfirmation(page, approve, prompt, true),
       [409],
     );
-    await visible(editor.getByRole("alert"));
+    // 冲突后界面自动重新加载最新申请，并说明刚才的批准没有提交。
+    const conflictNotice = editor.getByRole("alert");
+    await visible(conflictNotice);
+    assert.match(await conflictNotice.textContent(), /没有提交/);
+    assert.match(await conflictNotice.textContent(), /原退款申请已被替换/);
     assert.deepEqual(writes, [{ refundId: original.id, version: 0 }]);
-    assert.equal(await approve.isDisabled(), true);
-    await button(editor, /重新加载.*退款|重新读取.*退款/).click();
     await visible(editor.getByText(/合成替换申请/));
     await write(
       page,
@@ -726,20 +734,33 @@ async function fillEventually(page, label, value, section) {
   }
   if ((await control.getAttribute('type')) === 'date' && await control.getAttribute('readonly') !== null) {
     const id = await control.getAttribute('id');
+    // 只读日期框通过同一个弹窗选择日期和时间，点「应用」后才写回输入框。
     await control.click();
+    const picker = page.getByRole('dialog');
+    await picker.waitFor({ state: 'visible', ...headingTimeout });
     const date = value.slice(0, 10);
     for (let month = 0; month < 18; month++) {
-      const day = page.getByRole('button', {name: date, exact: true});
-      if (await day.count()) { await day.click(); break; }
-      await page.getByRole('button', {name: '下个月', exact: true}).click();
+      const day = page.getByRole('button', { name: date, exact: true });
+      if (await day.count()) {
+        await day.click();
+        break;
+      }
+      await picker.getByRole('button', { name: '下个月', exact: true }).click();
     }
-    assert.equal(await control.inputValue(), date, 'calendar chooses the requested day');
-    await page.locator(`#${id}-time`).click();
-    const picker = page.getByRole('dialog');
     await picker.getByLabel('选择小时').selectOption(value.slice(11, 13));
-    // The native control offers quarter-hour choices; use a deterministic slot.
-    await picker.getByLabel('选择分钟').selectOption('00');
-    await picker.getByRole('button', {name: /^确定 /}).click();
+    await picker.getByLabel('选择分钟').selectOption(value.slice(14, 16));
+    await picker.getByRole('button', { name: /^应用$/ }).click();
+    await picker.waitFor({ state: 'hidden', ...headingTimeout });
+    assert.equal(
+      await control.inputValue(),
+      date,
+      'calendar chooses the requested day',
+    );
+    assert.equal(
+      await page.locator(`#${id}-time`).inputValue(),
+      value.slice(11, 16),
+      'dialog applies the requested time',
+    );
   } else {
     await control.fill(value);
   }
@@ -792,7 +813,8 @@ async function activityCreate(page, name) {
   await fillEventually(page, /具体集合地点/, "隔离验收集合点", /时间与地点/);
   await fillEventually(
     page,
-    /活动说明/,
+    // 标题锚定：「核验身份证」的帮助文字里也出现了“活动说明”。
+    /^活动说明/,
     "仅用于浏览器验收。合成行程与安全说明。",
     /活动详情/,
   );
@@ -852,8 +874,8 @@ async function filterActivity(page, activity) {
       headingTimeout,
     ),
     (async () => {
+      // 活动列表输入后自动防抖查询，没有单独的「筛选」按钮。
       await title.fill(activity.title);
-      await button(page, /^筛选$/).click();
     })(),
   ]);
   assert.equal(response.status(), 200);
@@ -862,7 +884,11 @@ async function filterActivity(page, activity) {
   assert.equal(data.items[0].id, activity.id);
   const matched = page.getByRole("link", { name: activity.title, exact: true });
   await matched.click();
-  await page.waitForURL(`**/#/activities/${activity.id}/edit`, headingTimeout);
+  // 标题链接会带上返回列表的 ?list= 参数，不能按完整地址匹配。
+  await page.waitForURL(
+    (url) => url.hash.startsWith(`#/activities/${activity.id}/edit`),
+    headingTimeout,
+  );
   await visible(heading(page, /编辑活动/));
 }
 
@@ -885,7 +911,13 @@ async function createTier(page) {
     .selectOption("FIXED");
   await editor.getByLabel("ACTIVITY定价值", { exact: true }).fill("0");
   const tier = await write(page, "/admin/membership/tiers", "POST", () =>
-    button(editor, /^保存(?:等级)?$/).click(),
+    (async () => {
+      await button(editor, /^保存(?:等级)?$/).click();
+      // 两项固定价都是 0 时界面会先确认“设为免费？”。
+      const free = dialog(page, /设为免费/).last();
+      await free.waitFor({ state: "visible", timeout: 1500 }).catch(() => {});
+      if (await free.isVisible()) await button(free, /确认设为免费/).click();
+    })(),
   );
   report.fixtures.tier = tier.id;
   assert.equal(tier.rules.length, 2);
@@ -897,7 +929,7 @@ async function createTier(page) {
   if (await users.isVisible()) await users.click();
   const lookup = page.getByLabel(/搜索用户/);
   await lookup.fill(fixture.userId);
-  await button(page, /^搜索$/).click();
+  await button(page, /^查询$/).click();
   const row = page.getByRole("row").filter({ hasText: fixture.userId });
   await button(row, /编辑身份/).click();
   const profile = dialog(page, /编辑用户身份/);
@@ -961,7 +993,7 @@ async function createProduct(page, category) {
 
 async function editProduct(page, product) {
   const row = page.getByRole("row").filter({ hasText: product.name });
-  await button(row, /^编辑$/).click();
+  await button(row, /^编辑商品信息$/).click();
   const editor = dialog(page, /编辑商品/);
   const price = editor.getByLabel(/现价/);
   const endpoint = `/admin/shop/products/${product.id}`;
@@ -1006,7 +1038,7 @@ async function orderShipping(page, product) {
   report.fixtures.shopOrder = order.id;
   assert.equal(order.status, "CONFIRMED_FREE");
   await route(page, "/activities", /活动管理/);
-  await route(page, "/shop?tab=orders", /装备订单|商城订单|订单与发货/);
+  await route(page, "/shop?tab=orders", /商城管理/);
   const summary = page.getByText(order.orderNo, { exact: false }).first();
   await visible(summary);
   const card = page
@@ -1119,8 +1151,13 @@ async function freeActivityOrder(page, activity) {
   await button(row, /查看订单|退款/).click();
   const editor = dialog(page, new RegExp(`${activity.title}|订单详情`)).last();
   await visible(editor.getByText(/免支付订单/));
-  await button(editor, /加载参加者|查看参加者/).click();
-  await visible(heading(editor, /参加者/));
+  // 打开订单详情时参加者会自动加载，只有仍显示「加载参加者」时才手动触发。
+  const people = editor.getByRole("heading", { name: /参加者/ });
+  const loadPeople = editor.getByRole("button", { name: /^加载参加者$/ });
+  await loadPeople.waitFor({ state: "hidden", ...headingTimeout }).catch(() => {});
+  if (await loadPeople.isVisible())
+    await loadPeople.click({ timeout: 2000 }).catch(() => {});
+  await visible(people);
   assert.equal(
     await editor.getByText(participantPhone, { exact: false }).isVisible(),
     false,
@@ -1168,10 +1205,9 @@ async function freeActivityOrder(page, activity) {
 
 async function userOrderHistory(page, activity, order) {
   await route(page, "/users", /用户管理/);
-  await button(page, /^筛选用户$/).click();
-  const filters = dialog(page, /筛选用户/);
-  await filters.getByLabel(/用户编号|昵称/).fill(fixture.userId);
-  await button(filters, /查询用户|应用筛选/).click();
+  // 用户管理页的筛选是页内表单，不再有「筛选用户」弹窗。
+  await page.getByLabel(/昵称、姓名、用户编号/).fill(fixture.userId);
+  await button(page, /^查询$/).click();
   const person = page.getByRole("row").filter({ hasText: fixture.userId });
   await visible(person);
   assert.equal(
@@ -1229,7 +1265,8 @@ async function articleWorkflow(page) {
   await page.waitForURL("**/articles/new", headingTimeout);
   await page.getByLabel(/文章标题/).fill(qa("文章"));
   await page.getByLabel(/文章摘要/).fill("只用于隔离浏览器验收。");
-  await uploadFirstImage(page);
+  // 正文编辑器里也有图片上传入口，封面要限定在发布设置卡片内。
+  await uploadFirstImage(page.locator(".cover-setting"));
   const article = await write(page, "/admin/articles", "POST", () =>
     button(page, /保存草稿/).click(),
   );
@@ -1297,17 +1334,20 @@ async function articleWorkflow(page) {
 }
 
 async function shortcutWorkflow(page, article) {
-  const endpoint = "/admin/home/shortcuts";
+  // 首页入口现在只在「首页配置」里维护；/home/shortcuts 是给小程序的兼容读取接口。
+  const endpoint = "/admin/home/layout";
   fixture.shortcutsBefore = await admin("GET", endpoint);
-  await route(page, "/settings", /基础配置|首页配置/);
-  const slot = page.locator('button[data-slot="1"]');
-  if (await slot.isVisible()) await slot.click();
-  const type = page.getByLabel(/^入口1类型$/);
-  await type.selectOption("ARTICLE");
-  await page.getByLabel(/^入口1文章$/).selectOption(article.id);
-  await page.getByLabel(/^入口1名称$/).fill("隔离文章验收");
+  await route(page, "/home-layout", /首页配置/);
+  await page
+    .locator(".module-select")
+    .filter({ hasText: "快捷入口" })
+    .click();
+  await page.locator(".shortcut-chip").first().click();
+  await page.getByLabel(/点击后执行动作/).selectOption("ARTICLE");
+  await page.getByLabel(/选择小程序内置文章/).selectOption(article.id);
+  await page.getByLabel(/入口名称/).fill("隔离文章验收");
   await write(page, endpoint, "PUT", () =>
-    button(page, /保存首页配置/).click(),
+    button(page, /^保存首页配置$/).first().click(),
   );
   const live = await http("GET", "/home/shortcuts");
   assert.equal(live.items.length, 4);
@@ -1330,6 +1370,11 @@ async function policyWorkflow(page) {
     .fill(`${title}\n隔离验收草稿，仅供检查预览与版本边界。`);
   await button(page, /预览草稿/).click();
   await visible(heading(page, new RegExp(title)));
+  // 草稿预览是弹窗，先关闭再保存。
+  await page.keyboard.press("Escape");
+  await page
+    .locator(".form-modal-backdrop")
+    .waitFor({ state: "hidden", ...headingTimeout });
   const saved = await write(page, `${endpoint}/draft`, "PUT", () =>
     button(page, /保存草稿/).click(),
   );
@@ -1425,10 +1470,12 @@ async function functions(browser) {
         passwordAccount(browser),
       );
     await check("未经授权和退出后的活动订单深链", page, async () => {
+      // 退出登录先弹确认框，确认后才回到登录页。
       await button(page, /退出登录/).click();
-      await page.waitForURL("**/#/login", headingTimeout);
+      await button(dialog(page, /退出登录/).last(), /^退出登录$/).click();
+      await page.waitForURL(atLogin, headingTimeout);
       await page.goto(`${web}/#/activity-orders`);
-      await page.waitForURL("**/#/login", headingTimeout);
+      await page.waitForURL(atLogin, headingTimeout);
       await login(page);
     });
     if (!mutations) return;
@@ -1546,9 +1593,13 @@ async function cleanup() {
     }
   }
   if (fixture.shortcutsBefore) {
-    const now = await admin("GET", "/admin/home/shortcuts");
-    if (now.items.some((item) => item.articleId === report.fixtures.article))
-      await admin("PUT", "/admin/home/shortcuts", {
+    const now = await admin("GET", "/admin/home/layout");
+    if (
+      now.shortcuts?.items?.some(
+        (item) => item.articleId === report.fixtures.article,
+      )
+    )
+      await admin("PUT", "/admin/home/layout", {
         body: { ...fixture.shortcutsBefore, version: now.version },
       });
   }

@@ -94,22 +94,24 @@ const fields = reactive({
     startAt: "",
     endAt: "",
     registrationDeadline: "",
-    identityRequired: true,
+    // 新活动默认不收身份证（与 README 约定一致），确有需要时再开启。
+    identityRequired: false,
     capacity: 20,
   }),
   errors = ref<Record<string, string>>({}),
   baseline = ref(JSON.stringify(fields));
 // 封面与更多图片一律通过上传获得，不再提供 /assets/ 预设选图
 const priceYuan = ref("0.00");
-const showMedia = ref(false);
-const showAdvanced = ref(false);
-const editSection = ref<"basic" | "schedule" | "detail" | "rich">("basic");
+// 新建与编辑共用同一组板块：左侧导航、中间内容、右侧预览。
 const sections = [
   { id: "basic", label: "基本信息" },
   { id: "schedule", label: "时间与地点" },
   { id: "detail", label: "活动详情" },
+  { id: "rich", label: "图文详情" },
 ] as const;
-const sectionFields = {
+type SectionId = (typeof sections)[number]["id"];
+const editSection = ref<SectionId>("basic");
+const sectionFields: Record<SectionId, readonly string[]> = {
   basic: [
     "title",
     "category",
@@ -127,9 +129,14 @@ const sectionFields = {
     "boardingPoints",
   ],
   detail: ["description"],
-} as const;
-function sectionErrorCount(section: (typeof sections)[number]["id"]) {
+  rich: [],
+};
+function sectionErrorCount(section: SectionId) {
   return sectionFields[section].filter((field) => errors.value[field]).length;
+}
+function selectSection(section: SectionId) {
+  if (section === "rich") void jumpToContent();
+  else editSection.value = section;
 }
 function moveGalleryImage(index: number, direction: -1 | 1) {
   const target = index + direction;
@@ -158,6 +165,24 @@ const identityLocked = computed(
   () =>
     identityLockedByServer.value || (current.value?.registeredCount ?? 0) > 0,
 );
+// 右侧预览跟随小程序活动卡片：分类 · 出发时间、标题、目的地、价格与余位。
+const previewDate = computed(() =>
+  fromShanghaiInput(fields.startAt)
+    ? `${fields.startAt.slice(5, 7)}月${fields.startAt.slice(8, 10)}日 ${fields.startAt.slice(11)} 出发`
+    : "时间待定",
+);
+const previewPrice = computed(() => {
+  const raw = priceYuan.value.trim();
+  const cents = parseDraftPrice(raw);
+  if (!cents) return raw && Number(raw) ? "价格待确认" : "免费参与";
+  return `¥${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")} / 人`;
+});
+const previewSeats = computed(() => {
+  const capacity = Number(fields.capacity);
+  return Number.isInteger(capacity) && capacity > 0
+    ? `余 ${Math.max(0, capacity - (current.value?.registeredCount ?? 0))} 位`
+    : "人数待定";
+});
 let alive = true;
 function assign(data: Activity) {
   current.value = data;
@@ -279,14 +304,12 @@ function writeError(e: unknown) {
       : errorMessage(e);
 }
 async function save() {
-  if (editSection.value === "rich") return;
+  // 图文编辑器位于表单内，已保存活动的图文板块不触发活动信息保存。
+  if (editSection.value === "rich" && id.value) return;
   if (saving.value || readonly.value || conflict.value || uncertainCreate.value)
     return;
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
   if (Object.keys(errors.value).length) {
-    if (errors.value.coverUrl || errors.value.galleryUrls)
-      showMedia.value = true;
-    if (errors.value.boardingPoints) showAdvanced.value = true;
     editSection.value =
       sections.find(({ id }) => sectionErrorCount(id))?.id ?? "basic";
     error.value = "请检查标记的内容后再保存。";
@@ -616,27 +639,9 @@ useForegroundRefresh(() => {
     </p>
     <UiState v-if="loading" kind="loading" compact>正在加载活动…</UiState>
     <form v-else-if="!id || current" @submit.prevent="save">
-      <nav v-if="!id" class="task-tabs" aria-label="编辑活动章节">
-        <button
-          v-for="section in sections"
-          :key="section.id"
-          type="button"
-          :class="editSection === section.id ? 'primary' : 'secondary'"
-          :aria-pressed="editSection === section.id"
-          @click="editSection = section.id"
-        >
-          {{ section.label }}
-          <span
-            v-if="sectionErrorCount(section.id)"
-            class="status-pill tone-danger"
-          >
-            {{ sectionErrorCount(section.id) }} 处待修正
-          </span>
-        </button>
-      </nav>
-      <div class="editor-grid" :class="{ 'existing-activity': id }">
-        <nav v-if="id" class="activity-section-nav" aria-label="活动编辑板块">
-          <h2>编辑板块</h2>
+      <div class="editor-grid activity-workbench">
+        <nav class="activity-section-nav" aria-label="活动板块">
+          <h2>活动板块</h2>
           <div class="activity-section-list">
             <button
               v-for="section in sections"
@@ -644,24 +649,18 @@ useForegroundRefresh(() => {
               type="button"
               class="secondary"
               :aria-pressed="editSection === section.id"
-              @click="editSection = section.id"
+              @click="selectSection(section.id)"
             >
-              {{ section.label }}
+              <span class="section-label">{{ section.label }}</span>
               <span
                 v-if="sectionErrorCount(section.id)"
-                class="status-pill tone-danger"
+                class="status-pill inline tone-danger"
               >
                 {{ sectionErrorCount(section.id) }} 处待修正
               </span>
-            </button>
-            <button
-              type="button"
-              class="secondary"
-              :aria-pressed="editSection === 'rich'"
-              @click="jumpToContent"
-            >
-              图文详情
-              <span v-if="contentEditor?.dirty" class="status-pill tone-warning"
+              <span
+                v-else-if="section.id === 'rich' && contentEditor?.dirty"
+                class="status-pill inline tone-warning"
                 >未保存</span
               >
             </button>
@@ -672,12 +671,13 @@ useForegroundRefresh(() => {
           <section v-show="editSection === 'basic'" class="form-section">
             <div class="section-title">
               <div>
-                <h2>{{ id ? "活动信息" : "基本信息" }}</h2>
+                <h2>基本信息</h2>
+                <p>标题、分类、封面和摘要会展示在小程序活动卡片上。</p>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
               <label
-                >活动标题 <span>*</span
+                >活动标题 <span class="required-mark">*</span
                 ><input
                   v-model="fields.title"
                   maxlength="100"
@@ -686,7 +686,7 @@ useForegroundRefresh(() => {
               >
               <div class="field-row">
                 <label
-                  >活动分类 <span>*</span
+                  >活动分类 <span class="required-mark">*</span
                   ><select v-model="fields.category">
                     <option
                       v-for="(label, key) in categories"
@@ -698,20 +698,9 @@ useForegroundRefresh(() => {
                   ><small class="field-error">{{
                     errors.category
                   }}</small></label
-                ><label v-if="!id" class="field checkbox-field"
-                  ><input
-                    v-model="fields.identityRequired"
-                    type="checkbox"
-                    :disabled="identityLocked"
-                  />
-                  {{
-                    identityLocked
-                      ? "核验身份证（已有名额占用，设置已锁定）"
-                      : "核验身份证（仅必要时开启，须说明用途）"
-                  }}</label
                 >
                 <label
-                  >人数上限 <span>*</span
+                  >人数上限 <span class="required-mark">*</span
                   ><input
                     v-model.number="fields.capacity"
                     type="number"
@@ -723,8 +712,23 @@ useForegroundRefresh(() => {
                   }}</small></label
                 >
               </div>
+              <label class="activity-identity field checkbox-field">
+                <input
+                  v-model="fields.identityRequired"
+                  type="checkbox"
+                  :disabled="identityLocked"
+                />
+                <span>
+                  <strong>核验身份证</strong>
+                  <small>{{
+                    identityLocked
+                      ? "已有名额占用，设置已锁定。"
+                      : "仅在活动确有需要时开启，并在活动说明中告知用途。"
+                  }}</small>
+                </span>
+              </label>
               <label
-                >活动摘要 <span>*</span
+                >活动摘要 <span class="required-mark">*</span
                 ><textarea
                   v-model="fields.summary"
                   rows="2"
@@ -732,26 +736,7 @@ useForegroundRefresh(() => {
                   placeholder="活动简介"
                 /><small class="field-error">{{ errors.summary }}</small></label
               >
-              <button
-                v-if="id"
-                type="button"
-                class="secondary section-disclosure"
-                aria-controls="activity-media-options"
-                :aria-expanded="showMedia"
-                @click="showMedia = !showMedia"
-              >
-                <AppIcon name="chevron-down" :size="16" /> 封面与图片
-                <span
-                  v-if="errors.coverUrl || errors.galleryUrls"
-                  class="status-pill tone-danger"
-                  >待修正</span
-                >
-              </button>
-              <div
-                v-show="!id || showMedia"
-                id="activity-media-options"
-                class="activity-media"
-              >
+              <div id="activity-media-options" class="activity-media">
                 <div class="activity-cover-row">
                   <img
                     v-if="fields.coverUrl"
@@ -760,7 +745,7 @@ useForegroundRefresh(() => {
                     alt="封面预览"
                   />
                   <div class="activity-cover-controls">
-                    <h3>活动封面</h3>
+                    <h3>活动封面 <span class="required-mark">*</span></h3>
                     <p class="media-hint">
                       用于活动列表和详情页。支持 JPG / PNG，超限会自动压缩。
                     </p>
@@ -859,6 +844,7 @@ useForegroundRefresh(() => {
             <div class="section-title">
               <div>
                 <h2>时间与地点</h2>
+                <p>时间均为北京时间；上车点在「上车点设置」中维护。</p>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
@@ -889,7 +875,7 @@ useForegroundRefresh(() => {
                 required
               />
               <label
-                >活动目的地 <span>*</span
+                >活动目的地 <span class="required-mark">*</span
                 ><input
                   v-model="fields.location"
                   maxlength="200"
@@ -900,7 +886,7 @@ useForegroundRefresh(() => {
               ><label
                 v-if="!fields.boardingPoints.length || fields.meetingPoint"
               >
-                >具体集合地点 <span>*</span
+                具体集合地点 <span class="required-mark">*</span
                 ><input
                   v-model="fields.meetingPoint"
                   maxlength="200"
@@ -909,48 +895,14 @@ useForegroundRefresh(() => {
                   errors.meetingPoint
                 }}</small></label
               >
-              <button
-                v-if="id"
-                type="button"
-                class="secondary section-disclosure"
-                aria-controls="activity-advanced-options"
-                :aria-expanded="showAdvanced"
-                @click="showAdvanced = !showAdvanced"
-              >
-                <AppIcon name="chevron-down" :size="16" /> 上车点与证件设置
-                <span
-                  v-if="errors.boardingPoints"
-                  class="status-pill tone-danger"
-                  >待修正</span
-                >
-              </button>
-              <div
-                v-show="!id || showAdvanced"
-                id="activity-advanced-options"
-                class="activity-advanced"
-              >
+              <div id="activity-advanced-options" class="activity-advanced">
                 <BoardingPointsField
-                  v-if="id ? showAdvanced : editSection === 'schedule'"
+                  v-if="editSection === 'schedule'"
                   v-model="fields.boardingPoints"
                   v-model:navigation="fields.navigationPoints"
                   :disabled="saving || readonly"
                   :error="errors.boardingPoints"
                 />
-                <label v-if="id" class="activity-identity field checkbox-field">
-                  <input
-                    v-model="fields.identityRequired"
-                    type="checkbox"
-                    :disabled="identityLocked"
-                  />
-                  <span>
-                    <strong>核验身份证</strong>
-                    <small>{{
-                      identityLocked
-                        ? "已有名额占用，设置已锁定。"
-                        : "仅在活动确有需要时开启，并在活动说明中告知用途。"
-                    }}</small>
-                  </span>
-                </label>
               </div>
             </fieldset>
           </section>
@@ -958,14 +910,15 @@ useForegroundRefresh(() => {
             <div class="section-title">
               <div>
                 <h2>活动详情</h2>
+                <p>纯文本活动说明；图片和表格请使用图文详情。</p>
               </div>
             </div>
             <fieldset :disabled="saving || readonly">
               <label
-                >活动说明（纯文本） <span>*</span
+                >活动说明（纯文本） <span class="required-mark">*</span
                 ><textarea
                   v-model="fields.description"
-                  :rows="id ? 6 : 13"
+                  rows="10"
                   maxlength="20000"
                   placeholder="填写行程、路线难度、装备及安全提示"
                 /><small class="field-error">{{
@@ -979,7 +932,7 @@ useForegroundRefresh(() => {
                 <p>
                   {{
                     id
-                      ? "编排行程文字、路线图片和表格。"
+                      ? "编排行程文字、路线图片和表格，与活动信息分别保存。"
                       : "保存活动后，可添加图片和表格。"
                   }}
                 </p>
@@ -1068,31 +1021,64 @@ useForegroundRefresh(() => {
               </div>
             </footer>
           </section>
-        </div>
-        <aside class="editor-aside">
-          <section class="preview-card">
-            <h2 v-if="id" class="preview-label">小程序活动卡片预览</h2>
-            <div class="preview-image">
-              <img
-                v-if="fields.coverUrl"
-                :src="fields.coverUrl"
-                alt="活动封面预览"
-                referrerpolicy="no-referrer"
-              /><span v-else>封面预览</span>
+          <section
+            v-else
+            v-show="editSection === 'rich'"
+            class="form-section activity-rich-pending"
+          >
+            <div class="section-title">
+              <div>
+                <h2 id="activity-rich-heading" tabindex="-1">图文详情</h2>
+                <p>编排行程文字、路线图片和表格，也可粘贴公众号排版。</p>
+              </div>
             </div>
-            <div class="preview-copy">
-              <p class="card-category">{{ categories[fields.category] }}</p>
-              <h3>{{ fields.title || "活动名称" }}</h3>
-              <p>
-                {{ fields.summary || "活动简介" }}
-              </p>
-              <span
-                ><AppIcon name="location" :size="14" />
-                {{ fields.location || "目的地" }}</span
-              >
+            <div class="activity-content-entry">
+              <div>
+                <strong>保存活动后可编辑图文详情</strong>
+                <p>
+                  先填写各板块并保存草稿，再回到这里添加图片和表格。图文与活动信息分别保存。
+                </p>
+              </div>
             </div>
           </section>
-          <div v-show="editSection !== 'rich'" class="editor-tip">
+        </div>
+        <aside class="editor-aside" aria-label="活动预览与报名价格">
+          <section class="preview-card" aria-label="小程序活动卡片预览">
+            <h2 class="preview-label">小程序活动卡片预览</h2>
+            <div class="preview-stage">
+              <div class="preview-image">
+                <img
+                  v-if="fields.coverUrl"
+                  :src="fields.coverUrl"
+                  alt="活动封面预览"
+                  referrerpolicy="no-referrer"
+                /><span v-else>封面预览</span>
+              </div>
+              <div class="preview-copy">
+                <p class="card-category">
+                  {{ categories[fields.category]
+                  }}<span>{{ previewDate }}</span>
+                </p>
+                <h3>{{ fields.title || "活动名称" }}</h3>
+                <p>
+                  {{ fields.summary || "活动简介" }}
+                </p>
+                <span
+                  ><AppIcon name="location" :size="14" />
+                  {{ fields.location || "目的地" }}</span
+                >
+                <div class="preview-footer">
+                  <strong>{{ previewPrice }}</strong>
+                  <span>{{ previewSeats }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+          <div
+            v-show="editSection !== 'rich' || !id"
+            class="editor-tip"
+            aria-label="报名价格"
+          >
             <h2>报名价格</h2>
             <label
               >报名原价（元 / 人）<input
@@ -1133,14 +1119,16 @@ useForegroundRefresh(() => {
           </div>
         </aside>
       </div>
-      <div v-show="editSection !== 'rich'" class="editor-actions">
+      <div v-show="editSection !== 'rich' || !id" class="editor-actions">
         <span class="footer-status"
           >{{
             readonly
               ? "已取消的活动只读"
               : dirty
                 ? "● 有尚未保存的修改"
-                : "内容已保存"
+                : current
+                  ? "内容已保存"
+                  : "尚未保存"
           }}{{ current ? ` · 版本 ${current.version}` : "" }}</span
         >
         <div class="footer-actions">
@@ -1204,21 +1192,14 @@ useForegroundRefresh(() => {
   />
 </template>
 <style scoped>
-.existing-activity {
-  grid-template-columns: 166px minmax(0, 1fr) 236px;
+/* 新建与编辑共用同一工作台：左侧板块导航、中间板块内容、右侧实时预览。 */
+.editor-grid.activity-workbench {
+  grid-template-columns: 184px minmax(0, 1fr) 248px;
   gap: 16px;
   align-items: start;
 }
-.existing-activity .editor-main,
-.existing-activity .editor-aside {
+.activity-workbench > * {
   min-width: 0;
-}
-.existing-activity .editor-aside {
-  display: grid;
-  gap: 12px;
-}
-.existing-activity .editor-aside .editor-tip {
-  margin-top: 0;
 }
 .activity-section-nav {
   position: sticky;
@@ -1227,6 +1208,7 @@ useForegroundRefresh(() => {
   border: 1px solid var(--rf-line);
   border-radius: 12px;
   background: var(--rf-surface);
+  box-shadow: var(--rf-shadow-sm);
 }
 .activity-section-nav h2 {
   margin: 0 0 10px;
@@ -1242,11 +1224,15 @@ useForegroundRefresh(() => {
   --button-border: transparent;
   --button-background: transparent;
   width: 100%;
-  justify-content: flex-start;
-  gap: 6px;
-  padding-inline: 8px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  padding-inline: 10px;
   white-space: normal;
   text-align: start;
+}
+.activity-section-list button:hover {
+  --button-hover: var(--rf-info-bg);
 }
 .activity-section-list button[aria-pressed="true"] {
   --button-background: var(--rf-soft);
@@ -1254,37 +1240,95 @@ useForegroundRefresh(() => {
   --button-color: var(--rf-primary-text);
   font-weight: 680;
 }
-.existing-activity .preview-card {
-  display: block;
+/* 板块名称不折行，角标放不下时整体换到下一行。 */
+.activity-section-list .section-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+.activity-section-list .status-pill {
+  padding: 2px 8px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.activity-workbench .editor-aside {
+  display: grid;
+  gap: 12px;
+}
+.activity-workbench .editor-tip {
+  margin-top: 0;
+}
+.preview-card {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  background: var(--rf-bg);
 }
 .preview-label {
   margin: 0;
-  padding: 10px 12px;
   color: var(--rf-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
+  text-align: center;
 }
-.existing-activity .activity-rich-card {
+.preview-stage {
+  overflow: hidden;
+  border: 1px solid var(--rf-line);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: var(--rf-shadow-sm);
+}
+.preview-card .card-category {
+  font-size: 11px;
+}
+.preview-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rf-line);
+}
+.preview-footer strong {
+  color: var(--rf-primary-text);
+  font-size: 14px;
+}
+.preview-footer span {
+  color: var(--rf-muted);
+  font-size: 12px;
+}
+.activity-workbench .activity-rich-card {
   margin: 0;
   padding: 16px;
 }
-@media (max-width: 1250px) {
-  .existing-activity {
-    grid-template-columns: 158px minmax(0, 1fr);
+.activity-rich-pending h2 {
+  scroll-margin-block: 24px;
+}
+.activity-rich-pending .activity-content-entry {
+  margin-top: 0;
+}
+/* 中间栏窄于约 575px 时日期控件会被截断，改为两栏并把预览与价格移到表单下方。 */
+@media (max-width: 1359px) {
+  .editor-grid.activity-workbench {
+    grid-template-columns: 168px minmax(0, 1fr);
   }
-  .existing-activity .editor-aside {
+  .activity-workbench .editor-aside {
     grid-column: 2;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
     align-items: start;
   }
 }
 @media (max-width: 820px) {
-  .existing-activity {
+  .editor-grid.activity-workbench {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
-  .existing-activity .editor-aside {
+  .activity-workbench .editor-aside {
     grid-column: 1;
+  }
+  .activity-workbench .preview-card {
+    display: none;
   }
   .activity-section-nav {
     position: static;
@@ -1295,15 +1339,6 @@ useForegroundRefresh(() => {
   .activity-section-list button {
     min-height: 40px;
   }
-}
-
-.section-disclosure {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.section-disclosure[aria-expanded="true"] :deep(svg) {
-  transform: rotate(180deg);
 }
 
 .activity-media,
@@ -1336,6 +1371,9 @@ useForegroundRefresh(() => {
   margin: 0;
   color: var(--rf-ink);
   font-size: 14px;
+}
+.activity-media h3 > span:not(.required-mark) {
+  color: var(--admin-muted);
 }
 .activity-media h3 small {
   margin-inline-start: 5px;
@@ -1388,9 +1426,8 @@ useForegroundRefresh(() => {
 .activity-advanced :deep(fieldset) {
   min-inline-size: 0;
   margin: 0;
-  padding: 0 0 12px;
+  padding: 0;
   border: 0;
-  border-bottom: 1px solid var(--rf-line);
   border-radius: 0;
   background: transparent;
 }
@@ -1409,12 +1446,19 @@ useForegroundRefresh(() => {
 }
 .activity-identity {
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--rf-line);
+  border-radius: 10px;
+  background: var(--rf-surface-subtle);
 }
 .activity-identity strong,
 .activity-identity small {
   display: block;
+}
+.activity-identity strong {
+  color: var(--rf-ink);
 }
 .activity-identity small {
   margin-top: 3px;

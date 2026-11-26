@@ -10,7 +10,7 @@ import {
 } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Activity, Page } from "../types";
-import { articleStatusTone } from "../statusTone";
+import { articleStatusLabel, articleStatusTone } from "../statusTone";
 import AppIcon from "../components/AppIcon.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import MarkdownEditor from "../components/MarkdownEditor.vue";
@@ -25,6 +25,7 @@ type Article = {
   coverUrl: string;
   activityId: string | null;
   status: "DRAFT" | "PUBLISHED";
+  publishedAt?: string | null;
   isOfficial: boolean;
   version: number;
 };
@@ -428,7 +429,7 @@ useForegroundRefresh(() => {
             class="status-pill inline"
             :class="`tone-${articleStatusTone(current.status)}`"
           >
-            {{ current.status === "PUBLISHED" ? "已发布" : "草稿" }}
+            {{ articleStatusLabel(current) }}
           </span>
           <span
             v-if="current.isOfficial"
@@ -453,7 +454,9 @@ useForegroundRefresh(() => {
         <section class="article-writing-panel" aria-label="文章写作区">
           <div class="article-title-field">
             <div class="article-field-meta">
-              <label for="article-title">文章标题 <span>*</span></label>
+              <label for="article-title"
+                >文章标题 <span class="required-mark">*</span></label
+              >
               <small>{{ form.title.length }} / 120</small>
             </div>
             <textarea
@@ -563,7 +566,7 @@ useForegroundRefresh(() => {
                 }}
               </p>
               <button
-                v-if="!form.activityId && sourceMore"
+                v-if="sourceMore"
                 type="button"
                 class="text-button"
                 :disabled="saving || sourceBusy"
@@ -587,7 +590,7 @@ useForegroundRefresh(() => {
                   ? "修改与正文一起发布；保存前，小程序仍展示线上版本。"
                   : id
                     ? "发布前请确认标题、摘要、封面和正文完整。"
-                    : "草稿仅管理员可见，可随时回来继续写。"
+                    : "先保存草稿，再点「发布」才会公开。草稿仅管理员可见。"
               }}
             </p>
             <div class="article-publish-meta">
@@ -606,7 +609,9 @@ useForegroundRefresh(() => {
         class="footer-status article-save-hint is-dirty"
         role="status"
         >{{
-          isPublished ? "修改待发布 · 小程序仍展示线上版本" : "有未保存修改"
+          isPublished
+            ? "修改待发布 · 小程序仍展示线上版本"
+            : "有未保存修改 · 保存后才能发布"
         }}</span
       >
       <span

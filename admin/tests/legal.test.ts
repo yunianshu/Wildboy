@@ -93,7 +93,9 @@ describe("legal management", () => {
   });
   it("previews and saves a contact-only draft without publishing", async () => {
     const { wrapper, fetch } = await render();
-    await wrapper.get(".legal-contact-field textarea").setValue("service@example.test");
+    await wrapper
+      .get(".legal-contact-field textarea")
+      .setValue("service@example.test");
     expect(button(wrapper, "发布新版本").attributes("disabled")).toBeDefined();
     await button(wrapper, "预览草稿").trigger("click");
     expect(wrapper.get("article").text()).toContain("service@example.test");

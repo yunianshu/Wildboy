@@ -418,7 +418,9 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     expect(titleInput.attributes("disabled")).toBeUndefined();
 
     await w
-      .get('button[aria-controls="activity-advanced-options"]')
+      .get(".activity-section-nav")
+      .findAll("button")
+      .find((button) => button.text() === "时间与地点")!
       .trigger("click");
     await flushPromises();
     const stop = w.get<HTMLInputElement>(".point-choice input");

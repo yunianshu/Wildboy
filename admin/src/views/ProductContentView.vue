@@ -103,7 +103,7 @@ onUnmounted(() => {
               product.status === 'ON_SALE' ? 'tone-success' : 'tone-neutral'
             "
           >
-            {{ product.status === "ON_SALE" ? "销售中" : "已下架" }}
+            {{ product.status === "ON_SALE" ? "上架" : "下架" }}
           </span>
         </div>
         <p>完善商品信息与详情，让用户快速了解并放心选择。</p>
@@ -122,9 +122,7 @@ onUnmounted(() => {
     <div v-else-if="product" class="product-editor-layout">
       <nav class="product-section-nav" aria-label="商品编辑分区">
         <button type="button" @click="scrollToSection('product-basic')">
-          <span class="product-step-number"
-            ><AppIcon name="check" :size="14"
-          /></span>
+          <span class="product-step-number">01</span>
           <span><strong>商品信息</strong><small>图片、价格与库存</small></span>
         </button>
         <button
@@ -180,7 +178,7 @@ onUnmounted(() => {
           </div>
           <dl class="product-facts">
             <div>
-              <dt>销售价</dt>
+              <dt>现价</dt>
               <dd class="product-price">{{ money(product.priceCents) }}</dd>
             </div>
             <div>

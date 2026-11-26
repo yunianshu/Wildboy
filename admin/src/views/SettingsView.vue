@@ -68,8 +68,7 @@ async function saveOrderPath() {
       { method: "PUT", body: JSON.stringify({ path }) },
     );
     if (!result.attempted) {
-      pathError.value =
-        "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      pathError.value = "微信订单能力未启用，请联系部署管理员开通后再查询。";
       return;
     }
     if (result.errcode !== 0) {
@@ -114,8 +113,7 @@ async function saveJumpPath() {
       { method: "PUT", body: JSON.stringify({ path }) },
     );
     if (!result.attempted) {
-      jumpError.value =
-        "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      jumpError.value = "微信订单能力未启用，请联系部署管理员开通后再查询。";
       return;
     }
     if (result.errcode !== 0) {
@@ -212,8 +210,7 @@ async function loadWechatPage(
     }>(`/admin/wechat-order-center/wechat-orders?${params.toString()}`);
     if (actor !== currentUser.value) return;
     if (!result.attempted) {
-      wxError.value =
-        "服务端未启用微信订单能力（检查 WILDBOY_SHIPPING_ENABLED 与小程序配置）。";
+      wxError.value = "微信订单能力未启用，请联系部署管理员开通后再查询。";
       return;
     }
     if (result.errcode !== 0) {
@@ -466,7 +463,6 @@ useForegroundRefresh(() => {
               wxEnd = '';
               wxState = '';
               wxOpenid = '';
-              queryWechatOrders();
             "
           >
             重置

@@ -4,6 +4,7 @@ import {
   fromShanghaiInput,
   validateActivity,
   imageUrlValid,
+  displayDate,
 } from "../src/forms";
 import type { ActivityInput } from "../src/types";
 const valid: ActivityInput = {
@@ -32,6 +33,13 @@ describe("Shanghai date boundaries", () => {
     "rejects invalid time %s",
     (v) => expect(fromShanghaiInput(v)).toBe(""),
   );
+  it("shows the year only when the caller needs it", () => {
+    expect(displayDate("2027-01-01T09:00:00+08:00")).toBe("01/01 09:00");
+    expect(displayDate("2027-01-01T09:00:00+08:00", true)).toBe(
+      "2027/01/01 09:00",
+    );
+    expect(displayDate("not-a-date", true)).toBe("—");
+  });
 });
 describe("activity form validation", () => {
   it("accepts valid free activity", () =>

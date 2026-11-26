@@ -180,7 +180,7 @@ async function save() {
     editing.value = false;
     form.value = emptyForm();
     baseline.value = JSON.stringify(form.value);
-    notice.value = `分类「${result.name}」已保存，商品与历史订单保留。`;
+    notice.value = `分类「${result.name}」已保存。`;
     busy.value = false;
     void load();
   } catch (reason) {

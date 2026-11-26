@@ -538,8 +538,13 @@ function maybeInit() {
   });
 }
 function syncDirty() {
-  if (!applying && loaded.value && vditor)
+  if (applying || !loaded.value || !vditor) return;
+  // Vditor 实例在 after 回调前还没完成初始化，此时读取正文会抛错并中断路由导航。
+  try {
     dirty.value = editorValue() !== markdown;
+  } catch {
+    // 编辑器尚未就绪，没有可同步的修改。
+  }
 }
 function validateLength() {
   if (props.components && editorValue().length > articleLimit) {

@@ -137,9 +137,6 @@ async function logout() {
           ><strong>WILDBOY</strong><small>野小子运营中心</small></span
         >
       </RouterLink>
-      <div class="sidebar-status">
-        <span></span>运营系统在线<small>PRO</small>
-      </div>
       <nav class="sidebar-nav" aria-label="管理页面">
         <div
           v-for="(group, groupIndex) in navigation"
@@ -212,13 +209,13 @@ async function logout() {
 <style scoped>
 .sidebar-group {
   display: grid;
-  gap: 3px;
-  margin-bottom: 10px;
+  gap: 2px;
+  margin-bottom: 6px;
 }
 .sidebar-group-label {
   display: flex;
   justify-content: space-between;
-  margin: 6px 0 4px;
+  margin: 4px 0 2px;
   padding-inline: 12px;
   color: #96b0a1;
   font-size: 11px;

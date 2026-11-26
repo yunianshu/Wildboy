@@ -283,7 +283,12 @@ describe("activity order management", () => {
       refundId: "r1",
       version: 4,
     });
-    expect(wrapper.text()).toContain("订单资料已更新，请核对后继续。");
+    // 自动重新加载后，仍要说明刚才的批准没有提交以及原因。
+    const conflictNotice = wrapper.get('[role="dialog"] [role="alert"]');
+    expect(conflictNotice.text()).toContain("刚才的操作没有提交");
+    expect(conflictNotice.text()).toContain("原退款申请已被替换");
+    expect(conflictNotice.text()).toContain("已重新加载最新资料");
+    expect(wrapper.text()).not.toContain("订单资料已更新，请核对后继续。");
     expect(wrapper.text()).toContain("新申请原因");
     expect(writes()).toHaveLength(1);
     await button("批准全额退款").trigger("click");

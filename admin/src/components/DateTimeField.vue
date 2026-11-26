@@ -166,6 +166,8 @@ function apply() {
         class="time-preset"
         :class="{ 'is-active': timePart === preset }"
         :aria-pressed="timePart === preset"
+        :disabled="!datePart"
+        :title="datePart ? undefined : '请先选择日期'"
         @click="timePart = preset"
       >
         {{ preset }}
@@ -334,7 +336,8 @@ function apply() {
   color: var(--admin-body);
 }
 .required-mark {
-  color: var(--admin-muted);
+  color: var(--rf-danger);
+  font-weight: 600;
 }
 .datetime-inputs {
   display: grid;

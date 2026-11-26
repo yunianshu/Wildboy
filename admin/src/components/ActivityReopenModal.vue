@@ -108,7 +108,7 @@ async function submit() {
 <template>
   <FormModal v-if="activity" :busy="saving" @close="!saving && emit('close')">
     <div class="reopen-modal">
-      <h2>复制活动</h2>
+      <h2>复制活动，开新一期</h2>
       <p class="muted">
         沿用「{{ activity.title }}」的图文、地点和价格。新一期单独接收报名。
       </p>

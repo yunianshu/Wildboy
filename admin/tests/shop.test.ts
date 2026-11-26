@@ -228,6 +228,41 @@ describe("shop administration", () => {
     expect(wrapper.text()).toContain("厦门市测试地址");
     wrapper.unmount();
   });
+  it("filters off-shelf products by the real status and flags zero-stock listings", async () => {
+    const offShelf = {
+      ...product,
+      id: "product-2",
+      name: "旧款水壶",
+      status: "OFF_SHELF",
+    };
+    const soldOut = { ...product, id: "product-3", name: "售罄帐篷", stock: 0 };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (path: string) => ({
+        ok: true,
+        status: 200,
+        json: async () =>
+          path.includes("/admin/shop/products")
+            ? [product, offShelf, soldOut]
+            : path.includes("/categories")
+              ? []
+              : { ...orderPage, items: [] },
+      })),
+    );
+    const wrapper = mount(ShopView, { global: { stubs: { teleport: true } } });
+    await flushPromises();
+    // 上架但库存为 0 的商品买不了，列表要能看出来。
+    expect(wrapper.text()).toContain("缺货，无法下单");
+    await wrapper.get('select[aria-label="销售状态"]').setValue("OFF_SHELF");
+    await flushPromises();
+    const rows = wrapper.findAll("#shop-products tbody tr");
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.text()).toContain("旧款水壶");
+    expect(rows[0]?.text()).toContain("下架");
+    await wrapper.get('select[aria-label="销售状态"]').setValue("ON_SALE");
+    expect(wrapper.findAll("#shop-products tbody tr")).toHaveLength(2);
+    wrapper.unmount();
+  });
   it("shows free-confirmed orders without fake payment and permits fulfillment", async () => {
     const free = {
       ...order,
@@ -279,6 +314,10 @@ describe("shop administration", () => {
     ).not.toContain("确认发货");
     await click(wrapper, "确认发货");
     const dialog = wrapper.get('[role="dialog"]');
+    // 发货确认框要能看出是哪个订单、发给谁、发什么。
+    expect(dialog.text()).toContain(free.orderNo);
+    expect(dialog.text()).toContain(free.recipientName);
+    expect(dialog.text()).toContain("徒步背包 × 1");
     await dialog
       .findAll("button")
       .find((b) => b.text() === "确认发货")!

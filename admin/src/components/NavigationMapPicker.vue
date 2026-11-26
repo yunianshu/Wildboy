@@ -10,7 +10,11 @@ import {
 } from "../navigation-map";
 
 const props = defineProps<{ initial?: Coordinate }>();
-const emit = defineEmits<{ close: []; manual: []; select: [place: MapPlace] }>();
+const emit = defineEmits<{
+  close: [];
+  manual: [];
+  select: [place: MapPlace];
+}>();
 const frame = ref<HTMLIFrameElement>();
 const url = pickerUrl(props.initial);
 

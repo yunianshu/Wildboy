@@ -289,7 +289,7 @@ useForegroundRefresh(() => {
             </td>
             <td data-label="分类">{{ categories[item.category] }}</td>
             <td data-label="出发时间" class="activity-date">
-              {{ displayDate(item.startAt) }}
+              {{ displayDate(item.startAt, true) }}
             </td>
             <td data-label="价格" class="activity-price">
               {{
@@ -328,12 +328,20 @@ useForegroundRefresh(() => {
               ><button
                 type="button"
                 class="table-action button-link"
+                title="沿用图文、地点和价格，开新的一期"
                 @click="reopenTarget = item"
               >
                 复制活动</button
-              ><RouterLink :to="rosterLink(item)" class="table-action">{{
-                item.priceCents > 0 ? "订单" : "名单"
-              }}</RouterLink>
+              ><RouterLink
+                :to="rosterLink(item)"
+                class="table-action"
+                :title="
+                  item.priceCents > 0
+                    ? '收费活动的名单与订单在「活动订单」中查看'
+                    : '查看报名名单'
+                "
+                >{{ item.priceCents > 0 ? "订单" : "名单" }}</RouterLink
+              >
             </td>
           </tr>
         </tbody>
@@ -456,6 +464,17 @@ useForegroundRefresh(() => {
   vertical-align: middle;
   padding: 14px 12px;
 }
+/* 短字段不折行，把宽度让给活动名，避免“户外活/动”“已发/布”。 */
+.activity-table td[data-label="分类"],
+.activity-table td[data-label="状态"],
+.activity-table .activity-price,
+.activity-table .activity-capacity,
+.activity-table .status-pill {
+  white-space: nowrap;
+}
+.activity-cell > div {
+  min-width: 0;
+}
 .activity-cell {
   display: flex;
   align-items: center;
@@ -503,8 +522,9 @@ useForegroundRefresh(() => {
   white-space: nowrap;
 }
 .activity-date {
-  min-width: 140px;
+  min-width: 150px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .activity-pending {
   display: block;

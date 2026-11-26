@@ -1809,9 +1809,11 @@ onUnmounted(() => {
 .switch-inline {
   display: inline-flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 4px;
   font-size: 12px;
   margin: 0;
+  white-space: nowrap;
 }
 .module-move {
   display: flex;

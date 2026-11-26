@@ -222,7 +222,7 @@ useForegroundRefresh(() => {
             <th role="columnheader">来源</th>
             <th role="columnheader">类型</th>
             <th role="columnheader">状态</th>
-            <th role="columnheader">尝试</th>
+            <th role="columnheader">尝试次数</th>
             <th role="columnheader">最近结果</th>
             <th role="columnheader">上报时间</th>
             <th role="columnheader" v-if="showActions" scope="col">操作</th>

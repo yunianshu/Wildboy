@@ -80,10 +80,12 @@ export function validateActivity(input: ActivityInput, registered = 0) {
   if (input.priceCents !== 0) errors.priceCents = "请在报名价格区设置金额";
   return errors;
 }
-export function displayDate(value: string) {
+export function displayDate(value: string, withYear = false) {
   if (!Number.isFinite(Date.parse(value))) return "—";
   return new Intl.DateTimeFormat("zh-CN", {
     timeZone: "Asia/Shanghai",
+    // 活动可能跨年，列表等场景需要带上年份。
+    ...(withYear ? { year: "numeric" as const } : {}),
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",

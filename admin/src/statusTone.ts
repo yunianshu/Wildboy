@@ -37,6 +37,15 @@ export function articleStatusTone(status: string): Tone {
   return status === "PUBLISHED" ? "success" : "neutral";
 }
 
+// 下架后的文章服务端仍返回 DRAFT，但保留 publishedAt；据此与从未发布的草稿区分。
+export function articleStatusLabel(article: {
+  status: string;
+  publishedAt?: string | null;
+}) {
+  if (article.status === "PUBLISHED") return "已发布";
+  return article.publishedAt ? "已下架" : "草稿";
+}
+
 export function notificationTone(status: string): Tone {
   if (status === "SENT") return "success";
   if (status === "FAILED") return "danger";

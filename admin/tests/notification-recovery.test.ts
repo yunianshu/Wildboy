@@ -286,3 +286,19 @@ it("discards a restored-subscription retry when the operator changes", async () 
   expect(f.mock.calls.filter(([, o]) => !o?.method)).toHaveLength(2);
   w.unmount();
 });
+it("explains the configuration state even when the queue is empty", async () => {
+  const f = vi.fn(async (path: string) =>
+    ok(
+      path.endsWith("/notifications/config")
+        ? { ready: false, templateId: "" }
+        : { items: [], page: 0, hasMore: false },
+    ),
+  );
+  vi.stubGlobal("fetch", f);
+  const w = mount(NotificationsView, { global: { stubs: { teleport: true } } });
+  await flushPromises();
+  expect(w.text()).toContain("暂无通知");
+  expect(w.text()).toContain("活动取消、报名变动等消息会自动出现在这里");
+  expect(w.text()).toContain("报名与活动变更的通知不会发送");
+  w.unmount();
+});

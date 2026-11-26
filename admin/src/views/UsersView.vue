@@ -475,9 +475,7 @@ useForegroundRefresh(() => {
           {{ label }}
         </option>
       </select>
-      <button type="submit" class="secondary" :disabled="loading">
-        查询用户
-      </button>
+      <button type="submit" class="secondary" :disabled="loading">查询</button>
       <button
         v-if="hasFilters && (items.length || error)"
         type="button"
@@ -807,7 +805,7 @@ useForegroundRefresh(() => {
       </div>
       <div class="dialog-actions">
         <button
-          class="primary"
+          class="secondary"
           :disabled="interactionLocked"
           @click="closeUser"
         >

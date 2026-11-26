@@ -331,7 +331,18 @@ useForegroundRefresh(() => {
       </nav>
     </div>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
-    <p v-if="errors" class="error-box" role="alert">{{ errors }}</p>
+    <p v-if="errors" class="error-box" role="alert">
+      {{ errors }}
+      <button
+        type="button"
+        class="text-button"
+        :disabled="loading"
+        @click="load(page)"
+      >
+        重试
+      </button>
+    </p>
+    <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
     <template v-if="tab === 'overview'">
       <template v-if="data">
         <section class="operations-hero">
@@ -364,6 +375,7 @@ useForegroundRefresh(() => {
                   >{{ data.activities.full }} /
                   {{ data.activities.total }}</strong
                 >
+                <small>满员 / 已发布</small>
               </div>
             </div>
             <p v-if="data.activities.occupied != null" class="metric-note">
@@ -726,7 +738,6 @@ useForegroundRefresh(() => {
       label="运营记录分页"
       @change="load"
     />
-    <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
   </main>
 </template>
 <style scoped>
@@ -905,14 +916,26 @@ useForegroundRefresh(() => {
 }
 .metric .text-button {
   min-height: 0;
-  padding: 0;
+  padding: 6px 0;
+  margin: -6px 0;
   font-size: inherit;
   line-height: inherit;
 }
 .metric a,
 .metric .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 0;
+  margin: -6px 0;
   color: var(--rf-primary-text);
   text-underline-offset: 3px;
+}
+/* 指标标题可点击跳转：用负外边距扩大热区，并用箭头提示可点。 */
+.metric a::after,
+.metric .text-button::after {
+  content: "→";
+  font-size: 12px;
 }
 .metric a:hover,
 .metric .text-button:hover {

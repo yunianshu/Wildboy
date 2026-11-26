@@ -414,9 +414,14 @@ useForegroundRefresh(() => {
         <p class="legal-preview-text">
           {{ selected ? selected.content : content || "未填写正文" }}
         </p>
-        <section v-if="selected ? selected.contact : contact.trim()" class="legal-contact-preview">
+        <section
+          v-if="selected ? selected.contact : contact.trim()"
+          class="legal-contact-preview"
+        >
           <h3>联系方式</h3>
-          <p class="legal-preview-text">{{ selected ? selected.contact : contact.trim() }}</p>
+          <p class="legal-preview-text">
+            {{ selected ? selected.contact : contact.trim() }}
+          </p>
         </section>
       </article>
     </FormModal>
@@ -581,9 +586,15 @@ useForegroundRefresh(() => {
     min-height: max(22rem, calc(100dvh - 360px));
   }
 }
-.legal-contact-field textarea { min-height: 5rem; }
-.legal-contact-preview { margin-top: 20px; }
-.legal-contact-preview h3 { margin-bottom: 4px; }
+.legal-contact-field textarea {
+  min-height: 5rem;
+}
+.legal-contact-preview {
+  margin-top: 20px;
+}
+.legal-contact-preview h3 {
+  margin-bottom: 4px;
+}
 @media (max-width: 760px) {
   .legal-layout {
     grid-template-columns: minmax(0, 1fr);

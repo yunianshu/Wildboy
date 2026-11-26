@@ -50,14 +50,18 @@ const configMessage = computed(() => {
   const hasUnsubscribed = items.value.some(
     (item) => item.status === "NO_PERMISSION",
   );
-  if (config.value === "error" && (hasUnconfigured || hasUnsubscribed)) {
-    return "暂无法核对微信消息配置";
-  }
-  if (config.value === "missing" && (hasUnconfigured || hasUnsubscribed)) {
+  // 队列为空时也要说明配置状态，否则无法区分“没有通知”和“通知发不出去”。
+  const relevant = hasUnconfigured || hasUnsubscribed || !items.value.length;
+  if (config.value === "error" && relevant)
+    return hasUnconfigured || hasUnsubscribed
+      ? "暂无法核对微信消息配置"
+      : "暂无法核对微信消息配置，请稍后刷新。";
+  if (config.value === "missing" && relevant)
     return hasUnconfigured
       ? "微信订阅消息尚未配置，完成部署配置后可重新排队。"
-      : "微信订阅消息尚未配置。";
-  }
+      : hasUnsubscribed
+        ? "微信订阅消息尚未配置。"
+        : "微信订阅消息尚未配置，报名与活动变更的通知不会发送。";
   return "";
 });
 function clear() {
@@ -229,7 +233,7 @@ useForegroundRefresh(() => {
 </script>
 <template>
   <main class="workspace">
-    <header class="page-heading"><h1>活动通知</h1></header>
+    <header class="page-heading"><h1>消息管理</h1></header>
     <div
       class="notification-filters task-tabs"
       role="group"
@@ -280,6 +284,9 @@ useForegroundRefresh(() => {
     >
     <UiState v-else-if="!items.length && !error" kind="empty" compact>
       {{ filter ? `没有「${labels[filter]}」的通知` : "暂无通知" }}
+      <span v-if="!filter" class="empty-hint"
+        >活动取消、报名变动等消息会自动出现在这里。</span
+      >
     </UiState>
     <div v-if="items.length" class="table-scroll" :aria-busy="busy">
       <table class="notification-table" role="table" aria-label="活动通知列表">
@@ -375,7 +382,12 @@ useForegroundRefresh(() => {
 </template>
 <style scoped>
 .other-filter {
+  flex-shrink: 0;
   width: 9.25rem;
+}
+.empty-hint {
+  display: block;
+  margin-top: 4px;
 }
 .config-note {
   margin: 0 0 12px;

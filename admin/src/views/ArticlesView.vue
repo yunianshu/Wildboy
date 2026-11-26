@@ -5,7 +5,7 @@ import { onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Page } from "../types";
-import { articleStatusTone } from "../statusTone";
+import { articleStatusLabel, articleStatusTone } from "../statusTone";
 import AppIcon from "../components/AppIcon.vue";
 import UiState from "../components/UiState.vue";
 import FormModal from "../components/FormModal.vue";
@@ -17,6 +17,7 @@ type Article = {
   coverUrl: string;
   activityId: string | null;
   status: "DRAFT" | "PUBLISHED";
+  publishedAt?: string | null;
   isOfficial: boolean;
   version: number;
 };
@@ -236,7 +237,7 @@ useForegroundRefresh(() => {
                   class="status-pill inline"
                   :class="`tone-${articleStatusTone(article.status)}`"
                 >
-                  {{ article.status === "PUBLISHED" ? "已发布" : "草稿" }}
+                  {{ articleStatusLabel(article) }}
                 </span>
               </td>
               <td role="cell" data-label="公开入口" class="article-entry">
