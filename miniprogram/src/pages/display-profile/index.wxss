@@ -12,7 +12,6 @@
 }
 .profile-fields {
   padding: 12px 16px 16px;
-  border: 1px solid var(--rf-line);
 }
 button.avatar-picker {
   display: flex;

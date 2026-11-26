@@ -2,42 +2,9 @@
 @import "../../styles/section-tabs.wxss";
 @import "../../styles/user-flow.wxss";
 @import "../../styles/slate-components.wxss";
+@import "../../styles/category-search.wxss";
 
-.activity-search {
-  display: flex;
-  align-items: center;
-  margin-bottom: 14px;
-  border: 1px solid var(--rf-field-line);
-  border-radius: var(--rf-control-radius);
-  background: var(--rf-surface);
-}
-.activity-search .search-field {
-  flex: 1;
-  min-width: 0;
-  height: 46px;
-  padding: 0 12px;
-  border: 0;
-  background: transparent;
-}
-.activity-search button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  margin: 0;
-  width: auto;
-  min-width: 44px;
-  height: 46px;
-  padding: 0 8px;
-  background: transparent;
-  color: var(--rf-primary-text);
-  font-size: 14px;
-}
-.activity-search .submit-query {
-  padding: 0 14px;
-  font-weight: 600;
-}
-.activity-search button.button-hover, .activity-card-pressed { background: var(--rf-soft); }
+.activity-card-pressed { background: var(--rf-soft); }
 .activities-content .grid { display: flex; flex-direction: column; gap: 0; }
 .activity-card {
   display: grid;

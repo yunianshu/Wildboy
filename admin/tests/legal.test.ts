@@ -91,6 +91,23 @@ describe("legal management", () => {
     expect(wrapper.text()).toContain("线上协议尚未改变");
     wrapper.unmount();
   });
+  it("previews and saves a contact-only draft without publishing", async () => {
+    const { wrapper, fetch } = await render();
+    await wrapper.get(".legal-contact-field textarea").setValue("service@example.test");
+    expect(button(wrapper, "发布新版本").attributes("disabled")).toBeDefined();
+    await button(wrapper, "预览草稿").trigger("click");
+    expect(wrapper.get("article").text()).toContain("service@example.test");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    const writes = fetch.mock.calls.filter((x) => x[1]?.method === "PUT");
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(writes[0]![1].body)).toMatchObject({
+      contact: "service@example.test",
+      revision: 2,
+    });
+    expect(fetch.mock.calls.some((x) => x[1]?.method === "POST")).toBe(false);
+    wrapper.unmount();
+  });
   it("cancels publication confirmation without mutation", async () => {
     const { wrapper, fetch } = await render();
     await button(wrapper, "发布新版本").trigger("click");

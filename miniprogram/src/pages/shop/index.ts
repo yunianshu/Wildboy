@@ -48,6 +48,7 @@ Page({
     topInset: 48,
     headerLayout: null as ReturnType<typeof capsuleHeaderLayout> | null,
     items: [] as CatalogItem[],
+    searchOpen: false,
     searchInput: "",
     searchTerm: "",
     searchResults: [] as CatalogItem[],
@@ -94,6 +95,7 @@ Page({
     void this.loadCategories();
   },
   onHide() {
+    this.closeSearch();
     resetTabSwipe(this);
     this._visible = false;
   },
@@ -255,8 +257,12 @@ Page({
   revealSelectedCategory() {
     this.centerCategory(this.data.selectedCategory || ALL_CATEGORY);
   },
-  searchProducts(event: WechatMiniprogram.Input) {
-    const searchInput = event.detail.value.slice(0, 80);
+  openSearch() { this.setData({ searchOpen: true }); },
+  closeSearch() { if (this.data.searchOpen) this.setData({ searchOpen: false }); },
+  clearSearch() { this.applySearch(""); },
+  searchProducts(event: WechatMiniprogram.Input) { this.applySearch(event.detail.value); },
+  applySearch(value: string) {
+    const searchInput = value.slice(0, 80);
     const searchTerm = searchInput.trim();
     this.setData({ searchInput, searchTerm });
     if (searchTerm && this.data.selectedCategory && this.data.selectedCategory !== ALL_CATEGORY) {

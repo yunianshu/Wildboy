@@ -20,7 +20,7 @@
 .page .participant-card { padding: 16px; margin: 12px 0; background: var(--rf-surface); border-radius: var(--rf-radius); }
 
 .page .form .actions button { min-height: 44px; height: auto; white-space: normal; }
-.page .category-panel { margin-top: 16px; padding: 16px; border: 1px solid var(--rf-line); background: var(--rf-surface); border-radius: var(--rf-radius); }
+.page .category-panel { margin-top: 16px; padding: 16px; background: var(--rf-surface); border-radius: var(--rf-radius); }
 
 /* Shared non-home primitives; the protected home never imports this file. */
 button.primary, .na-page button.primary.ui-button, .page .form button:not(.secondary):not(.text-button), .page .confirmation button:not(.secondary) { min-height: 48px; background: var(--rf-primary); color: var(--rf-on-primary); border-radius: var(--rf-control-radius); }
@@ -74,7 +74,6 @@ button.secondary.button-hover { background: var(--rf-line); }
 .page .order-card, .page .detail-card, .page .record, .page .notice-card, .page .address-card, .page .participant-card, .page .product-card, .page .shipping-card, .page .order-product, .page .panel, .page .trip, .page .profile, .page .menu, .page .menu-row, .uf-page .uf-card {
   box-sizing: border-box;
   min-width: 0;
-  border: 1px solid var(--rf-line);
   border-radius: 12px;
 }
 .page .order-card, .page .record, .page .notice-card { padding: 16px; margin-top: 12px; }

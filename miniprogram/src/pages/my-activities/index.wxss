@@ -1,0 +1,12 @@
+@import "../../styles/slate-theme.wxss";
+@import "../../styles/section-tabs.wxss";
+@import "../../styles/user-flow.wxss";
+@import "../../styles/slate-components.wxss";
+
+.my-activities .section-tabs { margin-bottom: 16px; }
+.activity-subscribe { margin-bottom: 16px; }
+.my-activities .activity-card { margin: 0 0 12px; padding: 16px; overflow-wrap: anywhere; }
+.activity-card-pressed { background: var(--rf-soft); }
+.activity-meta, .activity-summary { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; color: var(--rf-muted); font-size: 13px; }
+.activity-title { margin: 8px 0 4px; color: var(--rf-ink); font-weight: 700; }
+.activity-link { margin-top: 10px; color: var(--rf-primary-text); font-size: 14px; font-weight: 600; }

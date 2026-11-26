@@ -1,0 +1,33 @@
+<view class="page my-activities page-motion {{pageMotionClass}}">
+  <view class="section-tabs" aria-label="我的活动分类">
+    <view class="section-tab-list section-tab-list-fill">
+      <button class="section-tab {{tab === 'records' ? 'section-tab-current' : ''}}"
+        data-tab="records" bindtap="select" aria-label="报名记录{{tab === 'records' ? '，已选中' : ''}}">报名记录</button>
+      <button class="section-tab {{tab === 'messages' ? 'section-tab-current' : ''}}"
+        data-tab="messages" bindtap="select" aria-label="活动消息{{tab === 'messages' ? '，已选中' : ''}}">活动消息</button>
+    </view>
+  </view>
+  <ui-state wx:if="{{!loggedIn}}" kind="empty">
+    登录后查看我的活动<button class="primary ui-button ui-button-block" bindtap="signIn">微信登录</button>
+  </ui-state>
+  <block wx:else>
+    <button wx:if="{{tab === 'messages'}}" class="secondary ui-button ui-button-block activity-subscribe"
+      bindtap="subscribe" disabled="{{busy || loading}}" loading="{{busy}}">订阅下次微信提醒</button>
+    <view wx:for="{{items}}" wx:key="id" class="record activity-card" data-id="{{item.id}}"
+      bindtap="open" hover-class="activity-card-pressed" aria-role="button" aria-label="{{item.title}}，{{item.statusText}}">
+      <view class="activity-meta"><text>{{item.statusText}}</text><text>{{item.dateText}}</text></view>
+      <view class="activity-title">{{item.title}}</view>
+      <view class="activity-summary"><text>{{item.subtitle}}</text><text wx:if="{{item.amount}}">{{item.amount}}</text></view>
+      <view wx:if="{{tab === 'records'}}" class="activity-link">{{item.order ? '查看订单' : '查看活动'}}</view>
+    </view>
+    <ui-state wx:if="{{loading}}" kind="loading" compact="{{!!items.length}}">正在加载…</ui-state>
+    <ui-state wx:if="{{error}}" kind="error">
+      {{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button>
+    </ui-state>
+    <ui-state wx:if="{{!items.length && !loading && !error}}" kind="empty">
+      {{tab === 'records' ? '还没有报名记录' : '暂无活动消息'}}
+      <button wx:if="{{tab === 'records'}}" class="secondary ui-button ui-button-block" bindtap="explore">去发现活动</button>
+    </ui-state>
+    <button wx:if="{{hasMore && !loading && !error}}" class="secondary ui-button ui-button-block" bindtap="more">加载更多</button>
+  </block>
+</view>

@@ -68,7 +68,7 @@ class BackendIntegrationTest {
     db.execute("TRUNCATE legal_consent,legal_document_version");
     db.update(
         "UPDATE legal_document_state SET"
-            + " draft_title='',draft_content='',draft_revision=0,published_version=NULL");
+            + " draft_title='',draft_content='',draft_contact='',draft_revision=0,published_version=NULL");
     db.update("DELETE FROM audit_event");
     db.update("DELETE FROM registration");
     db.update("DELETE FROM shop_order");
@@ -964,7 +964,8 @@ class BackendIntegrationTest {
             new LegalModels.DraftInput(
                 "New draft title",
                 "A new draft is not a published policy for public users.",
-                state.draft().revision()));
+                state.draft().revision(),
+                "service@example.test"));
     mvc.perform(
             put(base + "/draft")
                 .header("Authorization", userToken)
@@ -983,10 +984,12 @@ class BackendIntegrationTest {
                 .contentType("application/json")
                 .content(body))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.draft.revision").value(3));
+        .andExpect(jsonPath("$.draft.revision").value(3))
+        .andExpect(jsonPath("$.draft.contact").value("service@example.test"));
     mvc.perform(get("/api/v1/legal/current"))
         .andExpect(jsonPath("$.privacy.version").value(1))
-        .andExpect(jsonPath("$.privacy.title").value("QA PRIVACY"));
+        .andExpect(jsonPath("$.privacy.title").value("QA PRIVACY"))
+        .andExpect(jsonPath("$.privacy.contact").value(""));
     mvc.perform(get("/api/v1/legal/PRIVACY/versions/2")).andExpect(status().isNotFound());
     mvc.perform(
             put(base + "/draft")
@@ -1002,7 +1005,8 @@ class BackendIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(2));
     mvc.perform(get("/api/v1/legal/PRIVACY/versions/1"))
-        .andExpect(jsonPath("$.title").value("QA PRIVACY"));
+        .andExpect(jsonPath("$.title").value("QA PRIVACY"))
+        .andExpect(jsonPath("$.contact").value(""));
     mvc.perform(get(base + "/versions").header("Authorization", adminToken))
         .andExpect(jsonPath("$[0].version").value(2))
         .andExpect(jsonPath("$.length()").value(2));
@@ -1017,6 +1021,16 @@ class BackendIntegrationTest {
                 db.update("DELETE FROM legal_document_version WHERE kind='PRIVACY' AND version=1"))
         .isInstanceOf(org.springframework.dao.DataAccessException.class);
     assertThat(legal.version(LegalModels.Kind.PRIVACY, 1).title()).isEqualTo("QA PRIVACY");
+    mvc.perform(get("/api/v1/legal/current"))
+        .andExpect(jsonPath("$.privacy.contact").value("service@example.test"))
+        .andExpect(jsonPath("$.terms.contact").value(""));
+    var kind = LegalModels.Kind.PRIVACY;
+    var draft = legal.admin(kind).draft();
+    var legacy = legal.save(kind, new LegalModels.DraftInput(draft.title(), draft.content(), draft.revision()), "fixture").draft();
+    assertThat(legacy.contact()).isEqualTo("service@example.test");
+    var cleared = legal.save(kind, new LegalModels.DraftInput(legacy.title(), legacy.content(), legacy.revision(), ""), "fixture").draft();
+    assertThat(legal.publish(kind, cleared.revision(), "fixture").contact()).isEmpty();
+    assertThat(legal.version(kind, 2).contact()).isEqualTo("service@example.test");
   }
 
   @Test

@@ -33,6 +33,7 @@ Page({
     topInset: 48,
     categories,
     selected: "",
+    searchOpen: false,
     searchInput: "",
     searchTitle: "",
     items: [] as ReturnType<typeof activityView>[],
@@ -71,6 +72,7 @@ Page({
     if (!this._loaded) void this.load(true);
   },
   onHide() {
+    this.closeSearch();
     resetTabSwipe(this);
     this.filterActive = false;
     this.filterEpoch++;
@@ -153,6 +155,12 @@ Page({
     // scroll-left matches reality, then animate from there to the target.
     this.setData({ filterScrollLeft: visualCurrent });
     this.setData({ filterScrollLeft: target });
+  },
+  openSearch() {
+    this.setData({ searchOpen: true, searchInput: this.data.searchTitle });
+  },
+  closeSearch() {
+    if (this.data.searchOpen) this.setData({ searchOpen: false, searchInput: this.data.searchTitle });
   },
   updateSearchInput(event: WechatMiniprogram.Input) {
     this.setData({ searchInput: event.detail.value });

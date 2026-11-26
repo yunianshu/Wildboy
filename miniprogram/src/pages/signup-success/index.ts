@@ -110,6 +110,6 @@ Page({
     else wx.redirectTo({ url: "/pages/detail/index?id=" + id });
   },
   registrations() {
-    wx.redirectTo({ url: "/pages/registrations/index" });
+    wx.redirectTo({ url: "/pages/my-activities/index" });
   },
 });

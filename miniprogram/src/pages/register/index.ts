@@ -629,6 +629,6 @@ Page({
     else wx.redirectTo({ url: "/pages/detail/index?id=" + id });
   },
   myActivities() {
-    wx.navigateTo({ url: "/pages/registrations/index" });
+    wx.navigateTo({ url: "/pages/my-activities/index" });
   },
 });

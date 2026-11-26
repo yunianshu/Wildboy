@@ -14,17 +14,19 @@ type Document = {
   version: number;
   title: string;
   content: string;
+  contact?: string;
   publishedAt: string;
 };
 type State = {
   kind: Kind;
-  draft: { title: string; content: string; revision: number };
+  draft: { title: string; content: string; contact?: string; revision: number };
   published: Document | null;
 };
 const kind = ref<Kind>("PRIVACY"),
   state = ref<State | null>(null),
   title = ref(""),
-  content = ref("");
+  content = ref(""),
+  contact = ref("");
 const history = ref<Document[]>([]),
   selected = ref<Document | null>(null),
   loading = ref(false),
@@ -43,7 +45,8 @@ const dirty = computed(
   () =>
     !!state.value &&
     (title.value !== state.value.draft.title ||
-      content.value !== state.value.draft.content),
+      content.value !== state.value.draft.content ||
+      contact.value !== (state.value.draft.contact ?? "")),
 );
 const valid = computed(
   () =>
@@ -51,7 +54,9 @@ const valid = computed(
     title.value.trim().length <= 120 &&
     content.value.trim().length >= 10 &&
     content.value.trim().length <= 50000 &&
-    !/<\/?[a-z][^>]*>/i.test(content.value),
+    !/<\s*\/?\s*[a-z][^>]*>/i.test(content.value) &&
+    contact.value.length <= 500 &&
+    !/<\s*\/?\s*[a-z][^>]*>/i.test(contact.value),
 );
 function active(n: number, user: typeof currentUser.value) {
   return n === epoch && !!user && user === currentUser.value;
@@ -61,6 +66,7 @@ function clear() {
   state.value = null;
   title.value = "";
   content.value = "";
+  contact.value = "";
   history.value = [];
   selected.value = null;
   preview.value = false;
@@ -100,6 +106,7 @@ async function load() {
     state.value = next;
     title.value = next.draft.title;
     content.value = next.draft.content;
+    contact.value = next.draft.contact ?? "";
     history.value = versions;
     selected.value = null;
     conflict.value = false;
@@ -133,7 +140,7 @@ async function save() {
   if (busy.value || loading.value || !state.value || conflict.value) return;
   if (!valid.value) {
     error.value =
-      "标题须为 1–120 字，正文须为 10–50000 字纯文本，不支持 HTML。";
+      "标题须为 1–120 字，正文须为 10–50000 字，联系方式最多 500 字。仅支持纯文本。";
     return;
   }
   const n = epoch,
@@ -148,6 +155,7 @@ async function save() {
       body: JSON.stringify({
         title: title.value.trim(),
         content: content.value.trim(),
+        contact: contact.value.trim(),
         revision,
       }),
     });
@@ -289,6 +297,16 @@ useForegroundRefresh(() => {
             placeholder="经审核的协议正文"
           />
         </label>
+        <label class="legal-field legal-contact-field">
+          联系方式（选填）
+          <textarea
+            v-model="contact"
+            rows="2"
+            maxlength="500"
+            :disabled="busy || loading"
+            placeholder="填写对外公开的客服电话、邮箱或其他联系方式"
+          />
+        </label>
         <footer class="legal-footer">
           <p class="footer-status">
             <span aria-live="polite">{{
@@ -396,6 +414,10 @@ useForegroundRefresh(() => {
         <p class="legal-preview-text">
           {{ selected ? selected.content : content || "未填写正文" }}
         </p>
+        <section v-if="selected ? selected.contact : contact.trim()" class="legal-contact-preview">
+          <h3>联系方式</h3>
+          <p class="legal-preview-text">{{ selected ? selected.contact : contact.trim() }}</p>
+        </section>
       </article>
     </FormModal>
     <ConfirmDialog
@@ -540,7 +562,7 @@ useForegroundRefresh(() => {
     align-items: stretch;
   }
   .legal-editor {
-    grid-template-rows: auto 1fr auto;
+    grid-template-rows: auto 1fr auto auto;
   }
   .legal-field {
     grid-template-rows: auto 1fr;
@@ -559,6 +581,9 @@ useForegroundRefresh(() => {
     min-height: max(22rem, calc(100dvh - 360px));
   }
 }
+.legal-contact-field textarea { min-height: 5rem; }
+.legal-contact-preview { margin-top: 20px; }
+.legal-contact-preview h3 { margin-bottom: 4px; }
 @media (max-width: 760px) {
   .legal-layout {
     grid-template-columns: minmax(0, 1fr);

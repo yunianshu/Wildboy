@@ -308,7 +308,6 @@ button.shortcut-close {
   padding: 20px 16px;
   border-radius: var(--card-radius, 12px);
   background: #FFFFFF;
-  border: 1px solid rgba(36, 122, 82, 0.14);
   text-align: center;
 }
 .follow-title {

@@ -31,7 +31,7 @@
       <view class="menu-grid">
         <view class="menu" bindtap="registrations">
           <image class="menu-icon" src="/assets/icons-slate/activity.svg" mode="aspectFit" aria-hidden="{{true}}" />
-          <view class="menu-title">免费活动报名</view>
+          <view class="menu-title">我的活动</view>
 
         </view>
         <view class="menu" bindtap="orders">
@@ -41,9 +41,7 @@
         </view>
       </view>
       <view wx:if="{{user.accountSource === 'WECHAT' && user.wechatVerified}}" class="menu-row" bindtap="displayProfile"><view class="menu-title">头像与昵称</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      <view class="menu-row" bindtap="notifications"><view class="menu-title">活动消息</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      <view class="menu-row" bindtap="activityOrders"><view class="menu-title">收费活动订单</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="menu-row" bindtap="profile"><view class="menu-title">联系资料与会员身份</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="links">
         <view bindtap="privacy">隐私政策<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>

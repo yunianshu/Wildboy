@@ -141,11 +141,9 @@ Page({
   confirmLegal() {
     wx.navigateTo({ url: "/pages/login/index?mode=consent" });
   },
-  activityOrders() {wx.navigateTo({url:"/pages/activity-orders/index"});},
   registrations() {
-    wx.navigateTo({ url: "/pages/registrations/index" });
+    wx.navigateTo({ url: "/pages/my-activities/index" });
   },
-  notifications() { wx.navigateTo({url:"/pages/notifications/index"}); },
   addresses() {
     wx.navigateTo({ url: "/pages/addresses/index" });
   },

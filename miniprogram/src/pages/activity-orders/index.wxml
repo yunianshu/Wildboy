@@ -1,6 +1,6 @@
 <view class="page activity-orders-page page-motion {{pageMotionClass}}">
   <view class="title">我的活动订单</view>
-  <view class="muted page-intro">收费活动的报名订单在此支付、核对与退款；免费活动记录在“免费活动报名”。</view>
+  <view class="muted page-intro">收费活动的报名订单在此支付、核对与退款；免费活动记录在“报名记录”。</view>
   <ui-state wx:if="{{!loggedIn}}" kind="empty">登录后查看自己的活动订单<button class="primary ui-button ui-button-block" bindtap="login">微信登录</button></ui-state>
   <view wx:if="{{loggedIn}}" class="section-tabs activity-order-tabs" aria-label="订单状态">
     <view class="section-tab-list section-tab-list-fill">
@@ -94,7 +94,7 @@
         <button class="primary" bindtap="confirm">确认</button>
       </view>
     </ui-dialog>
-    <ui-state wx:if="{{loggedIn && !loading && !error && !items.length}}" kind="empty">暂无活动订单。免费活动记录在“免费活动报名”。</ui-state>
+    <ui-state wx:if="{{loggedIn && !loading && !error && !items.length}}" kind="empty">暂无活动订单。免费活动记录在“报名记录”。</ui-state>
     <ui-state wx:if="{{loadingMore}}" kind="loading" compact="{{true}}">正在加载更多…</ui-state>
     <button wx:if="{{hasMore && !loadingMore}}" class="secondary more" bindtap="more" loading="{{loadingMore}}" disabled="{{loadingMore || busyId}}">加载更多</button>
   </view>

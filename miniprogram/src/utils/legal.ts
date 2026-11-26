@@ -4,6 +4,7 @@ export interface LegalDocument {
   version: number;
   title: string;
   content: string;
+  contact?: string;
   publishedAt: string;
 }
 export interface LegalCurrent {

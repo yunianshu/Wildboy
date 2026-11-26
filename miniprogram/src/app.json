@@ -11,6 +11,7 @@
     "pages/mine/index",
     "pages/privacy/index",
     "pages/registrations/index",
+    "pages/my-activities/index",
     "pages/signup-success/index",
     "pages/login/index",
     "pages/addresses/index",

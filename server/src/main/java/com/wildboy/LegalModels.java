@@ -10,9 +10,9 @@ public final class LegalModels {
   }
 
   public record Document(
-      Kind kind, long version, String title, String content, OffsetDateTime publishedAt) {}
+      Kind kind, long version, String title, String content, String contact, OffsetDateTime publishedAt) {}
 
-  public record Draft(String title, String content, long revision) {}
+  public record Draft(String title, String content, String contact, long revision) {}
 
   public record AdminDocument(Kind kind, Draft draft, Document published) {}
 
@@ -21,7 +21,12 @@ public final class LegalModels {
   public record DraftInput(
       @NotBlank @Size(max = 120) String title,
       @NotBlank @Size(min = 10, max = 50000) String content,
-      @NotNull @Min(0) Long revision) {}
+      @NotNull @Min(0) Long revision,
+      @Size(max = 500) String contact) {
+    public DraftInput(String title, String content, Long revision) {
+      this(title, content, revision, null);
+    }
+  }
 
   public record PublishInput(@NotNull @Min(0) Long revision) {}
 

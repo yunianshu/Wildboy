@@ -10,8 +10,9 @@
       版本 {{document.version}} · 发布于 {{publishedText}}
     </view>
     <view class="legal-content">{{document.content}}</view>
-    <view class="notice">
-      如需咨询，请使用协议中的联系渠道。
+    <view wx:if="{{document.contact}}" class="legal-contact">
+      <view class="legal-contact-title">联系方式</view>
+      <text class="legal-contact-text" user-select="{{true}}">{{document.contact}}</text>
     </view>
   </block>
 </view>

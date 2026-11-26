@@ -103,11 +103,11 @@ beforeEach(() => {
   };
   api.requireSession = async () => {};
 });
-test("normal My page navigates to registrations", async () => {
+test("normal My page opens the unified activity hub", async () => {
   const p = page("mine");
   await p.load();
   p.registrations();
-  assert.deepEqual(navigations, ["/pages/registrations/index"]);
+  assert.deepEqual(navigations, ["/pages/my-activities/index"]);
   p.onHide();
   assert.equal(p.data.user.id, "u");
 });
@@ -407,7 +407,73 @@ test("My shows published agreement update without blocking old registrations", a
   p.registrations();
   p.confirmLegal();
   assert.deepEqual(navigations, [
-    "/pages/registrations/index",
+    "/pages/my-activities/index",
     "/pages/login/index?mode=consent",
   ]);
+});
+
+test("activity hub groups both record types and routes without mixing messages", async () => {
+  const { readFileSync } = require("node:fs");
+  const mine = readFileSync(require.resolve("../dist/pages/mine/index.wxml"), "utf8");
+  assert.match(mine, /我的活动/);
+  assert.doesNotMatch(mine, /bindtap="(?:notifications|activityOrders)"/);
+  const p = page("my-activities");
+  p.onLoad({});
+  const createdAt = "2026-11-24T15:00:00Z";
+  response = async path => path.startsWith("/me/activity-records")
+    ? { page: 0, hasMore: false, items: [
+        { id: "same", kind: "ORDER", title: "Paid", status: "PENDING_PAYMENT",
+          totalCents: 1600, activityId: "activity", createdAt },
+        { id: "same", kind: "FREE", title: "Free", status: "CONFIRMED",
+          totalCents: null, activityId: "free-activity", createdAt },
+      ] }
+    : { page: 0, hasMore: false, items: [{ id: "notice", activityId: "activity",
+        title: "Notice", detail: "Updated venue", createdAt }] };
+  await p.load();
+  assert.deepEqual(p.data.items.map(i => i.id), ["ORDER:same", "FREE:same"]);
+  for (const id of ["ORDER:same", "FREE:same"]) p.open({ currentTarget: { dataset: { id } } });
+  assert.deepEqual(navigations, ["/pages/activity-orders/index?id=same", "/pages/detail/index?id=free-activity"]);
+  p.select({ currentTarget: { dataset: { tab: "messages" } } });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(p.data.items[0].title, "Notice");
+  p.open({ currentTarget: { dataset: { id: "notice" } } });
+  assert.equal(navigations.at(-1), "/pages/detail/index?id=activity");
+});
+
+test("activity hub discards a late records response after switching or leaving", async () => {
+  const p = page("my-activities");
+  p.onLoad({});
+  let resolveOld;
+  response = path => path.startsWith("/me/activity-records")
+    ? new Promise(resolve => { resolveOld = resolve; })
+    : Promise.resolve({ page: 0, hasMore: false, items: [] });
+  const old = p.load();
+  p.select({ currentTarget: { dataset: { tab: "messages" } } });
+  p.onHide();
+  resolveOld({ page: 0, hasMore: true, items: [{ kind: "FREE", id: "private",
+    activityId: "activity", title: "Private", createdAt: "2026-11-24T15:00:00Z" }] });
+  await old;
+  assert.deepEqual(p.data.items, []);
+  assert.equal(p.data.hasMore, false);
+});
+
+test("search opens over both tab strips, closes without clearing and supports clearing", async () => {
+  const { readFileSync } = require("node:fs");
+  for (const name of ["activities", "shop"]) {
+    const markup = readFileSync(require.resolve(`../dist/pages/${name}/index.wxml`), "utf8");
+    assert.match(markup, /category-search-tabs/);
+    assert.match(markup, /wx:if="{{searchOpen}}" class="category-search-layer"/);
+    assert.match(markup, /focus="{{searchOpen}}"/);
+    const p = page(name);
+    assert.equal(p.data.searchOpen, false);
+    if (name === "activities") p.setData({ searchTitle: "hike" });
+    else p.applySearch("boots");
+    p.openSearch();
+    assert.equal(p.data.searchOpen, true);
+    p.closeSearch();
+    assert.equal(p.data.searchOpen, false);
+    assert.equal(p.data.searchInput, name === "activities" ? "hike" : "boots");
+    p.clearSearch();
+    assert.equal(p.data.searchInput, "");
+  }
 });

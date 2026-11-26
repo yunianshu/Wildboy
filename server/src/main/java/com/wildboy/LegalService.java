@@ -22,6 +22,7 @@ public class LegalService {
         r.getLong("version"),
         r.getString("title"),
         r.getString("content"),
+        r.getString("contact"),
         r.getObject("published_at", OffsetDateTime.class));
   }
 
@@ -68,6 +69,7 @@ public class LegalService {
                 new Draft(
                     r.getString("draft_title"),
                     r.getString("draft_content"),
+                    r.getString("draft_contact"),
                     r.getLong("draft_revision")),
             kind.name());
     return new AdminDocument(kind, d, published(kind));
@@ -90,15 +92,19 @@ public class LegalService {
   public AdminDocument save(Kind kind, DraftInput in, String actor) {
     plain(in.title());
     plain(in.content());
+    String contact = in.contact() == null ? null : in.contact().strip();
+    if (contact != null) plain(contact);
     if (in.title().isBlank() || in.content().strip().length() < 10)
       throw new ApiException(400, "EMPTY_LEGAL_DOCUMENT", "请先保存完整协议草稿");
     int changed =
         db.update(
             "UPDATE legal_document_state SET"
-                + " draft_title=?,draft_content=?,draft_revision=draft_revision+1,updated_at=CURRENT_TIMESTAMP"
+                + " draft_title=?,draft_content=?,draft_contact=COALESCE(?,draft_contact),"
+                + " draft_revision=draft_revision+1,updated_at=CURRENT_TIMESTAMP"
                 + " WHERE kind=? AND draft_revision=?",
             in.title().strip(),
             in.content().strip(),
+            contact,
             kind.name(),
             in.revision());
     if (changed != 1) throw ApiException.conflict("STALE_VERSION", "草稿已被修改，请刷新后重试");
@@ -115,17 +121,20 @@ public class LegalService {
     String title = (String) row.get("draft_title"), content = (String) row.get("draft_content");
     if (title.isBlank() || content.strip().length() < 10)
       throw new ApiException(400, "EMPTY_LEGAL_DOCUMENT", "请先保存完整协议草稿");
+    String contact = (String) row.get("draft_contact");
     Document previous = published(kind);
-    if (previous != null && previous.title().equals(title) && previous.content().equals(content))
+    if (previous != null && previous.title().equals(title) && previous.content().equals(content)
+        && previous.contact().equals(contact))
       throw ApiException.conflict("NO_LEGAL_CHANGES", "当前草稿与已发布版本相同");
     long next = previous == null ? 1 : previous.version() + 1;
     db.update(
-        "INSERT INTO legal_document_version(kind,version,title,content,published_by)"
-            + " VALUES(?,?,?,?,?)",
+        "INSERT INTO legal_document_version(kind,version,title,content,contact,published_by)"
+            + " VALUES(?,?,?,?,?,?)",
         kind.name(),
         next,
         title,
         content,
+        contact,
         actor);
     db.update(
         "UPDATE legal_document_state SET"

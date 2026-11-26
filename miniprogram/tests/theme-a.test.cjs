@@ -17,7 +17,7 @@ const protectedFiles = {
   "styles/motion.wxss": "e44ccd63751deaf59ca0c70b4e147354759a58298dac02f29351f2fb7b56437b"
 };
 const protectedLayouts = {
-  "pages/home/index.wxss": "1de9b714fff0ec1d65d11767ee827b1b265874f78780a14905b31029dd3dc3d2",
+  "pages/home/index.wxss": "e145a4967cb65c8a8cb3a1c50dd4d02de9e10ae1d4d7563a61f48564eb740c81",
   "custom-tab-bar/index.wxss": "ad9011267cd91c372d14dcbd606925146042c64bf8db616b99b880b723084f9a",
   "app.wxss": "037600165cb1510c704d8b44b673b28f994f057704c9951f87a5b25d033eded8",
   "components/ui-state/index.wxss": "88a85d7ba144fc562dbc208aea491020a62588c04db6d3fa3b1b61e65c3846f2"

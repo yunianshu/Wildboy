@@ -284,7 +284,43 @@ class ActivityOrderHttpContractTest {
     assertSeats(activityId, 0, 0);
   }
 
+  @Test
+  void unifiedRecordsMergeBothTypesWithoutExposingOtherAccounts() throws Exception {
+    String firstActivity = createActivity(false).path("id").asText();
+    String secondActivity = createPaidActivity().path("id").asText();
+    var registration = Map.of("participants", List.of(
+        Map.of("participantName", "Test Member", "idNumber", "", "phone", "13800000000")),
+        "privacyVersion", 1, "termsVersion", 1);
+    String free = request("POST", "/activities/" + firstActivity + "/registrations",
+        ownerToken, registration, 201).path("id").asText();
+    String paid = request("POST", "/activities/" + secondActivity + "/orders", ownerToken,
+        Map.of("requestKey", "local-unified-record-test", "expectedTotalCents", 800,
+            "registration", registration), 200).path("id").asText();
+    String url = "/me/activity-records";
+    request("GET", url, null, null, 401);
+    var first = request("GET", url + "?size=1", ownerToken, null, 200);
+    assertThat(first.path("total").asInt()).isEqualTo(2);
+    assertThat(first.path("hasMore").asBoolean()).isTrue();
+    var order = first.path("items").get(0);
+    assertThat(order.path("id").asText()).isEqualTo(paid);
+    assertThat(order.path("kind").asText()).isEqualTo("ORDER");
+    assertThat(order.path("status").asText()).isEqualTo("PENDING_PAYMENT");
+    assertThat(order.path("totalCents").asInt()).isEqualTo(800);
+    assertThat(order.has("participants")).isFalse();
+    var older = request("GET", url + "?page=1&size=1", ownerToken, null, 200);
+    assertThat(older.path("hasMore").asBoolean()).isFalse();
+    assertThat(older.path("items").get(0).path("id").asText()).isEqualTo(free);
+    assertThat(older.path("items").get(0).path("kind").asText()).isEqualTo("FREE");
+    var other = auth.finishWechat("other-local-hub-user", 1L, 1L);
+    assertThat(request("GET", url, other.token(), null, 200).path("total").asInt()).isZero();
+    request("GET", url + "?size=51", ownerToken, null, 400);
+  }
+
   private JsonNode createPaidActivity() throws Exception {
+    return createActivity(true);
+  }
+
+  private JsonNode createActivity(boolean paid) throws Exception {
     var start = OffsetDateTime.now().plusDays(7);
     var draft = request("POST", "/admin/activities", adminToken, Map.ofEntries(
         Map.entry("title", "Synthetic local hike"), Map.entry("category", "WEEKLY"),
@@ -295,6 +331,9 @@ class ActivityOrderHttpContractTest {
         Map.entry("registrationDeadline", start.minusDays(1).toString()), Map.entry("capacity", 2),
         Map.entry("priceCents", 0), Map.entry("identityRequired", false)), 201);
     String adminPath = "/admin/activities/" + draft.path("id").asText();
+    if (!paid)
+      return request("POST", adminPath + "/publish", adminToken,
+          Map.of("version", draft.path("version").asLong()), 200);
     var priced = request("POST", adminPath + "/price", adminToken,
         Map.of("priceCents", 1000, "version", draft.path("version").asLong()), 200);
     return request("POST", adminPath + "/publish", adminToken, Map.of("version", priced.path("version").asLong()), 200);
