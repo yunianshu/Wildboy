@@ -128,8 +128,13 @@ describe("operational workflows", () => {
     const w = mountView(OperationsView);
     await flushPromises();
     expect(w.text()).toContain("¥80.00");
-    expect(w.text()).toContain("发货预警（24h/40h）");
-    expect(w.text()).toContain("2 / 1");
+    const warning = w.get(
+      '[aria-labelledby="shipping-metrics"] .metric:nth-child(2)',
+    );
+    expect(warning.get("button").text()).toBe("发货预警");
+    expect(warning.get("strong").text()).toBe("2 / 1");
+    expect(warning.get("small").text()).toBe("24h / 40h");
+    expect(warning.classes()).toContain("has-task");
     await w
       .findAll("button")
       .find((b) => b.text() === "异常待办")!
@@ -151,6 +156,39 @@ describe("operational workflows", () => {
     expect(w.text()).not.toContain("待核对支付");
     w.unmount();
   });
+  it("scopes date selection to shop metrics and keeps the last confirmed range on failure", async () => {
+    const f = fetcher();
+    const w = mountView(OperationsView);
+    await flushPromises();
+    const filter = '[aria-label="商城订单统计时间"]';
+    const group = (id: string) => w.get(`[aria-labelledby="${id}"]`);
+    expect(w.get(".operation-toolbar").find("select").exists()).toBe(false);
+    const before = ["activity-metrics", "shipping-metrics"].map((id) =>
+      group(id).text(),
+    );
+    await group("shop-metrics").get(filter).setValue("14");
+    await flushPromises();
+    expect(
+      f.mock.calls.some(([p]) => p.endsWith("/admin/dashboard?days=14")),
+    ).toBe(true);
+    expect(w.get(".trend-panel .panel-badge").text()).toBe("近 14 天");
+    expect(
+      ["activity-metrics", "shipping-metrics"].map((id) => group(id).text()),
+    ).toEqual(before);
+
+    f.mockRejectedValueOnce(new Error("离线"));
+    await group("shop-metrics").get(filter).setValue("30");
+    await flushPromises();
+    expect(w.find('[role="alert"]').exists()).toBe(true);
+    expect((w.get(filter).element as HTMLSelectElement).value).toBe("14");
+    expect(w.get(".trend-panel .panel-badge").text()).toBe("近 14 天");
+    await w.get(".hero-copy button").trigger("click");
+    await flushPromises();
+    expect(w.find(filter).exists()).toBe(false);
+    expect(w.text()).toContain("待核对支付");
+    w.unmount();
+  });
+
   it("late response after unmount does not render old operator data", async () => {
     let release: any;
     vi.stubGlobal(

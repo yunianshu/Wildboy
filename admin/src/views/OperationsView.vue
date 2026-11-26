@@ -51,6 +51,7 @@ const data = ref<Dashboard | null>(null),
   errors = ref(""),
   loading = ref(false),
   days = ref(7),
+  appliedDays = ref(7),
   tab = ref("overview"),
   exceptions = ref<Exception[]>([]),
   audits = ref<Audit[]>([]),
@@ -195,11 +196,13 @@ async function load(p = 0) {
   errors.value = "";
   try {
     if (tab.value === "overview") {
+      const requestedDays = days.value;
       const value = await request<Dashboard>(
-        `/admin/dashboard?days=${days.value}`,
+        `/admin/dashboard?days=${requestedDays}`,
       );
       if (n !== epoch || actor !== currentUser.value) return;
       data.value = value;
+      appliedDays.value = requestedDays;
       hasMore.value = false;
     } else if (tab.value === "exceptions") {
       const value = await request<Page<Exception>>(
@@ -220,7 +223,11 @@ async function load(p = 0) {
     }
     page.value = p;
   } catch (e) {
-    if (n === epoch) errors.value = errorMessage(e);
+    if (n === epoch) {
+      errors.value = errorMessage(e);
+      if (tab.value === "overview" && data.value)
+        days.value = appliedDays.value;
+    }
   } finally {
     if (n === epoch) loading.value = false;
   }
@@ -322,14 +329,6 @@ useForegroundRefresh(() => {
           {{ label }}
         </button>
       </nav>
-      <label v-if="tab === 'overview'" class="range-label">
-        订单统计
-        <select v-model.number="days" @change="load()">
-          <option :value="7">近7天</option>
-          <option :value="14">近14天</option>
-          <option :value="30">近30天</option>
-        </select>
-      </label>
     </div>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="errors" class="error-box" role="alert">{{ errors }}</p>
@@ -337,75 +336,122 @@ useForegroundRefresh(() => {
       <template v-if="data">
         <section class="operations-hero">
           <div class="hero-copy">
-            <span class="hero-kicker">WILDBOY · OUTDOOR OPERATIONS</span>
-            <h2>今天，也让户外生意<br />稳步向前。</h2>
-            <p>
-              本期已确认
-              <strong>{{ data.orders.paid_orders }}</strong> 笔付款订单，当前有
-              <strong>{{ data.pendingShipping }}</strong> 笔订单等待发货。
-            </p>
+            <h2>今天，也让户外生意稳步向前。</h2>
             <button type="button" @click="select('exceptions')">
               查看异常待办<AppIcon name="arrow" :size="16" />
             </button>
           </div>
-          <TerrainScene compact class="hero-terrain" />
-          <span class="hero-coordinate">24.4798° N · 118.0894° E</span>
+          <TerrainScene compact class="hero-terrain" aria-hidden="true" />
         </section>
         <div class="metrics">
-          <article>
-            <span>未来活动已确认报名</span
-            ><strong
-              >{{ data.activities.registrations }} /
-              {{ data.activities.capacity }}</strong
-            >
-            <small v-if="data.activities.occupied != null">
+          <section class="metric-group" aria-labelledby="activity-metrics">
+            <header><h2 id="activity-metrics">活动报名</h2></header>
+            <div class="metric-values">
+              <div class="metric">
+                <span>未来活动已确认报名</span>
+                <strong
+                  >{{ data.activities.registrations }} /
+                  {{ data.activities.capacity }}</strong
+                >
+              </div>
+              <div class="metric">
+                <RouterLink
+                  :to="{ path: '/activities', query: { upcomingFull: '1' } }"
+                >
+                  满员活动
+                </RouterLink>
+                <strong
+                  >{{ data.activities.full }} /
+                  {{ data.activities.total }}</strong
+                >
+              </div>
+            </div>
+            <p v-if="data.activities.occupied != null" class="metric-note">
               名额占用 {{ data.activities.occupied }} /
               {{ data.activities.capacity }} · 待支付
               {{ data.activities.pending_payment ?? 0 }}
-            </small>
-          </article>
-          <article>
-            <RouterLink
-              :to="{ path: '/activities', query: { upcomingFull: '1' } }"
-              >满员活动</RouterLink
-            ><strong
-              >{{ data.activities.full }} / {{ data.activities.total }}</strong
-            >
-          </article>
-          <article>
-            <span>付款订单</span><strong>{{ data.orders.paid_orders }}</strong>
-          </article>
-          <article>
-            <span>实收净额</span
-            ><strong>{{
-              money(data.orders.gross_cents - data.orders.refunded_cents)
-            }}</strong>
-          </article>
-          <article>
-            <RouterLink
-              :to="{
-                path: '/shop',
-                query: { tab: 'orders', orderStatus: 'AWAITING_SHIPMENT' },
-              }"
-              >待发货</RouterLink
-            ><strong>{{ data.pendingShipping }}</strong>
-          </article>
-          <article>
-            <button
-              type="button"
-              class="text-button"
-              @click="select('exceptions')"
-            >
-              发货预警（24h/40h）</button
-            ><strong
-              >{{ data.shippingDueSoon ?? 0 }} /
-              {{ data.shippingOverdue ?? 0 }}</strong
-            >
-          </article>
-          <article>
-            <RouterLink to="/shipping-reports">发货上报待处理</RouterLink
-            ><strong>{{ data.shippingReportFailures ?? 0 }}</strong>
-          </article>
+            </p>
+          </section>
+          <section
+            class="metric-group"
+            aria-labelledby="shop-metrics"
+            :aria-busy="loading"
+          >
+            <header>
+              <h2 id="shop-metrics">商城订单</h2>
+              <select
+                aria-label="商城订单统计时间"
+                class="metric-range"
+                v-model.number="days"
+                @change="load()"
+              >
+                <option :value="7">近7天</option>
+                <option :value="14">近14天</option>
+                <option :value="30">近30天</option>
+              </select>
+            </header>
+            <div class="metric-values">
+              <div class="metric">
+                <span>付款订单</span
+                ><strong>{{ data.orders.paid_orders }}</strong>
+              </div>
+              <div class="metric">
+                <span>实收净额</span>
+                <strong>{{
+                  money(data.orders.gross_cents - data.orders.refunded_cents)
+                }}</strong>
+              </div>
+            </div>
+          </section>
+          <section
+            class="metric-group fulfillment-metrics"
+            aria-labelledby="shipping-metrics"
+          >
+            <header><h2 id="shipping-metrics">发货待办</h2></header>
+            <div class="metric-values">
+              <div
+                class="metric"
+                :class="{ 'has-task': data.pendingShipping > 0 }"
+              >
+                <RouterLink
+                  :to="{
+                    path: '/shop',
+                    query: { tab: 'orders', orderStatus: 'AWAITING_SHIPMENT' },
+                  }"
+                  >待发货</RouterLink
+                >
+                <strong>{{ data.pendingShipping }}</strong>
+              </div>
+              <div
+                class="metric"
+                :class="{
+                  'has-task':
+                    (data.shippingDueSoon ?? 0) > 0 ||
+                    (data.shippingOverdue ?? 0) > 0,
+                }"
+              >
+                <button
+                  type="button"
+                  class="text-button"
+                  @click="select('exceptions')"
+                >
+                  发货预警
+                </button>
+                <strong
+                  >{{ data.shippingDueSoon ?? 0 }} /
+                  {{ data.shippingOverdue ?? 0 }}</strong
+                >
+                <small>24h / 40h</small>
+              </div>
+              <div
+                class="metric"
+                :class="{ 'has-task': (data.shippingReportFailures ?? 0) > 0 }"
+              >
+                <RouterLink to="/shipping-reports">发货上报待处理</RouterLink>
+                <strong>{{ data.shippingReportFailures ?? 0 }}</strong>
+              </div>
+            </div>
+          </section>
         </div>
         <details class="metric-basis">
           <summary>统计口径</summary>
@@ -424,7 +470,7 @@ useForegroundRefresh(() => {
                 <span class="panel-kicker">PAYMENT TREND</span>
                 <h2>付款趋势</h2>
               </div>
-              <span class="panel-badge">近 {{ days }} 天</span>
+              <span class="panel-badge">近 {{ appliedDays }} 天</span>
             </div>
             <UiState v-if="!data.trend.length" compact>暂无付款记录</UiState>
             <template v-else>
@@ -696,7 +742,6 @@ useForegroundRefresh(() => {
   font-size: 12px;
 }
 .heading-kicker,
-.hero-kicker,
 .panel-kicker {
   color: var(--rf-primary);
   font-size: 9px;
@@ -729,8 +774,7 @@ useForegroundRefresh(() => {
   gap: 10px 16px;
   margin-bottom: 18px;
 }
-.operation-toolbar .task-tabs,
-.operation-toolbar .range-label {
+.operation-toolbar .task-tabs {
   margin: 0;
 }
 .operation-toolbar .task-tabs {
@@ -757,66 +801,30 @@ useForegroundRefresh(() => {
   box-shadow: 0 2px 7px #183c2912;
   transform: none;
 }
-.range-label {
-  color: var(--rf-muted);
-  font-size: 11px;
-}
-.range-label select {
-  min-height: 38px;
-  background-color: var(--rf-surface);
-}
 .operations-hero {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
-  min-height: 218px;
-  margin-bottom: 18px;
-  padding: 26px 32px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(235px, 0.65fr);
+  min-height: 150px;
+  margin-bottom: 16px;
+  padding: 12px 28px;
   overflow: hidden;
-  border: 1px solid #d5f3df14;
-  border-radius: 20px;
+  border-radius: 16px;
   background:
-    radial-gradient(circle at 75% 28%, #46764b55, transparent 34%),
+    radial-gradient(ellipse at 78% 45%, #46764b55, transparent 44%),
     linear-gradient(115deg, #18392a, #0e261c 72%);
-  box-shadow: 0 18px 40px #1536261a;
-  isolation: isolate;
-}
-.operations-hero::before {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  opacity: 0.2;
-  background-image:
-    linear-gradient(#d5eddc0c 1px, transparent 1px),
-    linear-gradient(90deg, #d5eddc0c 1px, transparent 1px);
-  background-size: 38px 38px;
-  content: "";
 }
 .hero-copy {
-  position: relative;
-  z-index: 2;
   align-self: center;
-}
-.hero-kicker {
-  color: #b8e986;
+  z-index: 2;
 }
 .hero-copy h2 {
-  margin: 10px 0 10px;
-  color: #f3fff6;
-  font-size: 27px;
-  font-weight: 620;
-  line-height: 1.35;
-  letter-spacing: -0.7px;
-}
-.hero-copy p {
   margin: 0;
-  color: #a7c0b0;
-  font-size: 12px;
-  line-height: 1.8;
-}
-.hero-copy p strong {
-  color: #e3f7e9;
+  color: #f3fff6;
+  font-size: clamp(20px, 1.55vw, 26px);
   font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
 }
 .hero-copy button {
   --button-background: #c5ed96;
@@ -824,95 +832,105 @@ useForegroundRefresh(() => {
   --button-color: #173823;
   --button-border: transparent;
   min-height: 36px;
-  margin-top: 18px;
-  padding: 7px 13px;
-  border-radius: 9px;
-  font-size: 11px;
-  box-shadow: 0 8px 18px #091b1340;
+  margin-top: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 12px;
 }
-.hero-terrain {
-  position: relative;
-  z-index: 1;
+.operations-hero .hero-terrain {
+  min-height: 124px;
   align-self: center;
 }
-.hero-coordinate {
-  position: absolute;
-  right: 22px;
-  bottom: 12px;
-  color: #8fa99a;
-  font-size: 11px;
-  letter-spacing: 0.9px;
+.hero-terrain :deep(.scene-chip) {
+  display: none;
 }
 .metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr);
   gap: 12px;
 }
-.metrics article {
-  position: relative;
-  min-height: 114px;
-  padding: 17px 18px;
-  overflow: hidden;
-  background: var(--admin-surface);
+.metric-group {
+  min-width: 0;
+  padding: 14px 16px;
   border: 1px solid var(--admin-line);
   border-radius: 14px;
-  box-shadow: var(--rf-shadow-sm);
-  transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    border-color 160ms ease;
+  background: var(--admin-surface);
 }
-.metrics article::before {
-  position: absolute;
-  top: 19px;
-  right: 18px;
-  width: 6px;
-  height: 6px;
-  border-radius: 2px;
-  background: #88bfa0;
-  box-shadow: 0 0 0 5px #eef6f0;
-  content: "";
+.metric-group header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border-bottom: 1px solid var(--admin-line);
+  padding-bottom: 6px;
 }
-.metrics article:hover {
-  border-color: #cadbd0;
-  box-shadow: 0 12px 26px #183c290c;
-  transform: translateY(-2px);
-}
-.metrics strong {
-  display: block;
-  margin-top: 11px;
+.metric-group h2 {
+  margin: 0;
   color: var(--rf-ink);
-  font-size: 26px;
-  font-weight: 710;
-  line-height: 1.2;
-  letter-spacing: -0.8px;
-  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  font-weight: 680;
 }
-.metrics span,
-.metrics article > a:first-child,
-.metrics article > button:first-child {
-  color: var(--admin-muted);
-  font-size: 11px;
+.metric-range {
+  width: auto;
+  min-width: 84px;
+  min-height: 32px;
+  font-size: 12px;
+  background-color: var(--rf-surface);
 }
-.metrics article > a:first-child {
+.metric-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.fulfillment-metrics .metric-values {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.metric {
+  min-width: 0;
+  color: var(--rf-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.metric strong {
   display: block;
-  width: fit-content;
+  margin-top: 5px;
+  color: var(--rf-ink);
+  font-size: clamp(19px, 1.6vw, 25px);
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
-.metrics article > a:first-child:hover {
-  color: var(--rf-primary);
-}
-.metrics article > button.text-button {
+.metric .text-button {
   min-height: 0;
   padding: 0;
-  line-height: 1.6;
+  font-size: inherit;
+  line-height: inherit;
 }
-.metrics small {
-  display: block;
-  margin-top: 8px;
+.metric a,
+.metric .text-button {
+  color: var(--rf-primary-text);
+  text-underline-offset: 3px;
+}
+.metric a:hover,
+.metric .text-button:hover {
+  text-decoration: underline;
+}
+.metric.has-task strong {
+  color: #8a4b15;
+}
+.metric small,
+.metric-note {
   color: var(--rf-muted);
-  font-size: 9px;
-  line-height: 1.6;
+  font-size: 11px;
 }
+.metric-note {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
 .overview-panels {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
@@ -1095,17 +1113,11 @@ useForegroundRefresh(() => {
   .metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .fulfillment-metrics {
+    grid-column: 1 / -1;
+  }
   .overview-panels {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-@media (max-width: 820px) {
-  .operations-hero {
-    grid-template-columns: minmax(0, 1fr) 260px;
-    padding: 24px;
-  }
-  .hero-copy h2 {
-    font-size: 24px;
   }
 }
 @media (max-width: 640px) {
@@ -1115,36 +1127,23 @@ useForegroundRefresh(() => {
   .operations-hero {
     display: block;
     min-height: 0;
-    padding: 24px;
-    border-radius: 16px;
+    padding: 18px;
   }
-  .hero-terrain,
-  .hero-coordinate {
+  .hero-terrain {
     display: none;
   }
-  .hero-copy h2 {
-    font-size: 24px;
-  }
   .metrics {
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
   }
-  .metrics article {
-    min-height: 106px;
-    padding: 15px;
-  }
-  .metrics strong {
-    font-size: 22px;
-  }
-  .metrics article::before {
-    top: 16px;
-    right: 15px;
-  }
+  .metric-group,
   .overview-panels > section {
-    padding: 16px;
+    padding: 12px;
   }
-  .operation-toolbar .range-label {
-    width: 100%;
-    justify-content: space-between;
+  .task-tabs {
+    max-width: 100%;
+  }
+  .task-tabs button {
+    padding-inline: 10px;
   }
 }
 </style>
