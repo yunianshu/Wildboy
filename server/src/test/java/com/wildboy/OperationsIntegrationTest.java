@@ -37,6 +37,43 @@ class OperationsIntegrationTest {
    String id=json.readTree(response.getResponse().getContentAsString()).get("id").asText();
    mvc.perform(post("/api/v1/admin/templates/"+id+"/generate").header("Authorization",token).contentType("application/json").content(json.writeValueAsString(new TemplateService.Generate(List.of(OffsetDateTime.now().plusDays(14)),0L)))).andExpect(status().isOk()).andExpect(jsonPath("$[0].status").value("DRAFT")).andExpect(jsonPath("$[0].registeredCount").value(0));
  }
+ @Test void editsTemplateContentWithoutChangingSourceOrExistingDrafts() throws Exception {
+   db.update("INSERT INTO rich_content(entity_type,entity_id,blocks) VALUES ('activity',?,?)",
+       source.id(), "[{\"type\":\"text\",\"text\":\"原集合说明\"}]");
+   var template = template();
+   var start = OffsetDateTime.now().plusDays(28);
+   var original = templates.generate(template.id(),new TemplateService.Generate(List.of(start),template.version()),admin.id()).getFirst();
+   var update = new TemplateService.ContentInput("新模板名", template.version(), "新路线", Models.Category.DOMESTIC,
+       "新摘要", "新活动说明", "泉州", "南门", "/assets/new-cover.jpg", List.of("/assets/photo.jpg"),
+       30, 12550, true, 180, 60);
+   String path = "/api/v1/admin/templates/"+template.id()+"/content";
+   String payload = json.writeValueAsString(update);
+   String normal = "Bearer "+auth.login(auth.user("ops-user:"+UUID.randomUUID(),"USER","USER")).token();
+   mvc.perform(put(path).header("Authorization",normal).contentType("application/json").content(payload))
+       .andExpect(status().isForbidden());
+   mvc.perform(put(path).header("Authorization",token).contentType("application/json")
+       .content(payload.replace("/assets/new-cover.jpg", "http://invalid.example/cover.jpg")))
+       .andExpect(status().isBadRequest());
+   mvc.perform(put(path).header("Authorization",token).contentType("application/json").content(payload))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.name").value("新模板名"))
+       .andExpect(jsonPath("$.version").value(template.version()+1))
+       .andExpect(jsonPath("$.activity.title").value("新路线"))
+       .andExpect(jsonPath("$.activity.priceCents").value(12550));
+   mvc.perform(put(path).header("Authorization",token).contentType("application/json").content(payload))
+       .andExpect(status().isConflict());
+   assertThat(activities.get(source.id(),true).title()).isEqualTo(source.title());
+   assertThat(activities.get(original.id(),true).title()).isEqualTo(source.title());
+   var generated = templates.generate(template.id(),
+       new TemplateService.Generate(List.of(start.plusDays(7)),template.version()+1),admin.id()).getFirst();
+   assertThat(generated.title()).isEqualTo("新路线");
+   assertThat(generated.description()).isEqualTo("新活动说明");
+   assertThat(generated.priceCents()).isEqualTo(12550);
+   assertThat(generated.status()).isEqualTo("DRAFT");
+   assertThat(Duration.between(generated.startAt(),generated.endAt()).toMinutes()).isEqualTo(180);
+   assertThat(Duration.between(generated.registrationDeadline(),generated.startAt()).toMinutes()).isEqualTo(60);
+   assertThat(db.queryForObject("SELECT blocks FROM rich_content WHERE entity_id=?",String.class,generated.id()))
+       .contains("原集合说明");
+ }
  @Test void copyPreservesContentNotAttendeesAndIsIdempotent(){
    db.update("INSERT INTO rich_content(entity_type,entity_id,blocks) VALUES ('activity',?,?)",source.id(),"[{\"type\":\"text\",\"text\":\"集合说明\"}]");
    var at=OffsetDateTime.now().plusDays(21).truncatedTo(java.time.temporal.ChronoUnit.MICROS);var input=new TemplateService.Copy(at,"test-copy-"+UUID.randomUUID(),source.version());var first=templates.copy(source.id(),input,admin.id());var second=templates.copy(source.id(),input,admin.id());

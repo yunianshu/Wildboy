@@ -137,3 +137,87 @@ it("views the selected saved template without writing or generating a draft", as
   expect(fetcher).toHaveBeenCalledTimes(1);
   w.unmount();
 });
+
+it("edits template content directly, keeps it open on conflict, and displays the saved snapshot", async () => {
+  const activity = {
+    title: "旧路线",
+    category: "WEEKLY",
+    coverUrl: "/assets/cover.jpg",
+    galleryUrls: [],
+    summary: "旧摘要",
+    description: "旧说明",
+    location: "厦门",
+    meetingPoint: "东门",
+    capacity: 20,
+    priceCents: 8000,
+    identityRequired: false,
+    startAt: "2027-02-01T09:00:00+08:00",
+    endAt: "2027-02-01T11:00:00+08:00",
+    registrationDeadline: "2027-02-01T08:00:00+08:00",
+  };
+  const item = { id: "t-one", name: "周末活动", activity, version: 3 };
+  let conflict = true;
+  const fetcher = vi.fn(async (_url: string, init?: RequestInit) => {
+    const writing = init?.method === "PUT";
+    const ok = !writing || !conflict;
+    return {
+      ok,
+      status: ok ? 200 : 409,
+      json: async () =>
+        writing
+          ? ok
+            ? {
+                ...item,
+                version: 4,
+                activity: {
+                  ...activity,
+                  title: "新路线",
+                  priceCents: 12550,
+                  endAt: "2027-02-01T12:00:00+08:00",
+                },
+              }
+            : { message: "模板已更新，请刷新" }
+          : { items: [item], hasMore: false },
+    };
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const w = mount(TemplatesView, { global: { stubs: { RouterLink: true } } });
+  await flushPromises();
+  await button(w, "编辑模板").trigger("click");
+  const dialog = w.get('[role="dialog"]');
+  const field = (label: string) =>
+    dialog
+      .findAll("label")
+      .find((x) => x.text().startsWith(label))!
+      .get("input");
+  expect((field("活动标题").element as HTMLInputElement).value).toBe("旧路线");
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  await field("活动标题").setValue("新路线");
+  await field("每人费用").setValue("125.50");
+  await field("活动时长").setValue("180");
+  await dialog.get("form").trigger("submit");
+  await flushPromises();
+  expect(dialog.get('[role="alert"]').text()).toContain("不会自动覆盖");
+  expect((field("活动标题").element as HTMLInputElement).value).toBe("新路线");
+  const update = fetcher.mock.calls[1]!;
+  expect(update[0]).toContain("/admin/templates/t-one/content");
+  const payload = JSON.parse(update[1]!.body as string);
+  expect(payload).toMatchObject({
+    title: "新路线",
+    priceCents: 12550,
+    durationMinutes: 180,
+    version: 3,
+  });
+  expect(payload).not.toHaveProperty("deadlineLeadMinutes");
+  expect(payload).not.toHaveProperty("sourceId");
+  conflict = false;
+  await dialog.get("form").trigger("submit");
+  await flushPromises();
+  expect(w.find('[role="dialog"]').exists()).toBe(false);
+  expect(w.text()).toContain("模板已保存");
+  expect(w.text()).toContain("新路线");
+  await button(w, "查看模板").trigger("click");
+  expect(w.get('[role="dialog"]').text()).toContain("3 小时");
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  w.unmount();
+});

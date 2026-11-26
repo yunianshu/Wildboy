@@ -13,6 +13,11 @@ public class OperationsController {
   @GetMapping("/templates") Object templates(@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return templates.list(page,size);}
   @PostMapping("/templates") Object create(@Valid @RequestBody TemplateService.Input in,@AuthenticationPrincipal User user){return templates.save(null,in,user.id());}
   @PutMapping("/templates/{id}") Object edit(@PathVariable String id,@Valid @RequestBody TemplateService.Input in,@AuthenticationPrincipal User user){return templates.save(id,in,user.id());}
+  @PutMapping("/templates/{id}/content")
+  Object editTemplateContent(@PathVariable String id, @Valid @RequestBody TemplateService.ContentInput input,
+      @AuthenticationPrincipal User user) {
+    return templates.updateContent(id, input, user.id());
+  }
   @DeleteMapping("/templates/{id}") @ResponseStatus(org.springframework.http.HttpStatus.NO_CONTENT)
   void deleteTemplate(@PathVariable String id, @RequestParam long version, @AuthenticationPrincipal User user) {
     templates.delete(id, version, user.id());

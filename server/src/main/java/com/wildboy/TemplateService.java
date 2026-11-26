@@ -13,6 +13,17 @@ import org.springframework.transaction.annotation.Transactional;
 public class TemplateService {
   public record Template(String id, String name, ActivityInput activity, long version) {}
   public record Input(@NotBlank @Size(max=120) String name, String sourceId, @Min(0) Long sourceVersion, Long version) {}
+  public record ContentInput(
+      @NotBlank @Size(max=120) String name, @NotNull @Min(0) Long version,
+      @NotBlank @Size(max=120) String title, @NotNull Category category,
+      @NotBlank @Size(max=300) String summary, @NotBlank @Size(max=20000) String description,
+      @NotBlank @Size(max=200) String location, @NotBlank @Size(max=200) String meetingPoint,
+      @NotBlank @Size(max=2048) String coverUrl,
+      @NotNull @Size(max=12) List<@NotBlank @Size(max=2048) String> galleryUrls,
+      @NotNull @Min(1) @Max(10000) Integer capacity,
+      @NotNull @Min(0) @Max(100000000) Integer priceCents, @NotNull Boolean identityRequired,
+      @Min(1) @Max(1051200) Integer durationMinutes,
+      @Min(0) @Max(1051200) Integer deadlineLeadMinutes) {}
   public record Generate(@NotEmpty @Size(max=12) List<@NotNull OffsetDateTime> starts, @NotNull @Min(0) Long version) {}
   public record Copy(@NotNull OffsetDateTime startAt, @NotBlank @Size(max=80) String requestId, @NotNull @Min(0) Long version, Boolean publishImmediately) {
     @com.fasterxml.jackson.annotation.JsonCreator
@@ -44,6 +55,30 @@ public class TemplateService {
     else db.update("UPDATE activity_template SET name=?,payload=?,rich_blocks=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.name().strip(),encode(snapshot(source)),rich(source.id()),id);
     activities.audit(actor,id,"TEMPLATE_SAVE");return get(id,false);
   }
+  @Transactional public Template updateContent(String id, ContentInput input, String actor) {
+    var current = get(id, true);
+    if (current.version() != input.version())
+      throw ApiException.conflict("STALE_VERSION", "模板已更新，请刷新");
+    var previous = current.activity();
+    var start = previous.startAt();
+    var end = input.durationMinutes() == null
+        ? previous.endAt() : start.plusMinutes(input.durationMinutes());
+    var deadline = input.deadlineLeadMinutes() == null
+        ? previous.registrationDeadline() : start.minusMinutes(input.deadlineLeadMinutes());
+    var updated = new ActivityInput(
+        input.title().strip(), input.category(), input.coverUrl().strip(),
+        input.galleryUrls().stream().map(String::strip).toList(),
+        input.summary().strip(), input.description(), input.location().strip(), input.meetingPoint().strip(),
+        start, end, deadline, input.capacity(), input.priceCents(), null, input.identityRequired(),
+        previous.boardingPoints(), previous.navigationPoints());
+    activities.validate(updated);
+    // Change only the snapshot. Keep rich blocks, source and created drafts intact.
+    db.update("UPDATE activity_template SET name=?,payload=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        input.name().strip(), encode(updated), id);
+    activities.audit(actor, id, "TEMPLATE_SAVE");
+    return get(id, false);
+  }
+
   @Transactional public void delete(String id, long version, String actor) {
     if (get(id, true).version() != version)
       throw ApiException.conflict("STALE_VERSION", "模板已更新，请刷新");

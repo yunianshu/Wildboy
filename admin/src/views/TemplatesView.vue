@@ -32,6 +32,20 @@ const editor = ref(false),
   editing = ref<Template | null>(null),
   name = ref(""),
   sourceId = ref("");
+const content = ref<ActivityInput | null>(null);
+const replaceFromSource = ref(false);
+const priceYuan = ref<number | string>(0);
+const galleryText = ref("");
+const durationMinutes = ref<number | string>(0);
+const deadlineLeadMinutes = ref<number | string>(0);
+const minutesBetween = (from: string, to: string) =>
+  Math.round((Date.parse(to) - Date.parse(from)) / 60000);
+function timing(a: ActivityInput) {
+  return {
+    duration: Math.max(1, minutesBetween(a.startAt, a.endAt)),
+    lead: Math.max(0, minutesBetween(a.registrationDeadline, a.startAt)),
+  };
+}
 const scheduleErrors = ref<{
   date?: string;
   source?: string;
@@ -52,6 +66,15 @@ function clear() {
   sources.value = [];
   preview.value = null;
   editor.value = false;
+  editing.value = null;
+  content.value = null;
+  replaceFromSource.value = false;
+  name.value = "";
+  sourceId.value = "";
+  galleryText.value = "";
+  priceYuan.value = 0;
+  durationMinutes.value = 0;
+  deadlineLeadMinutes.value = 0;
   schedule.value = null;
   copying.value = false;
   busy.value = false;
@@ -119,14 +142,40 @@ function openEditor(t: Template | null = null) {
   editing.value = t;
   name.value = t?.name || "";
   sourceId.value = "";
+  content.value = t ? { ...t.activity } : null;
+  replaceFromSource.value = false;
+  priceYuan.value = (t?.activity.priceCents || 0) / 100;
+  galleryText.value = (t?.activity.galleryUrls || []).join("\n");
+  durationMinutes.value = t ? timing(t.activity).duration : 0;
+  deadlineLeadMinutes.value = t ? timing(t.activity).lead : 0;
   editor.value = true;
   error.value = "";
-  void loadSources();
+  success.value = "";
+  if (!t) void loadSources();
+}
+function toggleSource() {
+  replaceFromSource.value = !replaceFromSource.value;
+  sourceId.value = "";
+  error.value = "";
+  if (replaceFromSource.value) void loadSources();
+}
+function contentChanged() {
+  const a = editing.value?.activity;
+  if (!a || !content.value) return false;
+  return (
+    JSON.stringify(a) !== JSON.stringify(content.value) ||
+    priceYuan.value !== a.priceCents / 100 ||
+    galleryText.value !== (a.galleryUrls || []).join("\n") ||
+    durationMinutes.value !== timing(a).duration ||
+    deadlineLeadMinutes.value !== timing(a).lead
+  );
 }
 async function close() {
   if (busy.value) return;
   const dirty = editor.value
-    ? name.value !== (editing.value?.name || "") || !!sourceId.value
+    ? name.value !== (editing.value?.name || "") ||
+      !!sourceId.value ||
+      contentChanged()
     : !!start.value ||
       (copying.value && !!sourceId.value) ||
       count.value !== 1 ||
@@ -140,35 +189,111 @@ async function close() {
 async function save() {
   if (busy.value) return;
   const source = sources.value.find((x) => x.id === sourceId.value);
-  if (!name.value.trim() || (!source && (!editing.value || sourceId.value))) {
-    error.value = "请选择来源活动并填写模板名称";
+  const target = editing.value;
+  const direct = target && content.value && !replaceFromSource.value;
+  if (!name.value.trim() || (!direct && !source)) {
+    error.value = direct ? "请填写模板名称" : "请选择来源活动并填写模板名称";
     return;
+  }
+  const a = content.value;
+  let payload: Record<string, unknown> = {
+    name: name.value.trim(),
+    version: target?.version,
+    sourceId: source?.id,
+    sourceVersion: source?.version,
+  };
+  if (target && direct && a) {
+    if (
+      [
+        a.title,
+        a.summary,
+        a.description,
+        a.location,
+        a.meetingPoint,
+        a.coverUrl,
+      ].some((v) => !v?.trim())
+    ) {
+      error.value = "请填写活动标题、摘要、说明、地点、集合地点和封面";
+      return;
+    }
+    const galleryUrls = galleryText.value
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (
+      galleryUrls.length > 12 ||
+      galleryUrls.some((url) => url.length > 2048)
+    ) {
+      error.value = "最多 12 张图集图片，每条地址最多 2048 字";
+      return;
+    }
+    const previous = timing(target.activity);
+    const cents = Math.round(Number(priceYuan.value) * 100);
+    if (
+      typeof priceYuan.value !== "number" ||
+      priceYuan.value < 0 ||
+      cents > 100000000 ||
+      Math.abs(priceYuan.value * 100 - cents) > 0.000001 ||
+      !Number.isInteger(a.capacity) ||
+      a.capacity < 1 ||
+      a.capacity > 10000 ||
+      ![durationMinutes.value, deadlineLeadMinutes.value].every(
+        Number.isInteger,
+      ) ||
+      Number(durationMinutes.value) < 1 ||
+      Number(deadlineLeadMinutes.value) < 0 ||
+      (durationMinutes.value !== previous.duration &&
+        Number(durationMinutes.value) > 1051200) ||
+      (deadlineLeadMinutes.value !== previous.lead &&
+        Number(deadlineLeadMinutes.value) > 1051200)
+    ) {
+      error.value = "请检查费用、名额、活动时长和报名提前量";
+      return;
+    }
+    payload = {
+      name: name.value.trim(),
+      version: target.version,
+      title: a.title,
+      category: a.category,
+      summary: a.summary,
+      description: a.description,
+      location: a.location,
+      meetingPoint: a.meetingPoint,
+      coverUrl: a.coverUrl,
+      galleryUrls,
+      capacity: a.capacity,
+      priceCents: cents,
+      identityRequired: !!a.identityRequired,
+      durationMinutes:
+        durationMinutes.value !== previous.duration
+          ? durationMinutes.value
+          : undefined,
+      deadlineLeadMinutes:
+        deadlineLeadMinutes.value !== previous.lead
+          ? deadlineLeadMinutes.value
+          : undefined,
+    };
   }
   const actor = currentUser.value,
     n = epoch;
   busy.value = true;
   error.value = "";
   try {
-    await request(
-      `/admin/templates${editing.value ? "/" + editing.value.id : ""}`,
-      {
-        method: editing.value ? "PUT" : "POST",
-        body: JSON.stringify({
-          name: name.value.trim(),
-          sourceId: source?.id,
-          sourceVersion: source?.version,
-          version: editing.value?.version,
-        }),
-      },
+    const saved = await request<Template>(
+      `/admin/templates${target ? "/" + encodeURIComponent(target.id) : ""}${direct ? "/content" : ""}`,
+      { method: target ? "PUT" : "POST", body: JSON.stringify(payload) },
     );
     if (n !== epoch || actor !== currentUser.value) return;
     editor.value = false;
     success.value = "模板已保存";
-    await load();
+    if (target)
+      items.value = items.value.map((t) => (t.id === saved.id ? saved : t));
+    else void load();
   } catch (e) {
-    if (n === epoch) error.value = errorMessage(e);
+    if (n === epoch && actor === currentUser.value)
+      error.value = errorMessage(e);
   } finally {
-    busy.value = false;
+    if (actor === currentUser.value) busy.value = false;
   }
 }
 async function removeTemplate(template: Template) {
@@ -375,7 +500,13 @@ useForegroundRefresh(() => {
         >
           查看模板
         </button>
-        <button class="secondary" @click="openEditor(t)">更新模板</button>
+        <button
+          class="secondary"
+          :disabled="loading || busy"
+          @click="openEditor(t)"
+        >
+          编辑模板
+        </button>
         <button class="primary" @click="openSchedule(t)">生成草稿</button>
       </div>
     </section>
@@ -501,10 +632,22 @@ useForegroundRefresh(() => {
         </button>
       </div>
     </FormModal>
-    <FormModal :busy="busy" v-if="editor || schedule || copying" @close="close"
+    <FormModal
+      :busy="busy"
+      :size="editor && editing ? 'lg' : 'md'"
+      v-if="editor || schedule || copying"
+      @close="close"
       ><template #title
         ><h2 class="modal-heading">
-          {{ editor ? "保存模板" : copying ? "复制活动" : "生成草稿" }}
+          {{
+            editor
+              ? editing
+                ? "编辑模板"
+                : "新建模板"
+              : copying
+                ? "复制活动"
+                : "生成草稿"
+          }}
         </h2></template
       >
 
@@ -512,11 +655,119 @@ useForegroundRefresh(() => {
         <label v-if="editor"
           >模板名称<input v-model="name" maxlength="120" :disabled="busy"
         /></label>
-        <label v-if="editor || copying"
+        <template v-if="editor && editing">
+          <p class="muted">保存只更新模板，已生成的活动不受影响。</p>
+          <button
+            type="button"
+            class="text-button"
+            :disabled="busy"
+            @click="toggleSource"
+          >
+            {{ replaceFromSource ? "返回直接编辑" : "从已有活动替换内容" }}
+          </button>
+        </template>
+        <template v-if="editor && content && !replaceFromSource">
+          <fieldset class="template-edit-grid" :disabled="busy">
+            <label
+              >活动标题<input v-model="content.title" maxlength="120" required
+            /></label>
+            <label
+              >活动分类<select v-model="content.category">
+                <option
+                  v-for="(label, value) in categories"
+                  :key="value"
+                  :value="value"
+                >
+                  {{ label }}
+                </option>
+              </select></label
+            >
+            <label
+              >活动地点<input
+                v-model="content.location"
+                maxlength="200"
+                required
+            /></label>
+            <label
+              >集合地点<input
+                v-model="content.meetingPoint"
+                maxlength="200"
+                required
+            /></label>
+            <label
+              >报名名额<input
+                v-model.number="content.capacity"
+                type="number"
+                min="1"
+                max="10000"
+                step="1"
+                required
+            /></label>
+            <label
+              >每人费用（元）<input
+                v-model.number="priceYuan"
+                type="number"
+                min="0"
+                max="1000000"
+                step="0.01"
+                required
+            /></label>
+            <label
+              >活动时长（分钟）<input
+                v-model.number="durationMinutes"
+                type="number"
+                min="1"
+                step="1"
+                required
+            /></label>
+            <label
+              >报名截止提前量（分钟）<input
+                v-model.number="deadlineLeadMinutes"
+                type="number"
+                min="0"
+                step="1"
+                required
+            /></label>
+            <label class="template-identity"
+              ><input v-model="content.identityRequired" type="checkbox" />
+              报名需要身份证</label
+            >
+            <label class="template-detail-wide"
+              >活动摘要<textarea
+                v-model="content.summary"
+                maxlength="300"
+                rows="2"
+                required
+              />
+            </label>
+            <label class="template-detail-wide"
+              >活动说明<textarea
+                v-model="content.description"
+                maxlength="20000"
+                rows="4"
+                required
+              />
+            </label>
+            <details class="template-detail-wide">
+              <summary>封面与图集</summary>
+              <label
+                >封面图片地址<input
+                  v-model="content.coverUrl"
+                  maxlength="2048"
+                  required
+              /></label>
+              <label
+                >图集图片地址（每行一张）<textarea
+                  v-model="galleryText"
+                  rows="3"
+                />
+              </label>
+            </details>
+          </fieldset>
+        </template>
+        <label v-if="(editor && (!editing || replaceFromSource)) || copying"
           >来源活动<select v-model="sourceId" :disabled="busy">
-            <option value="">
-              {{ editing ? "保留原活动内容" : "选择活动" }}
-            </option>
+            <option value="">选择活动</option>
             <option v-for="a in sources" :key="a.id" :value="a.id">
               {{ a.title }} · {{ statuses[a.status] }}
             </option></select
@@ -528,7 +779,10 @@ useForegroundRefresh(() => {
           ></label
         >
         <button
-          v-if="(editor || copying) && sourceMore"
+          v-if="
+            ((editor && (!editing || replaceFromSource)) || copying) &&
+            sourceMore
+          "
           type="button"
           class="text-button"
           @click="loadSources(true)"
@@ -682,6 +936,35 @@ useForegroundRefresh(() => {
   position: absolute;
   left: -8px;
   content: "·";
+}
+.template-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  min-width: 0;
+  border: 0;
+  margin: 8px 0;
+  padding: 0;
+}
+.template-edit-grid label {
+  margin: 0;
+}
+.template-edit-grid .template-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1 / -1;
+}
+.template-edit-grid .template-identity input {
+  width: auto;
+}
+.template-edit-grid details label {
+  margin-top: 8px;
+}
+@media (max-width: 480px) {
+  .template-edit-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .template-detail {
   display: grid;
