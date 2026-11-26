@@ -6,6 +6,8 @@ import java.util.*;
 import org.commonmark.ext.gfm.tables.*;
 import org.commonmark.node.*;
 import org.commonmark.parser.Parser;
+import org.commonmark.renderer.html.CoreHtmlNodeRenderer;
+import org.commonmark.renderer.html.HtmlRenderer;
 
 /**
  * 文章正文：旧版 blocks（文字/图片/表格）与 Markdown 互转，以及 Markdown →
@@ -22,7 +24,41 @@ public final class ArticleMarkdown {
   private static final Parser PARSER =
       Parser.builder().extensions(List.of(TablesExtension.create())).build();
 
+  private static final HtmlRenderer ACTIVITY_RENDERER = HtmlRenderer.builder()
+      .extensions(List.of(TablesExtension.create()))
+      .escapeHtml(true).sanitizeUrls(true)
+      .nodeRendererFactory(context -> new CoreHtmlNodeRenderer(context) {
+        @Override public void visit(FencedCodeBlock code) {
+          if (WechatFragment.FENCE.equals(code.getInfo())) {
+            context.getWriter().raw(WechatFragment.fromFence(code.getLiteral()).html());
+          } else {
+            super.visit(code);
+          }
+        }
+      }).build();
+
   private ArticleMarkdown() {}
+
+  // Use the existing sanitized WeChat block protocol so installed mini-programs
+  // can display the visual editor's output without an application update.
+  static WechatFragment renderActivity(String markdown) {
+    return new WechatFragment(ACTIVITY_RENDERER.render(PARSER.parse(markdown)));
+  }
+
+  static String fromActivityBlocks(List<ContentModels.Block> blocks) {
+    var markdown = new StringBuilder();
+    for (var block : blocks) {
+      if ("wechat".equals(block.type())) {
+        var encoded = Base64.getEncoder().encodeToString(
+            block.text().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        markdown.append("```").append(WechatFragment.FENCE).append("\nbase64:")
+            .append(encoded).append("\n```\n\n");
+      } else {
+        markdown.append(fromProductBlocks(List.of(block)));
+      }
+    }
+    return markdown.toString();
+  }
 
   /** 旧版 blocks → Markdown（一次性兼容转换，读路径使用）。 */
   public static String fromBlocks(List<ContentModels.Block> blocks) {

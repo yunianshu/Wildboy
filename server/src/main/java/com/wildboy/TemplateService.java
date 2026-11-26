@@ -51,8 +51,9 @@ public class TemplateService {
     }
     if (input.sourceVersion() == null) throw new ApiException(400, "SOURCE_VERSION_REQUIRED", "请重新读取来源活动");
     Activity source=activities.get(input.sourceId(),true);activities.checkVersion(source,input.sourceVersion());
-    if(id==null){id=UUID.randomUUID().toString();db.update("INSERT INTO activity_template(id,name,payload,rich_blocks) VALUES (?,?,?,?)",id,input.name().strip(),encode(snapshot(source)),rich(source.id()));}
-    else db.update("UPDATE activity_template SET name=?,payload=?,rich_blocks=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.name().strip(),encode(snapshot(source)),rich(source.id()),id);
+    var rich = rich(source.id());
+    if(id==null){id=UUID.randomUUID().toString();db.update("INSERT INTO activity_template(id,name,payload,rich_blocks,rich_markdown) VALUES (?,?,?,?,?)",id,input.name().strip(),encode(snapshot(source)),rich.blocks(),rich.markdown());}
+    else db.update("UPDATE activity_template SET name=?,payload=?,rich_blocks=?,rich_markdown=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=?",input.name().strip(),encode(snapshot(source)),rich.blocks(),rich.markdown(),id);
     activities.audit(actor,id,"TEMPLATE_SAVE");return get(id,false);
   }
   @Transactional public Template updateContent(String id, ContentInput input, String actor) {
@@ -85,8 +86,21 @@ public class TemplateService {
     db.update("DELETE FROM activity_template WHERE id=?", id);
     activities.audit(actor, id, "TEMPLATE_DELETE");
   }
-  String rich(String id) { var rows=db.queryForList("SELECT blocks FROM rich_content WHERE entity_type='activity' AND entity_id=?",String.class,id);return rows.isEmpty()?"[]":rows.getFirst(); }
-  void copyRich(String target,String blocks) { if(!"[]".equals(blocks)) db.update("INSERT INTO rich_content(entity_type,entity_id,blocks,version) VALUES ('activity',?,?,1)",target,blocks); }
+  private record RichSnapshot(String blocks, String markdown) {}
+  private RichSnapshot rich(String id) {
+    var rows = db.query("SELECT blocks,markdown FROM rich_content WHERE entity_type='activity' AND entity_id=?",
+        (rs,n) -> new RichSnapshot(rs.getString("blocks"),rs.getString("markdown")),id);
+    return rows.isEmpty() ? new RichSnapshot("[]",null) : rows.getFirst();
+  }
+  private RichSnapshot templateRich(String id) {
+    return db.queryForObject("SELECT rich_blocks,rich_markdown FROM activity_template WHERE id=?",
+        (rs,n) -> new RichSnapshot(rs.getString("rich_blocks"),rs.getString("rich_markdown")),id);
+  }
+  private void copyRich(String target,RichSnapshot rich) {
+    if (rich.markdown()!=null || !"[]".equals(rich.blocks()))
+      db.update("INSERT INTO rich_content(entity_type,entity_id,blocks,markdown,version) VALUES ('activity',?,?,?,1)",
+          target,rich.blocks(),rich.markdown());
+  }
   ActivityInput shifted(ActivityInput a,OffsetDateTime start) {
     start=start.truncatedTo(java.time.temporal.ChronoUnit.MICROS);
     if(!start.isAfter(OffsetDateTime.now()) || start.isAfter(OffsetDateTime.now().plusDays(730)))throw new ApiException(400,"INVALID_DATES","请选择未来两年内的开始时间");
@@ -110,10 +124,11 @@ public class TemplateService {
     if(input.starts().stream().map(t->t.toInstant().truncatedTo(java.time.temporal.ChronoUnit.MICROS)).distinct().count()!=input.starts().size())throw new ApiException(400,"DUPLICATE_DATES","生成日期不能重复");
     // Validate all before creating any rows; the transaction also rolls back on late failures.
     var shifted=input.starts().stream().map(t->shifted(template.activity(),t)).toList();var result=new ArrayList<Activity>();
+    var snapshot=templateRich(id);
     for(int n=0;n<input.starts().size();n++) {
       var start=shifted.get(n).startAt();var prior=db.queryForList("SELECT activity_id FROM activity_generation WHERE template_id=? AND start_at=?",String.class,id,start);
       if(!prior.isEmpty()){result.add(activities.get(prior.getFirst(),true));continue;}
-      var a=createDraft(shifted.get(n),actor);copyRich(a.id(),db.queryForObject("SELECT rich_blocks FROM activity_template WHERE id=?",String.class,id));db.update("INSERT INTO activity_generation(template_id,start_at,activity_id) VALUES (?,?,?)",id,start,a.id());result.add(a);
+      var a=createDraft(shifted.get(n),actor);copyRich(a.id(),snapshot);db.update("INSERT INTO activity_generation(template_id,start_at,activity_id) VALUES (?,?,?)",id,start,a.id());result.add(a);
     }
     activities.audit(actor,id,"TEMPLATE_GENERATE");return result;
   }

@@ -83,6 +83,7 @@ let generation = 0;
 let vditor: Vditor | null = null;
 let markdown = "";
 let inited = false;
+let disposed = false;
 let applying = false;
 
 async function load() {
@@ -128,7 +129,7 @@ watch(
   () => syncDisabled(),
 );
 function syncDisabled() {
-  if (!vditor) return;
+  if (!vditor || !ready.value) return;
   if (props.disabled) vditor.disabled();
   else vditor.enable();
 }
@@ -519,12 +520,17 @@ function maybeInit() {
       },
       input: syncDirty,
       after: () => {
+        if (disposed) {
+          vditor?.destroy();
+          vditor = null;
+          return;
+        }
         applying = true;
         vditor?.setValue(markdown);
         if (vditor) markdown = vditor.getValue();
         applying = false;
-        syncDisabled();
         ready.value = true;
+        syncDisabled();
         // 供端到端验收等待编辑器就绪
         if (host.value) host.value.dataset.vditorReady = "1";
       },
@@ -587,7 +593,11 @@ async function canLeave() {
   syncDirty();
   return !dirty.value || (await askConfirm("图文尚未保存，确定离开吗？"));
 }
+function openWechatPaste() {
+  if (canInsert()) fragment.value = { placement: selectedPlacement() };
+}
 defineExpose({
+  openWechatPaste,
   canLeave,
   dirty,
   busy: workflowBusy,
@@ -607,8 +617,11 @@ onBeforeRouteLeave(
 );
 onUnmounted(() => {
   generation++;
-  vditor?.destroy();
-  vditor = null;
+  disposed = true;
+  if (ready.value) {
+    vditor?.destroy();
+    vditor = null;
+  }
 });
 </script>
 <template>

@@ -52,6 +52,28 @@ public class ContentService {
         stored.markdown() == null ? null : ArticleMarkdown.toNodes(stored.markdown()));
   }
 
+  public MarkdownDocument activityMarkdown(String id) {
+    activities.get(id, true);
+    var stored = stored("activity", id);
+    return new MarkdownDocument(stored.markdown() == null
+        ? ArticleMarkdown.fromActivityBlocks(stored.document().blocks()) : stored.markdown(),
+        stored.document().version());
+  }
+
+  @Transactional
+  public MarkdownDocument saveActivityMarkdown(String id, MarkdownInput in, String actor) {
+    lockEntity("activity", id);
+    var old = stored("activity", id).document();
+    checkVersion(in.version(), old.version());
+    var fragment = ArticleMarkdown.renderActivity(in.markdown());
+    if (!in.markdown().isBlank() && !fragment.hasContent())
+      throw WechatFragment.invalid("没有可保存的图文内容");
+    List<Block> blocks = fragment.hasContent()
+        ? List.of(new Block("wechat", fragment.html(), null, null, null)) : List.of();
+    saveContent("activity", id, blocks, in.markdown(), actor);
+    return new MarkdownDocument(in.markdown(), old.version() + 1);
+  }
+
   public MarkdownDocument productMarkdown(String id) {
     shop.product(id, true);
     var stored = stored("product", id);
@@ -156,7 +178,7 @@ public class ContentService {
     var old = stored(type, id);
     checkVersion(in.version(), old.document().version());
     if (old.markdown() != null)
-      throw ApiException.conflict("CONTENT_CONFLICT", "请使用商品图文工作台编辑此内容");
+      throw ApiException.conflict("CONTENT_CONFLICT", "请使用图文编辑页编辑此内容");
     saveContent(type, id, blocks, null, actor);
     return new Document(blocks, old.document().version() + 1);
   }

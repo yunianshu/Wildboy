@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,15 +20,14 @@ class MembershipMergeMigrationTest {
       throws Exception {
     var membershipVersions = Set.of("V15__memberships.sql", "V16__shop_membership_prices.sql",
         "V17__activity_orders.sql", "V23__activity_payment_recovery.sql");
-    var boardingMigrations = Set.of("V34__activity_boarding_points.sql",
-        "V35__activity_boarding_point_catalog.sql",
-        "V36__home_page_layout.sql",
-        "V37__activity_navigation_locations.sql", "V38__merge_legacy_home_shortcuts.sql",
-        "V39__legal_document_contacts.sql");
+    var boardingVersion = MigrationVersion.fromVersion("34");
     try (var files = Files.list(Path.of("src/main/resources/db/migration"))) {
       for (var file : files.toList()) {
         String name = file.getFileName().toString();
-        if (!membershipVersions.contains(name) && !boardingMigrations.contains(name)) {
+        int separator = name.indexOf("__");
+        boolean afterMerge = name.startsWith("V") && separator > 1
+            && MigrationVersion.fromVersion(name.substring(1, separator)).compareTo(boardingVersion) >= 0;
+        if (!membershipVersions.contains(name) && !afterMerge) {
           Files.copy(file, legacyMigrations.resolve(file.getFileName()));
         }
       }
@@ -89,8 +89,13 @@ class MembershipMergeMigrationTest {
       assertThat(normal.migrate().migrationsExecuted).isEqualTo(1);
       assertThat(db.queryForList("SELECT name FROM activity_boarding_point ORDER BY name", String.class))
           .containsExactly("North station", "South gate");
+      String legacyBlocks = "[{\"type\":\"text\",\"text\":\"Legacy template\"}]";
+      db.update("INSERT INTO activity_template(id,name,payload,rich_blocks) VALUES (?,?,?,?)",
+          "legacy-template", "Legacy name", "{}", legacyBlocks);
       var latest = Flyway.configure().dataSource(source).load();
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(4);
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(5);
+      assertThat(db.queryForMap("SELECT rich_blocks,rich_markdown FROM activity_template WHERE id='legacy-template'"))
+          .containsEntry("rich_blocks",legacyBlocks).containsEntry("rich_markdown",null);
       assertThat(db.queryForList("SELECT draft_contact FROM legal_document_state", String.class))
           .containsExactly("", "");
       latest.validate();

@@ -10,6 +10,7 @@ import {
 } from "../src/components/wechatFence";
 import ImageUpload from "../src/components/ImageUpload.vue";
 import ProductContentView from "../src/views/ProductContentView.vue";
+import EditorView from "../src/views/EditorView.vue";
 import { clearSession, acceptAuth } from "../src/api";
 
 // Vditor 在 jsdom 中无法初始化，用可控替身验证组件逻辑。
@@ -396,3 +397,89 @@ function dirtyOf(w: ReturnType<typeof mount>) {
   // defineExpose 的 ref 在实例上自动解包
   return Boolean((w.vm as unknown as { dirty: boolean }).dirty);
 }
+
+it("edits activity rich content inline, separately from activity details, and guards unsaved edits", async () => {
+  const activity = {
+    id: "activity-1",
+    title: "海边徒步",
+    category: "WEEKLY",
+    coverUrl: "/assets/cover.jpg",
+    galleryUrls: [],
+    summary: "路线简介",
+    description: "路线描述",
+    location: "厦门",
+    meetingPoint: "东门",
+    startAt: "2027-05-02T09:00:00+08:00",
+    endAt: "2027-05-02T17:00:00+08:00",
+    registrationDeadline: "2027-05-01T18:00:00+08:00",
+    status: "DRAFT",
+    capacity: 20,
+    version: 3,
+    registeredCount: 0,
+    priceCents: 0,
+  };
+  const fetcher = vi.fn(async (url: string, opts?: RequestInit) => {
+    const markdownPath = url.endsWith("/activity-1/content/markdown");
+    const json = markdownPath
+      ? opts?.method === "PUT"
+        ? { markdown: "# 新行程", version: 6 }
+        : { markdown: "# 原行程", version: 5 }
+      : url.endsWith("/activity-1")
+        ? activity
+        : [];
+    return { ok: true, status: 200, json: async () => json };
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/activities/:id/edit", component: EditorView },
+      { path: "/activities", component: { template: "<div>活动列表</div>" } },
+    ],
+  });
+  await router.push("/activities/activity-1/edit");
+  const w = mount(
+    { template: "<RouterView />" },
+    {
+      global: { plugins: [router] },
+    },
+  );
+  await flushPromises();
+  expect(instances).toHaveLength(0);
+  await w
+    .findAll("button")
+    .find((b) => b.text() === "编辑图文详情")!
+    .trigger("click");
+  await flushPromises();
+  expect(instances).toHaveLength(1);
+  instances[0].ready();
+  await flushPromises();
+  expect(instances[0].getValue()).toBe("# 原行程");
+  const card = w.get(".activity-rich-card");
+  expect(card.find('[role="dialog"]').exists()).toBe(false);
+  const save = () =>
+    card.findAll("button").find((b) => b.text() === "保存图文")!;
+  expect(save().attributes("disabled")).toBeDefined();
+  instances[0].value = "# 新行程";
+  instances[0].fireInput();
+  await flushPromises();
+  const confirm = vi.spyOn(confirmation, "askConfirm").mockResolvedValue(false);
+  await router.push("/activities");
+  expect(confirm).toHaveBeenCalled();
+  expect(router.currentRoute.value.path).toBe("/activities/activity-1/edit");
+  await save().trigger("click");
+  await flushPromises();
+  const writes = fetcher.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(writes).toHaveLength(1);
+  expect(writes[0]![0]).toBe(
+    "/api/v1/admin/activities/activity-1/content/markdown",
+  );
+  expect(JSON.parse(writes[0]![1]!.body as string)).toEqual({
+    markdown: "# 新行程",
+    version: 5,
+  });
+  expect(card.get('[role="status"]').text()).toContain("版本 6");
+  w.unmount();
+});

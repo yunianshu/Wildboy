@@ -13,6 +13,15 @@ public class ContentController {
   @GetMapping("/admin/shop/products/{id}/content") Document adminProduct(@PathVariable String id){return service.get("product",id,true);}
   @PutMapping("/admin/activities/{id}/content") Document saveActivity(@PathVariable String id,@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.save("activity",id,in,user.id());}
   @PutMapping("/admin/shop/products/{id}/content") Document saveProduct(@PathVariable String id,@Valid @RequestBody Input in,@AuthenticationPrincipal Models.User user){return service.save("product",id,in,user.id());}
+  @GetMapping("/admin/activities/{id}/content/markdown")
+  MarkdownDocument activityMarkdown(@PathVariable String id) {
+    return service.activityMarkdown(id);
+  }
+  @PutMapping("/admin/activities/{id}/content/markdown")
+  MarkdownDocument saveActivityMarkdown(@PathVariable String id, @Valid @RequestBody MarkdownInput input,
+      @AuthenticationPrincipal Models.User user) {
+    return service.saveActivityMarkdown(id, input, user.id());
+  }
   @GetMapping("/admin/shop/products/{id}/content/markdown")
   MarkdownDocument productMarkdown(@PathVariable String id) {
     return service.productMarkdown(id);

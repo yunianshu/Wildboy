@@ -74,6 +74,46 @@ class OperationsIntegrationTest {
    assertThat(db.queryForObject("SELECT blocks FROM rich_content WHERE entity_id=?",String.class,generated.id()))
        .contains("原集合说明");
  }
+ @Test void migratesActivityRichContentOnSaveAndCopiesTheEditableSource() throws Exception {
+   String base = "/api/v1/admin/activities/" + source.id() + "/content";
+   String editor = base + "/markdown";
+   var oldBlocks = List.of(
+       new ContentModels.Block("text", "沿路注意 **石滑**", null, null, null),
+       new ContentModels.Block("image", null, "/assets/hiking.jpg", "路线图", null),
+       new ContentModels.Block("table", null, null, null, List.of(List.of("站点","时间"), List.of("入口","08:30"))),
+       new ContentModels.Block("wechat", "<p style='color: #086'>公众号原文</p>", null, null, null));
+   mvc.perform(put(base).header("Authorization",token).contentType("application/json")
+       .content(json.writeValueAsString(new ContentModels.Input(oldBlocks,0L)))).andExpect(status().isOk());
+   mvc.perform(get(editor)).andExpect(status().isUnauthorized());
+   var response = mvc.perform(get(editor).header("Authorization",token))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(1)).andReturn();
+   String converted = json.readTree(response.getResponse().getContentAsByteArray()).path("markdown").asText();
+   assertThat(converted).contains("石滑","![路线图](/assets/hiking.jpg)","08\\:30","wildboy-wechat");
+   assertThat(db.queryForObject("SELECT markdown FROM rich_content WHERE entity_id=?",String.class,source.id())).isNull();
+   String markdown = "# 山脊线\n\n" + converted + "\n![不安全](javascript:alert%281%29)";
+   String input = json.writeValueAsString(new ContentModels.MarkdownInput(markdown,1L));
+   mvc.perform(put(editor).header("Authorization",token).contentType("application/json").content(input))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.version").value(2));
+   mvc.perform(put(editor).header("Authorization",token).contentType("application/json").content(input))
+       .andExpect(status().isConflict());
+   mvc.perform(put(base).header("Authorization",token).contentType("application/json")
+       .content(json.writeValueAsString(new ContentModels.Input(oldBlocks,2L)))).andExpect(status().isConflict());
+   db.update("UPDATE activity SET status='PUBLISHED' WHERE id=?",source.id());
+   var publicValue = mvc.perform(get("/api/v1/activities/"+source.id()+"/content"))
+       .andExpect(status().isOk()).andExpect(jsonPath("$.blocks[0].type").value("wechat"))
+       .andExpect(jsonPath("$.blocks[0].nodes").isArray()).andReturn().getResponse().getContentAsByteArray();
+   assertThat(new String(publicValue, java.nio.charset.StandardCharsets.UTF_8))
+       .contains("山脊线","石滑","08:30","公众号原文","/assets/hiking.jpg").doesNotContain("javascript:");
+   var t = template();
+   var at = OffsetDateTime.now().plusDays(26);
+   var generated = templates.generate(t.id(),new TemplateService.Generate(List.of(at),t.version()),admin.id()).getFirst();
+   var copy = templates.copy(source.id(),new TemplateService.Copy(at,"markdown-copy",source.version()),admin.id());
+   for (var draft : List.of(generated,copy)) {
+     String copyEditor = "/api/v1/admin/activities/" + draft.id() + "/content/markdown";
+     mvc.perform(get(copyEditor).header("Authorization",token)).andExpect(status().isOk())
+         .andExpect(jsonPath("$.markdown").value(markdown));
+   }
+ }
  @Test void copyPreservesContentNotAttendeesAndIsIdempotent(){
    db.update("INSERT INTO rich_content(entity_type,entity_id,blocks) VALUES ('activity',?,?)",source.id(),"[{\"type\":\"text\",\"text\":\"集合说明\"}]");
    var at=OffsetDateTime.now().plusDays(21).truncatedTo(java.time.temporal.ChronoUnit.MICROS);var input=new TemplateService.Copy(at,"test-copy-"+UUID.randomUUID(),source.version());var first=templates.copy(source.id(),input,admin.id());var second=templates.copy(source.id(),input,admin.id());

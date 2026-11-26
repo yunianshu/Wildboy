@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { useForegroundRefresh } from "../foregroundRefresh";
 import { askConfirm } from "../confirm";
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  nextTick,
+} from "vue";
 import {
   useRoute,
   useRouter,
@@ -22,18 +30,35 @@ import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
 import ImageUpload from "../components/ImageUpload.vue";
 import NavigationPointsField from "../components/NavigationPointsField.vue";
-import RichContentEditor from "../components/RichContentEditor.vue";
+import MarkdownEditor from "../components/MarkdownEditor.vue";
 import AppIcon from "../components/AppIcon.vue";
 import BoardingPointsField from "../components/BoardingPointsField.vue";
 import UiState from "../components/UiState.vue";
 import DateTimeField from "../components/DateTimeField.vue";
-const contentOpen = ref(false);
+const savedContentVersion = ref<number | null>(null);
+const contentVisible = ref(false);
 const reopenOpen = ref(false);
-const contentEditor = ref<{
-  canLeave: () => Promise<boolean>;
-  busy: boolean;
-  dirty: boolean;
-} | null>(null);
+const contentEditor = ref<InstanceType<typeof MarkdownEditor>>();
+async function jumpToContent() {
+  contentVisible.value = true;
+  await nextTick();
+  const heading = document.getElementById("activity-rich-heading");
+  heading?.focus({ preventScroll: true });
+  heading?.scrollIntoView?.({ block: "start" });
+}
+async function canLeaveContent() {
+  return (
+    !contentEditor.value?.writeBusy &&
+    ((await contentEditor.value?.canLeave()) ?? true)
+  );
+}
+async function reloadContent() {
+  const editor = contentEditor.value;
+  if (editor && (await canLeaveContent()) && editor === contentEditor.value) {
+    savedContentVersion.value = null;
+    await editor.load();
+  }
+}
 const route = useRoute(),
   router = useRouter(),
   id = computed(() =>
@@ -51,6 +76,10 @@ const route = useRoute(),
   addingNavigationPoint = ref(false),
   identityLockedByServer = ref(false),
   dialog = ref<"publish" | "cancel" | null>(null);
+watch(id, () => {
+  contentVisible.value = false;
+  savedContentVersion.value = null;
+});
 const fields = reactive({
     title: "",
     category: "WEEKLY" as ActivityInput["category"],
@@ -170,7 +199,6 @@ function canRefresh() {
     !saving.value &&
     !loading.value &&
     !conflict.value &&
-    !contentOpen.value &&
     !reopenOpen.value &&
     !dialog.value
   );
@@ -498,10 +526,6 @@ function closeEditor() {
       : "/activities",
   );
 }
-async function closeContent() {
-  if (contentEditor.value && !(await contentEditor.value.canLeave())) return;
-  contentOpen.value = false;
-}
 function beforeUnload(event: BeforeUnloadEvent) {
   if (dirty.value || contentEditor.value?.dirty || contentEditor.value?.busy) {
     event.preventDefault();
@@ -512,12 +536,13 @@ onBeforeRouteLeave(
   async (to) =>
     to.path === "/login" ||
     (!saving.value &&
+      (await canLeaveContent()) &&
       (!dirty.value || (await askConfirm("修改尚未保存，确定离开吗？")))),
 );
 onBeforeRouteUpdate(
   async () =>
     !saving.value &&
-    (!contentEditor.value || (await contentEditor.value.canLeave())) &&
+    (await canLeaveContent()) &&
     (!dirty.value || (await askConfirm("修改尚未保存，确定切换活动吗？"))),
 );
 onMounted(() => {
@@ -908,7 +933,7 @@ useForegroundRefresh(() => {
                 type="button"
                 class="secondary"
                 :disabled="saving"
-                @click="contentOpen = true"
+                @click="jumpToContent"
               >
                 <AppIcon name="document" :size="16" />编辑图文详情
               </button>
@@ -1027,18 +1052,80 @@ useForegroundRefresh(() => {
         </div>
       </div>
     </form>
+    <section
+      v-if="contentVisible && id && current && current.id === id"
+      class="activity-rich-card"
+      aria-labelledby="activity-rich-heading"
+    >
+      <header>
+        <div>
+          <h2 id="activity-rich-heading" tabindex="-1">图文详情</h2>
+          <p>在页面内编辑行程、插入图片和表格，也可粘贴公众号排版。</p>
+        </div>
+        <button
+          type="button"
+          class="secondary"
+          :disabled="
+            saving || readonly || !contentEditor?.ready || contentEditor.busy
+          "
+          @click="contentEditor?.openWechatPaste()"
+        >
+          <AppIcon name="document" :size="16" />粘贴公众号
+        </button>
+      </header>
+      <MarkdownEditor
+        :key="id"
+        ref="contentEditor"
+        :path="`/admin/activities/${encodeURIComponent(id)}/content/markdown`"
+        :disabled="saving || readonly"
+        :components="false"
+        :height="620"
+        placeholder="输入行程、路线和注意事项，可直接粘贴图片…"
+        managed-navigation
+        @saved="savedContentVersion = $event"
+      />
+      <footer class="activity-rich-footer">
+        <span role="status">{{
+          contentEditor?.dirty
+            ? "图文有未保存修改"
+            : savedContentVersion !== null
+              ? "图文已保存 · 版本 " + savedContentVersion
+              : "活动信息与图文分别保存"
+        }}</span>
+        <div class="footer-actions">
+          <button
+            v-if="contentEditor?.versionConflict"
+            type="button"
+            class="secondary"
+            :disabled="contentEditor.busy"
+            @click="reloadContent"
+          >
+            读取最新版本
+          </button>
+          <button
+            type="button"
+            class="primary"
+            :disabled="
+              saving ||
+              readonly ||
+              !contentEditor?.ready ||
+              !contentEditor.loaded ||
+              !contentEditor.dirty ||
+              contentEditor.busy ||
+              contentEditor.versionConflict
+            "
+            @click="contentEditor?.save()"
+          >
+            保存图文
+          </button>
+        </div>
+      </footer>
+    </section>
   </main>
   <ActivityReopenModal
     :activity="reopenOpen ? current : null"
     @close="reopenOpen = false"
     @created="handleReopened"
-  />
-  <RichContentEditor
-    v-if="id && contentOpen"
-    ref="contentEditor"
-    :path="`/admin/activities/${id}/content`"
-    :disabled="saving || readonly"
-    @close="closeContent"
   />
   <ConfirmDialog
     v-if="dialog"
@@ -1099,5 +1186,60 @@ useForegroundRefresh(() => {
   display: flex;
   gap: 7px;
   align-items: center;
+}
+.activity-rich-card {
+  min-width: 0;
+  margin: 24px 0;
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--rf-surface);
+  box-shadow: var(--rf-shadow-sm);
+}
+.activity-rich-card header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.activity-rich-card h2 {
+  margin: 0;
+  scroll-margin-block: 24px;
+}
+.activity-rich-card header p {
+  margin: 6px 0 0;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.activity-rich-footer {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  padding: 12px 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: #fffffff2;
+  box-shadow: 0 10px 28px #183c2914;
+  backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.activity-rich-footer .footer-actions {
+  margin: 0 0 0 auto;
+}
+@media (max-width: 720px) {
+  .activity-rich-card {
+    padding: 16px;
+  }
+  .activity-rich-footer {
+    position: static;
+  }
 }
 </style>
