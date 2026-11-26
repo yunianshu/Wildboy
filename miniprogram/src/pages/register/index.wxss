@@ -18,12 +18,6 @@
   line-height: 1.8;
   color: var(--rf-muted);
 }
-.consent checkbox {
-  transform: scale(0.8);
-  transform-origin: left top;
-  flex-shrink: 0;
-  width: 55rpx;
-}
 .submit {
   margin: 24rpx 0 12rpx;
 }

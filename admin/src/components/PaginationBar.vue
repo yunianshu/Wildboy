@@ -22,7 +22,10 @@ const pageCount = computed(() =>
 <template>
   <nav v-if="page > 0 || hasMore" class="pagination" :aria-label="label">
     <span v-if="pageCount != null"
-      >共 {{ total }} 条 · 第 {{ page + 1 }}/{{ pageCount }} 页</span
+      >共 {{ total }} {{ countUnit || "条" }} · 第 {{ page + 1 }}/{{
+        pageCount
+      }}
+      页</span
     >
     <span v-else>第 {{ page + 1 }} 页</span>
     <button

@@ -12,7 +12,7 @@
       <textarea value="{{draft.address}}" maxlength="300" data-field="address" bindinput="input" disabled="{{busy}}" placeholder="省市区、街道门牌号" />
       <view wx:if="{{locationError}}" class="error location-error">{{locationError}}</view>
     </view>
-    <view class="default-row"><text>{{currentDefault ? "当前默认地址" : "设为默认地址"}}</text><switch checked="{{draft.isDefault}}" bindchange="defaultChange" disabled="{{busy || currentDefault}}" color="#1D6342" /></view>
+    <view class="default-row"><text>{{currentDefault ? "当前默认地址" : "设为默认地址"}}</text><switch checked="{{draft.isDefault}}" bindchange="defaultChange" disabled="{{busy || currentDefault}}" color="#247A52" /></view>
     <view wx:if="{{error}}" class="error">{{error}}</view>
     <button class="secondary" bindtap="importWechatAddress" disabled="{{busy || locating}}">从微信导入</button>
     <button class="primary" bindtap="save" loading="{{busy}}" disabled="{{busy || locating}}">{{selecting ? '保存并使用' : '保存地址'}}</button>

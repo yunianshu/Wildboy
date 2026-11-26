@@ -15,7 +15,7 @@
 
       <view class="detail-card">
         <view class="card-caption">订单商品</view>
-        <view class="product-line" wx:for="{{detail.items}}" wx:key="id" data-id="{{item.productId}}" bindtap="openProduct">
+        <view class="product-line" hover-class="tap-pressed" aria-role="button" wx:for="{{detail.items}}" wx:key="id" data-id="{{item.productId}}" bindtap="openProduct">
           <image class="product-image" src="{{item.imageUrl}}" mode="aspectFill" />
           <view class="product-info">
             <view class="product-name">{{item.productName}}<text wx:if="{{item.tierName}}" class="muted small"> · {{item.tierName}}会员价</text></view>

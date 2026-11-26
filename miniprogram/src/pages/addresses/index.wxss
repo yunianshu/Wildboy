@@ -39,13 +39,14 @@
   line-height: 1.5;
   text-align: left;
 }
-.address-card.address-selected { background: var(--rf-soft); border-color: var(--rf-primary); }
 .address-card {
   background: var(--rf-surface);
+  border: 1px solid transparent;
   padding: 16px;
   border-radius: 12px;
   margin-bottom: 12px;
 }
+.address-card.address-selected { background: var(--rf-soft); border-color: var(--rf-primary); }
 .address-name {
   display: flex;
   flex-wrap: wrap;
@@ -62,7 +63,7 @@
   border-radius: 4px;
   background: var(--rf-soft);
   color: var(--rf-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
 }
 .address-detail {

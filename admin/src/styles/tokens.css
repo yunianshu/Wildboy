@@ -2,6 +2,8 @@
 :root {
   --rf-bg: #f3f6f4;
   --rf-surface: #ffffff;
+  --rf-surface-subtle: #f9fbf9;
+  --rf-surface-glass: #fffffff2;
   --rf-primary: #167a52;
   --rf-ink: #18271f;
   --rf-muted: #687b70;
@@ -38,4 +40,10 @@
   --rf-dialog-gap: 16px;
   --rf-shadow-sm: 0 1px 2px #14261f05, 0 5px 18px #14261f04;
   --rf-shadow-md: 0 16px 40px #10251d12;
+  --rf-shadow-floating: 0 10px 28px #183c2914;
+  --z-sticky-bar: 20;
+  --z-nav: 30;
+  --z-dropdown: 40;
+  --z-modal: 90;
+  --z-confirm: 110;
 }

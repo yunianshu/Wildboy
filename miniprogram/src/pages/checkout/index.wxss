@@ -4,15 +4,14 @@
 .order-product image { width: 180rpx; height: 180rpx; flex-shrink: 0; border-radius: 10rpx; }
 .order-product-info { flex: 1; min-width: 0; }
 .product-name { font-size: 30rpx; font-weight: 650; line-height: 1.5; }
-.order-product-info .action-row { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; gap: 6px; align-items: center; margin-top: 12px; }
+.order-product-info .action-row { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; gap: 4px; align-items: center; margin-top: 12px; }
 .order-product-info .action-row .secondary { width: 100%; min-width: 0; min-height: 44px; margin: 0; padding: 6px 4px; border: 1px solid var(--rf-line); border-radius: 8px; background: var(--rf-surface); font-size: 12px; font-weight: 600; line-height: 1.4; }
 .order-product-info .action-row .secondary[disabled] { background: var(--rf-neutral-bg); }
-.order-product-info .action-row text { color: var(--rf-muted); font-size: 12px; text-align: center; white-space: nowrap; }
+.order-product-info .action-row text { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--rf-muted); font-size: 12px; text-align: center; white-space: nowrap; }
 .order-product .muted { margin-top: 10rpx; }
 .price { margin-top: 16rpx; color: var(--rf-primary-text); font-size: 31rpx; font-weight: 700; }
 .checkout-page textarea { width: 100%; height: 170rpx; padding: 22rpx 24rpx; border: 1rpx solid var(--rf-soft); border-radius: 10rpx; background: #FFFFFF; font-size: 29rpx; box-sizing: border-box; }
 .consent { display: flex; align-items: flex-start; margin-top: 30rpx; color: var(--rf-muted); font-size: 24rpx; line-height: 1.8; }
-.consent checkbox { flex-shrink: 0; width: 55rpx; transform: scale(.8); transform-origin: left top; }
 .form-error { padding-top: 24rpx; font-size: 25rpx; }
 .submit { margin-top: 30rpx; }
 .result-card { padding: 48rpx 28rpx; margin-bottom: 26rpx; border-radius: 18rpx; background: var(--rf-soft); text-align: center; }
@@ -23,7 +22,7 @@
 .checkout-page > button { margin-top: 18rpx; }
 .payment-actions { display: flex; gap: 16rpx; margin-top: 20rpx; }
 .payment-actions button { flex: 1; min-width: 0; margin: 0; min-height: 80rpx; padding: 12rpx 16rpx; }
-.checkout-page .orders-link { width: auto; min-height: 72rpx; margin: 8rpx auto 0; padding: 12rpx 24rpx; background: transparent; font-weight: 400; }
+.checkout-page .orders-link { width: auto; min-height: 44px; margin: 8rpx auto 0; padding: 12rpx 24rpx; background: transparent; font-weight: 400; }
 
 .shipping-card { padding: 28rpx; border-radius: 20rpx; background: white; margin-bottom: 28rpx; }
 .shipping-name { font-weight: 600; font-size: 30rpx; }

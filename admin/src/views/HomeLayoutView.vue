@@ -454,6 +454,9 @@ onUnmounted(() => {
         </p>
       </div>
       <div class="heading-actions">
+        <span v-if="dirty && !saving" class="dirty-badge" role="status"
+          >有未保存改动</span
+        >
         <button
           v-if="conflict"
           type="button"
@@ -468,7 +471,7 @@ onUnmounted(() => {
           :disabled="saving || loading || conflict || !layout"
           @click="save"
         >
-          {{ saving ? "正在保存…" : dirty ? "保存首页配置 ●" : "保存首页配置" }}
+          {{ saving ? "正在保存…" : "保存首页配置" }}
         </button>
       </div>
     </header>
@@ -1490,8 +1493,14 @@ onUnmounted(() => {
             <template v-for="mod in layout.modules" :key="mod.id">
               <div
                 v-if="mod.enabled && mod.id === 'HERO'"
-                class="pv-hero"
+                class="pv-hero pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'HERO'"
+                aria-label="编辑首屏模块"
                 @click="activeModule = 'HERO'"
+                @keydown.enter.prevent="activeModule = 'HERO'"
+                @keydown.space.prevent="activeModule = 'HERO'"
               >
                 <img :src="layout.hero.imageUrl" alt="" />
                 <div class="pv-hero-shade">
@@ -1503,11 +1512,17 @@ onUnmounted(() => {
 
               <div
                 v-else-if="mod.enabled && mod.id === 'SHORTCUTS'"
-                class="pv-shortcuts"
+                class="pv-shortcuts pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'SHORTCUTS'"
+                aria-label="编辑快捷入口模块"
                 :style="{
                   gridTemplateColumns: `repeat(${layout.shortcuts.columns}, minmax(0, 1fr))`,
                 }"
                 @click="activeModule = 'SHORTCUTS'"
+                @keydown.enter.prevent="activeModule = 'SHORTCUTS'"
+                @keydown.space.prevent="activeModule = 'SHORTCUTS'"
               >
                 <div
                   v-for="sc in layout.shortcuts.items"
@@ -1528,8 +1543,14 @@ onUnmounted(() => {
 
               <div
                 v-else-if="mod.enabled && mod.id === 'ACTIVITIES'"
-                class="pv-block"
+                class="pv-block pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'ACTIVITIES'"
+                aria-label="编辑活动模块"
                 @click="activeModule = 'ACTIVITIES'"
+                @keydown.enter.prevent="activeModule = 'ACTIVITIES'"
+                @keydown.space.prevent="activeModule = 'ACTIVITIES'"
               >
                 <div class="pv-block-title">{{ layout.activities.title }}</div>
                 <div class="pv-mini-grid">
@@ -1554,8 +1575,14 @@ onUnmounted(() => {
 
               <div
                 v-else-if="mod.enabled && mod.id === 'SHOP'"
-                class="pv-block"
+                class="pv-block pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'SHOP'"
+                aria-label="编辑装备商城模块"
                 @click="activeModule = 'SHOP'"
+                @keydown.enter.prevent="activeModule = 'SHOP'"
+                @keydown.space.prevent="activeModule = 'SHOP'"
               >
                 <div v-if="layout.shop.showBanner" class="pv-shop-banner">
                   <strong>{{ layout.shop.bannerTitle }}</strong>
@@ -1571,8 +1598,14 @@ onUnmounted(() => {
 
               <div
                 v-else-if="mod.enabled && mod.id === 'GALLERY'"
-                class="pv-block"
+                class="pv-block pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'GALLERY'"
+                aria-label="编辑图集轮播模块"
                 @click="activeModule = 'GALLERY'"
+                @keydown.enter.prevent="activeModule = 'GALLERY'"
+                @keydown.space.prevent="activeModule = 'GALLERY'"
               >
                 <div class="pv-block-title">{{ layout.gallery.title }}</div>
                 <div class="pv-mini-placeholder">
@@ -1586,8 +1619,14 @@ onUnmounted(() => {
 
               <div
                 v-else-if="mod.enabled && mod.id === 'FOOTER'"
-                class="pv-footer"
+                class="pv-footer pv-interactive"
+                role="button"
+                tabindex="0"
+                :aria-pressed="activeModule === 'FOOTER'"
+                aria-label="编辑页脚模块"
                 @click="activeModule = 'FOOTER'"
+                @keydown.enter.prevent="activeModule = 'FOOTER'"
+                @keydown.space.prevent="activeModule = 'FOOTER'"
               >
                 <div v-if="layout.footer.followEnabled" class="pv-follow-box">
                   <strong>{{ layout.footer.followTitle || "关注我们" }}</strong>
@@ -1618,6 +1657,41 @@ onUnmounted(() => {
         </div>
       </aside>
     </div>
+
+    <div
+      v-if="layout && !loading"
+      class="layout-save-bar"
+      role="region"
+      aria-label="首页配置保存操作"
+    >
+      <span class="layout-save-status">
+        {{
+          conflict
+            ? "首页配置已在别处更新，请先加载最新版本"
+            : dirty
+              ? "有未保存的首页配置改动"
+              : "当前配置已保存"
+        }}
+      </span>
+      <div class="heading-actions">
+        <button
+          v-if="conflict"
+          type="button"
+          class="secondary"
+          @click="reloadAfterConflict"
+        >
+          加载最新版本
+        </button>
+        <button
+          type="button"
+          class="primary"
+          :disabled="saving || loading || conflict || !layout"
+          @click="save"
+        >
+          {{ saving ? "正在保存…" : "保存首页配置" }}
+        </button>
+      </div>
+    </div>
   </main>
 </template>
 
@@ -1626,6 +1700,37 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.dirty-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--rf-warning-bg);
+  color: var(--rf-warning);
+  font-size: 12px;
+  font-weight: 600;
+}
+.layout-save-bar {
+  position: sticky;
+  bottom: 12px;
+  z-index: var(--z-sticky-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 12px 16px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-surface-glass);
+  box-shadow: var(--rf-shadow-floating);
+  backdrop-filter: blur(14px);
+}
+.layout-save-status {
+  color: var(--rf-muted);
+  font-size: 13px;
 }
 .builder-grid {
   display: grid;
@@ -1981,11 +2086,11 @@ onUnmounted(() => {
 .slider-inputs input[type="range"] {
   flex: 1;
 }
-.px-number {
-  width: 84px !important;
+.slider-inputs .px-number {
+  width: 84px;
 }
 .danger-text {
-  color: #b42318;
+  color: var(--rf-danger);
 }
 /* Right Phone Wireframe */
 .phone-frame {
@@ -2003,6 +2108,10 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+.pv-interactive:focus-visible {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: 2px;
 }
 .pv-hero {
   position: relative;

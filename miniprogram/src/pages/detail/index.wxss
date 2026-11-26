@@ -159,7 +159,7 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   border-radius: 999px;
   background: var(--rf-primary-text);
   color: #FFFFFF;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 16px;
 }
@@ -241,7 +241,7 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   border-radius: 4px;
   background: var(--rf-soft);
   color: var(--rf-primary-text);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 .nav-sheet-name {

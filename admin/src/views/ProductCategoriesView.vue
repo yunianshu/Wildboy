@@ -356,7 +356,11 @@ useForegroundRefresh(() => {
       ><template #title
         ><h2>{{ editingId ? "编辑商品分类" : "创建商品分类" }}</h2></template
       >
-      <form class="form-section" @submit.prevent="save">
+      <form
+        id="product-category-form"
+        class="modal-form"
+        @submit.prevent="save"
+      >
         <p v-if="error" class="error-box" role="alert">{{ error }}</p>
         <p v-if="editingId === 'uncategorized'" class="privacy-note">
           此分类用于未指定分类的商品。
@@ -380,6 +384,8 @@ useForegroundRefresh(() => {
             :disabled="busy"
         /></label>
         <p class="field-hint">0–9999 的整数，数值越小越靠前。</p>
+      </form>
+      <template #footer>
         <div class="dialog-actions">
           <button type="button" :disabled="busy" @click="close">
             {{ uncertain ? "返回分类列表核对" : "取消" }}</button
@@ -392,12 +398,14 @@ useForegroundRefresh(() => {
             采用最新版本</button
           ><button
             class="primary"
+            type="submit"
+            form="product-category-form"
             :disabled="busy || loading || conflict || uncertain"
           >
             {{ busy ? "正在保存…" : "保存分类" }}
           </button>
         </div>
-      </form>
+      </template>
     </FormModal>
     <ConfirmDialog
       v-if="reloadConfirmation"

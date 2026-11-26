@@ -2,7 +2,7 @@
 import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { onMounted, onUnmounted, ref, watch } from "vue";
-import { useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import type { Page } from "../types";
 import { articleStatusTone } from "../statusTone";
@@ -218,7 +218,13 @@ useForegroundRefresh(() => {
                     />
                   </span>
                   <div class="article-text">
-                    <strong class="article-title">{{ article.title }}</strong>
+                    <RouterLink
+                      class="article-title"
+                      :to="`/articles/${article.id}/edit`"
+                      @click.stop
+                    >
+                      {{ article.title }}
+                    </RouterLink>
                     <p v-if="article.summary" class="article-summary">
                       {{ article.summary }}
                     </p>
@@ -371,6 +377,9 @@ useForegroundRefresh(() => {
   margin: 0 0 8px;
 }
 .article-title {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
   font-weight: 650;
   overflow-wrap: anywhere;
 }

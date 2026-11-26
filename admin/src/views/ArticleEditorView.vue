@@ -817,7 +817,7 @@ useForegroundRefresh(() => {
   background: #f6f9f7;
 }
 .article-summary-field:focus-within {
-  border-color: var(--rf-line);
+  border-color: var(--rf-primary);
   background: var(--rf-soft);
 }
 .article-summary-input {

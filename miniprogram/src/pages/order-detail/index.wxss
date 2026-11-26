@@ -17,7 +17,7 @@
 .status-card { background: var(--rf-soft); }
 .status-title { font-size: 20px; font-weight: 700; color: var(--rf-ink); }
 .status-sub { font-size: 12px; color: var(--rf-muted); }
-.receipt-hint { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--rf-muted); }
+.receipt-hint { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--rf-muted); }
 .receipt-hint::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--rf-success); flex-shrink: 0; }
 
 .card-caption { font-size: 13px; font-weight: 600; color: var(--rf-ink); }

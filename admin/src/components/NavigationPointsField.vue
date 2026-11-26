@@ -593,13 +593,13 @@ function quickFillCoord(index: number, raw: string) {
   gap: 8px;
 }
 .danger-text {
-  color: #b42318;
+  color: var(--rf-danger);
 }
 .nav-add-panel {
   margin-top: 12px;
   padding: 14px;
   border-radius: 10px;
-  border: 1px dashed var(--rf-primary, #247a52);
+  border: 1px dashed var(--rf-primary);
   background: var(--rf-surface, #fff);
   display: flex;
   flex-direction: column;

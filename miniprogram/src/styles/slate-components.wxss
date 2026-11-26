@@ -86,3 +86,5 @@ button.secondary.button-hover { background: var(--rf-line); }
 .page .booking-summary, .page .result-card, .page .virtual-card { border-radius: 12px; }
 .page .notice .text-button { margin-left: -8px; justify-content: flex-start; text-align: left; }
 .page button.text-button[disabled], .uf-page button.text-button[disabled], .dialog-body button.text-button[disabled] { background: transparent; color: var(--rf-muted); }
+.page .card-pressed, .uf-page .card-pressed { background: var(--rf-soft); }
+.tap-pressed { opacity: 0.72; }

@@ -307,8 +307,9 @@ useForegroundRefresh(() => {
         </li>
       </ul>
       <p class="muted">
-        消息跳转路径（后台最近保存）
-        {{ orderCenter?.savedMsgJumpPath || "暂无记录" }}
+        消息跳转路径（后台最近保存）：{{
+          orderCenter?.savedMsgJumpPath || "暂无记录"
+        }}
       </p>
       <p v-if="jumpNotice" class="success-box" role="status">
         {{ jumpNotice }}
@@ -329,7 +330,7 @@ useForegroundRefresh(() => {
       ><template #title><h2>配置订单详情路径</h2></template>
       <form
         id="order-path-form"
-        class="form-section"
+        class="modal-form"
         @submit.prevent="saveOrderPath"
       >
         <p v-if="pathError" class="error-box" role="alert">{{ pathError }}</p>
@@ -345,6 +346,8 @@ useForegroundRefresh(() => {
         <p class="order-center-note">
           提交前请先在小程序后台签署订单中心授权协议，否则微信返回 10060034。
         </p>
+      </form>
+      <template #footer>
         <div class="dialog-actions">
           <button
             class="secondary"
@@ -354,17 +357,22 @@ useForegroundRefresh(() => {
           >
             取消
           </button>
-          <button class="primary" type="submit" :disabled="pathSaving">
+          <button
+            class="primary"
+            type="submit"
+            form="order-path-form"
+            :disabled="pathSaving"
+          >
             {{ pathSaving ? "保存中…" : "保存" }}
           </button>
         </div>
-      </form>
+      </template>
     </FormModal>
     <FormModal v-if="jumpDialog" :busy="jumpSaving" @close="jumpDialog = false"
       ><template #title><h2>设置消息跳转路径</h2></template>
       <form
         id="msg-jump-form"
-        class="form-section"
+        class="modal-form"
         @submit.prevent="saveJumpPath"
       >
         <p v-if="jumpError" class="error-box" role="alert">{{ jumpError }}</p>
@@ -382,6 +390,8 @@ useForegroundRefresh(() => {
           transaction_id、merchant_trade_no
           等参数。路径为空或不存在时仍跳平台默认页。
         </p>
+      </form>
+      <template #footer>
         <div class="dialog-actions">
           <button
             class="secondary"
@@ -391,11 +401,16 @@ useForegroundRefresh(() => {
           >
             取消
           </button>
-          <button class="primary" type="submit" :disabled="jumpSaving">
+          <button
+            class="primary"
+            type="submit"
+            form="msg-jump-form"
+            :disabled="jumpSaving"
+          >
             {{ jumpSaving ? "保存中…" : "保存" }}
           </button>
         </div>
-      </form>
+      </template>
     </FormModal>
     <section
       v-show="settingsTab === 'reconcile'"
@@ -459,7 +474,10 @@ useForegroundRefresh(() => {
         </div>
       </form>
       <p v-if="wxError" class="error-box" role="alert">{{ wxError }}</p>
-      <div v-if="wxOrders.length" class="table-scroll">
+      <UiState v-if="wxLoading && !wxOrders.length" kind="loading" compact
+        >正在查询微信支付单…</UiState
+      >
+      <div v-else-if="wxOrders.length" class="table-scroll">
         <table class="wechat-orders-table">
           <thead>
             <tr>
@@ -529,6 +547,7 @@ useForegroundRefresh(() => {
   border: 1px solid var(--admin-line);
   border-radius: 12px;
   background: var(--admin-surface);
+  box-shadow: var(--rf-shadow-sm);
 }
 .order-center-card h2 {
   margin: 0 0 8px;
@@ -621,8 +640,18 @@ useForegroundRefresh(() => {
 .wechat-orders-table th,
 .wechat-orders-table td {
   text-align: left;
-  padding: 6px 10px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--admin-line);
+  vertical-align: top;
+}
+.wechat-orders-table th,
+.wechat-orders-table td:nth-child(3),
+.wechat-orders-table td:nth-child(5),
+.wechat-orders-table td:nth-child(6) {
+  white-space: nowrap;
+}
+.wechat-orders-table td:nth-child(1),
+.wechat-orders-table td:nth-child(2) {
   word-break: break-all;
 }
 .order-center-status {

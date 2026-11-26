@@ -839,9 +839,9 @@ useForegroundRefresh(() => {
   position: absolute;
   right: 22px;
   bottom: 12px;
-  color: #6f9080;
-  font-size: 8px;
-  letter-spacing: 1.3px;
+  color: #8fa99a;
+  font-size: 11px;
+  letter-spacing: 0.9px;
 }
 .metrics {
   display: grid;

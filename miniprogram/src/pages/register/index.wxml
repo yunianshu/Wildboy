@@ -151,7 +151,7 @@
           <checkbox id="legal-consent"
             value="yes"
             checked="{{consent}}"
-            color="#1D6342"
+            color="#247A52"
             aria-label="同意当前协议及参与人信息使用"
             disabled="{{submitting || recoveryNeeded}}"
           />

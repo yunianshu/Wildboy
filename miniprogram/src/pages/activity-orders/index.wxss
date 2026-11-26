@@ -5,7 +5,7 @@
 .activity-orders-page .page-intro { margin-bottom: 20rpx; }
 .activity-orders-page .refresh { margin-top: 0; }
 
-.order-card { padding: 26rpx; margin-top: 26rpx; border-radius: 16rpx; background: #FFFFFF; }
+.order-card { padding: 26rpx; margin-top: 26rpx; border: 1px solid var(--rf-line); border-radius: 16rpx; background: var(--rf-surface); }
 .order-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16rpx; margin-bottom: 16rpx; }
 .order-title { flex: 1; min-width: 0; font-size: 32rpx; font-weight: 600; line-height: 1.5; word-break: break-all; }
 

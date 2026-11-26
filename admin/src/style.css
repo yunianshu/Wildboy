@@ -14,27 +14,6 @@
   --admin-danger-bg: var(--rf-danger-bg);
   --admin-inset: 24px;
   --admin-radius: var(--rf-control-radius);
-  /* 模块共享柑橘操作色，状态使用独立语义色。 */
-  --acc-ops-strong: var(--rf-primary);
-  --acc-ops-soft: var(--rf-soft);
-  --acc-ops-border: var(--rf-line);
-  --acc-ops-on-dark: var(--rf-primary);
-  --acc-activity-strong: var(--rf-primary);
-  --acc-activity-soft: var(--rf-soft);
-  --acc-activity-border: var(--rf-line);
-  --acc-activity-on-dark: var(--rf-primary);
-  --acc-shop-strong: var(--rf-primary);
-  --acc-shop-soft: var(--rf-soft);
-  --acc-shop-border: var(--rf-line);
-  --acc-shop-on-dark: var(--rf-primary);
-  --acc-user-strong: var(--rf-primary);
-  --acc-user-soft: var(--rf-soft);
-  --acc-user-border: var(--rf-line);
-  --acc-user-on-dark: var(--rf-primary);
-  --acc-content-strong: var(--rf-primary);
-  --acc-content-soft: var(--rf-soft);
-  --acc-content-border: var(--rf-line);
-  --acc-content-on-dark: var(--rf-primary);
   /* 语义状态色（状态胶囊、警示与反馈） */
   --tone-success: var(--rf-success);
   --tone-success-bg: var(--rf-success-bg);
@@ -63,33 +42,7 @@
 * {
   box-sizing: border-box;
 }
-/* 页面所属模块 → 该页的模块色变量（表头、页题标记） */
-.app-shell[data-module="ops"] {
-  --page-accent: var(--acc-ops-strong);
-  --page-accent-soft: var(--acc-ops-soft);
-  --page-accent-border: var(--acc-ops-border);
-}
-.app-shell[data-module="activity"] {
-  --page-accent: var(--acc-activity-strong);
-  --page-accent-soft: var(--acc-activity-soft);
-  --page-accent-border: var(--acc-activity-border);
-}
-.app-shell[data-module="shop"] {
-  --page-accent: var(--acc-shop-strong);
-  --page-accent-soft: var(--acc-shop-soft);
-  --page-accent-border: var(--acc-shop-border);
-}
-.app-shell[data-module="user"] {
-  --page-accent: var(--acc-user-strong);
-  --page-accent-soft: var(--acc-user-soft);
-  --page-accent-border: var(--acc-user-border);
-}
-.app-shell[data-module="content"] {
-  --page-accent: var(--acc-content-strong);
-  --page-accent-soft: var(--acc-content-soft);
-  --page-accent-border: var(--acc-content-border);
-}
-/* 登录页等无外壳场景使用柑橘品牌色（:root 定义，页面模块可覆盖） */
+/* 页面主色变量（默认继承森林主题主色） */
 :root {
   --page-accent: var(--admin-primary);
   --page-accent-soft: var(--admin-tint);
@@ -274,7 +227,7 @@ a.text-button:hover {
 .topnav {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: var(--z-nav);
   display: flex;
   align-items: center;
   gap: 24px;
@@ -337,7 +290,7 @@ a.text-button:hover {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
-  z-index: 40;
+  z-index: var(--z-dropdown);
   min-width: 168px;
   padding: 6px;
   border: 1px solid var(--admin-line);

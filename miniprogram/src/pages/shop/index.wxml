@@ -31,7 +31,7 @@
       <ui-state wx:elif="{{error && !items.length}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
       <ui-state wx:elif="{{!(searchTerm ? searchResults.length : items.length)}}" kind="empty">{{searchTerm ? "没有匹配的商品" : "新装备正在准备中"}}</ui-state>
       <view wx:else class="product-grid">
-        <view class="product-card" aria-label="{{item.name}}" wx:for="{{searchTerm ? searchResults : items}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
+        <view class="product-card" hover-class="card-pressed" aria-role="button" aria-label="{{item.name}}" wx:for="{{searchTerm ? searchResults : items}}" wx:key="id" data-id="{{item.id}}" bindtap="open">
           <view class="product-image-wrap"><image src="{{item.imageUrl}}" mode="aspectFill" lazy-load /></view>
           <view class="product-name">{{item.name}}</view>
           <view class="product-bottom"><view class="price-wrap"><text class="price">{{item.priceText}}</text><text wx:if="{{item.originalPriceText}}" class="original-price">{{item.originalPriceText}}</text></view><text class="stock">{{item.stock ? '有库存' : '暂时售罄'}}</text></view>

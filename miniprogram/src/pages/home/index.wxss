@@ -233,8 +233,8 @@
 .shortcut-mask {
   position: fixed;
   inset: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  background: var(--rf-overlay, rgba(32, 55, 44, 0.4));
   display: flex;
   align-items: center;
   justify-content: center;

@@ -22,31 +22,31 @@
         协议已更新，需重新确认；不影响查看和取消已有报名。
         <button class="secondary" bindtap="confirmLegal">查看协议</button>
       </view>
-      <view wx:if="{{legalStatusError}}" class="muted" bindtap="retryLegalStatus">{{legalStatusError}}{{legalStatusRetryable ? '（点击重试）' : ''}}</view>
+      <view wx:if="{{legalStatusError}}" class="muted inline-retry" aria-role="button" hover-class="tap-pressed" bindtap="retryLegalStatus">{{legalStatusError}}{{legalStatusRetryable ? '（点击重试）' : ''}}</view>
       <view class="section-head">
         <view>
           <view class="section-title">一路的足迹</view>
         </view>
       </view>
       <view class="menu-grid">
-        <view class="menu" bindtap="registrations">
+        <view class="menu" bindtap="registrations" hover-class="card-pressed" aria-role="button">
           <image class="menu-icon" src="/assets/icons-slate/activity.svg" mode="aspectFit" aria-hidden="{{true}}" />
           <view class="menu-title">我的活动</view>
 
         </view>
-        <view class="menu" bindtap="orders">
+        <view class="menu" bindtap="orders" hover-class="card-pressed" aria-role="button">
           <image class="menu-icon" src="/assets/icons-slate/order.svg" mode="aspectFit" aria-hidden="{{true}}" />
           <view class="menu-title">装备订单</view>
 
         </view>
       </view>
-      <view wx:if="{{user.accountSource === 'WECHAT' && user.wechatVerified}}" class="menu-row" bindtap="displayProfile"><view class="menu-title">头像与昵称</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      <view class="menu-row" bindtap="addresses"><view class="menu-title">收货地址</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-      <view class="menu-row" bindtap="profile"><view class="menu-title">联系资料与会员身份</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <view wx:if="{{user.accountSource === 'WECHAT' && user.wechatVerified}}" class="menu-row" bindtap="displayProfile" hover-class="card-pressed" aria-role="button"><view class="menu-title">头像与昵称</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <view class="menu-row" bindtap="addresses" hover-class="card-pressed" aria-role="button"><view class="menu-title">收货地址</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+      <view class="menu-row" bindtap="profile" hover-class="card-pressed" aria-role="button"><view class="menu-title">联系资料与会员身份</view><image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       <view class="links">
-        <view bindtap="privacy">隐私政策<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-        <view bindtap="terms">用户协议<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
-        <view wx:if="{{user}}" bindtap="signOut">退出当前账号<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+        <view bindtap="privacy" hover-class="tap-pressed" aria-role="button">隐私政策<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+        <view bindtap="terms" hover-class="tap-pressed" aria-role="button">用户协议<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
+        <view wx:if="{{user}}" class="sign-out-link" bindtap="signOut" hover-class="tap-pressed" aria-role="button">退出当前账号<image class="row-chevron" src="/assets/icons-slate/chevron-right-light.svg" mode="aspectFit" aria-hidden="{{true}}" /></view>
       </view>
       <view class="app-version">{{version}}</view>
     </view>

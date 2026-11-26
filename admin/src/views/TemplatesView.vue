@@ -432,10 +432,10 @@ useForegroundRefresh(() => {
         </p>
       </div>
       <div class="template-actions">
-        <button class="secondary" @click="openSchedule(null)">
+        <button type="button" class="secondary" @click="openSchedule(null)">
           <AppIcon name="document" :size="15" />复制活动
         </button>
-        <button class="primary" @click="openEditor()">
+        <button type="button" class="primary" @click="openEditor()">
           <AppIcon name="plus" :size="16" />新建模板
         </button>
       </div>
@@ -446,7 +446,12 @@ useForegroundRefresh(() => {
       role="alert"
     >
       {{ error }}
-      <button class="text-button" :disabled="busy || loading" @click="load()">
+      <button
+        type="button"
+        class="text-button"
+        :disabled="busy || loading"
+        @click="load()"
+      >
         重试
       </button>
     </p>
@@ -489,7 +494,12 @@ useForegroundRefresh(() => {
         </div>
       </div>
       <div class="template-actions">
-        <button class="text-button template-delete" @click="removeTemplate(t)">
+        <button
+          type="button"
+          class="text-button template-delete"
+          :disabled="loading || busy"
+          @click="removeTemplate(t)"
+        >
           删除模板
         </button>
         <button
@@ -501,13 +511,21 @@ useForegroundRefresh(() => {
           查看模板
         </button>
         <button
+          type="button"
           class="secondary"
           :disabled="loading || busy"
           @click="openEditor(t)"
         >
           编辑模板
         </button>
-        <button class="primary" @click="openSchedule(t)">生成草稿</button>
+        <button
+          type="button"
+          class="primary"
+          :disabled="loading || busy"
+          @click="openSchedule(t)"
+        >
+          生成草稿
+        </button>
       </div>
     </section>
     <PaginationBar

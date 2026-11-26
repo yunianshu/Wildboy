@@ -122,11 +122,12 @@
   <view class="nav-sheet" catchtap="keepNavPicker" aria-role="dialog" aria-modal="true" aria-label="{{navPickerTitle}}">
     <view class="nav-sheet-head">
       <text class="nav-sheet-title">{{navPickerTitle}}</text>
-      <view class="nav-sheet-close" aria-role="button" aria-label="关闭导航列表" bindtap="closeNavPicker">关闭</view>
+      <view class="nav-sheet-close" hover-class="tap-pressed" aria-role="button" aria-label="关闭导航列表" bindtap="closeNavPicker">关闭</view>
     </view>
     <scroll-view scroll-y class="nav-sheet-list">
       <view
         class="nav-sheet-item"
+        hover-class="tap-pressed"
         wx:for="{{navPickerItems}}"
         wx:key="id"
         data-index="{{index}}"

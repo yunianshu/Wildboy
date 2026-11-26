@@ -174,7 +174,13 @@ async function logout() {
           >{{ currentUser?.nickname || "管理员"
           }}<small>后台版本 {{ adminVersion }}</small></span
         >
-        <button class="text-button logout" title="退出登录" @click="logout">
+        <button
+          class="text-button logout"
+          type="button"
+          aria-label="退出登录"
+          title="退出登录"
+          @click="logout"
+        >
           <AppIcon name="logout" :size="17" /><span>退出登录</span>
         </button>
       </div>
@@ -214,13 +220,13 @@ async function logout() {
   justify-content: space-between;
   margin: 6px 0 4px;
   padding-inline: 12px;
-  color: #7f998b;
-  font-size: 10px;
+  color: #96b0a1;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 1.2px;
 }
 .sidebar-group-label span:last-child {
-  color: #526f60;
+  color: #8fa99a;
   font-variant-numeric: tabular-nums;
 }
 </style>

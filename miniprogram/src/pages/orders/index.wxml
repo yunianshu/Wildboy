@@ -28,7 +28,7 @@
       <ui-state wx:if="{{loading}}" kind="loading">正在读取订单…</ui-state>
       <ui-state wx:elif="{{error && !items.length}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>
       <ui-state wx:elif="{{!items.length}}" kind="empty">当前分类暂无订单</ui-state>
-      <view class="order-card" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openDetail">
+      <view class="order-card" hover-class="card-pressed" aria-role="button" wx:for="{{items}}" wx:key="id" data-id="{{item.id}}" bindtap="openDetail">
         <view class="order-head"><text class="badge {{item.status === 'CANCELLED' ? 'cancelled' : ''}}">{{item.statusText}}</text><text class="muted small">{{item.dateText}}</text></view>
         <view class="order-line" wx:for="{{item.items}}" wx:for-item="product" wx:key="id"><view class="product-name">{{product.productName}}<text wx:if="{{product.tierName}}" class="muted small"> · {{product.tierName}}会员价</text></view><view class="muted small">x {{product.quantity}}</view></view>
         <view wx:if="{{item.originalTotalCents > item.totalCents}}" class="muted small">优惠前 {{item.originalTotalText}}</view>

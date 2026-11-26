@@ -3,6 +3,7 @@
 .profile-page .uf-title { display: block; margin-bottom: 8px; }
 .profile-page .uf-card > .text-button { align-self: flex-start; margin-left: -8px; }
 .profile-page .uf-card > text[user-select] { font-size: 13px; line-height: 1.6; }
+.member-id { word-break: break-all; }
 .profile-dialog-body { height: 360px; max-height: 55vh; }
 .profile-dialog-body .uf-legal-files { margin-top: 16px; }
 .profile-dialog-body .consent { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
