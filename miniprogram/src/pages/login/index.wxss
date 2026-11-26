@@ -9,7 +9,15 @@
 .agreement checkbox { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; }
 .agreement-copy { flex: 1; min-width: 0; padding-top: 6px; }
 .legal-link { color: var(--rf-primary-text); }
-.panel .primary { margin: 20px 0 8px; }
+.welcome .panel > button.primary,
+.welcome .panel > button.secondary {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+}
+.welcome .panel > button.primary { margin: 20px 0 8px; }
 .text-button { display: flex; justify-content: center; align-items: center; min-height: 44px; padding: 8px 12px; margin-top: 8px; line-height: 1.4; background: transparent; color: var(--rf-primary-text); }
 .error { margin: 16px 0; }
 
