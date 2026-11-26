@@ -62,3 +62,78 @@ it("a template load failure stays an error rather than an empty catalogue", asyn
   expect(w.text()).not.toContain("暂无模板");
   w.unmount();
 });
+
+it("views the selected saved template without writing or generating a draft", async () => {
+  const activity = {
+    title: "山海徒步",
+    category: "WEEKLY",
+    coverUrl: "/assets/cover.jpg",
+    galleryUrls: ["/assets/route.jpg"],
+    summary: "沿步道徒步",
+    description: "请带水与雨衣",
+    location: "厦门",
+    meetingPoint: "地铁站",
+    boardingPoints: ["会展中心"],
+    navigationPoints: [{ id: "point", label: "东门", address: "环岛路" }],
+    capacity: 12,
+    priceCents: 12000,
+    identityRequired: true,
+    startAt: "2027-01-10T09:00:00+08:00",
+    endAt: "2027-01-10T11:30:00+08:00",
+    registrationDeadline: "2027-01-09T09:00:00+08:00",
+  };
+  const fetcher = vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      items: [
+        { id: "one", name: "沿海模板", activity, version: 2 },
+        {
+          id: "two",
+          name: "第二模板",
+          activity: { ...activity, priceCents: 0 },
+          version: 1,
+        },
+      ],
+      hasMore: false,
+    }),
+  }));
+  vi.stubGlobal("fetch", fetcher);
+  const w = mount(TemplatesView, {
+    attachTo: document.body,
+    global: { stubs: { RouterLink: true } },
+  });
+  await flushPromises();
+  const previews = w.findAll("button").filter((b) => b.text() === "查看模板");
+  previews[1]!.element.focus();
+  await previews[1]!.trigger("click");
+  const detail = w.get('[role="dialog"]');
+  for (const text of [
+    "模板详情：第二模板",
+    "厦门",
+    "地铁站",
+    "会展中心",
+    "东门 · 环岛路",
+    "12 人",
+    "免费报名",
+    "2 小时 30 分钟",
+    "24 小时",
+    "请带水与雨衣",
+  ])
+    expect(detail.text()).toContain(text);
+  expect(detail.get('img[alt="活动封面"]').attributes("src")).toBe(
+    "/assets/cover.jpg",
+  );
+  expect(detail.find("form").exists()).toBe(false);
+  await button(w, "关闭").trigger("click");
+  await flushPromises();
+  expect(w.find('[role="dialog"]').exists()).toBe(false);
+  expect(document.activeElement).toBe(previews[1]!.element);
+  await previews[0]!.trigger("click");
+  expect(w.get('[role="dialog"]').text()).toContain("¥120.00 / 人");
+  clearSession();
+  await flushPromises();
+  expect(w.find('[role="dialog"]').exists()).toBe(false);
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  w.unmount();
+});

@@ -3,7 +3,7 @@ import { useForegroundRefresh } from "../foregroundRefresh";
 import PaginationBar from "../components/PaginationBar.vue";
 import { askConfirm } from "../confirm";
 import DateTimeField from "../components/DateTimeField.vue";
-import { statuses } from "../types";
+import { categories, statuses } from "../types";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { request, currentUser, errorMessage } from "../api";
 import type { Activity, ActivityInput, Page } from "../types";
@@ -27,6 +27,7 @@ const items = ref<Template[]>([]),
   hasMore = ref(false),
   sourcePage = ref(0),
   sourceMore = ref(false);
+const preview = ref<Template | null>(null);
 const editor = ref(false),
   editing = ref<Template | null>(null),
   name = ref(""),
@@ -49,6 +50,7 @@ function clear() {
   epoch++;
   items.value = [];
   sources.value = [];
+  preview.value = null;
   editor.value = false;
   schedule.value = null;
   copying.value = false;
@@ -99,6 +101,18 @@ async function loadSources(more = false) {
   } catch (e) {
     if (n === epoch) error.value = errorMessage(e);
   }
+}
+function templatePrice(cents: number) {
+  return cents > 0 ? `¥${(cents / 100).toFixed(2)} / 人` : "免费报名";
+}
+function duration(from: string, to: string) {
+  const minutes = Math.round((Date.parse(to) - Date.parse(from)) / 60000);
+  if (!Number.isFinite(minutes) || minutes < 0) return "未设置";
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return (
+    (hours ? `${hours} 小时` : "") + (rest || !hours ? ` ${rest} 分钟` : "")
+  );
 }
 function openEditor(t: Template | null = null) {
   if (busy.value) return;
@@ -276,6 +290,7 @@ useForegroundRefresh(() => {
     !busy.value &&
     !loading.value &&
     !editor.value &&
+    !preview.value &&
     !copying.value &&
     !schedule.value
   )
@@ -344,17 +359,21 @@ useForegroundRefresh(() => {
           <p>
             <span>{{ t.activity.title }}</span
             ><span>{{ t.activity.capacity }} 人</span
-            ><span>{{
-              t.activity.priceCents > 0
-                ? `¥${(t.activity.priceCents / 100).toFixed(2)} / 人`
-                : "免费报名"
-            }}</span>
+            ><span>{{ templatePrice(t.activity.priceCents) }}</span>
           </p>
         </div>
       </div>
       <div class="template-actions">
         <button class="text-button template-delete" @click="removeTemplate(t)">
           删除模板
+        </button>
+        <button
+          type="button"
+          class="secondary"
+          :disabled="loading || busy"
+          @click="preview = t"
+        >
+          查看模板
         </button>
         <button class="secondary" @click="openEditor(t)">更新模板</button>
         <button class="primary" @click="openSchedule(t)">生成草稿</button>
@@ -370,6 +389,118 @@ useForegroundRefresh(() => {
       label="模板分页"
       @change="load"
     />
+    <FormModal v-if="preview" @close="preview = null">
+      <template #title
+        ><h2 class="modal-heading">模板详情：{{ preview.name }}</h2></template
+      >
+      <dl class="template-detail">
+        <div>
+          <dt>活动名称</dt>
+          <dd>{{ preview.activity.title }}</dd>
+        </div>
+        <div>
+          <dt>分类</dt>
+          <dd>{{ categories[preview.activity.category] || "未设置" }}</dd>
+        </div>
+        <div>
+          <dt>活动地点</dt>
+          <dd>{{ preview.activity.location || "未填写" }}</dd>
+        </div>
+        <div>
+          <dt>集合地点</dt>
+          <dd>{{ preview.activity.meetingPoint || "未填写" }}</dd>
+        </div>
+        <div>
+          <dt>人数上限</dt>
+          <dd>{{ preview.activity.capacity }} 人</dd>
+        </div>
+        <div>
+          <dt>报名费用</dt>
+          <dd>{{ templatePrice(preview.activity.priceCents) }}</dd>
+        </div>
+        <div>
+          <dt>活动时长</dt>
+          <dd>
+            {{ duration(preview.activity.startAt, preview.activity.endAt) }}
+          </dd>
+        </div>
+        <div>
+          <dt>报名截止</dt>
+          <dd>
+            开场前
+            {{
+              duration(
+                preview.activity.registrationDeadline,
+                preview.activity.startAt,
+              )
+            }}
+          </dd>
+        </div>
+        <div>
+          <dt>身份证核验</dt>
+          <dd>{{ preview.activity.identityRequired ? "需要" : "不需要" }}</dd>
+        </div>
+        <div v-if="preview.activity.boardingPoints?.length">
+          <dt>上车地点</dt>
+          <dd>{{ preview.activity.boardingPoints.join("、") }}</dd>
+        </div>
+        <div
+          v-if="preview.activity.navigationPoints?.length"
+          class="template-detail-wide"
+        >
+          <dt>导航地点</dt>
+          <dd>
+            <ul>
+              <li
+                v-for="point in preview.activity.navigationPoints"
+                :key="point.id"
+              >
+                {{ point.label
+                }}{{ point.address ? " · " + point.address : "" }}
+              </li>
+            </ul>
+          </dd>
+        </div>
+        <div class="template-detail-wide">
+          <dt>活动摘要</dt>
+          <dd>{{ preview.activity.summary || "未填写" }}</dd>
+        </div>
+        <div class="template-detail-wide">
+          <dt>活动详情</dt>
+          <dd>{{ preview.activity.description || "未填写" }}</dd>
+        </div>
+        <div
+          v-if="
+            preview.activity.coverUrl || preview.activity.galleryUrls?.length
+          "
+          class="template-detail-wide"
+        >
+          <dt>活动图片</dt>
+          <dd class="template-detail-images">
+            <img
+              v-if="preview.activity.coverUrl"
+              :src="preview.activity.coverUrl"
+              alt="活动封面"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            />
+            <img
+              v-for="(url, i) in preview.activity.galleryUrls"
+              :key="i"
+              :src="url"
+              :alt="`图集图片 ${i + 1}`"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            />
+          </dd>
+        </div>
+      </dl>
+      <div class="dialog-actions">
+        <button type="button" class="secondary" @click="preview = null">
+          关闭
+        </button>
+      </div>
+    </FormModal>
     <FormModal :busy="busy" v-if="editor || schedule || copying" @close="close"
       ><template #title
         ><h2 class="modal-heading">
@@ -551,6 +682,38 @@ useForegroundRefresh(() => {
   position: absolute;
   left: -8px;
   content: "·";
+}
+.template-detail {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.template-detail dt {
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.template-detail dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+.template-detail-wide {
+  grid-column: 1 / -1;
+}
+.template-detail ul {
+  margin: 0;
+  padding-inline-start: 18px;
+}
+.template-detail-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.template-detail-images img {
+  width: 96px;
+  height: 72px;
+  object-fit: contain;
 }
 .modal-heading {
   padding-right: 36px;
