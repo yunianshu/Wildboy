@@ -40,6 +40,7 @@ const contentVisible = ref(false);
 const reopenOpen = ref(false);
 const contentEditor = ref<InstanceType<typeof MarkdownEditor>>();
 async function jumpToContent() {
+  editSection.value = "rich";
   contentVisible.value = true;
   await nextTick();
   const heading = document.getElementById("activity-rich-heading");
@@ -77,6 +78,7 @@ const route = useRoute(),
   identityLockedByServer = ref(false),
   dialog = ref<"publish" | "cancel" | null>(null);
 watch(id, () => {
+  editSection.value = "basic";
   contentVisible.value = false;
   savedContentVersion.value = null;
 });
@@ -103,7 +105,7 @@ const fields = reactive({
 const priceYuan = ref("0.00");
 const showMedia = ref(false);
 const showAdvanced = ref(false);
-const editSection = ref<"basic" | "schedule" | "detail">("basic");
+const editSection = ref<"basic" | "schedule" | "detail" | "rich">("basic");
 const sections = [
   { id: "basic", label: "基本信息" },
   { id: "schedule", label: "时间与地点" },
@@ -278,6 +280,7 @@ function writeError(e: unknown) {
       : errorMessage(e);
 }
 async function save() {
+  if (editSection.value === "rich") return;
   if (saving.value || readonly.value || conflict.value || uncertainCreate.value)
     return;
   if (addingBoardingPoint.value) {
@@ -640,8 +643,41 @@ useForegroundRefresh(() => {
         </button>
       </nav>
       <div class="editor-grid" :class="{ 'existing-activity': id }">
+        <nav v-if="id" class="activity-section-nav" aria-label="活动编辑板块">
+          <h2>编辑板块</h2>
+          <div class="activity-section-list">
+            <button
+              v-for="section in sections"
+              :key="section.id"
+              type="button"
+              class="secondary"
+              :aria-pressed="editSection === section.id"
+              @click="editSection = section.id"
+            >
+              {{ section.label }}
+              <span
+                v-if="sectionErrorCount(section.id)"
+                class="status-pill tone-danger"
+              >
+                {{ sectionErrorCount(section.id) }} 处待修正
+              </span>
+            </button>
+            <button
+              type="button"
+              class="secondary"
+              :aria-pressed="editSection === 'rich'"
+              @click="jumpToContent"
+            >
+              图文详情
+              <span v-if="contentEditor?.dirty" class="status-pill tone-warning"
+                >未保存</span
+              >
+            </button>
+          </div>
+        </nav>
+
         <div class="editor-main">
-          <section v-show="id || editSection === 'basic'" class="form-section">
+          <section v-show="editSection === 'basic'" class="form-section">
             <div class="section-title">
               <div>
                 <h2>{{ id ? "活动信息" : "基本信息" }}</h2>
@@ -788,10 +824,7 @@ useForegroundRefresh(() => {
               </div>
             </fieldset>
           </section>
-          <section
-            v-show="id || editSection === 'schedule'"
-            class="form-section"
-          >
+          <section v-show="editSection === 'schedule'" class="form-section">
             <div class="section-title">
               <div>
                 <h2>时间与地点</h2>
@@ -898,7 +931,7 @@ useForegroundRefresh(() => {
               </div>
             </fieldset>
           </section>
-          <section v-show="id || editSection === 'detail'" class="form-section">
+          <section v-show="editSection === 'detail'" class="form-section">
             <div class="section-title">
               <div>
                 <h2>活动详情</h2>
@@ -939,9 +972,83 @@ useForegroundRefresh(() => {
               </button>
             </div>
           </section>
+          <section
+            v-if="contentVisible && id && current && current.id === id"
+            v-show="editSection === 'rich'"
+            class="activity-rich-card"
+            aria-labelledby="activity-rich-heading"
+          >
+            <header>
+              <div>
+                <h2 id="activity-rich-heading" tabindex="-1">图文详情</h2>
+                <p>在页面内编辑行程、插入图片和表格，也可粘贴公众号排版。</p>
+              </div>
+              <button
+                type="button"
+                class="secondary"
+                :disabled="
+                  saving ||
+                  readonly ||
+                  !contentEditor?.ready ||
+                  contentEditor.busy
+                "
+                @click="contentEditor?.openWechatPaste()"
+              >
+                <AppIcon name="document" :size="16" />粘贴公众号
+              </button>
+            </header>
+            <MarkdownEditor
+              :key="id"
+              ref="contentEditor"
+              :path="`/admin/activities/${encodeURIComponent(id)}/content/markdown`"
+              :disabled="saving || readonly"
+              :components="false"
+              :height="620"
+              placeholder="输入行程、路线和注意事项，可直接粘贴图片…"
+              managed-navigation
+              @saved="savedContentVersion = $event"
+            />
+            <footer class="activity-rich-footer">
+              <span role="status">{{
+                contentEditor?.dirty
+                  ? "图文有未保存修改"
+                  : savedContentVersion !== null
+                    ? "图文已保存 · 版本 " + savedContentVersion
+                    : "活动信息与图文分别保存"
+              }}</span>
+              <div class="footer-actions">
+                <button
+                  v-if="contentEditor?.versionConflict"
+                  type="button"
+                  class="secondary"
+                  :disabled="contentEditor.busy"
+                  @click="reloadContent"
+                >
+                  读取最新版本
+                </button>
+                <button
+                  type="button"
+                  class="primary"
+                  :disabled="
+                    saving ||
+                    readonly ||
+                    !contentEditor?.ready ||
+                    !contentEditor.loaded ||
+                    !contentEditor.dirty ||
+                    contentEditor.busy ||
+                    contentEditor.versionConflict
+                  "
+                  @click="contentEditor?.save()"
+                >
+                  保存图文
+                </button>
+              </div>
+            </footer>
+          </section>
         </div>
         <aside class="editor-aside">
           <section class="preview-card">
+            <h2 v-if="id" class="preview-label">小程序活动卡片预览</h2>
             <div class="preview-image">
               <img
                 v-if="fields.coverUrl"
@@ -962,7 +1069,7 @@ useForegroundRefresh(() => {
               >
             </div>
           </section>
-          <div class="editor-tip">
+          <div v-show="editSection !== 'rich'" class="editor-tip">
             <h2>报名价格</h2>
             <label
               >报名原价（元 / 人）<input
@@ -1003,7 +1110,7 @@ useForegroundRefresh(() => {
           </div>
         </aside>
       </div>
-      <div class="editor-actions">
+      <div v-show="editSection !== 'rich'" class="editor-actions">
         <span class="footer-status"
           >{{
             readonly
@@ -1052,75 +1159,6 @@ useForegroundRefresh(() => {
         </div>
       </div>
     </form>
-    <section
-      v-if="contentVisible && id && current && current.id === id"
-      class="activity-rich-card"
-      aria-labelledby="activity-rich-heading"
-    >
-      <header>
-        <div>
-          <h2 id="activity-rich-heading" tabindex="-1">图文详情</h2>
-          <p>在页面内编辑行程、插入图片和表格，也可粘贴公众号排版。</p>
-        </div>
-        <button
-          type="button"
-          class="secondary"
-          :disabled="
-            saving || readonly || !contentEditor?.ready || contentEditor.busy
-          "
-          @click="contentEditor?.openWechatPaste()"
-        >
-          <AppIcon name="document" :size="16" />粘贴公众号
-        </button>
-      </header>
-      <MarkdownEditor
-        :key="id"
-        ref="contentEditor"
-        :path="`/admin/activities/${encodeURIComponent(id)}/content/markdown`"
-        :disabled="saving || readonly"
-        :components="false"
-        :height="620"
-        placeholder="输入行程、路线和注意事项，可直接粘贴图片…"
-        managed-navigation
-        @saved="savedContentVersion = $event"
-      />
-      <footer class="activity-rich-footer">
-        <span role="status">{{
-          contentEditor?.dirty
-            ? "图文有未保存修改"
-            : savedContentVersion !== null
-              ? "图文已保存 · 版本 " + savedContentVersion
-              : "活动信息与图文分别保存"
-        }}</span>
-        <div class="footer-actions">
-          <button
-            v-if="contentEditor?.versionConflict"
-            type="button"
-            class="secondary"
-            :disabled="contentEditor.busy"
-            @click="reloadContent"
-          >
-            读取最新版本
-          </button>
-          <button
-            type="button"
-            class="primary"
-            :disabled="
-              saving ||
-              readonly ||
-              !contentEditor?.ready ||
-              !contentEditor.loaded ||
-              !contentEditor.dirty ||
-              contentEditor.busy ||
-              contentEditor.versionConflict
-            "
-            @click="contentEditor?.save()"
-          >
-            保存图文
-          </button>
-        </div>
-      </footer>
-    </section>
   </main>
   <ActivityReopenModal
     :activity="reopenOpen ? current : null"
@@ -1143,16 +1181,99 @@ useForegroundRefresh(() => {
   />
 </template>
 <style scoped>
+.existing-activity {
+  grid-template-columns: 166px minmax(0, 1fr) 236px;
+  gap: 16px;
+  align-items: start;
+}
+.existing-activity .editor-main,
 .existing-activity .editor-aside {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   min-width: 0;
 }
+.existing-activity .editor-aside {
+  display: grid;
+  gap: 12px;
+}
 .existing-activity .editor-aside .editor-tip {
-  order: -1;
   margin-top: 0;
 }
+.activity-section-nav {
+  position: sticky;
+  top: 16px;
+  padding: 12px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-surface);
+}
+.activity-section-nav h2 {
+  margin: 0 0 10px;
+  padding-inline: 8px;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.activity-section-list {
+  display: grid;
+  gap: 4px;
+}
+.activity-section-list button {
+  --button-border: transparent;
+  --button-background: transparent;
+  width: 100%;
+  justify-content: flex-start;
+  gap: 6px;
+  padding-inline: 8px;
+  white-space: normal;
+  text-align: start;
+}
+.activity-section-list button[aria-pressed="true"] {
+  --button-background: var(--rf-soft);
+  --button-hover: var(--rf-soft);
+  --button-color: var(--rf-primary-text);
+  font-weight: 680;
+}
+.existing-activity .preview-card {
+  display: block;
+}
+.preview-label {
+  margin: 0;
+  padding: 10px 12px;
+  color: var(--rf-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.existing-activity .activity-rich-card {
+  margin: 0;
+  padding: 16px;
+}
+@media (max-width: 1250px) {
+  .existing-activity {
+    grid-template-columns: 158px minmax(0, 1fr);
+  }
+  .existing-activity .editor-aside {
+    grid-column: 2;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+    align-items: start;
+  }
+}
+@media (max-width: 820px) {
+  .existing-activity {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .existing-activity .editor-aside {
+    grid-column: 1;
+  }
+  .activity-section-nav {
+    position: static;
+  }
+  .activity-section-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .activity-section-list button {
+    min-height: 40px;
+  }
+}
+
 .section-disclosure {
   display: inline-flex;
   align-items: center;

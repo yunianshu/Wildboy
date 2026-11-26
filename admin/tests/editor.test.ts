@@ -209,7 +209,7 @@ describe("editor workflow", () => {
     expect(JSON.parse(creates[1]?.[1].body).title).toBe("修正后的标题");
     wrapper.unmount();
   });
-  it("edits an existing activity on one page and preserves closed options on save", async () => {
+  it("edits an existing activity across sections and preserves hidden data on save", async () => {
     const published = {
       ...base,
       status: "PUBLISHED",
@@ -231,14 +231,31 @@ describe("editor workflow", () => {
     const title = wrapper.get('input[placeholder="活动名称"]');
     const end = wrapper.get("#activity-end-time");
     const description = wrapper.get('textarea[maxlength="20000"]');
-    expect(title.isVisible()).toBe(true);
-    expect(end.isVisible()).toBe(true);
-    expect(description.isVisible()).toBe(true);
+    const section = (label: string) =>
+      wrapper
+        .get(".activity-section-nav")
+        .findAll("button")
+        .find((b) => b.text() === label)!;
+    const isActive = (field: HTMLElement) =>
+      field.closest<HTMLElement>(".form-section")?.style.display !== "none";
+    expect(isActive(title.element as HTMLElement)).toBe(true);
+    expect(isActive(end.element as HTMLElement)).toBe(false);
+    expect(isActive(description.element as HTMLElement)).toBe(false);
     expect(wrapper.get("#activity-media-options").isVisible()).toBe(false);
-    expect(wrapper.get("#activity-advanced-options").isVisible()).toBe(false);
     await title.setValue("更新后的活动");
+    expect(wrapper.get(".preview-copy h3").text()).toBe("更新后的活动");
+
+    await section("时间与地点").trigger("click");
+    expect(isActive(end.element as HTMLElement)).toBe(true);
+    expect(isActive(title.element as HTMLElement)).toBe(false);
+    expect(wrapper.get("#activity-advanced-options").isVisible()).toBe(false);
     await end.setValue("18:00");
+    await section("活动详情").trigger("click");
+    expect(isActive(description.element as HTMLElement)).toBe(true);
+    expect(isActive(end.element as HTMLElement)).toBe(false);
     await description.setValue("请在出发前检查装备。");
+    await section("基本信息").trigger("click");
+    expect((title.element as HTMLInputElement).value).toBe("更新后的活动");
     await wrapper.get("form").trigger("submit");
     await flushPromises();
     expect(fetch).toHaveBeenCalledTimes(2);

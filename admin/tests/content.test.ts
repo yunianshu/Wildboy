@@ -446,6 +446,12 @@ it("edits activity rich content inline, separately from activity details, and gu
   );
   await flushPromises();
   expect(instances).toHaveLength(0);
+  const section = (label: string) =>
+    w
+      .get(".activity-section-nav")
+      .findAll("button")
+      .find((b) => b.text().startsWith(label))!;
+  await section("活动详情").trigger("click");
   await w
     .findAll("button")
     .find((b) => b.text() === "编辑图文详情")!
@@ -467,6 +473,16 @@ it("edits activity rich content inline, separately from activity details, and gu
   await router.push("/activities");
   expect(confirm).toHaveBeenCalled();
   expect(router.currentRoute.value.path).toBe("/activities/activity-1/edit");
+  await section("基本信息").trigger("click");
+  expect((card.element as HTMLElement).style.display).toBe("none");
+  await section("图文详情").trigger("click");
+  expect((card.element as HTMLElement).style.display).not.toBe("none");
+  expect(instances).toHaveLength(1);
+  expect(instances[0].getValue()).toBe("# 新行程");
+  await w.get("form").trigger("submit");
+  expect(fetcher.mock.calls.some(([, opts]) => opts?.method === "PUT")).toBe(
+    false,
+  );
   await save().trigger("click");
   await flushPromises();
   const writes = fetcher.mock.calls.filter(
