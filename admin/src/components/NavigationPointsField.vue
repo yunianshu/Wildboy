@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
-import { errorMessage, request } from "../api";
+import { computed, ref } from "vue";
+import { request } from "../api";
 import AppIcon from "./AppIcon.vue";
-import FormModal from "./FormModal.vue";
+import NavigationMapPicker from "./NavigationMapPicker.vue";
+import {
+  coordinate,
+  mapKey,
+  type Coordinate,
+  type MapPlace,
+} from "../navigation-map";
 import type {
   BoardingPointLocation,
   NavigationPoint,
@@ -21,13 +27,6 @@ const emit = defineEmits<{
   syncBoardingPoints: [names: string[]];
 }>();
 
-type PlaceCandidate = {
-  title: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-};
-
 const kindLabels: Record<NavigationPointKind, string> = {
   DESTINATION: "活动目的地",
   MEETING: "集合地点",
@@ -40,95 +39,45 @@ const draftLabel = ref("");
 const draftAddress = ref("");
 const draftLat = ref("");
 const draftLng = ref("");
-const searchKeyword = ref("");
-const searching = ref(false);
-const searchError = ref("");
-const mapConfigured = ref<boolean | null>(null);
-const suggestions = ref<PlaceCandidate[]>([]);
+const draftError = ref("");
 const savedLocations = ref<BoardingPointLocation[]>([]);
 const loadedCatalog = ref(false);
 const dragIndex = ref<number | null>(null);
-let searchTimer: ReturnType<typeof setTimeout> | undefined;
-onUnmounted(() => clearTimeout(searchTimer));
+const pickerAvailable = Boolean(mapKey());
+const pickerOpen = ref(false);
+const pickerInitial = ref<Coordinate>();
 
-const pickerOrigin = "https://apis.map.qq.com";
-const pickerKey = (import.meta.env.VITE_TENCENT_MAP_PICKER_KEY || "").trim();
-const pickerUrl = ref("");
-const pickerFrame = ref<HTMLIFrameElement | null>(null);
-const pickerError = ref("");
-
-function openMapPicker() {
-  if (!adding.value || props.disabled || !pickerKey) return;
-  const url = new URL("/tools/locpicker", pickerOrigin);
-  url.search = new URLSearchParams({
-    type: "1",
-    search: "1",
-    coordtype: "5",
-    key: pickerKey,
-    referer: "WildBoy",
-  }).toString();
-  const lat = Number(draftLat.value);
-  const lng = Number(draftLng.value);
-  if (
-    draftLat.value.trim() &&
-    draftLng.value.trim() &&
-    Number.isFinite(lat) &&
-    Math.abs(lat) <= 90 &&
-    Number.isFinite(lng) &&
-    Math.abs(lng) <= 180
-  )
-    url.searchParams.set("coord", `${lat},${lng}`);
-  pickerError.value = "";
-  pickerUrl.value = url.toString();
+function openMapPicker(event: MouseEvent) {
+  if (!adding.value || props.disabled || !pickerAvailable) return;
+  (event.currentTarget as HTMLElement).focus({ preventScroll: true });
+  pickerInitial.value =
+    (draftLat.value.trim() && draftLng.value.trim()
+      ? coordinate(Number(draftLng.value), Number(draftLat.value))
+      : null) ?? undefined;
+  pickerOpen.value = true;
 }
 
-function closeMapPicker() {
-  pickerUrl.value = "";
+function acceptMapPlace(place: MapPlace) {
+  if (!pickerOpen.value || !adding.value || props.disabled) return;
+  if (!draftLabel.value.trim()) draftLabel.value = place.title;
+  draftAddress.value = place.address;
+  draftLat.value = place.latitude.toFixed(6);
+  draftLng.value = place.longitude.toFixed(6);
+  draftError.value = "";
+  pickerOpen.value = false;
 }
 
-function readMapSelection(event: MessageEvent<unknown>) {
-  if (
-    !pickerUrl.value ||
-    !adding.value ||
-    props.disabled ||
-    event.origin !== pickerOrigin ||
-    !pickerFrame.value?.contentWindow ||
-    event.source !== pickerFrame.value.contentWindow ||
-    !event.data ||
-    typeof event.data !== "object"
-  )
+function pasteCoordinates(event: Event) {
+  const parsed = parseLocalCoordinate((event.target as HTMLInputElement).value);
+  if (!parsed) {
+    draftError.value = "未识别到经纬度，请检查后重试或分别填写。";
     return;
-  const point = event.data as Record<string, unknown>;
-  if (
-    point.module !== "locationPicker" ||
-    !point.latlng ||
-    typeof point.latlng !== "object"
-  )
-    return;
-  const { lat, lng } = point.latlng as Record<string, unknown>;
-  if (
-    typeof lat !== "number" ||
-    !Number.isFinite(lat) ||
-    Math.abs(lat) > 90 ||
-    typeof lng !== "number" ||
-    !Number.isFinite(lng) ||
-    Math.abs(lng) > 180
-  )
-    return;
-  const title = typeof point.poiname === "string" ? point.poiname.trim() : "";
-  const address =
-    typeof point.poiaddress === "string" ? point.poiaddress.trim() : "";
-  applyCandidate({
-    title: (title || address || "地图选点").slice(0, 200),
-    address: address.slice(0, 300),
-    latitude: lat,
-    longitude: lng,
-  });
-  closeMapPicker();
+  }
+  draftLat.value = parsed.lat.toFixed(6);
+  draftLng.value = parsed.lng.toFixed(6);
+  draftError.value = "";
+  (event.target as HTMLInputElement).value = "";
 }
-
-onMounted(() => window.addEventListener("message", readMapSelection));
-onUnmounted(() => window.removeEventListener("message", readMapSelection));
 
 function parseLocalCoordinate(
   raw: string,
@@ -180,65 +129,14 @@ function openAdd(kind: NavigationPointKind = "MEETING") {
   draftAddress.value = "";
   draftLat.value = "";
   draftLng.value = "";
-  searchKeyword.value = draftLabel.value;
-  suggestions.value = [];
-  searchError.value = "";
+  draftError.value = "";
   void ensureCatalog();
 }
 
 function closeAdd() {
-  closeMapPicker();
+  pickerOpen.value = false;
   adding.value = false;
-  suggestions.value = [];
-  searchError.value = "";
-}
-
-function scheduleSearch() {
-  clearTimeout(searchTimer);
-  const parsed = parseLocalCoordinate(searchKeyword.value);
-  if (parsed) {
-    draftLat.value = parsed.lat.toFixed(6);
-    draftLng.value = parsed.lng.toFixed(6);
-  }
-  if (!searchKeyword.value.trim()) {
-    suggestions.value = [];
-    return;
-  }
-  searchTimer = setTimeout(() => void doSearch(), 320);
-}
-
-async function doSearch() {
-  const kw = searchKeyword.value.trim();
-  if (!kw) return;
-  searching.value = true;
-  searchError.value = "";
-  try {
-    const region = props.location?.trim().slice(0, 20) || "";
-    const params = new URLSearchParams({ keyword: kw });
-    if (region) params.set("region", region);
-    const res = await request<{
-      tencentMapConfigured: boolean;
-      items: PlaceCandidate[];
-    }>(`/admin/geo/search?${params}`);
-    mapConfigured.value = res.tencentMapConfigured;
-    suggestions.value = res.items || [];
-    if (!res.tencentMapConfigured && !suggestions.value.length) {
-      searchError.value =
-        "服务端暂未配置 TENCENT_MAP_KEY，可直接粘贴经纬度（如 24.479834, 118.089425）或地图分享链接。";
-    }
-  } catch (e) {
-    searchError.value = errorMessage(e);
-  } finally {
-    searching.value = false;
-  }
-}
-
-function applyCandidate(item: PlaceCandidate) {
-  if (!draftLabel.value.trim()) draftLabel.value = item.title;
-  draftAddress.value = item.address || item.title;
-  draftLat.value = item.latitude.toFixed(6);
-  draftLng.value = item.longitude.toFixed(6);
-  suggestions.value = [];
+  draftError.value = "";
 }
 
 function applySavedLocation(event: Event) {
@@ -271,7 +169,7 @@ const formError = computed(() => {
 
 function commitDraft() {
   if (formError.value) {
-    searchError.value = formError.value;
+    draftError.value = formError.value;
     return;
   }
   const lat = draftLat.value.trim() ? Number(draftLat.value) : null;
@@ -514,80 +412,34 @@ function quickFillCoord(index: number, raw: string) {
         <button
           type="button"
           class="secondary"
-          :disabled="disabled || !pickerKey"
+          :disabled="disabled || !pickerAvailable"
           @click="openMapPicker"
         >
           <AppIcon name="location" :size="16" /> 地图选点
         </button>
-        <small v-if="!pickerKey" class="field-hint"
-          >网页地图尚未配置，可搜索地点或粘贴坐标。</small
-        >
+        <small v-if="!pickerAvailable" class="field-hint">
+          后台地图尚未配置。可使用已保存地点，或手动填写坐标。
+        </small>
       </div>
 
-      <FormModal v-if="pickerUrl" size="xl" @close="closeMapPicker">
-        <template #title><h2>在地图上选择导航点</h2></template>
-        <p class="map-picker-note">
-          搜索地点或移动地图，确认后会填入表单，不会直接保存活动。
-        </p>
-        <p v-if="pickerError" role="alert" class="error-box">
-          {{ pickerError }}
-        </p>
-        <iframe
-          v-else
-          ref="pickerFrame"
-          class="map-picker-frame"
-          :src="pickerUrl"
-          title="腾讯地图选点"
-          referrerpolicy="strict-origin-when-cross-origin"
-          allow="geolocation 'none'"
-          @error="
-            pickerError = '地图未能加载，请关闭后重试，或使用搜索及手动坐标。'
-          "
-        />
-        <template #footer>
-          <button type="button" class="secondary" @click="closeMapPicker">
-            返回填写
-          </button>
-        </template>
-      </FormModal>
+      <NavigationMapPicker
+        v-if="pickerOpen && !disabled"
+        :initial="pickerInitial"
+        :keyword="draftLabel"
+        @close="pickerOpen = false"
+        @select="acceptMapPlace"
+      />
 
       <label>
-        搜索地点 / 粘贴坐标或地图分享链接
-        <div class="search-inline">
-          <input
-            v-model="searchKeyword"
-            type="search"
-            maxlength="200"
-            placeholder="输入地名搜索（如：厦门SM城市广场）或粘贴 24.5011, 118.1266"
-            @input="scheduleSearch"
-          />
-          <button
-            type="button"
-            class="secondary"
-            :disabled="searching || !searchKeyword.trim()"
-            @click="doSearch"
-          >
-            {{ searching ? "搜索中…" : "搜索选点" }}
-          </button>
-        </div>
+        粘贴经纬度
+        <input
+          type="text"
+          maxlength="200"
+          placeholder="例如 24.5011, 118.1266"
+          @change="pasteCoordinates"
+        />
       </label>
-
-      <ul v-if="suggestions.length" class="suggestion-list">
-        <li v-for="(cand, cIdx) in suggestions" :key="cIdx">
-          <button
-            type="button"
-            class="suggestion-btn"
-            @click="applyCandidate(cand)"
-          >
-            <strong>{{ cand.title }}</strong>
-            <small
-              >{{ cand.address }} ({{ cand.latitude.toFixed(5) }},
-              {{ cand.longitude.toFixed(5) }})</small
-            >
-          </button>
-        </li>
-      </ul>
-      <p v-if="searchError" class="field-hint">{{ searchError }}</p>
+      <p v-if="draftError" class="field-hint" role="alert">{{ draftError }}</p>
 
       <div class="field-row">
         <label>
@@ -644,20 +496,6 @@ function quickFillCoord(index: number, raw: string) {
   gap: 8px;
   margin-bottom: 12px;
 }
-.map-picker-note {
-  margin: 0 0 10px;
-  color: var(--rf-muted);
-  font-size: 13px;
-}
-.map-picker-frame {
-  display: block;
-  width: 100%;
-  height: min(57dvh, 550px);
-  min-height: 235px;
-  border: 1px solid var(--rf-line);
-  border-radius: 8px;
-}
-
 .nav-points-box {
   margin-top: 14px;
   padding: 14px;
@@ -747,36 +585,5 @@ function quickFillCoord(index: number, raw: string) {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-.search-inline {
-  display: flex;
-  gap: 8px;
-}
-.search-inline input {
-  flex: 1;
-}
-.suggestion-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px;
-  max-height: 200px;
-  overflow-y: auto;
-  border: 1px solid var(--rf-line, #dce3dd);
-  border-radius: 8px;
-  background: var(--rf-surface, #fff);
-}
-.suggestion-btn {
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  padding: 8px 10px;
-  border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.suggestion-btn:hover {
-  background: var(--rf-soft, #eaf4e7);
 }
 </style>
