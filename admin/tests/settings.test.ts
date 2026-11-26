@@ -205,7 +205,18 @@ it("foreground revalidation preserves unsaved edits after a failed upload", asyn
   });
   const input = w.get('input[type="file"]');
   Object.defineProperty(input.element, "files", {
-    value: [new File(["png"], "qr.png", { type: "image/png" })],
+    value: [
+      new File(
+        [
+          Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        ],
+        "qr.png",
+        { type: "image/png" },
+      ),
+    ],
   });
   vi.spyOn(FileReader.prototype, "readAsDataURL").mockImplementation(function (
     this: FileReader,
@@ -234,7 +245,18 @@ it("an upload completing after logout cannot restore image data", async () => {
   fetcher.mockImplementation(() => new Promise((r) => (resolve = r)));
   const input = w.get('input[type="file"]');
   Object.defineProperty(input.element, "files", {
-    value: [new File(["png"], "qr.png", { type: "image/png" })],
+    value: [
+      new File(
+        [
+          Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64",
+          ),
+        ],
+        "qr.png",
+        { type: "image/png" },
+      ),
+    ],
   });
   const reader = vi
     .spyOn(FileReader.prototype, "readAsDataURL")
@@ -247,6 +269,7 @@ it("an upload completing after logout cannot restore image data", async () => {
   await input.trigger("change");
   await flushPromises();
   expect(w.text()).toContain("图片上传中");
+  await vi.waitFor(() => expect(typeof resolve).toBe("function"));
   clearSession();
   await flushPromises();
   resolve({

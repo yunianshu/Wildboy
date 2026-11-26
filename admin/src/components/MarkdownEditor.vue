@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { uploadAdminImage } from "../image-upload";
 import UiState from "./UiState.vue";
 import AppIcon from "./AppIcon.vue";
 import { askConfirm } from "../confirm";
@@ -336,35 +337,21 @@ async function uploadImage(
   caption = "",
 ) {
   if (!canInsert()) return;
-  if (
-    typeof image !== "string" &&
-    (!["image/jpeg", "image/png"].includes(image.type) ||
-      image.size > 4 * 1024 * 1024)
-  ) {
-    error.value = "请选择 4MB 内 JPG/PNG 图片";
-    return;
-  }
   const actor = currentUser.value;
   const n = generation;
   busy.value = true;
   error.value = "";
   try {
-    const data =
+    const isCurrent = () =>
+      generation === n && currentUser.value === actor && !props.disabled;
+    const result =
       typeof image === "string"
-        ? image
-        : await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(String(reader.result).split(",")[1]);
-            reader.onerror = () => reject(new Error("读取图片失败"));
-            reader.readAsDataURL(image);
-          });
-    if (generation !== n || currentUser.value !== actor) return;
-    const result = await request<{ url: string }>("/admin/media", {
-      method: "POST",
-      body: JSON.stringify({ dataBase64: data }),
-    });
-    if (generation !== n || currentUser.value !== actor || props.disabled)
-      return;
+        ? await request<{ url: string }>("/admin/media", {
+            method: "POST",
+            body: JSON.stringify({ dataBase64: image }),
+          })
+        : await uploadAdminImage(image, isCurrent);
+    if (!result || !isCurrent()) return;
     if (
       !/^\/assets\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.(?:png|jpe?g|webp)$/.test(
         result.url,

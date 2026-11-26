@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onUnmounted } from "vue";
-import { request, currentUser, errorMessage } from "../api";
+import { currentUser, errorMessage } from "../api";
+import { uploadAdminImage } from "../image-upload";
 import AppIcon from "./AppIcon.vue";
 const props = defineProps<{
   disabled?: boolean;
@@ -57,30 +58,17 @@ function drop(event: DragEvent) {
 }
 async function upload(file: File) {
   if (busy.value || props.disabled) return;
-  if (
-    !["image/png", "image/jpeg"].includes(file.type) ||
-    file.size > 4 * 1024 * 1024
-  ) {
-    error.value = "请选择 4MB 内 JPG/PNG 图片";
-    return;
-  }
   const actor = currentUser.value;
   busy.value = true;
   emit("busy", true);
   error.value = "";
   try {
-    const data = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result).split(",")[1]);
-      reader.onerror = () => reject(new Error("读取图片失败"));
-      reader.readAsDataURL(file);
-    });
-    if (!alive || currentUser.value !== actor) return;
-    const result = await request<{ url: string }>("/admin/media", {
-      method: "POST",
-      body: JSON.stringify({ dataBase64: data }),
-    });
-    if (alive && currentUser.value === actor) emit("uploaded", result.url);
+    const result = await uploadAdminImage(
+      file,
+      () => alive && currentUser.value === actor && !props.disabled,
+    );
+    if (result && alive && currentUser.value === actor && !props.disabled)
+      emit("uploaded", result.url);
   } catch (e) {
     if (alive && currentUser.value === actor) error.value = errorMessage(e);
   } finally {
@@ -130,7 +118,9 @@ async function upload(file: File) {
         <span v-if="!disabled && !dragging">
           {{ preview ? "点击替换，或拖入新图片" : "拖入图片或点击选择文件" }}
         </span>
-        <small v-if="!disabled && !preview">JPG / PNG，最大 4 MB</small>
+        <small v-if="!disabled && !preview"
+          >JPG / PNG，超出上传限制会自动压缩</small
+        >
       </span>
     </button>
     <input
@@ -141,7 +131,7 @@ async function upload(file: File) {
       :disabled="disabled || busy"
       @change="pick"
     />
-    <p v-if="busy" class="upload-status" role="status">正在上传图片…</p>
+    <p v-if="busy" class="upload-status" role="status">正在处理并上传图片…</p>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
   </div>
 </template>

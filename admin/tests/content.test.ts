@@ -353,7 +353,16 @@ describe("image upload guard", () => {
     });
     vi.stubGlobal("fetch", fetch);
     const w = mount(ImageUpload);
-    const file = new File(["png bytes"], "dropped.png", { type: "image/png" });
+    const file = new File(
+      [
+        Buffer.from(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+          "base64",
+        ),
+      ],
+      "dropped.png",
+      { type: "image/png" },
+    );
     await w
       .get(".drop-zone")
       .trigger("drop", { dataTransfer: { files: [file], types: ["Files"] } });
@@ -365,7 +374,7 @@ describe("image upload guard", () => {
     w.unmount();
   });
 
-  it("rejects oversized uploads before sending a request", async () => {
+  it("rejects invalid image bytes before sending a request", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const w = mount(ImageUpload);
@@ -377,7 +386,7 @@ describe("image upload guard", () => {
     });
     await w.get('input[type="file"]').trigger("change");
     await flushPromises();
-    expect(w.text()).toContain("请选择 4MB 内 JPG/PNG 图片");
+    await vi.waitFor(() => expect(w.text()).toContain("无法识别图片"));
     expect(fetch).not.toHaveBeenCalled();
     w.unmount();
   });
