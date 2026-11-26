@@ -4,6 +4,7 @@ import { onBeforeRouteLeave, useRoute } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
+import defaultBrandPreview from "../assets/platform-brand-original-transparent.png";
 import ImageUpload from "../components/ImageUpload.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
@@ -21,6 +22,9 @@ import {
 } from "../types";
 
 const DEFAULT_BRAND = "/assets/platform-brand-original-transparent.png";
+function brandPreviewUrl(url: string) {
+  return url === DEFAULT_BRAND ? defaultBrandPreview : url;
+}
 const presetIconImages: Record<string, string> = {
   WEEKLY: "/assets/category-weekly.jpg",
   DOMESTIC: "/assets/category-domestic.jpg",
@@ -1427,7 +1431,7 @@ onUnmounted(() => {
               <div class="image-setting-row">
                 <div class="brand-preview-box">
                   <img
-                    :src="layout.footer.brandImageUrl"
+                    :src="brandPreviewUrl(layout.footer.brandImageUrl)"
                     alt="野小子底图预览"
                     :style="{
                       width: `${Math.round(layout.footer.brandWidthPx * 0.65)}px`,
@@ -1601,7 +1605,7 @@ onUnmounted(() => {
                 </div>
                 <div v-if="layout.footer.brandEnabled" class="pv-brand-wrap">
                   <img
-                    :src="layout.footer.brandImageUrl"
+                    :src="brandPreviewUrl(layout.footer.brandImageUrl)"
                     alt=""
                     :style="{
                       width: `${Math.round((layout.footer.brandWidthPx / 375) * 240)}px`,

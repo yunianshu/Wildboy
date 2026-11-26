@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter } from "vue-router";
 import { acceptAuth, clearSession } from "../src/api";
 import * as confirmation from "../src/confirm";
 import HomeLayoutView from "../src/views/HomeLayoutView.vue";
+import defaultBrandPreview from "../src/assets/platform-brand-original-transparent.png";
 import EditorView from "../src/views/EditorView.vue";
 
 const sampleLayout = () => ({
@@ -284,6 +285,12 @@ describe("HomeLayoutView modular workbench", () => {
       .findAll(".module-card")
       .find((c) => c.text().includes("底部关注码与底图"))!
       .trigger("click");
+    expect(w.get('img[alt="野小子底图预览"]').attributes("src")).toBe(
+      defaultBrandPreview,
+    );
+    expect(w.get(".pv-brand-wrap img").attributes("src")).toBe(
+      defaultBrandPreview,
+    );
     await w.get("input.px-number").setValue("300");
 
     // Save layout
@@ -308,6 +315,9 @@ describe("HomeLayoutView modular workbench", () => {
     );
     expect(saved.shop.featuredProductIds).toEqual(["pack"]);
     expect(saved.footer.brandWidthPx).toBe(300);
+    expect(saved.footer.brandImageUrl).toBe(
+      "/assets/platform-brand-original-transparent.png",
+    );
     expect(w.text()).toContain("首页配置已保存");
     w.unmount();
   });
