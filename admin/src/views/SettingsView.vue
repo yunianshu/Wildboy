@@ -399,7 +399,7 @@ useForegroundRefresh(() => {
     </FormModal>
     <section
       v-show="settingsTab === 'reconcile'"
-      class="order-center-card"
+      class="order-center-card wechat-orders-card"
       aria-labelledby="wechat-orders-heading"
     >
       <h2 id="wechat-orders-heading">微信订单对账</h2>
@@ -438,23 +438,25 @@ useForegroundRefresh(() => {
             maxlength="64"
             placeholder="选填"
         /></label>
-        <button class="primary" type="submit" :disabled="wxLoading">
-          {{ wxLoading ? "查询中…" : "查询" }}
-        </button>
-        <button
-          type="button"
-          class="secondary"
-          :disabled="wxLoading"
-          @click="
-            wxBegin = '';
-            wxEnd = '';
-            wxState = '';
-            wxOpenid = '';
-            queryWechatOrders();
-          "
-        >
-          重置
-        </button>
+        <div class="wechat-orders-actions">
+          <button class="primary" type="submit" :disabled="wxLoading">
+            {{ wxLoading ? "查询中…" : "查询" }}
+          </button>
+          <button
+            type="button"
+            class="secondary"
+            :disabled="wxLoading"
+            @click="
+              wxBegin = '';
+              wxEnd = '';
+              wxState = '';
+              wxOpenid = '';
+              queryWechatOrders();
+            "
+          >
+            重置
+          </button>
+        </div>
       </form>
       <p v-if="wxError" class="error-box" role="alert">{{ wxError }}</p>
       <div v-if="wxOrders.length" class="table-scroll">
@@ -538,19 +540,78 @@ useForegroundRefresh(() => {
   font-size: 13px;
   line-height: 1.6;
 }
+.wechat-orders-card {
+  container: reconciliation / inline-size;
+}
 .wechat-orders-filters {
-  display: flex;
-  flex-wrap: wrap;
+  --filter-control-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
   align-items: end;
   margin-bottom: 12px;
 }
-.wechat-orders-filters label {
+.wechat-orders-filters > label,
+.wechat-orders-filters > :deep(.datetime-field) {
+  min-width: 0;
+  margin: 0;
+}
+.wechat-orders-filters > label,
+.wechat-orders-filters :deep(.datetime-label) {
+  color: var(--admin-body);
+  font-size: 13px;
+}
+.wechat-orders-filters :deep(.datetime-label) {
+  margin: 0 0 8px;
+}
+.wechat-orders-filters :deep(.datetime-label .app-icon) {
+  flex-shrink: 0;
+}
+.wechat-orders-filters :deep(.datetime-inputs) {
+  grid-template-columns: minmax(0, 1.35fr) minmax(90px, 0.65fr);
+}
+.wechat-orders-filters :deep(.datetime-field > .field-error:empty) {
+  display: none;
+}
+.wechat-orders-filters > label > :is(input, select) {
+  display: block;
+  min-width: 0;
+  margin: 8px 0 0;
+}
+.wechat-orders-filters > label > :is(input, select),
+.wechat-orders-filters :deep(.datetime-inputs input),
+.wechat-orders-actions > button {
+  min-height: var(--filter-control-height);
+}
+.wechat-orders-actions {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--admin-muted);
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.wechat-orders-actions > button {
+  white-space: nowrap;
+}
+@container reconciliation (min-width: 960px) {
+  .wechat-orders-filters {
+    grid-template-columns:
+      repeat(2, minmax(228px, 288px)) minmax(100px, 128px)
+      minmax(132px, 202px) max-content;
+  }
+  .wechat-orders-actions {
+    grid-column: auto;
+  }
+}
+@container reconciliation (max-width: 525px) {
+  .wechat-orders-filters {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  }
+  .wechat-orders-filters > :deep(.datetime-field) {
+    grid-column: 1 / -1;
+  }
+  .wechat-orders-actions > button {
+    flex: 1;
+  }
 }
 .wechat-orders-table {
   width: 100%;
