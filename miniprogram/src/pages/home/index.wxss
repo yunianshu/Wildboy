@@ -184,11 +184,19 @@
 .equipment-state {
   min-height: 180rpx;
 }
+.home-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28rpx;
+  margin-top: var(--space-5, 24px);
+  padding: 24rpx 12rpx 28rpx;
+}
 .platform-brand {
   display: flex;
   justify-content: center;
-  margin-top: var(--space-4, 16px);
-  padding: var(--space-2, 8px) 0 var(--space-3, 12px);
+  flex: 1;
+  min-width: 0;
 }
 .platform-brand-image {
   display: block;
@@ -303,44 +311,46 @@ button.shortcut-close {
 .shortcut-message { color: var(--color-muted, #5D7064); font-size: 14px; }
 
 .follow-card {
-  margin-top: var(--space-5, 24px);
-  padding: 20px 16px;
-  border-radius: var(--card-radius, 12px);
-  background: #FFFFFF;
+  width: 214rpx;
+  flex: 0 0 auto;
   text-align: center;
+  overflow-wrap: anywhere;
 }
 .follow-title {
-  font-size: 32rpx;
-  font-weight: 700;
-  color: #20372C;
+  font-size: 24rpx;
+  font-weight: 650;
+  color: var(--color-ink, #20372c);
 }
 .follow-sub {
-  margin-top: 6px;
-  font-size: 24rpx;
-  color: #5D7064;
+  margin-top: 4rpx;
+  font-size: 21rpx;
+  color: var(--color-muted, #5d7064);
 }
 .follow-qr-grid {
-  margin-top: 14px;
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.follow-title ~ .follow-qr-grid,
+.follow-sub ~ .follow-qr-grid {
+  margin-top: 12rpx;
 }
 .follow-qr-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 6rpx;
 }
 .follow-qr-image {
-  width: 240rpx;
-  height: 240rpx;
-  padding: 12rpx;
-  border-radius: 16rpx;
-  background: #F6F8F3;
+  box-sizing: border-box;
+  display: block;
+  width: 184rpx;
+  height: 184rpx;
+  padding: 4rpx;
+  background: #fff;
 }
 .follow-qr-label {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #247A52;
+  font-size: 23rpx;
+  line-height: 1.4;
+  color: var(--color-ink, #20372c);
 }

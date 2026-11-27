@@ -336,3 +336,23 @@ test("an explicit empty shortcut image list clears a legacy QR", () => {
   assert.deepEqual(result.shortcuts[1].popupImages, []);
   assert.equal(result.shortcuts[1].popupImageUrl, "");
 });
+
+
+test("the native home footer packs brand then configured QR codes with no empty QR column", () => {
+  const { readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  const wxml = readFileSync(join(__dirname, "../dist/pages/home/index.wxml"), "utf8");
+  const wxss = readFileSync(join(__dirname, "../dist/pages/home/index.wxss"), "utf8");
+  const footer = wxml.slice(wxml.indexOf('class="home-footer"'), wxml.indexOf('class="shortcut-mask"'));
+  assert.match(footer, /wx:if="{{footer\.followEnabled && footer\.followQrcodes\.length}}" class="follow-card"/);
+  assert.ok(footer.indexOf('class="platform-brand"') < footer.indexOf('class="follow-card"'));
+  assert.match(footer, /show-menu-by-longpress[^>]+bindtap="previewFollowQr"/);
+  assert.match(wxss, /\.follow-qr-grid\s*\{[^}]*flex-direction:\s*column/);
+  const home = mountPage("home");
+  const urls = ["https://example.test/oa.png", "https://example.test/video.png"];
+  home.data.footer.followQrcodes = urls.map((url) => ({ url, label: "" }));
+  const calls = [];
+  wx.previewImage = (input) => calls.push(input);
+  home.previewFollowQr({ currentTarget: { dataset: { url: urls[1] } } });
+  assert.deepEqual(calls.map(({ current, urls }) => ({ current, urls })), [{ current: urls[1], urls }]);
+});

@@ -506,3 +506,33 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
     w.unmount();
   });
 });
+
+
+it("previews the brand first and suppresses the QR column when no code is configured", async () => {
+  const layout = sampleLayout();
+  layout.footer.followQrcodes.push({ url: "/assets/video.jpg", label: "视频号" });
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => url.includes("/admin/home/layout")
+      ? layout
+      : url.endsWith("/admin/shop/products") ? [] : { items: [], hasMore: false },
+  })));
+  const w = mount(HomeLayoutView, { global: { stubs: { RouterLink: true } } });
+  await flushPromises();
+  const footer = w.get(".pv-footer");
+  expect(Array.from(footer.element.children, (child) => child.className))
+    .toEqual(["pv-brand-wrap", "pv-follow-box"]);
+  expect(footer.findAll(".pv-qr-item").map((item) => item.text()))
+    .toEqual(["官方公众号", "视频号"]);
+  await footer.trigger("click");
+  for (let i = 0; i < 2; i++) {
+    await w.get(".qr-cards-grid .danger-text").trigger("click");
+  }
+  expect(w.find(".pv-follow-box").exists()).toBe(false);
+  expect(w.find(".pv-brand-wrap").exists()).toBe(true);
+  const brandSwitch = w.findAll(".editor-panel input[type=checkbox]")[1]!;
+  await brandSwitch.setValue(false);
+  expect(w.find(".pv-footer").exists()).toBe(false);
+  w.unmount();
+});

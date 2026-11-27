@@ -45,7 +45,7 @@ const moduleLabels: Record<HomeModuleId, { title: string; desc: string }> = {
   GALLERY: { title: "山野之间轮播", desc: "自动取文章或自定义轮播图" },
   FOOTER: {
     title: "底部关注码与底图",
-    desc: "扫码关注二维码 + 野小子底图及大小",
+    desc: "左侧品牌底图，右侧关注二维码",
   },
 };
 const pageOptions = [
@@ -1395,9 +1395,10 @@ onUnmounted(() => {
           <div class="sub-box">
             <label class="field checkbox-field">
               <input v-model="layout.footer.followEnabled" type="checkbox" />
-              在小程序首页底部显示「扫码关注」二维码区域（支持长按识别关注公众号/加群）
+              在小程序首页底部显示关注二维码
             </label>
             <template v-if="layout.footer.followEnabled">
+              <p class="field-hint">二维码按列表顺序在底图右侧从上到下显示。没有上传时，整列不显示。</p>
               <div class="field-row">
                 <label>
                   关注区标题
@@ -1670,7 +1671,11 @@ onUnmounted(() => {
               </div>
 
               <div
-                v-else-if="mod.enabled && mod.id === 'FOOTER'"
+                v-else-if="
+                  mod.enabled && mod.id === 'FOOTER' &&
+                  (layout.footer.brandEnabled ||
+                    (layout.footer.followEnabled && layout.footer.followQrcodes.length))
+                "
                 class="pv-footer pv-interactive"
                 role="button"
                 tabindex="0"
@@ -1680,20 +1685,6 @@ onUnmounted(() => {
                 @keydown.enter.prevent="activeModule = 'FOOTER'"
                 @keydown.space.prevent="activeModule = 'FOOTER'"
               >
-                <div v-if="layout.footer.followEnabled" class="pv-follow-box">
-                  <strong>{{ layout.footer.followTitle || "关注我们" }}</strong>
-                  <small>{{ layout.footer.followSubtitle }}</small>
-                  <div class="pv-qr-row">
-                    <div
-                      v-for="(qr, idx) in layout.footer.followQrcodes"
-                      :key="idx"
-                      class="pv-qr-item"
-                    >
-                      <img :src="qr.url" alt="" />
-                      <span>{{ qr.label }}</span>
-                    </div>
-                  </div>
-                </div>
                 <div v-if="layout.footer.brandEnabled" class="pv-brand-wrap">
                   <img
                     :src="brandPreviewUrl(layout.footer.brandImageUrl)"
@@ -1702,6 +1693,23 @@ onUnmounted(() => {
                       width: `${Math.round((layout.footer.brandWidthPx / 375) * 240)}px`,
                     }"
                   />
+                </div>
+                <div
+                  v-if="layout.footer.followEnabled && layout.footer.followQrcodes.length"
+                  class="pv-follow-box"
+                >
+                  <strong v-if="layout.footer.followTitle">{{ layout.footer.followTitle }}</strong>
+                  <small v-if="layout.footer.followSubtitle">{{ layout.footer.followSubtitle }}</small>
+                  <div class="pv-qr-row">
+                    <div
+                      v-for="(qr, idx) in layout.footer.followQrcodes"
+                      :key="idx"
+                      class="pv-qr-item"
+                    >
+                      <img :src="qr.url" alt="" />
+                      <span v-if="qr.label">{{ qr.label }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </template>
@@ -2258,45 +2266,47 @@ onUnmounted(() => {
   margin-bottom: 4px;
 }
 .pv-footer {
-  padding: 8px;
-  border-radius: 8px;
-  background: #fff;
-  border: 1px dashed var(--rf-line, #dce3dd);
+  padding: 8px 4px 10px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 9px;
   cursor: pointer;
 }
 .pv-follow-box {
-  width: 100%;
+  width: 30%;
+  flex: 0 0 auto;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 11px;
+  font-size: 10px;
+  overflow-wrap: anywhere;
 }
-.pv-qr-row {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.pv-qr-row,
 .pv-qr-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 10px;
+}
+.pv-qr-row {
+  gap: 7px;
+}
+.pv-qr-item {
+  gap: 3px;
 }
 .pv-qr-item img {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  max-width: 100%;
+  aspect-ratio: 1;
   object-fit: contain;
+  background: #fff;
 }
 .pv-brand-wrap {
   display: flex;
   justify-content: center;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 .pv-brand-wrap img {
   max-width: 100%;
