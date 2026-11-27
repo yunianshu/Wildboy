@@ -366,11 +366,7 @@ useForegroundRefresh(() => {
                 >
               </div>
               <div class="metric">
-                <RouterLink
-                  :to="{ path: '/activities', query: { upcomingFull: '1' } }"
-                >
-                  满员活动
-                </RouterLink>
+                <span>满员活动</span>
                 <strong
                   >{{ data.activities.full }} /
                   {{ data.activities.total }}</strong

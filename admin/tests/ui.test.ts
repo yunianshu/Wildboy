@@ -165,10 +165,19 @@ describe("real component flows", () => {
     );
     const { wrapper, router } = await mounted(
       ActivitiesView,
-      "/activities?upcomingFull=1",
+      "/activities?status=PUBLISHED&title=测试&upcomingFull=1&page=3",
     );
     await flushPromises();
     expect(wrapper.text()).toContain("暂无匹配活动");
+    expect(wrapper.text()).not.toContain("即将开始且满员");
+    const url = new URL(
+      String(vi.mocked(fetch).mock.calls[0][0]),
+      "https://example.test",
+    );
+    expect(url.searchParams.get("upcomingFull")).toBeNull();
+    expect(url.searchParams.get("status")).toBe("PUBLISHED");
+    expect(url.searchParams.get("title")).toBe("测试");
+    expect(url.searchParams.get("page")).toBe("0");
     expect(wrapper.find(".workspace-note").exists()).toBe(false);
     expect(wrapper.find('a[href="/activities/new"]').exists()).toBe(true);
     expect(wrapper.find('[aria-label="活动分页"]').exists()).toBe(false);

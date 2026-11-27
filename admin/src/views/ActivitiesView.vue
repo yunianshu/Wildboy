@@ -43,16 +43,13 @@ const result = ref<Page<Activity>>({
   page = ref(0),
   category = ref(""),
   status = ref(""),
-  upcomingFull = ref(false),
   query = ref(""),
   appliedQuery = ref(""),
   busy = ref(false),
   loadingResults = ref(false),
   error = ref("");
 const hasFilters = computed(() =>
-  Boolean(
-    query.value.trim() || category.value || status.value || upcomingFull.value,
-  ),
+  Boolean(query.value.trim() || category.value || status.value),
 );
 const route = inject(routeLocationKey, null);
 const router = inject(routerKey, null);
@@ -67,10 +64,9 @@ function restoreFilters() {
     typeof values.status === "string" && values.status in statuses
       ? values.status
       : "";
-  upcomingFull.value = values.upcomingFull === "1";
   query.value = appliedQuery.value =
     typeof values.title === "string" ? values.title.slice(0, 100) : "";
-  const current = Number(values.page ?? 0);
+  const current = values.upcomingFull === "1" ? 0 : Number(values.page ?? 0);
   page.value =
     Number.isSafeInteger(current) && current >= 0 && current <= 100000
       ? current
@@ -84,7 +80,7 @@ function rememberFilters() {
       title: appliedQuery.value || undefined,
       category: category.value || undefined,
       status: status.value || undefined,
-      upcomingFull: upcomingFull.value ? "1" : undefined,
+      upcomingFull: undefined,
       page: page.value || undefined,
     },
   });
@@ -107,7 +103,6 @@ async function load(background = false) {
     });
     if (category.value) params.set("category", category.value);
     if (status.value) params.set("status", status.value);
-    if (upcomingFull.value) params.set("upcomingFull", "true");
     if (appliedQuery.value) params.set("title", appliedQuery.value);
     const data = await request<Page<Activity>>(`/admin/activities?${params}`, {
       signal: controller.signal,
@@ -137,15 +132,10 @@ function scheduleSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(applyFilters, 300);
 }
-function toggleUpcomingFull() {
-  upcomingFull.value = !upcomingFull.value;
-  applyFilters();
-}
 function resetFilters() {
   query.value = "";
   category.value = "";
   status.value = "";
-  upcomingFull.value = false;
   applyFilters();
 }
 function rosterLink(item: Activity) {
@@ -157,7 +147,10 @@ watch(page, () => {
   rememberFilters();
   void load();
 });
-onMounted(() => void load());
+onMounted(() => {
+  if (route?.query.upcomingFull !== undefined) rememberFilters();
+  void load();
+});
 onUnmounted(() => {
   generation++;
   controller?.abort();
@@ -207,18 +200,6 @@ useForegroundRefresh(() => {
           {{ label }}
         </option>
       </select>
-      <button
-        class="full-filter"
-        type="button"
-        :aria-pressed="upcomingFull"
-        @click="toggleUpcomingFull"
-      >
-        <AppIcon
-          name="check"
-          :size="14"
-          :class="{ 'filter-check-hidden': !upcomingFull }"
-        />即将开始且满员
-      </button>
       <button
         v-if="hasFilters && (error || result.items.length) && !loadingResults"
         class="text-button"
@@ -404,24 +385,6 @@ useForegroundRefresh(() => {
 .activity-filters select {
   width: 9rem;
   max-width: 100%;
-}
-.full-filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding-inline: 12px;
-  border-color: var(--rf-field-line);
-  background: var(--rf-surface);
-  color: var(--rf-ink);
-}
-.filter-check-hidden {
-  visibility: hidden;
-}
-.full-filter:hover,
-.full-filter[aria-pressed="true"] {
-  border-color: var(--rf-primary);
-  background: var(--rf-soft);
-  color: var(--rf-primary-text);
 }
 .activity-empty {
   flex-direction: column;

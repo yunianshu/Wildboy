@@ -3,56 +3,45 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import BoardingPointSettingsView from "../src/views/BoardingPointSettingsView.vue";
 
 const pickerOrigin = "https://apis.map.qq.com";
-const testKey = "synthetic-test-key";
 const selection = {
   module: "locationPicker",
   latlng: { lat: 24.479834, lng: 118.089425 },
   poiname: "试验步道入口",
   poiaddress: "厦门市某步道",
 };
-
+const original = {
+  name: "原上车点标识",
+  address: "原上车地址",
+  latitude: 24.5,
+  longitude: 118.1,
+};
 let wrapper: VueWrapper;
 
-async function openDraft(key = testKey) {
+function response(body: unknown, status = 200) {
+  return { ok: status < 400, status, json: async () => body };
+}
+async function openPage(rows = [original], key = "synthetic-test-key") {
   vi.stubEnv("VITE_TENCENT_MAP_PICKER_KEY", key);
   vi.stubGlobal(
     "fetch",
-    vi.fn(async (_path, options) => ({
-      ok: true,
-      status: 200,
-      json: async () => (options?.body ? JSON.parse(options.body) : []),
-    })),
+    vi.fn(async (_path, options) =>
+      response(options?.body ? JSON.parse(String(options.body)) : rows),
+    ),
   );
-  wrapper = mount(BoardingPointSettingsView, {
-    attachTo: document.body,
-  });
+  wrapper = mount(BoardingPointSettingsView, { attachTo: document.body });
   await flushPromises();
-  await button("新增上车点").trigger("click");
 }
-
-function posted() {
-  const call = vi
+function posts() {
+  return vi
     .mocked(fetch)
-    .mock.calls.find(([, options]) => options?.method === "POST");
-  return call ? JSON.parse(String(call[1]?.body)) : undefined;
+    .mock.calls.filter(([, options]) => options?.method === "POST");
 }
-
 function button(name: string) {
   return wrapper.findAll("button").find((el) => el.text() === name)!;
 }
-
-function input(placeholder: string) {
-  return wrapper.get<HTMLInputElement>(`input[placeholder="${placeholder}"]`);
-}
-const address = () => input("填写详细上车地址");
-const latitude = () => input("如 24.501111");
-const longitude = () => input("如 118.126666");
-
-async function openPicker() {
-  await button("地图选点").trigger("click");
+function frame() {
   return wrapper.get<HTMLIFrameElement>("iframe").element;
 }
-
 function sendSelection(source: Window | null, options: MessageEventInit = {}) {
   window.dispatchEvent(
     new MessageEvent("message", {
@@ -70,145 +59,126 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("Tencent navigation point picker", () => {
-  it("allows manual entry and coordinate paste without a map key", async () => {
-    await openDraft("");
-    expect(button("地图选点").element.disabled).toBe(true);
-    expect(wrapper.find("iframe").exists()).toBe(false);
-
-    await address().setValue("东门");
-    await input("例如 24.5011, 118.1266").setValue("24.5011, 118.1266");
-    expect(latitude().element.value).toBe("24.501100");
-    expect(longitude().element.value).toBe("118.126600");
-    await longitude().setValue("118.1234");
-    await button("保存上车点").trigger("click");
-    expect(posted()).toEqual(
-      expect.objectContaining({
-        name: "东门",
-        latitude: 24.5011,
-        longitude: 118.1234,
-      }),
+describe("上车点一步选址保存", () => {
+  it("opens one map dialog and saves directly on map confirmation", async () => {
+    await openPage();
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+    await button("新增上车点").trigger("click");
+    expect(wrapper.findAll("[role=dialog]")).toHaveLength(1);
+    expect(wrapper.find("input").exists()).toBe(false);
+    expect(wrapper.text()).not.toMatch(
+      /地图选点|手工输入|配额|经纬度|保存上车点/,
     );
-  });
-
-  it("fills an unnamed draft from the official picker and adds only on confirmation", async () => {
-    await openDraft();
-    const frame = await openPicker();
-    const url = new URL(frame.src);
-    expect(url.origin).toBe(pickerOrigin);
-    expect(url.pathname).toBe("/tools/locpicker");
-    expect(url.searchParams.get("key")).toBe(testKey);
+    const url = new URL(frame().src);
+    expect(url.origin + url.pathname).toBe(pickerOrigin + "/tools/locpicker");
     expect(url.searchParams.get("coordtype")).toBe("5");
-    expect(frame.contentWindow).not.toBeNull();
+    expect(frame().contentWindow).not.toBeNull();
+    expect(posts()).toHaveLength(0);
 
-    sendSelection(frame.contentWindow, { origin: "https://mapapi.qq.com" });
+    sendSelection(frame().contentWindow, { origin: "https://mapapi.qq.com" });
     await flushPromises();
-    expect(wrapper.find("iframe").exists()).toBe(false);
-    expect(address().element.value).toBe(selection.poiaddress);
-    expect(latitude().element.value).toBe("24.479834");
-    expect(longitude().element.value).toBe("118.089425");
-    expect(posted()).toBeUndefined();
-
-    await button("保存上车点").trigger("click");
-    expect(posted()).toEqual(
-      expect.objectContaining({
-        name: selection.poiaddress,
-        address: selection.poiaddress,
-        latitude: selection.latlng.lat,
-        longitude: selection.latlng.lng,
-      }),
-    );
-  });
-
-  it("replaces the address and coordinates when a new point is selected", async () => {
-    await openDraft();
-    await address().setValue("原来地址");
-    await latitude().setValue("24.5");
-    await longitude().setValue("118.1");
-    const frame = await openPicker();
-    expect(new URL(frame.src).searchParams.get("coord")).toBe("24.5,118.1");
-
-    sendSelection(frame.contentWindow);
-    await flushPromises();
-    expect(address().element.value).toBe(selection.poiaddress);
-    expect(latitude().element.value).toBe("24.479834");
-    expect(longitude().element.value).toBe("118.089425");
-  });
-
-  it("ignores unrelated windows, origins and invalid selections", async () => {
-    await openDraft();
-    const frame = await openPicker();
-    sendSelection(frame.contentWindow, { origin: "https://example.test" });
-    sendSelection(frame.contentWindow, {
-      origin: "https://other.mapapi.qq.com",
+    expect(posts()).toHaveLength(1);
+    expect(JSON.parse(String(posts()[0][1]?.body))).toEqual({
+      name: selection.poiaddress,
+      address: selection.poiaddress,
+      latitude: selection.latlng.lat,
+      longitude: selection.latlng.lng,
     });
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+    expect(wrapper.get(".stop-list").text()).toContain(selection.poiaddress);
+    expect(wrapper.get("[role=status]").text()).toBe("上车点已保存");
+  });
+
+  it("edits a saved point using its original identifier and coordinates", async () => {
+    await openPage();
+    await button("编辑").trigger("click");
+    expect(new URL(frame().src).searchParams.get("coord")).toBe("24.5,118.1");
+    sendSelection(frame().contentWindow);
+    await flushPromises();
+    expect(JSON.parse(String(posts()[0][1]?.body))).toMatchObject({
+      name: original.name,
+      address: selection.poiaddress,
+    });
+    expect(wrapper.findAll(".stop-list li")).toHaveLength(1);
+    expect(wrapper.get(".stop-list").text()).not.toContain(original.address);
+  });
+
+  it("ignores unrelated windows, origins, malformed data and late replies", async () => {
+    await openPage();
+    const add = button("新增上车点");
+    add.element.focus();
+    await add.trigger("click");
+    const source = frame().contentWindow;
     sendSelection(window);
-    sendSelection(frame.contentWindow, { data: null });
-    sendSelection(frame.contentWindow, {
-      data: { ...selection, module: "other" },
-    });
+    sendSelection(source, { origin: "https://example.test" });
+    sendSelection(source, { origin: "https://other.mapapi.qq.com" });
+    sendSelection(source, { data: null });
+    sendSelection(source, { data: { ...selection, module: "other" } });
     for (const latlng of [
       { lat: 91, lng: 118 },
       { lat: 24, lng: 181 },
       { lat: NaN, lng: 118 },
       { lat: "24", lng: 118 },
-    ]) {
-      sendSelection(frame.contentWindow, { data: { ...selection, latlng } });
-    }
-    await flushPromises();
-    expect(wrapper.find("iframe").exists()).toBe(true);
-    expect(latitude().element.value).toBe("");
-    expect(longitude().element.value).toBe("");
-    expect(address().element.value).toBe("");
-    expect(posted()).toBeUndefined();
-  });
-
-  it("cancels without editing the draft and ignores replies from the closed picker", async () => {
-    await openDraft();
-    await address().setValue("东门");
-    await latitude().setValue("24.5");
-    await longitude().setValue("118.1");
-    const source = (await openPicker()).contentWindow;
+    ])
+      sendSelection(source, { data: { ...selection, latlng } });
+    expect(posts()).toHaveLength(0);
     await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
-    expect(wrapper.find("iframe").exists()).toBe(false);
+    await flushPromises();
+    expect(document.activeElement).toBe(add.element);
+    await add.trigger("click");
     sendSelection(source);
     await flushPromises();
-    expect(address().element.value).toBe("东门");
-    expect(latitude().element.value).toBe("24.5");
-    expect(longitude().element.value).toBe("118.1");
-
-    const reopened = await openPicker();
-    sendSelection(source);
-    await flushPromises();
-    expect(wrapper.get("iframe").element).toBe(reopened);
-    expect(latitude().element.value).toBe("24.5");
-    expect(posted()).toBeUndefined();
+    expect(posts()).toHaveLength(0);
+    expect(wrapper.find("[role=dialog]").exists()).toBe(true);
   });
 
-  it("shows the quota and lets an administrator continue with manual entry", async () => {
-    await openDraft();
-    expect(wrapper.text()).toContain("地点搜索每天 200 次");
-    expect(wrapper.text()).toContain("各每天 6,000 次，每项每秒最多 5 次");
-    await address().setValue("集合点");
-    await openPicker();
-    expect(wrapper.text()).toContain("如果提示配额用完");
-
-    await button("手工输入").trigger("click");
-    await flushPromises();
-    expect(wrapper.find("iframe").exists()).toBe(false);
-    expect(document.activeElement).toBe(address().element);
-    expect(address().element.value).toBe("集合点");
-    await address().setValue("厦门市思明区");
-    await latitude().setValue("24.5");
-    await longitude().setValue("118.1");
-    await button("保存上车点").trigger("click");
-    expect(posted()).toEqual(
-      expect.objectContaining({
-        name: "厦门市思明区",
-        address: "厦门市思明区",
-        latitude: 24.5,
-        longitude: 118.1,
-      }),
+  it("blocks duplicate confirms while saving and leaves the picker open on error", async () => {
+    await openPage();
+    let finish!: (value: unknown) => void;
+    vi.mocked(fetch).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve as typeof finish;
+        }),
     );
+    await button("新增上车点").trigger("click");
+    const source = frame().contentWindow;
+    sendSelection(source);
+    sendSelection(source);
+    await flushPromises();
+    expect(posts()).toHaveLength(1);
+    expect(
+      wrapper.get('[aria-label="关闭弹窗"]').attributes("disabled"),
+    ).toBeDefined();
+    expect(wrapper.get(".picker-status").text()).toBe("正在保存上车点…");
+    finish(response({ message: "保存失败" }, 500));
+    await flushPromises();
+    expect(wrapper.get("[role=alert]").text()).toContain("保存失败");
+    expect(wrapper.get(".stop-list").text()).not.toContain(
+      selection.poiaddress,
+    );
+    expect(frame().contentWindow).toBe(source);
+    sendSelection(source);
+    await flushPromises();
+    expect(posts()).toHaveLength(2);
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
+  });
+
+  it("does not overwrite a saved address when adding a duplicate", async () => {
+    await openPage([{ ...original, address: selection.poiaddress }]);
+    await button("新增上车点").trigger("click");
+    sendSelection(frame().contentWindow);
+    await flushPromises();
+    expect(wrapper.get("[role=alert]").text()).toContain("这个上车地址已存在");
+    expect(posts()).toHaveLength(0);
+  });
+
+  it("shows the real unconfigured state without opening an iframe or a manual form", async () => {
+    await openPage([original], "");
+    await button("新增上车点").trigger("click");
+    expect(wrapper.get("[role=dialog]").text()).toContain("地图选址尚未配置");
+    expect(wrapper.find("iframe").exists()).toBe(false);
+    expect(wrapper.find("input").exists()).toBe(false);
+    expect(posts()).toHaveLength(0);
   });
 });

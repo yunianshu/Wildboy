@@ -2,6 +2,7 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import FormModal from "./FormModal.vue";
 import {
+  mapKey,
   pickerOrigin,
   pickerUrl,
   readSelection,
@@ -9,18 +10,20 @@ import {
   type MapPlace,
 } from "../navigation-map";
 
-const props = defineProps<{ initial?: Coordinate }>();
-const emit = defineEmits<{
-  close: [];
-  manual: [];
-  select: [place: MapPlace];
+const props = defineProps<{
+  title: string;
+  initial?: Coordinate;
+  busy: boolean;
+  error: string;
 }>();
+const emit = defineEmits<{ close: []; select: [place: MapPlace] }>();
 const frame = ref<HTMLIFrameElement>();
-const url = pickerUrl(props.initial);
+const url = mapKey() ? pickerUrl(props.initial) : null;
 
 function receiveSelection(event: MessageEvent<unknown>) {
-  // Tencent can serve the picker directly or redirect it to mapapi.qq.com.
+  // The provider posts after the user confirms a location inside the map.
   if (
+    props.busy ||
     (event.origin !== pickerOrigin &&
       event.origin !== "https://mapapi.qq.com") ||
     !frame.value?.contentWindow ||
@@ -36,34 +39,42 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
 </script>
 
 <template>
-  <FormModal size="xl" title="腾讯地图选点" @close="emit('close')">
-    <p class="field-hint map-picker-hint">
-      如果提示配额用完、查询失败或地图无法加载，请改用手工输入，填写上车地址和经纬度。
+  <FormModal size="lg" :title="title" :busy="busy" @close="emit('close')">
+    <p v-if="!url" class="error-box" role="alert">
+      地图选址尚未配置，暂时无法选择地址。
     </p>
-    <iframe
-      ref="frame"
-      class="map-picker-frame"
-      title="腾讯地图地点搜索与选点"
-      :src="url"
-      referrerpolicy="strict-origin-when-cross-origin"
-    />
-    <template #footer>
-      <button type="button" class="secondary" @click="emit('manual')">
-        手工输入
-      </button>
+    <template v-else>
+      <p v-if="error" class="field-error picker-error" role="alert">
+        {{ error }} 可在地图中重新确认。
+      </p>
+      <p v-if="busy" class="picker-status" role="status">正在保存上车点…</p>
+      <div class="picker-surface" :inert="busy">
+        <iframe
+          ref="frame"
+          title="选择上车地址"
+          class="map-picker-frame"
+          :src="url"
+          referrerpolicy="strict-origin-when-cross-origin"
+        />
+      </div>
     </template>
   </FormModal>
 </template>
 
 <style scoped>
-.map-picker-hint {
-  margin: 0 0 8px;
+.picker-surface {
+  overflow: hidden;
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-soft);
 }
-
 .map-picker-frame {
   display: block;
   width: 100%;
-  height: clamp(235px, 57dvh, 550px);
+  height: clamp(290px, 62dvh, 564px);
   border: 0;
+}
+.picker-error,
+.picker-status {
+  margin: 0 0 8px;
 }
 </style>
