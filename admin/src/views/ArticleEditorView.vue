@@ -496,6 +496,7 @@ useForegroundRefresh(() => {
             <small>点击或拖入组件，也可直接粘贴图片</small>
           </div>
           <MarkdownEditor
+            media-category="ARTICLE"
             ref="rich"
             :key="id"
             class="article-body-editor"
@@ -520,6 +521,7 @@ useForegroundRefresh(() => {
               </div>
               <ImageUpload
                 label="上传文章封面"
+                category="ARTICLE"
                 :preview="form.coverUrl"
                 preview-alt="文章封面"
                 :disabled="saving || (!!id && !current)"

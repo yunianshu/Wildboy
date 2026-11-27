@@ -11,6 +11,8 @@ import UiState from "../components/UiState.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import AppIcon from "../components/AppIcon.vue";
 
+defineProps<{ embedded?: boolean }>();
+const emit = defineEmits<{ changed: [] }>();
 const items = ref<ProductCategory[]>([]),
   loading = ref(false),
   busy = ref(false),
@@ -94,8 +96,9 @@ async function load() {
 }
 async function canLeave() {
   return (
-    !dirty.value ||
-    (await askConfirm("分类修改尚未保存，确定放弃本次修改并离开吗？"))
+    !busy.value &&
+    (!dirty.value ||
+      (await askConfirm("分类修改尚未保存，确定放弃本次修改并离开吗？")))
   );
 }
 function adopt(category?: ProductCategory) {
@@ -181,6 +184,7 @@ async function save() {
     form.value = emptyForm();
     baseline.value = JSON.stringify(form.value);
     notice.value = `分类「${result.name}」已保存。`;
+    emit("changed");
     busy.value = false;
     void load();
   } catch (reason) {
@@ -250,6 +254,7 @@ function beforeUnload(event: BeforeUnloadEvent) {
     event.returnValue = "";
   }
 }
+defineExpose({ canLeave });
 onBeforeRouteLeave(async (to) => to.path === "/login" || (await canLeave()));
 onMounted(() => {
   void load();
@@ -265,16 +270,16 @@ useForegroundRefresh(() => {
 });
 </script>
 <template>
-  <main class="workspace">
+  <component :is="embedded ? 'section' : 'main'" :class="embedded ? 'category-manager' : 'workspace'">
     <header class="page-heading">
-      <h1>商品分类</h1>
+      <component :is="embedded ? 'h2' : 'h1'">商品分类</component>
       <div class="action-row">
         <button class="primary" :disabled="loading || busy" @click="open()">
           <AppIcon name="plus" />新分类
         </button>
       </div>
     </header>
-    <nav class="task-tabs" aria-label="商城任务">
+    <nav v-if="!embedded" class="task-tabs" aria-label="商城任务">
       <RouterLink class="button secondary" to="/shop?tab=products"
         >商品与库存</RouterLink
       ><RouterLink class="button secondary" to="/shop?tab=orders"
@@ -416,5 +421,5 @@ useForegroundRefresh(() => {
       @cancel="!busy && (reloadConfirmation = false)"
       @confirm="reloadCurrent"
     />
-  </main>
+  </component>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { uploadAdminImage } from "../image-upload";
+import type { MediaAsset, MediaCategory } from "../media";
 import UiState from "./UiState.vue";
 import AppIcon from "./AppIcon.vue";
+import MediaPickerModal from "./MediaPickerModal.vue";
 import { askConfirm } from "../confirm";
 import { computed, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
@@ -25,6 +27,7 @@ const props = defineProps<{
   height?: number;
   placeholder?: string;
   components?: boolean;
+  mediaCategory?: MediaCategory;
 }>();
 const emit = defineEmits<{ saved: [version: number] }>();
 
@@ -38,6 +41,7 @@ const loaded = ref(false);
 const dirty = ref(false);
 const ready = ref(false);
 const choosingImage = ref(false);
+const mediaPicker = shallowRef<{ placement?: Placement }>();
 const fragment = shallowRef<{
   index?: number;
   initial?: string;
@@ -45,7 +49,11 @@ const fragment = shallowRef<{
   placement?: Placement;
 }>();
 const writeBusy = computed(
-  () => busy.value || choosingImage.value || !!fragment.value,
+  () =>
+    busy.value ||
+    choosingImage.value ||
+    !!fragment.value ||
+    !!mediaPicker.value,
 );
 const workflowBusy = computed(() => loading.value || writeBusy.value);
 const body = ref<HTMLElement>();
@@ -349,9 +357,17 @@ async function uploadImage(
       typeof image === "string"
         ? await request<{ url: string }>("/admin/media", {
             method: "POST",
-            body: JSON.stringify({ dataBase64: image }),
+            body: JSON.stringify({
+              dataBase64: image,
+              ...(caption ? { name: caption } : {}),
+              ...(props.mediaCategory ? { category: props.mediaCategory } : {}),
+            }),
           })
-        : await uploadAdminImage(image, isCurrent);
+        : await uploadAdminImage(
+            image,
+            isCurrent,
+            props.mediaCategory ? { category: props.mediaCategory } : undefined,
+          );
     if (!result || !isCurrent()) return;
     if (
       !/^\/assets\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.(?:png|jpe?g|webp)$/.test(
@@ -505,6 +521,15 @@ function maybeInit() {
         "redo",
         "|",
         "upload",
+        {
+          name: "media-library",
+          tip: "从素材库插入图片",
+          tipPosition: "s",
+          icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v16H3zM3 16l5-5 4 4 3-3 6 6"/><path d="M16 8h.01"/></svg>',
+          click() {
+            openMediaLibrary();
+          },
+        },
         "line",
         "|",
         "edit-mode",
@@ -547,7 +572,7 @@ function syncDirty() {
   }
 }
 function validateLength() {
-  if (props.components && editorValue().length > articleLimit) {
+  if (editorValue().length > articleLimit) {
     error.value = "正文超过 20 万字符，请精简后再保存。";
     return false;
   }
@@ -601,8 +626,19 @@ async function canLeave() {
 function openWechatPaste() {
   if (canInsert()) fragment.value = { placement: selectedPlacement() };
 }
+function openMediaLibrary(placement = selectedPlacement()) {
+  if (canInsert()) mediaPicker.value = { placement };
+}
+function selectMediaAsset(asset: MediaAsset) {
+  const target = mediaPicker.value?.placement;
+  mediaPicker.value = undefined;
+  if (!canInsert()) return;
+  const alt = asset.name.replace(/[\[\]\r\n]/g, "").trim();
+  placeMarkdown(`![${alt}](${asset.url})`, target);
+}
 defineExpose({
   openWechatPaste,
+  openMediaLibrary,
   canLeave,
   dirty,
   busy: workflowBusy,
@@ -694,6 +730,14 @@ onUnmounted(() => {
           type="button"
           class="component-button"
           :disabled="!canInsert()"
+          @click="openMediaLibrary()"
+        >
+          <AppIcon name="image" :size="16" />素材库选图
+        </button>
+        <button
+          type="button"
+          class="component-button"
+          :disabled="!canInsert()"
           @click="fragment = { placement: selectedPlacement() }"
         >
           <AppIcon name="document" :size="16" />粘贴公众号
@@ -760,6 +804,14 @@ onUnmounted(() => {
         fragmentValidation = '';
       "
     />
+    <Teleport to="body">
+      <MediaPickerModal
+        v-if="mediaPicker"
+        :default-category="mediaCategory"
+        @close="mediaPicker = undefined"
+        @select="selectMediaAsset"
+      />
+    </Teleport>
   </section>
 </template>
 <style scoped>

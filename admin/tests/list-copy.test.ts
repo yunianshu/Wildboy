@@ -150,6 +150,9 @@ it("opens only the chosen paid activity orders in a right drawer without routing
   const fetcher = vi.fn(async (url: string, _options?: RequestInit) => {
     if (url.includes("/admin/activities?"))
       return response({ items: [source, free], total: 21, page: 1, size: 8, hasMore: true });
+    if (url.endsWith("/admin/activities/free")) return response(free);
+    if (url.includes("/admin/activities/free/registrations?"))
+      return response({ items: [], total: 0, page: 0, size: 20, hasMore: false });
     if (url.endsWith("/refund")) return response({});
     if (url.endsWith("/participants")) return response([]);
     return response({ items: [order], total: 21, page: 0, size: 20, hasMore: true });
@@ -171,8 +174,16 @@ it("opens only the chosen paid activity orders in a right drawer without routing
   try {
     await flushPromises();
     const before = router.currentRoute.value.fullPath;
-    expect(w.findAll("a").find((a) => a.text() === "名单")?.attributes("href"))
-      .toBe("/activities/free/registrations");
+    const rosterBtn = w.findAll("button").find((b) => b.text() === "名单")!;
+    expect(rosterBtn.attributes("aria-haspopup")).toBe("dialog");
+    await rosterBtn.trigger("click");
+    await flushPromises();
+    const rosterDrawer = w.get(".form-modal-right");
+    expect(rosterDrawer.text()).toContain("报名名单 · 免费同行活动");
+    expect(router.currentRoute.value.fullPath).toBe(before);
+    await rosterDrawer.get('button[aria-label="关闭弹窗"]').trigger("click");
+    await flushPromises();
+    expect(w.find(".form-modal-right").exists()).toBe(false);
     const button = w.findAll("button").find((b) => b.text() === "订单")!;
     expect(w.find(".form-modal-right").exists()).toBe(false);
     await button.trigger("click");

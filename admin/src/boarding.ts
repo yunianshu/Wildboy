@@ -1,5 +1,9 @@
 import { maxBoardingPointLength, maxBoardingPoints } from "./forms";
-import type { ActivityInput, NavigationPoint } from "./types";
+import type { ActivityInput, BoardingPointLocation, NavigationPoint } from "./types";
+
+export function boardingDisplayName(row: BoardingPointLocation) {
+  return row.displayName?.trim() || row.address || row.name;
+}
 
 // Registration records have a shorter key than a full navigation address.
 export function boardingName(address: string, names: Iterable<string>) {

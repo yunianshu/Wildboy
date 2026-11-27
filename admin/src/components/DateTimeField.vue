@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { currentUser } from "../api";
 import AppIcon from "./AppIcon.vue";
 import FormModal from "./FormModal.vue";
 const props = withDefaults(
@@ -14,6 +15,48 @@ const props = withDefaults(
   { presets: () => [], error: "", required: false },
 );
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
+const historyKey = computed(() =>
+  JSON.stringify([
+    "wildboy-common-times",
+    currentUser.value?.id ?? "",
+    props.id,
+  ]),
+);
+const timeCounts = ref<Record<string, number>>({});
+function loadTimeCounts() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(historyKey.value) || "{}");
+    timeCounts.value = Object.fromEntries(
+      Object.entries(stored ?? {}).filter(
+        ([time, count]) =>
+          /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) &&
+          typeof count === "number" &&
+          Number.isSafeInteger(count) &&
+          count > 0,
+      ),
+    ) as Record<string, number>;
+  } catch {
+    // The picker remains usable when browser storage is unavailable.
+  }
+}
+loadTimeCounts();
+const commonTimes = computed(() =>
+  [...new Set([...props.presets, ...Object.keys(timeCounts.value)])]
+    .sort(
+      (first, second) =>
+        (timeCounts.value[second] ?? 0) - (timeCounts.value[first] ?? 0),
+    )
+    .slice(0, Math.max(6, props.presets.length)),
+);
+function rememberTime(time: string) {
+  loadTimeCounts();
+  timeCounts.value[time] = (timeCounts.value[time] ?? 0) + 1;
+  try {
+    localStorage.setItem(historyKey.value, JSON.stringify(timeCounts.value));
+  } catch {
+    // Keep the current ranking in memory if it cannot be saved.
+  }
+}
 const datePart = computed({
   get: () =>
     /^\d{4}-\d{2}-\d{2}/.test(props.modelValue)
@@ -30,6 +73,7 @@ const timePart = computed({
   get: () =>
     /T\d{2}:\d{2}$/.test(props.modelValue) ? props.modelValue.slice(-5) : "",
   set: (value: string) => {
+    rememberTime(value);
     emit(
       "update:modelValue",
       datePart.value || value ? `${datePart.value}T${value}` : "",
@@ -38,13 +82,14 @@ const timePart = computed({
 });
 const picker = ref(false);
 const draftDate = ref("");
-const today = new Intl.DateTimeFormat("en-CA", {
+const calendarDateFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Shanghai",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
-}).format(new Date());
-const visibleMonth = ref(today.slice(0, 7));
+});
+const today = ref(calendarDateFormat.format(new Date()));
+const visibleMonth = ref(today.value.slice(0, 7));
 const draftHour = ref("09");
 const draftMinute = ref("00");
 const hours = Array.from({ length: 24 }, (_, hour) =>
@@ -55,7 +100,7 @@ const minuteOptions = Array.from({ length: 60 }, (_, minute) =>
 );
 const draftTime = computed(() => `${draftHour.value}:${draftMinute.value}`);
 const years = computed(() => {
-  const current = Number(today.slice(0, 4)),
+  const current = Number(today.value.slice(0, 4)),
     chosen = Number(visibleMonth.value.slice(0, 4));
   return [
     ...new Set([
@@ -93,9 +138,11 @@ const calendarDays = computed(() => {
 function openPicker(event: Event) {
   // Pointer presses avoid the native picker; focus the actual opener before mounting the dialog.
   (event.currentTarget as HTMLInputElement).focus({ preventScroll: true });
-  draftDate.value = datePart.value;
-  visibleMonth.value = (draftDate.value || today).slice(0, 7);
-  const current = timePart.value || props.presets[0] || "09:00";
+  today.value = calendarDateFormat.format(new Date());
+  draftDate.value = datePart.value || today.value;
+  visibleMonth.value = draftDate.value.slice(0, 7);
+  loadTimeCounts();
+  const current = timePart.value || commonTimes.value[0] || "09:00";
   [draftHour.value, draftMinute.value] = current.split(":");
   picker.value = true;
 }
@@ -114,6 +161,7 @@ function selectTime(value: string) {
 }
 function apply() {
   if (!draftDate.value) return;
+  rememberTime(draftTime.value);
   emit("update:modelValue", `${draftDate.value}T${draftTime.value}`);
   picker.value = false;
 }
@@ -157,10 +205,10 @@ function apply() {
         @keydown.space.prevent="openPicker"
       />
     </div>
-    <div v-if="presets.length" class="time-presets" aria-label="常用时间">
+    <div v-if="commonTimes.length" class="time-presets" aria-label="常用时间">
       <span>快捷选择</span>
       <button
-        v-for="preset in presets"
+        v-for="preset in commonTimes"
         :key="preset"
         type="button"
         class="time-preset"
@@ -260,10 +308,10 @@ function apply() {
           </div>
         </div>
         <div class="time-picker">
-          <p v-if="presets.length" class="picker-section-label">常用时间</p>
-          <div v-if="presets.length" class="time-choice-grid">
+          <p v-if="commonTimes.length" class="picker-section-label">常用时间</p>
+          <div v-if="commonTimes.length" class="time-choice-grid">
             <button
-              v-for="preset in presets"
+              v-for="preset in commonTimes"
               :key="preset"
               type="button"
               class="time-choice"

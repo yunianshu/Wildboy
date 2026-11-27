@@ -20,6 +20,8 @@ import ImageUpload from "../components/ImageUpload.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import AppIcon from "../components/AppIcon.vue";
+import ProductDetailPreview from "../components/ProductDetailPreview.vue";
+import ProductCategoriesView from "./ProductCategoriesView.vue";
 import type {
   Order,
   Page,
@@ -30,6 +32,11 @@ import type {
 } from "../types";
 
 const formOpen = ref(false);
+const previewTarget = ref<Product | null>(null);
+const previewMarkdown = ref("");
+const previewContentLoading = ref(false);
+const previewContentError = ref("");
+let previewEpoch = 0;
 const formError = ref("");
 const formErrorElement = ref<HTMLElement>();
 const products = ref<Product[]>([]),
@@ -80,6 +87,24 @@ const notice = ref("");
 let formSnapshot = "";
 
 const router = inject(routerKey, null);
+const categoriesOpen = ref(false);
+const categoryManager = ref<InstanceType<typeof ProductCategoriesView>>();
+watch(
+  () => route?.query.manageCategories,
+  (value) => {
+    if (value === "1") categoriesOpen.value = true;
+  },
+  { immediate: true },
+);
+async function toggleCategoryManager() {
+  if (categoriesOpen.value && categoryManager.value && !(await categoryManager.value.canLeave())) return;
+  categoriesOpen.value = !categoriesOpen.value;
+  if (!categoriesOpen.value && route?.query.manageCategories && router) {
+    const query = { ...route.query };
+    delete query.manageCategories;
+    void router.replace({ query });
+  }
+}
 watch(
   () => route?.query.tab,
   (selected) => {
@@ -262,6 +287,40 @@ function changePage(delta: number) {
 function clearProductFilters() {
   appliedCategory.value = productStatus.value = productQuery.value = "";
   rememberFilters();
+}
+async function loadPreviewMarkdown(productId: string) {
+  const token = ++previewEpoch;
+  previewContentLoading.value = true;
+  previewContentError.value = "";
+  try {
+    const res = await request<{ markdown?: string }>(
+      `/admin/shop/products/${encodeURIComponent(productId)}/content/markdown`,
+    );
+    if (token === previewEpoch) {
+      previewMarkdown.value = res.markdown || "";
+    }
+  } catch (e) {
+    if (token === previewEpoch) {
+      previewContentError.value = `图文详情加载失败：${errorMessage(e)}`;
+    }
+  } finally {
+    if (token === previewEpoch) {
+      previewContentLoading.value = false;
+    }
+  }
+}
+function openPreview(item: Product, event: MouseEvent) {
+  (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
+  previewTarget.value = item;
+  previewMarkdown.value = "";
+  void loadPreviewMarkdown(item.id);
+}
+function closePreview() {
+  previewEpoch++;
+  previewTarget.value = null;
+  previewMarkdown.value = "";
+  previewContentLoading.value = false;
+  previewContentError.value = "";
 }
 function openNew() {
   formError.value = "";
@@ -547,6 +606,15 @@ useForegroundRefresh(() => {
         <h1>商城管理</h1>
       </div>
       <div v-show="tab === 'products'" class="action-row">
+        <button
+          type="button"
+          class="secondary"
+          :aria-expanded="categoriesOpen"
+          aria-controls="shop-category-manager"
+          @click="toggleCategoryManager"
+        >
+          {{ categoriesOpen ? "收起商品分类" : "管理商品分类" }}
+        </button>
         <button class="primary" @click="openNew">
           <AppIcon name="plus" :size="16" />新商品
         </button>
@@ -572,6 +640,14 @@ useForegroundRefresh(() => {
       {{ error }} <button class="text-button" @click="load">重试</button>
     </p>
     <section v-show="tab === 'products'" id="shop-products">
+      <div id="shop-category-manager" :hidden="!categoriesOpen">
+        <ProductCategoriesView
+          v-if="categoriesOpen"
+          ref="categoryManager"
+          embedded
+          @changed="loadCategories"
+        />
+      </div>
       <form
         class="list-filters"
         role="search"
@@ -679,7 +755,7 @@ useForegroundRefresh(() => {
                 <strong>{{ product.name }}</strong>
               </td>
               <td role="cell" data-label="分类">
-                {{ product.categoryName || "未分类" }}
+                {{ categories.find((category) => category.id === product.categoryId)?.name || product.categoryName || "未分类" }}
               </td>
               <td role="cell" data-label="原价 / 现价">
                 <del
@@ -712,21 +788,24 @@ useForegroundRefresh(() => {
               </td>
               <td role="cell" data-cell="actions">
                 <div class="product-actions">
-                  <button
-                    type="button"
-                    class="text-button"
-                    @click="edit(product)"
-                  >
-                    编辑商品信息
-                  </button>
                   <RouterLink
                     class="button text-button"
                     :to="{
                       path: `/shop/products/${encodeURIComponent(product.id)}/content`,
                       query: route?.query,
                     }"
-                    >编辑商品图文</RouterLink
+                    >编辑商品</RouterLink
                   >
+                  <button
+                    type="button"
+                    class="text-button"
+                    aria-haspopup="dialog"
+                    :aria-expanded="previewTarget?.id === product.id"
+                    title="预览小程序商品详情页"
+                    @click="openPreview(product, $event)"
+                  >
+                    预览
+                  </button>
                 </div>
               </td>
             </tr>
@@ -1063,6 +1142,7 @@ useForegroundRefresh(() => {
         <ImageUpload
           class="full-field"
           label="上传商品图片"
+          category="SHOP"
           :preview="form.imageUrl"
           preview-alt="商品图片预览"
           :disabled="busy"
@@ -1082,10 +1162,33 @@ useForegroundRefresh(() => {
         </div>
       </template>
     </FormModal>
+    <FormModal
+      v-if="previewTarget"
+      placement="right"
+      size="sm"
+      :title="`小程序详情预览 · ${previewTarget.name}`"
+      @close="closePreview"
+    >
+      <ProductDetailPreview
+        :product="previewTarget"
+        :markdown="previewMarkdown"
+        :content-loading="previewContentLoading"
+        :content-error="previewContentError"
+        subtitle="按当前已保存的商品信息与图文详情渲染"
+        @retry-content="previewTarget && loadPreviewMarkdown(previewTarget.id)"
+      />
+    </FormModal>
   </main>
 </template>
 
 <style scoped>
+#shop-category-manager:not([hidden]) {
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--rf-line);
+  border-radius: 12px;
+  background: var(--rf-surface);
+}
 .product-actions {
   display: flex;
   flex-wrap: wrap;

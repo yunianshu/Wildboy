@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { errorMessage, request } from "../api";
-import { boardingName } from "../boarding";
+import { boardingDisplayName, boardingName } from "../boarding";
 import { maxBoardingPoints } from "../forms";
 import type { BoardingPointLocation, NavigationPoint } from "../types";
 
@@ -32,14 +32,16 @@ const choices = computed(() => {
     rows.set(name, { ...row, name });
   }
   for (const name of selected.value) {
+    const row = rows.get(name);
     const point = navigation.value.find(
       (p) => p.kind === "BOARDING" && p.label === name,
     );
     rows.set(name, {
       name,
-      address: point?.address || rows.get(name)?.address || name,
-      latitude: point?.latitude ?? null,
-      longitude: point?.longitude ?? null,
+      displayName: row?.displayName,
+      address: point?.address || row?.address || name,
+      latitude: point?.latitude ?? row?.latitude ?? null,
+      longitude: point?.longitude ?? row?.longitude ?? null,
     });
   }
   return [...rows.values()];
@@ -113,7 +115,12 @@ onMounted(load);
           :disabled="atLimit(row)"
           @change="toggle(row)"
         />
-        <span>{{ row.address || row.name }}</span>
+        <span class="point-copy">
+          <span class="point-name">{{ boardingDisplayName(row) }}</span>
+          <small v-if="row.address && row.address !== boardingDisplayName(row)" class="point-detail">
+            {{ row.address }}
+          </small>
+        </span>
       </label>
     </div>
     <small v-if="loading" class="field-hint">正在加载上车点…</small>
@@ -159,5 +166,18 @@ onMounted(load);
   flex-shrink: 0;
   margin: 0;
   accent-color: var(--rf-primary);
+}
+.point-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.point-name {
+  color: var(--rf-ink);
+  font-weight: 600;
+}
+.point-detail {
+  color: var(--rf-muted);
+  font-weight: 400;
 }
 </style>

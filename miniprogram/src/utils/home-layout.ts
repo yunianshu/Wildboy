@@ -91,6 +91,31 @@ export interface HomeGalleryView {
 }
 
 type FooterCellId = "BRAND" | "TEXT" | "QR1" | "QR2";
+export type FooterSlotType = "NONE" | "TEXT" | "IMAGE";
+export interface FooterBlockPartView {
+  type: FooterSlotType;
+  text: string;
+  url: string;
+  widthPx: number;
+  previewable: boolean;
+}
+export interface HomeFooterBlockInput {
+  id?: string;
+  name?: string;
+  enabled?: boolean;
+  colSpan?: number;
+  rowSpan?: number;
+  topType?: FooterSlotType;
+  topText?: string;
+  topImageUrl?: string;
+  topImageWidthPx?: number;
+  topPreviewable?: boolean;
+  bottomType?: FooterSlotType;
+  bottomText?: string;
+  bottomImageUrl?: string;
+  bottomImageWidthPx?: number;
+  bottomPreviewable?: boolean;
+}
 export type FooterLayoutPreset =
   | "FOUR_GRID"
   | "THREE_L1_R2"
@@ -101,10 +126,12 @@ export type FooterLayoutPreset =
   | "TWO_TB";
 type FooterCellView = {
   id: string;
-  kind: "BRAND" | "TEXT" | "QR";
+  kind: "BRAND" | "TEXT" | "QR" | "BLOCK";
   url: string;
   label: string;
   cellStyle: string;
+  top?: FooterBlockPartView;
+  bottom?: FooterBlockPartView;
 };
 const defaultFooterOrder: FooterCellId[] = ["BRAND", "QR1", "TEXT", "QR2"];
 const footerPresetSlotStyles: Record<FooterLayoutPreset, string[]> = {
@@ -138,8 +165,12 @@ export interface HomeFooterView {
   layoutPreset: FooterLayoutPreset;
   colRatio: number;
   rowRatio: number;
+  columns: number;
+  colRatios: number[];
+  blocks?: HomeFooterBlockInput[];
   gridStyle: string;
   cells: FooterCellView[];
+  previewUrls: string[];
   followEnabled: boolean;
   followTitle: string;
   followSubtitle: string;
@@ -227,7 +258,101 @@ export const defaultGalleryView: HomeGalleryView = {
   slides: [],
 };
 
-function footerCells(footer: Omit<HomeFooterView, "cells" | "gridStyle">): FooterCellView[] {
+function sanitizeFooterImage(url: unknown): string {
+  const s = typeof url === "string" ? url.trim() : "";
+  if (!s) return "";
+  if (s === "/assets/platform-brand-original-transparent.png") return s;
+  return safeShortcutImage(s);
+}
+
+function sanitizeBlockPart(
+  rawType: unknown,
+  rawText: unknown,
+  rawUrl: unknown,
+  rawWidth: unknown,
+  rawPreviewable: unknown,
+): FooterBlockPartView {
+  const type: FooterSlotType =
+    rawType === "TEXT" || rawType === "IMAGE" ? rawType : "NONE";
+  const text = typeof rawText === "string" ? rawText.trim().slice(0, 120) : "";
+  const url = type === "IMAGE" ? sanitizeFooterImage(rawUrl) : "";
+  const wNum = Number(rawWidth);
+  const widthPx = Number.isFinite(wNum)
+    ? Math.max(48, Math.min(360, Math.round(wNum)))
+    : 120;
+  const previewable = Boolean(rawPreviewable);
+  if (type === "TEXT" && !text) {
+    return { type: "NONE", text: "", url: "", widthPx, previewable: false };
+  }
+  if (type === "IMAGE" && !url) {
+    return { type: "NONE", text: "", url: "", widthPx, previewable: false };
+  }
+  return { type, text, url, widthPx, previewable };
+}
+
+function normalizeFooterColumns(value: unknown): number {
+  const n = Number(value);
+  return n === 1 || n === 2 || n === 3 ? n : 2;
+}
+
+function defaultColRatiosFor(columns: number): number[] {
+  if (columns === 1) return [100];
+  if (columns === 3) return [33, 34, 33];
+  return [50, 50];
+}
+
+function normalizeFooterColRatios(raw: unknown, columns: number): number[] {
+  if (Array.isArray(raw) && raw.length === columns) {
+    return raw.map((x) => {
+      const n = Number(x);
+      return Number.isFinite(n) ? Math.max(15, Math.min(85, Math.round(n))) : 50;
+    });
+  }
+  return defaultColRatiosFor(columns);
+}
+
+function footerCells(
+  footer: Omit<HomeFooterView, "cells" | "gridStyle" | "previewUrls">,
+): FooterCellView[] {
+  if (Array.isArray(footer.blocks)) {
+    const cols = normalizeFooterColumns(footer.columns);
+    const out: FooterCellView[] = [];
+    for (let i = 0; i < footer.blocks.length; i++) {
+      const b = footer.blocks[i];
+      if (!b || b.enabled === false) continue;
+      const top = sanitizeBlockPart(
+        b.topType,
+        b.topText,
+        b.topImageUrl,
+        b.topImageWidthPx,
+        b.topPreviewable,
+      );
+      const bottom = sanitizeBlockPart(
+        b.bottomType,
+        b.bottomText,
+        b.bottomImageUrl,
+        b.bottomImageWidthPx,
+        b.bottomPreviewable,
+      );
+      if (top.type === "NONE" && bottom.type === "NONE") continue;
+      const colSpan = Math.max(1, Math.min(cols, Math.round(Number(b.colSpan) || 1)));
+      const rowSpan = Math.max(1, Math.min(2, Math.round(Number(b.rowSpan) || 1)));
+      const styleParts: string[] = [];
+      if (colSpan > 1) styleParts.push(`grid-column:span ${colSpan}`);
+      if (rowSpan > 1) styleParts.push(`grid-row:span ${rowSpan}`);
+      out.push({
+        id: typeof b.id === "string" && b.id ? b.id : `block-${i + 1}`,
+        kind: "BLOCK",
+        url: top.type === "IMAGE" ? top.url : bottom.type === "IMAGE" ? bottom.url : "",
+        label: top.type === "TEXT" ? top.text : bottom.type === "TEXT" ? bottom.text : "",
+        cellStyle: styleParts.join(";"),
+        top,
+        bottom,
+      });
+    }
+    return out;
+  }
+
   const qrs = footer.followEnabled ? footer.followQrcodes : [];
   const mapped: Partial<Record<FooterCellId, Omit<FooterCellView, "cellStyle">>> = {};
   if (footer.brandEnabled) mapped.BRAND = { id: "BRAND", kind: "BRAND", url: footer.brandImageUrl, label: "" };
@@ -255,11 +380,34 @@ function footerCells(footer: Omit<HomeFooterView, "cells" | "gridStyle">): Foote
   );
 }
 
+function footerPreviewUrls(cells: FooterCellView[]): string[] {
+  const urls: string[] = [];
+  for (const cell of cells) {
+    if (cell.kind === "QR" && cell.url) {
+      urls.push(cell.url);
+    } else if (cell.kind === "BLOCK") {
+      if (cell.top?.type === "IMAGE" && cell.top.previewable && cell.top.url) {
+        urls.push(cell.top.url);
+      }
+      if (cell.bottom?.type === "IMAGE" && cell.bottom.previewable && cell.bottom.url) {
+        urls.push(cell.bottom.url);
+      }
+    }
+  }
+  return urls;
+}
+
 function footerGridStyle(
-  footer: Omit<HomeFooterView, "cells" | "gridStyle">,
+  footer: Omit<HomeFooterView, "cells" | "gridStyle" | "previewUrls">,
   cells: FooterCellView[],
 ): string {
   if (cells.length <= 1) return "";
+  if (Array.isArray(footer.blocks)) {
+    const cols = normalizeFooterColumns(footer.columns);
+    const ratios = normalizeFooterColRatios(footer.colRatios, cols);
+    const track = ratios.map((r) => `minmax(0,${r}fr)`).join(" ");
+    return `grid-template-columns:${track};grid-auto-flow:dense`;
+  }
   const parts: string[] = [];
   if (footer.layoutPreset === "TWO_TB") {
     parts.push("grid-template-columns:minmax(0,1fr)");
@@ -293,11 +441,13 @@ function normalizeFooterRatio(value: unknown): number {
   return Number.isFinite(num) ? Math.max(25, Math.min(75, Math.round(num))) : 50;
 }
 
-const defaultFooterConfig: Omit<HomeFooterView, "cells" | "gridStyle"> = {
+const defaultFooterConfig: Omit<HomeFooterView, "cells" | "gridStyle" | "previewUrls"> = {
   cellOrder: [...defaultFooterOrder],
   layoutPreset: "FOUR_GRID",
   colRatio: 50,
   rowRatio: 50,
+  columns: 2,
+  colRatios: [50, 50],
   followEnabled: false,
   followTitle: "关注野小子",
   followSubtitle: "长按识别二维码 · 获取最新山野路线与动态",
@@ -311,6 +461,7 @@ export const defaultFooterView: HomeFooterView = {
   ...defaultFooterConfig,
   cells: defaultFooterCellsList,
   gridStyle: footerGridStyle(defaultFooterConfig, defaultFooterCellsList),
+  previewUrls: footerPreviewUrls(defaultFooterCellsList),
 };
 
 function sanitizeQrList(raw: unknown): HomeQrImage[] {
@@ -550,11 +701,15 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
   const brandWidthPx = Number.isFinite(rawWidth)
     ? Math.max(80, Math.min(360, Math.round(rawWidth)))
     : 216;
-  const footerConfig: Omit<HomeFooterView, "cells" | "gridStyle"> = {
+  const footerColumns = normalizeFooterColumns(raw.footer?.columns);
+  const footerConfig: Omit<HomeFooterView, "cells" | "gridStyle" | "previewUrls"> = {
     cellOrder: normalizeFooterOrder(raw.footer?.cellOrder),
     layoutPreset: normalizeFooterPreset(raw.footer?.layoutPreset),
     colRatio: normalizeFooterRatio(raw.footer?.colRatio),
     rowRatio: normalizeFooterRatio(raw.footer?.rowRatio),
+    columns: footerColumns,
+    colRatios: normalizeFooterColRatios(raw.footer?.colRatios, footerColumns),
+    blocks: Array.isArray(raw.footer?.blocks) ? raw.footer!.blocks : undefined,
     followEnabled: Boolean(raw.footer?.followEnabled),
     followTitle:
       typeof raw.footer?.followTitle === "string"
@@ -583,6 +738,7 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
       ...footerConfig,
       cells: resolvedFooterCells,
       gridStyle: footerGridStyle(footerConfig, resolvedFooterCells),
+      previewUrls: footerPreviewUrls(resolvedFooterCells),
     },
   };
 }

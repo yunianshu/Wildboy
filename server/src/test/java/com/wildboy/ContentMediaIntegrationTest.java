@@ -102,4 +102,72 @@ class ContentMediaIntegrationTest {
   var out=new ByteArrayOutputStream();ImageIO.write(new BufferedImage(6001,1,BufferedImage.TYPE_INT_RGB),"png",out);
   mvc.perform(post("/api/v1/admin/media").header("Authorization",admin).contentType("application/json").content(json.writeValueAsString(Map.of("dataBase64",Base64.getEncoder().encodeToString(out.toByteArray()))))).andExpect(status().isBadRequest());
  }
+ @Test void mediaLibrarySupportsListingSyncUpdateReferencesAndProtectedDelete() throws Exception {
+  var out = new ByteArrayOutputStream();
+  ImageIO.write(new BufferedImage(12, 8, BufferedImage.TYPE_INT_RGB), "png", out);
+  byte[] png = out.toByteArray();
+  String b64 = Base64.getEncoder().encodeToString(png);
+
+  // Drop a legacy image file and an avatar file directly on disk to verify sync & exclusion.
+  String legacyId = UUID.randomUUID().toString();
+  Files.write(media.resolve(legacyId + ".png"), png);
+  Files.write(media.resolve("avatar-" + UUID.randomUUID() + ".png"), png);
+
+  // Upload a new categorized image.
+  var uploaded = mvc.perform(post("/api/v1/admin/media")
+      .header("Authorization", admin)
+      .contentType("application/json")
+      .content(json.writeValueAsString(Map.of("dataBase64", b64, "name", "春季海报.png", "category", "SHOP"))))
+      .andExpect(status().isCreated())
+      .andExpect(jsonPath("$.name").value("春季海报.png"))
+      .andExpect(jsonPath("$.category").value("SHOP"))
+      .andExpect(jsonPath("$.width").value(12))
+      .andExpect(jsonPath("$.height").value(8))
+      .andReturn();
+  var node = json.readTree(uploaded.getResponse().getContentAsString());
+  String assetId = node.get("id").asText();
+  String assetUrl = node.get("url").asText();
+
+  // Unauthenticated / non-admin cannot list media library.
+  mvc.perform(get("/api/v1/admin/media")).andExpect(status().isUnauthorized());
+  mvc.perform(get("/api/v1/admin/media").header("Authorization", user)).andExpect(status().isForbidden());
+
+  // List all: includes uploaded image and synced legacy image, excludes avatar.
+  var listRes = mvc.perform(get("/api/v1/admin/media").header("Authorization", admin))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.counts.SHOP").isNumber())
+      .andReturn();
+  String listBody = listRes.getResponse().getContentAsString();
+  assertThat(listBody).contains(assetId).contains(legacyId).doesNotContain("avatar-");
+
+  // Search and category filter.
+  mvc.perform(get("/api/v1/admin/media").param("category", "SHOP").param("q", "春季").header("Authorization", admin))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.items[0].id").value(assetId));
+
+  // Update name & category.
+  mvc.perform(put("/api/v1/admin/media/" + assetId)
+      .header("Authorization", admin)
+      .contentType("application/json")
+      .content(json.writeValueAsString(Map.of("name", "山野主图", "category", "ACTIVITY"))))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.name").value("山野主图"))
+      .andExpect(jsonPath("$.category").value("ACTIVITY"));
+
+  // Reference the image in a product -> references endpoint reports it, delete returns 409 MEDIA_IN_USE.
+  db.update("UPDATE product SET image_url = ? WHERE id = ?", assetUrl, id);
+  mvc.perform(get("/api/v1/admin/media/" + assetId + "/references").header("Authorization", admin))
+      .andExpect(status().isOk())
+      .andExpect(jsonPath("$.referenced").value(true))
+      .andExpect(jsonPath("$.references[0].type").value("PRODUCT"));
+  mvc.perform(delete("/api/v1/admin/media/" + assetId).header("Authorization", admin))
+      .andExpect(status().isConflict())
+      .andExpect(jsonPath("$.code").value("MEDIA_IN_USE"));
+
+  // Remove reference -> delete succeeds and removes the file from disk.
+  db.update("UPDATE product SET image_url = '/assets/equipment.jpg' WHERE id = ?", id);
+  mvc.perform(delete("/api/v1/admin/media/" + assetId).header("Authorization", admin))
+      .andExpect(status().isNoContent());
+  assertThat(Files.exists(media.resolve(assetId + ".png"))).isFalse();
+ }
 }

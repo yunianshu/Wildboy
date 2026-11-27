@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { request, errorMessage } from "../api";
-import { boardingName } from "../boarding";
+import { boardingDisplayName as displayName, boardingName } from "../boarding";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
 import NavigationMapPicker from "../components/NavigationMapPicker.vue";
@@ -33,9 +33,6 @@ function open(row?: BoardingPointLocation) {
   original.value = row;
   actionError.value = notice.value = "";
   pickerOpen.value = true;
-}
-function displayName(row: BoardingPointLocation) {
-  return row.displayName?.trim() || row.address || row.name;
 }
 function close() {
   if (!busy.value) {

@@ -112,7 +112,7 @@ select {
   padding: 6px 10px;
   transition: border-color 0.2s;
 }
-input:focus,
+input:not([type="range"]):focus,
 textarea:focus,
 select:focus,
 .field-focus-frame:focus-within,
@@ -120,6 +120,23 @@ select:focus,
   outline: 2px solid var(--rf-primary);
   outline-offset: -2px;
   border-color: var(--rf-primary);
+}
+input[type="range"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--rf-primary);
+}
+input[type="range"]:focus {
+  outline: none;
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: 2px;
+}
+input[type="range"]:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: 2px;
 }
 input:not([type="checkbox"], [type="radio"], [type="file"]),
 select {

@@ -4,6 +4,7 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createMemoryHistory, createRouter } from "vue-router";
 import ProductCategoriesView from "../src/views/ProductCategoriesView.vue";
 import ShopView from "../src/views/ShopView.vue";
+import ProductContentView from "../src/views/ProductContentView.vue";
 import { acceptAuth, clearSession, currentUser } from "../src/api";
 import type { Product, ProductCategory } from "../src/types";
 
@@ -99,6 +100,7 @@ async function render(
     routes: [
       { path: "/shop/categories", component: ProductCategoriesView },
       { path: "/shop", component: ShopView },
+      { path: "/shop/products/:id/content", component: ProductContentView },
       { path: "/login", component: { template: "<p>登录</p>" } },
     ],
   });
@@ -136,6 +138,30 @@ const readShop = (
   );
 
 describe("single-level product categories", () => {
+  it("opens category management inside the product page and refreshes renamed categories", async () => {
+    let category = gear;
+    const fetcher = vi.fn(async (path: string, options: RequestInit = {}) => {
+      if (options.method === "PUT") {
+        category = { ...gear, name: "登山装备" };
+        return response(category);
+      }
+      return readShop(path, [{ ...product, categoryId: gear.id }], [category, fallback]);
+    });
+    const { wrapper, router } = await render(fetcher, "/shop");
+    await button(wrapper, "管理商品分类").trigger("click");
+    await flushPromises();
+    const panel = wrapper.get("#shop-category-manager");
+    const categoryRow = panel.findAll("tbody tr").find((row) => row.text().includes(gear.name))!;
+    await categoryRow.get("button").trigger("click");
+    await panel.get('[name="categoryName"]').setValue("登山装备");
+    await panel.get("form").trigger("submit");
+    await flushPromises();
+    expect(router.currentRoute.value.path).toBe("/shop");
+    expect(wrapper.get("#shop-products > .table-scroll").text()).toContain("登山装备");
+    await button(wrapper, "收起商品分类").trigger("click");
+    expect(panel.attributes("hidden")).toBeDefined();
+  });
+
   it("paginates eight categories and offers create/edit without delete or hierarchy", async () => {
     const categories = Array.from({ length: 9 }, (_, i) => ({
       ...gear,
@@ -395,15 +421,19 @@ describe("product category and original/current prices", () => {
         };
         return response(catalog);
       }
+      if (path.endsWith("/content/markdown"))
+        return response({ markdown: "", version: 1 });
+      if (path.endsWith(`/products/${catalog.id}`)) return response(catalog);
       return readShop(path, [catalog]);
     });
     const { wrapper } = await render(fetcher, "/shop");
-    await button(wrapper, "编辑商品信息").trigger("click");
+    await wrapper.get(`a[href^="/shop/products/${catalog.id}/content"]`).trigger("click");
+    await flushPromises();
     await wrapper.get('[name="productCategory"]').setValue(gear.id);
     await wrapper.get('[name="originalPrice"]').setValue("249.99");
     await wrapper.get('[name="currentPrice"]').setValue("199.50");
     await wrapper.get('input[type="number"]').setValue("12");
-    await wrapper.get(".form-modal form").trigger("submit");
+    await wrapper.get("#shop-product-form").trigger("submit");
     expect(wrapper.get(".dialog").text()).toContain("徒步装备");
     expect(wrapper.get(".dialog").text()).toContain("原价 ¥249.99");
     expect(wrapper.get(".dialog").text()).toContain("现价 ¥199.50");
@@ -416,6 +446,8 @@ describe("product category and original/current prices", () => {
       version: 2,
       stock: 12,
     });
+    await wrapper.get("header a.button").trigger("click");
+    await flushPromises();
     await button(wrapper, "订单与发货").trigger("click");
     await flushPromises();
     await button(wrapper, "展开商品明细").trigger("click");
@@ -428,18 +460,25 @@ describe("product category and original/current prices", () => {
     expect(writes(fetcher)).toHaveLength(1);
   });
   it("blocks invalid original/current prices and a missing category without any product mutation", async () => {
-    const fetcher = vi.fn(async (path: string) => readShop(path));
+    const fetcher = vi.fn(async (path: string) =>
+      path.endsWith("/content/markdown")
+        ? response({ markdown: "", version: 1 })
+        : path.endsWith(`/products/${product.id}`)
+          ? response(product)
+          : readShop(path),
+    );
     const { wrapper } = await render(fetcher, "/shop");
-    await button(wrapper, "编辑商品信息").trigger("click");
+    await wrapper.get(`a[href^="/shop/products/${product.id}/content"]`).trigger("click");
+    await flushPromises();
     await wrapper.get('[name="originalPrice"]').setValue("100.00");
-    await wrapper.get(".form-modal form").trigger("submit");
+    await wrapper.get("#shop-product-form").trigger("submit");
     expect(wrapper.text()).toContain("原价不能低于现价");
     await wrapper.get('[name="originalPrice"]').setValue("199.001");
-    await wrapper.get(".form-modal form").trigger("submit");
+    await wrapper.get("#shop-product-form").trigger("submit");
     expect(wrapper.text()).toContain("请输入有效商品原价");
     await wrapper.get('[name="originalPrice"]').setValue("199.00");
     await wrapper.get('[name="productCategory"]').setValue("");
-    await wrapper.get(".form-modal form").trigger("submit");
+    await wrapper.get("#shop-product-form").trigger("submit");
     expect(wrapper.text()).toContain("选择有效的商品分类");
     expect(writes(fetcher)).toHaveLength(0);
   });
@@ -448,7 +487,11 @@ describe("product category and original/current prices", () => {
     const fetcher = vi.fn(async (path: string) =>
       path.includes("/shop/categories") && fail
         ? response({ message: "分类网络断开" }, 503)
-        : readShop(path),
+        : path.endsWith("/content/markdown")
+          ? response({ markdown: "", version: 1 })
+          : path.endsWith(`/products/${product.id}`)
+            ? response(product)
+            : readShop(path),
     );
     const { wrapper } = await render(fetcher, "/shop");
     expect(wrapper.get("table").text()).toContain(product.name);
@@ -457,18 +500,19 @@ describe("product category and original/current prices", () => {
     expect(wrapper.text()).toContain(order.orderNo);
     await button(wrapper, "商品与库存").trigger("click");
     await flushPromises();
-    await button(wrapper, "编辑商品信息").trigger("click");
-    await wrapper.get(".form-modal form input").setValue("保留新名称");
+    await wrapper.get(`a[href^="/shop/products/${product.id}/content"]`).trigger("click");
+    await flushPromises();
+    await wrapper.get("#shop-product-form input").setValue("保留新名称");
     expect(wrapper.text()).toContain("分类网络断开");
-    expect(button(wrapper, "确认并保存").attributes("disabled")).toBeDefined();
+    expect(button(wrapper, "保存商品").attributes("disabled")).toBeDefined();
     fail = false;
     await button(wrapper, "重试").trigger("click");
     await flushPromises();
     expect(
-      (wrapper.get(".form-modal form input").element as HTMLInputElement).value,
+      (wrapper.get("#shop-product-form input").element as HTMLInputElement).value,
     ).toBe("保留新名称");
     expect(
-      button(wrapper, "确认并保存").attributes("disabled"),
+      button(wrapper, "保存商品").attributes("disabled"),
     ).toBeUndefined();
     expect(writes(fetcher)).toHaveLength(0);
   });

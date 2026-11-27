@@ -409,6 +409,25 @@ test("the native home footer renders custom cells, omits blanks and preserves ad
   assert.deepEqual(twoTbFooter.cells.map((cell) => cell.id), ["BRAND", "QR1"]);
   assert.match(twoTbFooter.gridStyle, /grid-template-columns:minmax\(0,1fr\)/);
   assert.match(twoTbFooter.gridStyle, /minmax\(0,35fr\) minmax\(0,65fr\)/);
+  const genericFooter = normalizePublicHomeLayout({
+    layout: {
+      modules: [],
+      footer: {
+        ...raw,
+        columns: 3,
+        colRatios: [30, 40, 30],
+        blocks: [
+          { id: "b1", enabled: true, colSpan: 2, rowSpan: 1, topType: "IMAGE", topImageUrl: "/assets/one.png", topImageWidthPx: 180, topPreviewable: false, bottomType: "TEXT", bottomText: "品牌标语" },
+          { id: "b2", enabled: true, colSpan: 1, rowSpan: 1, topType: "IMAGE", topImageUrl: "https://example.test/qr.png", topImageWidthPx: 92, topPreviewable: true, bottomType: "TEXT", bottomText: "扫码关注" },
+          { id: "b3", enabled: false, colSpan: 1, rowSpan: 1, topType: "TEXT", topText: "隐藏项", bottomType: "NONE" },
+        ],
+      },
+    },
+  }).footer;
+  assert.deepEqual(genericFooter.cells.map((c) => c.id), ["b1", "b2"]);
+  assert.equal(genericFooter.cells[0].cellStyle, "grid-column:span 2");
+  assert.match(genericFooter.gridStyle, /minmax\(0,30fr\) minmax\(0,40fr\) minmax\(0,30fr\)/);
+  assert.deepEqual(genericFooter.previewUrls, ["https://example.test/qr.png"]);
   const home = mountPage("home");
   const urls = ["https://example.test/oa.png", "https://example.test/video.png"];
   home.data.footer = normalizePublicHomeLayout({layout: {modules: [], footer: {...raw, cellOrder: ["BRAND","QR2","TEXT","QR1"], followQrcodes: urls.map((url) => ({ url, label: "" }))} }}).footer;

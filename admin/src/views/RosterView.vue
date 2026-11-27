@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { computed, inject, ref, onMounted, onUnmounted, watch } from "vue";
+import { routeLocationKey } from "vue-router";
 import { request, errorMessage, currentUser } from "../api";
 import { displayDate } from "../forms";
 import AppIcon from "../components/AppIcon.vue";
@@ -10,7 +10,9 @@ import UiState from "../components/UiState.vue";
 import type { Activity, Registration, Page } from "../types";
 import { registrationTone } from "../statusTone";
 import { useRosterExport } from "../rosterExport";
-const route = useRoute(),
+const props = defineProps<{ scope?: { id: string; title?: string } }>();
+const route = inject(routeLocationKey, null),
+  activityId = computed(() => props.scope?.id ?? String(route?.params.id ?? "")),
   activity = ref<Activity | null>(null),
   page = ref(0),
   data = ref<Page<Registration>>({
@@ -54,7 +56,7 @@ async function load() {
   revealTarget.value = null;
   revealedDetails.value = {};
   try {
-    const id = encodeURIComponent(String(route.params.id));
+    const id = encodeURIComponent(activityId.value);
     const details = await request<Activity>(`/admin/activities/${id}`, {
       signal: controller.signal,
     });
@@ -111,7 +113,7 @@ async function confirmReveal() {
   revealing.value.add(id);
   try {
     const result = await request<{ phone: string; idNumber: string }>(
-      `/admin/activities/${encodeURIComponent(String(route.params.id))}/participants/${encodeURIComponent(id)}/reveal`,
+      `/admin/activities/${encodeURIComponent(activityId.value)}/participants/${encodeURIComponent(id)}/reveal`,
       { method: "POST" },
     );
     if (current !== generation || currentUser.value !== actor) return;
@@ -143,7 +145,11 @@ watch(currentUser, () => {
   data.value.items = [];
   activity.value = null;
 });
-watch([page, () => route.params.id], load);
+watch(activityId, () => {
+  if (page.value !== 0) page.value = 0;
+  else void load();
+});
+watch(page, load);
 onMounted(load);
 onUnmounted(() => {
   generation++;
@@ -154,21 +160,22 @@ onUnmounted(() => {
 });
 </script>
 <template>
-  <main class="workspace">
+  <component :is="scope ? 'div' : 'main'" :class="scope ? 'roster-embedded' : 'workspace'">
     <section class="page-heading">
       <div>
-        <h1>报名名单</h1>
+        <h1 v-if="!scope">报名名单</h1>
         <p v-if="activity" class="muted">
-          {{ activity.title }} · {{ activity.priceCents > 0 ? "名额占用 " : ""
+          <template v-if="!scope">{{ activity.title }} · </template
+          >{{ activity.priceCents > 0 ? "名额占用 " : ""
           }}{{ activity.registeredCount }} / {{ activity.capacity }} 人
         </p>
       </div>
       <div class="action-row">
-        <RouterLink class="secondary button" to="/activities">
+        <RouterLink v-if="!scope" class="secondary button" to="/activities">
           <AppIcon name="back" :size="16" /> 返回活动目录
         </RouterLink>
         <RouterLink
-          v-if="activity"
+          v-if="activity && !scope"
           class="secondary button"
           :to="`/activities/${activity.id}/edit`"
         >
@@ -353,9 +360,16 @@ onUnmounted(() => {
       @cancel="revealTarget = null"
       @confirm="confirmReveal"
     />
-  </main>
+  </component>
 </template>
 <style scoped>
+.roster-embedded {
+  display: grid;
+  gap: 14px;
+}
+.roster-embedded .page-heading {
+  margin-bottom: 0;
+}
 @media (max-width: 720px) {
   .roster-table tbody td[data-label="身份证号"],
   .roster-table tbody td[data-label="联系方式"] {

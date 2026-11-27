@@ -2,23 +2,38 @@
 import { ref, onUnmounted } from "vue";
 import { currentUser, errorMessage } from "../api";
 import { uploadAdminImage } from "../image-upload";
+import type { MediaAsset, MediaCategory } from "../media";
 import AppIcon from "./AppIcon.vue";
+import MediaPickerModal from "./MediaPickerModal.vue";
 const props = defineProps<{
   disabled?: boolean;
   label?: string;
   preview?: string;
   previewAlt?: string;
   compact?: boolean;
+  category?: MediaCategory;
+  hideLibrary?: boolean;
 }>();
 const emit = defineEmits<{ uploaded: [url: string]; busy: [value: boolean] }>();
 const busy = ref(false),
-  error = ref("");
+  error = ref(""),
+  pickerOpen = ref(false);
 const input = ref<HTMLInputElement>();
 const dragging = ref(false);
 function chooseFile() {
   if (!props.disabled && !busy.value) input.value?.click();
 }
-defineExpose({ chooseFile });
+function openLibrary() {
+  if (!props.disabled && !busy.value) {
+    error.value = "";
+    pickerOpen.value = true;
+  }
+}
+function selectFromLibrary(asset: MediaAsset) {
+  pickerOpen.value = false;
+  if (!props.disabled && !busy.value) emit("uploaded", asset.url);
+}
+defineExpose({ chooseFile, openLibrary });
 let alive = true;
 onUnmounted(() => {
   alive = false;
@@ -66,6 +81,7 @@ async function upload(file: File) {
     const result = await uploadAdminImage(
       file,
       () => alive && currentUser.value === actor && !props.disabled,
+      props.category ? { category: props.category } : undefined,
     );
     if (result && alive && currentUser.value === actor && !props.disabled)
       emit("uploaded", result.url);
@@ -82,47 +98,78 @@ async function upload(file: File) {
 <template>
   <div
     class="image-upload"
+    :class="{ 'is-compact': compact }"
     @dragover="dragOver"
     @dragleave="dragLeave"
     @drop="drop"
   >
-    <button
-      type="button"
-      class="drop-zone"
-      :class="{ 'is-dragging': dragging, 'has-preview': !!preview, compact }"
-      :disabled="disabled || busy"
-      :aria-label="label || '上传图片'"
-      @click="chooseFile"
-    >
-      <template v-if="compact"
-        ><AppIcon name="upload" :size="16" />{{ label || "上传图片" }}</template
+    <div v-if="compact" class="compact-actions">
+      <button
+        type="button"
+        class="drop-zone compact"
+        :class="{ 'is-dragging': dragging }"
+        :disabled="disabled || busy"
+        :aria-label="label || '上传图片'"
+        @click="chooseFile"
       >
-      <span v-else-if="preview" class="upload-thumbnail">
-        <img
-          :src="preview"
-          :alt="previewAlt || '已上传图片'"
-          referrerpolicy="no-referrer"
-        />
-      </span>
-      <AppIcon v-else name="upload" :size="24" />
-      <span v-if="!compact" class="upload-copy">
-        <strong>{{
-          dragging
-            ? "松开即可上传"
-            : preview
-              ? "已上传图片"
-              : disabled
-                ? "暂无图片"
-                : "上传图片"
-        }}</strong>
-        <span v-if="!disabled && !dragging">
-          {{ preview ? "点击替换，或拖入新图片" : "拖入图片或点击选择文件" }}
+        <AppIcon name="upload" :size="16" />{{ label || "上传图片" }}
+      </button>
+      <button
+        v-if="!hideLibrary && !disabled"
+        type="button"
+        class="library-button compact"
+        :disabled="disabled || busy"
+        @click="openLibrary"
+      >
+        <AppIcon name="image" :size="15" />素材库
+      </button>
+    </div>
+    <template v-else>
+      <button
+        type="button"
+        class="drop-zone"
+        :class="{ 'is-dragging': dragging, 'has-preview': !!preview }"
+        :disabled="disabled || busy"
+        :aria-label="label || '上传图片'"
+        @click="chooseFile"
+      >
+        <span v-if="preview" class="upload-thumbnail">
+          <img
+            :src="preview"
+            :alt="previewAlt || '已上传图片'"
+            referrerpolicy="no-referrer"
+          />
         </span>
-        <small v-if="!disabled && !preview"
-          >JPG / PNG，超出上传限制会自动压缩</small
+        <AppIcon v-else name="upload" :size="24" />
+        <span class="upload-copy">
+          <strong>{{
+            dragging
+              ? "松开即可上传"
+              : preview
+                ? "已上传图片"
+                : disabled
+                  ? "暂无图片"
+                  : "上传图片"
+          }}</strong>
+          <span v-if="!disabled && !dragging">
+            {{ preview ? "点击替换，或拖入新图片" : "拖入图片或点击选择文件" }}
+          </span>
+          <small v-if="!disabled && !preview"
+            >JPG / PNG，超出上传限制会自动压缩</small
+          >
+        </span>
+      </button>
+      <div v-if="!hideLibrary && !disabled" class="upload-secondary-row">
+        <button
+          type="button"
+          class="library-button"
+          :disabled="disabled || busy"
+          @click="openLibrary"
         >
-      </span>
-    </button>
+          <AppIcon name="image" :size="15" />从素材库选择
+        </button>
+      </div>
+    </template>
     <input
       ref="input"
       type="file"
@@ -133,6 +180,15 @@ async function upload(file: File) {
     />
     <p v-if="busy" class="upload-status" role="status">正在处理并上传图片…</p>
     <p v-if="error" role="alert" class="error-box">{{ error }}</p>
+    <Teleport to="body">
+      <MediaPickerModal
+        v-if="pickerOpen"
+        :default-category="category"
+        :current-url="preview"
+        @close="pickerOpen = false"
+        @select="selectFromLibrary"
+      />
+    </Teleport>
   </div>
 </template>
 <style scoped>
@@ -207,6 +263,33 @@ async function upload(file: File) {
 .upload-status {
   color: var(--rf-muted);
   font-size: 12px;
+}
+.image-upload.is-compact {
+  width: auto;
+}
+.compact-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.upload-secondary-row {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-start;
+}
+.library-button {
+  min-height: 34px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--rf-surface);
+  border-color: var(--rf-line);
+  color: var(--rf-primary-text);
+}
+.library-button.compact {
+  min-height: 40px;
+  padding: 6px 12px;
 }
 .upload-status {
   margin: 6px 0 0;

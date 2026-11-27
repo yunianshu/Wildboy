@@ -178,7 +178,18 @@ class HomeLayoutAndActivityUpgradeTest {
             List.of("TEXT", "QR2", "BRAND", "QR1"),
             "THREE_L1_R2",
             42,
-            58);
+            58,
+            3,
+            List.of(30, 40, 30),
+            List.of(
+                new FooterBlock(
+                    "b1", "品牌标识", true, 2, 1,
+                    "IMAGE", "", "/assets/hero-hiking.jpg", 200, false,
+                    "TEXT", "野一点，自由一点", "", 120, false),
+                new FooterBlock(
+                    "b2", "公众号", true, 1, 1,
+                    "IMAGE", "", "/assets/equipment.jpg", 92, true,
+                    "TEXT", "官方公众号", "", 120, false)));
     var updated =
         new LayoutConfig(
             current.version(),

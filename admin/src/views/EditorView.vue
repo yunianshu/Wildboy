@@ -35,9 +35,20 @@ import AppIcon from "../components/AppIcon.vue";
 import BoardingPointsField from "../components/BoardingPointsField.vue";
 import UiState from "../components/UiState.vue";
 import DateTimeField from "../components/DateTimeField.vue";
+import FormModal from "../components/FormModal.vue";
+import ActivityDetailPreview, {
+  type ActivityPreviewData,
+} from "../components/ActivityDetailPreview.vue";
+import RosterView from "./RosterView.vue";
 const savedContentVersion = ref<number | null>(null);
 const contentVisible = ref(false);
 const reopenOpen = ref(false);
+const rosterOpen = ref(false);
+const detailPreviewOpen = ref(false);
+const previewMarkdown = ref("");
+const previewContentLoading = ref(false);
+const previewContentError = ref("");
+let previewEpoch = 0;
 const contentEditor = ref<InstanceType<typeof MarkdownEditor>>();
 async function jumpToContent() {
   editSection.value = "rich";
@@ -79,6 +90,11 @@ watch(id, () => {
   editSection.value = "basic";
   contentVisible.value = false;
   savedContentVersion.value = null;
+  detailPreviewOpen.value = false;
+  previewEpoch++;
+  previewMarkdown.value = "";
+  previewContentLoading.value = false;
+  previewContentError.value = "";
 });
 const fields = reactive({
     title: "",
@@ -183,6 +199,78 @@ const previewSeats = computed(() => {
     ? `余 ${Math.max(0, capacity - (current.value?.registeredCount ?? 0))} 位`
     : "人数待定";
 });
+const previewActivity = computed<ActivityPreviewData>(() => {
+  const cents = parseDraftPrice(priceYuan.value.trim());
+  return {
+    id: id.value || undefined,
+    title: fields.title,
+    category: fields.category,
+    coverUrl: fields.coverUrl,
+    galleryUrls: fields.galleryUrls,
+    summary: fields.summary,
+    description: fields.description,
+    location: fields.location,
+    meetingPoint: fields.meetingPoint,
+    boardingPoints: fields.boardingPoints,
+    navigationPoints: fields.navigationPoints,
+    startAt: fields.startAt,
+    endAt: fields.endAt,
+    registrationDeadline: fields.registrationDeadline,
+    capacity: Number(fields.capacity) || 0,
+    priceCents: cents ?? current.value?.priceCents ?? 0,
+    registeredCount: current.value?.registeredCount ?? 0,
+    pendingPaymentCount: current.value?.pendingPaymentCount ?? 0,
+    status: current.value?.status ?? "DRAFT",
+  };
+});
+async function loadPreviewMarkdown(activityId: string) {
+  const token = ++previewEpoch;
+  previewContentLoading.value = true;
+  previewContentError.value = "";
+  try {
+    const res = await request<{ markdown?: string }>(
+      `/admin/activities/${encodeURIComponent(activityId)}/content/markdown`,
+    );
+    if (token === previewEpoch) {
+      previewMarkdown.value = res.markdown || "";
+    }
+  } catch (e) {
+    if (token === previewEpoch) {
+      previewContentError.value = `图文详情加载失败：${errorMessage(e)}`;
+    }
+  } finally {
+    if (token === previewEpoch) {
+      previewContentLoading.value = false;
+    }
+  }
+}
+function openDetailPreview() {
+  detailPreviewOpen.value = true;
+  previewContentError.value = "";
+  const liveContent =
+    typeof contentEditor.value?.readContent === "function"
+      ? contentEditor.value.readContent()
+      : null;
+  if (liveContent) {
+    previewEpoch++;
+    previewContentLoading.value = false;
+    previewMarkdown.value = liveContent.markdown;
+    return;
+  }
+  if (id.value) {
+    void loadPreviewMarkdown(id.value);
+  } else {
+    previewEpoch++;
+    previewContentLoading.value = false;
+    previewMarkdown.value = "";
+  }
+}
+function closeDetailPreview() {
+  previewEpoch++;
+  detailPreviewOpen.value = false;
+  previewContentLoading.value = false;
+  previewContentError.value = "";
+}
 let alive = true;
 function assign(data: Activity) {
   current.value = data;
@@ -306,8 +394,14 @@ function writeError(e: unknown) {
 async function save() {
   // 图文编辑器位于表单内，已保存活动的图文板块不触发活动信息保存。
   if (editSection.value === "rich" && id.value) return;
-  if (saving.value || readonly.value || conflict.value || uncertainCreate.value)
+  if (saving.value || readonly.value || conflict.value || uncertainCreate.value || contentEditor.value?.writeBusy)
     return;
+  const draftEditor = id.value ? undefined : contentEditor.value;
+  if (draftEditor?.dirty && !draftEditor.validateLength()) {
+    await jumpToContent();
+    return;
+  }
+  const draftContent = draftEditor?.dirty ? draftEditor.readContent() : null;
   errors.value = validateActivity(input(), current.value?.registeredCount || 0);
   if (Object.keys(errors.value).length) {
     editSection.value =
@@ -374,6 +468,33 @@ async function save() {
           } else {
             error.value = "活动资料已保存，报名价格未确认。 " + error.value;
           }
+          return;
+        }
+      }
+    }
+    if (draftContent) {
+      const path = `/admin/activities/${encodeURIComponent(data.id)}/content/markdown`;
+      try {
+        const saved = await request<{ markdown: string; version: number }>(path, {
+          method: "PUT",
+          body: JSON.stringify(draftContent),
+        });
+        if (!alive || actor !== currentUser.value) return;
+        draftEditor?.markSaved(saved, draftContent.version);
+        savedContentVersion.value = saved.version;
+      } catch (e) {
+        if (!alive || actor !== currentUser.value) return;
+        if (e instanceof ApiError && e.status === 409) {
+          const saved = await request<{ markdown: string; version: number }>(path).catch(() => null);
+          if (!alive || actor !== currentUser.value) return;
+          if (saved?.markdown === draftContent.markdown) {
+            draftEditor?.markSaved(saved, draftContent.version);
+            savedContentVersion.value = saved.version;
+          }
+        }
+        if (draftEditor?.dirty) {
+          error.value = "活动草稿已创建，图文保存未确认。图文仍保留在此页。" + errorMessage(e);
+          await jumpToContent();
           return;
         }
       }
@@ -608,6 +729,16 @@ useForegroundRefresh(() => {
           >{{ statuses[current.status] }}</span
         >
         <button
+          v-if="!id || current"
+          type="button"
+          class="secondary"
+          aria-haspopup="dialog"
+          :aria-expanded="detailPreviewOpen"
+          @click="openDetailPreview"
+        >
+          <AppIcon name="eye" :size="16" /> 小程序详情预览
+        </button>
+        <button
           v-if="current"
           type="button"
           class="secondary"
@@ -755,6 +886,8 @@ useForegroundRefresh(() => {
                           fields.coverUrl ? '更换活动封面' : '上传活动封面'
                         "
                         compact
+                        category="ACTIVITY"
+                        :preview="fields.coverUrl"
                         :disabled="saving || readonly"
                         @uploaded="fields.coverUrl = $event"
                       />
@@ -785,6 +918,7 @@ useForegroundRefresh(() => {
                     :key="`gallery-${fields.galleryUrls.length}`"
                     label="添加图片"
                     compact
+                    category="ACTIVITY"
                     :disabled="saving || readonly"
                     @uploaded="fields.galleryUrls.push($event)"
                   />
@@ -865,15 +999,15 @@ useForegroundRefresh(() => {
                   :error="errors.endAt"
                   required
                 />
+                <DateTimeField
+                  id="activity-deadline"
+                  v-model="fields.registrationDeadline"
+                  label="报名截止时间"
+                  :presets="['18:00', '20:00', '22:00']"
+                  :error="errors.registrationDeadline"
+                  required
+                />
               </div>
-              <DateTimeField
-                id="activity-deadline"
-                v-model="fields.registrationDeadline"
-                label="报名截止时间"
-                :presets="['18:00', '20:00', '22:00']"
-                :error="errors.registrationDeadline"
-                required
-              />
               <label
                 >活动目的地 <span class="required-mark">*</span
                 ><input
@@ -933,12 +1067,11 @@ useForegroundRefresh(() => {
                   {{
                     id
                       ? "编排行程文字、路线图片和表格，与活动信息分别保存。"
-                      : "保存活动后，可添加图片和表格。"
+                      : "可先编写图文，保存草稿时一并保存。"
                   }}
                 </p>
               </div>
               <button
-                v-if="id"
                 type="button"
                 class="secondary"
                 :disabled="saving"
@@ -949,7 +1082,7 @@ useForegroundRefresh(() => {
             </div>
           </section>
           <section
-            v-if="contentVisible && id && current && current.id === id"
+            v-if="contentVisible && (!id || current?.id === id)"
             v-show="editSection === 'rich'"
             class="activity-rich-card"
             aria-labelledby="activity-rich-heading"
@@ -974,9 +1107,10 @@ useForegroundRefresh(() => {
               </button>
             </header>
             <MarkdownEditor
+              media-category="ACTIVITY"
               :key="id"
               ref="contentEditor"
-              :path="`/admin/activities/${encodeURIComponent(id)}/content/markdown`"
+              :path="id ? `/admin/activities/${encodeURIComponent(id)}/content/markdown` : undefined"
               :disabled="saving || readonly"
               :components="false"
               :height="620"
@@ -986,13 +1120,13 @@ useForegroundRefresh(() => {
             />
             <footer class="activity-rich-footer">
               <span role="status">{{
-                contentEditor?.dirty
+                !id ? "图文随活动草稿保存" : contentEditor?.dirty
                   ? "图文有未保存修改"
                   : savedContentVersion !== null
                     ? "图文已保存 · 版本 " + savedContentVersion
                     : "活动信息与图文分别保存"
               }}</span>
-              <div class="footer-actions">
+              <div v-if="id" class="footer-actions">
                 <button
                   v-if="contentEditor?.versionConflict"
                   type="button"
@@ -1020,26 +1154,6 @@ useForegroundRefresh(() => {
                 </button>
               </div>
             </footer>
-          </section>
-          <section
-            v-else
-            v-show="editSection === 'rich'"
-            class="form-section activity-rich-pending"
-          >
-            <div class="section-title">
-              <div>
-                <h2 id="activity-rich-heading" tabindex="-1">图文详情</h2>
-                <p>编排行程文字、路线图片和表格，也可粘贴公众号排版。</p>
-              </div>
-            </div>
-            <div class="activity-content-entry">
-              <div>
-                <strong>保存活动后可编辑图文详情</strong>
-                <p>
-                  先填写各板块并保存草稿，再回到这里添加图片和表格。图文与活动信息分别保存。
-                </p>
-              </div>
-            </div>
           </section>
         </div>
         <aside class="editor-aside" aria-label="活动预览与报名价格">
@@ -1073,6 +1187,15 @@ useForegroundRefresh(() => {
                 </div>
               </div>
             </div>
+            <button
+              type="button"
+              class="secondary preview-detail-btn"
+              aria-haspopup="dialog"
+              :aria-expanded="detailPreviewOpen"
+              @click="openDetailPreview"
+            >
+              <AppIcon name="eye" :size="15" /> 预览小程序详情页
+            </button>
           </section>
           <div
             v-show="editSection !== 'rich' || !id"
@@ -1110,12 +1233,16 @@ useForegroundRefresh(() => {
               }"
               >查看此活动订单</RouterLink
             >
-            <RouterLink
+            <button
               v-else-if="current"
-              :to="'/activities/' + current.id + '/registrations'"
+              type="button"
+              class="text-button"
+              aria-haspopup="dialog"
+              :aria-expanded="rosterOpen"
+              @click="rosterOpen = true"
             >
               查看报名名单
-            </RouterLink>
+            </button>
           </div>
         </aside>
       </div>
@@ -1159,7 +1286,7 @@ useForegroundRefresh(() => {
               saving ? "正在保存…" : current ? "保存修改" : "保存草稿"
             }}</button
           ><button
-            v-if="current?.status === 'DRAFT'"
+            v-if="id && current?.status === 'DRAFT'"
             type="button"
             class="primary"
             :disabled="saving || conflict"
@@ -1176,6 +1303,30 @@ useForegroundRefresh(() => {
     @close="reopenOpen = false"
     @created="handleReopened"
   />
+  <FormModal
+    v-if="rosterOpen && current"
+    placement="right"
+    :title="`报名名单 · ${current.title}`"
+    @close="rosterOpen = false"
+  >
+    <RosterView :scope="{ id: current.id, title: current.title }" />
+  </FormModal>
+  <FormModal
+    v-if="detailPreviewOpen"
+    placement="right"
+    size="sm"
+    :title="`小程序详情预览 · ${fields.title || '未命名活动'}`"
+    @close="closeDetailPreview"
+  >
+    <ActivityDetailPreview
+      :activity="previewActivity"
+      :markdown="previewMarkdown"
+      :content-loading="previewContentLoading"
+      :content-error="previewContentError"
+      subtitle="按当前编辑内容实时渲染（未保存修改也会同步呈现）"
+      @retry-content="id && loadPreviewMarkdown(id)"
+    />
+  </FormModal>
   <ConfirmDialog
     v-if="dialog"
     :busy="saving"
@@ -1277,6 +1428,10 @@ useForegroundRefresh(() => {
   background: #ffffff;
   box-shadow: var(--rf-shadow-sm);
 }
+.preview-detail-btn {
+  width: 100%;
+  justify-content: center;
+}
 .preview-card .card-category {
   font-size: 11px;
 }
@@ -1301,12 +1456,6 @@ useForegroundRefresh(() => {
 .activity-workbench .activity-rich-card {
   margin: 0;
   padding: 16px;
-}
-.activity-rich-pending h2 {
-  scroll-margin-block: 24px;
-}
-.activity-rich-pending .activity-content-entry {
-  margin-top: 0;
 }
 /* 中间栏窄于约 575px 时日期控件会被截断，改为两栏并把预览与价格移到表单下方。 */
 @media (max-width: 1359px) {

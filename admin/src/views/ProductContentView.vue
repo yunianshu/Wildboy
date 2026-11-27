@@ -1,11 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute } from "vue-router";
 import { currentUser, errorMessage, request } from "../api";
+import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
+import ConfirmDialog from "../components/ConfirmDialog.vue";
+import FormModal from "../components/FormModal.vue";
+import ImageUpload from "../components/ImageUpload.vue";
 import MarkdownEditor from "../components/MarkdownEditor.vue";
+import ProductDetailPreview, {
+  type ProductPreviewData,
+} from "../components/ProductDetailPreview.vue";
 import UiState from "../components/UiState.vue";
-import type { Product } from "../types";
+import type {
+  Product,
+  ProductCategory,
+  ProductInput,
+  ProductStatus,
+} from "../types";
 
 const route = useRoute();
 const productId = computed(() => String(route.params.id));
@@ -13,46 +25,140 @@ const productPath = computed(
   () => `/admin/shop/products/${encodeURIComponent(productId.value)}`,
 );
 const backTarget = computed(() => ({ path: "/shop", query: route.query }));
-const basicEditTarget = computed(() => ({
-  path: "/shop",
-  query: {
-    ...route.query,
-    tab: "products",
-    productId: productId.value,
-    edit: productId.value,
-  },
-}));
 const money = (cents: number) => `¥${(cents / 100).toFixed(2)}`;
-function scrollToSection(id: string) {
-  const reducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
-  document.getElementById(id)?.scrollIntoView({
+const activeSection = ref<"basic" | "detail">("basic");
+
+function scrollToSection(id: "product-basic" | "product-detail") {
+  activeSection.value = id === "product-basic" ? "basic" : "detail";
+  const reducedMotion = Boolean(
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+  );
+  document.getElementById(id)?.scrollIntoView?.({
     behavior: reducedMotion ? "auto" : "smooth",
     block: "start",
   });
 }
+
 const product = ref<Product | null>(null);
+const categories = ref<ProductCategory[]>([]);
+const categoriesError = ref("");
 const loading = ref(false);
+const savingBasic = ref(false);
 const error = ref("");
+const formError = ref("");
+const formErrorElement = ref<HTMLElement>();
+const saveNotice = ref("");
 const editor = ref<InstanceType<typeof MarkdownEditor>>();
 const savedVersion = ref<number | null>(null);
+const detailPreviewOpen = ref(false);
+const previewMarkdown = ref("");
+const previewContentLoading = ref(false);
+const previewContentError = ref("");
+let previewEpoch = 0;
+const pendingPayload = ref<(ProductInput & { version: number }) | null>(null);
+const pendingSummary = ref("");
+let pendingSaveContent = false;
 let controller: AbortController | undefined;
+let categoriesController: AbortController | undefined;
+let generation = 0;
+
+const form = ref({
+  name: "",
+  description: "",
+  imageUrl: "",
+  categoryId: "",
+  originalPriceYuan: "99.00",
+  currentPriceYuan: "99.00",
+  stock: "0",
+  status: "ON_SALE" as ProductStatus,
+});
+const baseline = ref({
+  categoryId: "",
+  priceCents: 0,
+  originalPriceCents: 0,
+});
+const formSnapshot = ref("");
+
+const basicDirty = computed(
+  () => !!product.value && JSON.stringify(form.value) !== formSnapshot.value,
+);
+const contentDirty = computed(() => Boolean(editor.value?.dirty));
+const anyDirty = computed(() => basicDirty.value || contentDirty.value);
+const anyBusy = computed(
+  () => savingBasic.value || Boolean(editor.value?.busy),
+);
+
+function syncFormFromProduct(p: Product) {
+  form.value = {
+    name: p.name,
+    description: p.description,
+    imageUrl: p.imageUrl,
+    categoryId: p.categoryId ?? "",
+    originalPriceYuan: ((p.originalPriceCents ?? p.priceCents) / 100).toFixed(
+      2,
+    ),
+    currentPriceYuan: (p.priceCents / 100).toFixed(2),
+    stock: String(p.stock),
+    status: p.status,
+  };
+  baseline.value = {
+    categoryId: p.categoryId ?? "",
+    priceCents: p.priceCents,
+    originalPriceCents: p.originalPriceCents ?? p.priceCents,
+  };
+  formSnapshot.value = JSON.stringify(form.value);
+}
+
+async function loadCategories() {
+  categoriesController?.abort();
+  categoriesError.value = "";
+  if (!currentUser.value) return;
+  const attempt = new AbortController();
+  categoriesController = attempt;
+  try {
+    const list = await request<ProductCategory[]>("/admin/shop/categories", {
+      signal: attempt.signal,
+    });
+    if (!attempt.signal.aborted) {
+      categories.value = Array.isArray(list) ? list : [];
+    }
+  } catch (e) {
+    if (!attempt.signal.aborted) {
+      categories.value = [];
+      categoriesError.value = errorMessage(e);
+    }
+  }
+}
 
 async function loadProduct() {
+  generation++;
   controller?.abort();
   product.value = null;
   savedVersion.value = null;
+  detailPreviewOpen.value = false;
+  previewEpoch++;
+  previewMarkdown.value = "";
+  previewContentLoading.value = false;
+  previewContentError.value = "";
+  saveNotice.value = "";
   error.value = "";
+  formError.value = "";
+  pendingPayload.value = null;
+  pendingSummary.value = "";
+  pendingSaveContent = false;
   if (!currentUser.value) return;
   const attempt = new AbortController();
   controller = attempt;
   loading.value = true;
+  void loadCategories();
   try {
     const result = await request<Product>(productPath.value, {
       signal: attempt.signal,
     });
-    if (!attempt.signal.aborted) product.value = result;
+    if (!attempt.signal.aborted) {
+      product.value = result;
+      syncFormFromProduct(result);
+    }
   } catch (e) {
     if (!attempt.signal.aborted) error.value = errorMessage(e);
   } finally {
@@ -60,20 +166,277 @@ async function loadProduct() {
   }
 }
 
+function parseYuan(value: string) {
+  const text = value.trim();
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return null;
+  const cents = Math.round(Number(text) * 100);
+  return cents >= 1 && cents <= 100000000 ? cents : null;
+}
+
+const previewProduct = computed<ProductPreviewData>(() => {
+  const currentCents =
+    parseYuan(form.value.currentPriceYuan) ?? product.value?.priceCents ?? 0;
+  const originalCents =
+    parseYuan(form.value.originalPriceYuan) ??
+    product.value?.originalPriceCents ??
+    currentCents;
+  const parsedStock = Number(form.value.stock);
+  const categoryName =
+    categories.value.find((c) => c.id === form.value.categoryId)?.name ||
+    product.value?.categoryName;
+  return {
+    id: product.value?.id,
+    name: form.value.name,
+    description: form.value.description,
+    imageUrl: form.value.imageUrl,
+    categoryName,
+    priceCents: currentCents,
+    originalPriceCents: originalCents,
+    stock: Number.isFinite(parsedStock) && parsedStock >= 0 ? Math.floor(parsedStock) : 0,
+    status: form.value.status,
+  };
+});
+
+async function loadPreviewMarkdown() {
+  const token = ++previewEpoch;
+  previewContentLoading.value = true;
+  previewContentError.value = "";
+  try {
+    const res = await request<{ markdown?: string }>(
+      `${productPath.value}/content/markdown`,
+    );
+    if (token === previewEpoch) {
+      previewMarkdown.value = res.markdown || "";
+    }
+  } catch (e) {
+    if (token === previewEpoch) {
+      previewContentError.value = `图文详情加载失败：${errorMessage(e)}`;
+    }
+  } finally {
+    if (token === previewEpoch) {
+      previewContentLoading.value = false;
+    }
+  }
+}
+
+function openDetailPreview() {
+  detailPreviewOpen.value = true;
+  previewContentError.value = "";
+  const liveContent =
+    typeof editor.value?.readContent === "function"
+      ? editor.value.readContent()
+      : null;
+  if (liveContent) {
+    previewEpoch++;
+    previewContentLoading.value = false;
+    previewMarkdown.value = liveContent.markdown;
+    return;
+  }
+  void loadPreviewMarkdown();
+}
+
+function closeDetailPreview() {
+  previewEpoch++;
+  detailPreviewOpen.value = false;
+  previewContentLoading.value = false;
+  previewContentError.value = "";
+}
+
+function showFormError(message: string) {
+  formError.value = message;
+  scrollToSection("product-basic");
+  void nextTick(() => formErrorElement.value?.focus());
+}
+
+function validateBasicPayload(): (ProductInput & { version: number }) | null {
+  if (!product.value) return null;
+  formError.value = "";
+  const name = form.value.name.trim(),
+    imageUrl = form.value.imageUrl.trim(),
+    stock = Number(form.value.stock);
+  if (!name || name.length > 120 || !form.value.description.trim()) {
+    showFormError("请填写商品名称和说明");
+    return null;
+  }
+  if (!imageUrl) {
+    showFormError("请上传商品图片");
+    return null;
+  }
+  if (
+    !/^https:\/\/[^\s]+$/.test(imageUrl) &&
+    !/^\/assets\/[A-Za-z0-9_./-]+$/.test(imageUrl)
+  ) {
+    showFormError("商品图片须为 HTTPS 或 /assets/ 路径");
+    return null;
+  }
+  const originalPriceCents = parseYuan(form.value.originalPriceYuan);
+  if (originalPriceCents === null) {
+    showFormError("请输入有效商品原价");
+    return null;
+  }
+  const priceCents = parseYuan(form.value.currentPriceYuan);
+  if (priceCents === null) {
+    showFormError("请输入有效商品现价");
+    return null;
+  }
+  if (originalPriceCents < priceCents) {
+    showFormError("原价不能低于现价");
+    return null;
+  }
+  if (
+    categories.value.length &&
+    !categories.value.some((c) => c.id === form.value.categoryId)
+  ) {
+    showFormError("选择有效的商品分类");
+    return null;
+  }
+  if (!Number.isInteger(stock) || stock < 0 || stock > 1000000) {
+    showFormError("请输入有效库存整数");
+    return null;
+  }
+  return {
+    name,
+    description: form.value.description,
+    imageUrl,
+    categoryId: form.value.categoryId,
+    priceCents,
+    originalPriceCents,
+    stock,
+    status: form.value.status,
+    version: product.value.version,
+  };
+}
+
+async function submitBasic(
+  payload: ProductInput & { version: number },
+  alsoSaveContent: boolean,
+) {
+  savingBasic.value = true;
+  const n = generation;
+  try {
+    const updated = await request<Product>(productPath.value, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+    if (n !== generation) return;
+    product.value = updated;
+    syncFormFromProduct(updated);
+    if (alsoSaveContent && editor.value?.dirty && !editor.value.versionConflict) {
+      await editor.value.save();
+      saveNotice.value = "商品信息与图文已保存";
+    } else {
+      saveNotice.value = "商品信息已保存";
+    }
+  } catch (e) {
+    if (n === generation) showFormError(errorMessage(e));
+  } finally {
+    if (n === generation) savingBasic.value = false;
+  }
+}
+
+async function saveAll(onlyBasic = false) {
+  if (anyBusy.value || pendingPayload.value) return;
+  saveNotice.value = "";
+  const needBasic = onlyBasic || basicDirty.value;
+  const needContent =
+    !onlyBasic &&
+    contentDirty.value &&
+    Boolean(editor.value?.ready && editor.value.loaded && !editor.value.versionConflict);
+  if (needBasic) {
+    if (categoriesError.value) {
+      showFormError("请先重试加载商品分类后再保存");
+      return;
+    }
+    const payload = validateBasicPayload();
+    if (!payload) return;
+    const commercialChange =
+      payload.priceCents !== baseline.value.priceCents ||
+      payload.originalPriceCents !== baseline.value.originalPriceCents ||
+      payload.categoryId !== baseline.value.categoryId;
+    if (commercialChange && categories.value.length) {
+      const categoryName =
+        categories.value.find((c) => c.id === payload.categoryId)?.name ||
+        "未分类";
+      pendingPayload.value = payload;
+      pendingSummary.value = `分类「${categoryName}」、原价 ${money(payload.originalPriceCents)}、现价 ${money(payload.priceCents)}`;
+      pendingSaveContent = needContent;
+      return;
+    }
+    await submitBasic(payload, needContent);
+    return;
+  }
+  if (needContent && editor.value) {
+    await editor.value.save();
+  }
+}
+
+async function confirmSaveBasic() {
+  const payload = pendingPayload.value;
+  const alsoContent = pendingSaveContent;
+  if (!payload || savingBasic.value) return;
+  pendingPayload.value = null;
+  pendingSummary.value = "";
+  pendingSaveContent = false;
+  await submitBasic(payload, alsoContent);
+}
+
+function cancelSaveBasic() {
+  if (!savingBasic.value) {
+    pendingPayload.value = null;
+    pendingSummary.value = "";
+    pendingSaveContent = false;
+  }
+}
+
+const canSave = computed(() => {
+  if (anyBusy.value) return false;
+  if (basicDirty.value) return !categoriesError.value;
+  return Boolean(
+    editor.value?.ready &&
+      editor.value.loaded &&
+      editor.value.dirty &&
+      !editor.value.versionConflict,
+  );
+});
+
+const saveStatusText = computed(() => {
+  if (basicDirty.value && contentDirty.value) {
+    return "商品信息与图文均有未保存修改";
+  }
+  if (basicDirty.value) return "商品信息有未保存修改";
+  if (contentDirty.value) return "图文有未保存修改";
+  if (savedVersion.value !== null && !saveNotice.value) {
+    return `图文已保存 · 版本 ${savedVersion.value}`;
+  }
+  if (saveNotice.value) {
+    return savedVersion.value !== null
+      ? `${saveNotice.value} · 图文版本 ${savedVersion.value}`
+      : saveNotice.value;
+  }
+  return "当前商品信息与图文已保存";
+});
+
 async function canLeave() {
-  return !editor.value?.writeBusy && ((await editor.value?.canLeave()) ?? true);
+  if (savingBasic.value || editor.value?.writeBusy) return false;
+  if (basicDirty.value) {
+    const ok = await askConfirm("商品信息有未保存修改，确定离开吗？");
+    if (!ok) return false;
+  }
+  return (await editor.value?.canLeave()) ?? true;
 }
 
 async function loadLatest() {
   const current = editor.value;
-  if (current && (await canLeave()) && current === editor.value) {
+  if (current && (await current.canLeave()) && current === editor.value) {
     savedVersion.value = null;
     await current.load();
   }
 }
 
 function beforeUnload(event: BeforeUnloadEvent) {
-  if (!editor.value?.dirty && !editor.value?.busy) return;
+  if (!basicDirty.value && !savingBasic.value && !editor.value?.dirty && !editor.value?.busy) {
+    return;
+  }
   event.preventDefault();
   event.returnValue = "";
 }
@@ -86,6 +449,7 @@ onBeforeRouteUpdate(
 onMounted(() => window.addEventListener("beforeunload", beforeUnload));
 onUnmounted(() => {
   controller?.abort();
+  categoriesController?.abort();
   window.removeEventListener("beforeunload", beforeUnload);
 });
 </script>
@@ -95,22 +459,34 @@ onUnmounted(() => {
     <header class="page-heading product-topbar">
       <div class="product-heading-copy">
         <div class="product-title-line">
-          <h1>商品详情编辑</h1>
+          <h1>商品编辑</h1>
           <span
             v-if="product"
             class="status-pill inline"
             :class="
-              product.status === 'ON_SALE' ? 'tone-success' : 'tone-neutral'
+              form.status === 'ON_SALE' ? 'tone-success' : 'tone-neutral'
             "
           >
-            {{ product.status === "ON_SALE" ? "上架" : "下架" }}
+            {{ form.status === "ON_SALE" ? "上架" : "下架" }}
           </span>
         </div>
-        <p>完善商品信息与详情，让用户快速了解并放心选择。</p>
+        <p>在同一页面完善商品基础信息与图文详情，统一保存生效。</p>
       </div>
-      <RouterLink class="secondary button" :to="backTarget">
-        <AppIcon name="back" :size="16" />返回商品
-      </RouterLink>
+      <div class="action-row">
+        <button
+          v-if="product"
+          type="button"
+          class="secondary"
+          aria-haspopup="dialog"
+          :aria-expanded="detailPreviewOpen"
+          @click="openDetailPreview"
+        >
+          <AppIcon name="eye" :size="16" />小程序详情预览
+        </button>
+        <RouterLink class="secondary button" :to="backTarget">
+          <AppIcon name="back" :size="16" />返回商品
+        </RouterLink>
+      </div>
     </header>
 
     <UiState v-if="loading" kind="loading" compact>正在读取商品…</UiState>
@@ -121,14 +497,19 @@ onUnmounted(() => {
 
     <div v-else-if="product" class="product-editor-layout">
       <nav class="product-section-nav" aria-label="商品编辑分区">
-        <button type="button" @click="scrollToSection('product-basic')">
+        <button
+          type="button"
+          :class="{ 'is-current': activeSection === 'basic' }"
+          :aria-current="activeSection === 'basic' ? 'location' : undefined"
+          @click="scrollToSection('product-basic')"
+        >
           <span class="product-step-number">01</span>
           <span><strong>商品信息</strong><small>图片、价格与库存</small></span>
         </button>
         <button
           type="button"
-          class="is-current"
-          aria-current="location"
+          :class="{ 'is-current': activeSection === 'detail' }"
+          :aria-current="activeSection === 'detail' ? 'location' : undefined"
           @click="scrollToSection('product-detail')"
         >
           <span class="product-step-number">02</span>
@@ -141,68 +522,124 @@ onUnmounted(() => {
           id="product-basic"
           class="product-info-card"
           aria-labelledby="product-info-title"
+          @focusin="activeSection = 'basic'"
         >
           <header class="product-section-heading">
             <div class="product-section-title">
               <span class="product-section-number">01</span>
               <div>
                 <h2 id="product-info-title">商品信息</h2>
-                <p>当前商品的基础资料与销售信息</p>
+                <p>基础资料、分类、售价、库存与商品主图</p>
               </div>
             </div>
-            <RouterLink
-              class="secondary button product-info-edit"
-              :to="basicEditTarget"
-              aria-label="编辑商品基本信息"
-            >
-              编辑商品信息<AppIcon name="arrow" :size="15" />
-            </RouterLink>
+            <span v-if="basicDirty" class="product-dirty-tag">有未保存修改</span>
           </header>
-          <div class="product-overview">
-            <div class="product-cover">
-              <img
-                v-if="product.imageUrl"
-                :src="product.imageUrl"
-                :alt="`${product.name}商品主图`"
-                referrerpolicy="no-referrer"
+
+          <p
+            v-if="formError"
+            ref="formErrorElement"
+            class="error-box"
+            role="alert"
+            tabindex="-1"
+          >
+            {{ formError }}
+          </p>
+          <p v-if="categoriesError" class="error-box" role="alert">
+            {{ categoriesError }}
+            <button
+              type="button"
+              class="text-button"
+              :disabled="savingBasic"
+              @click="loadCategories"
+            >
+              重试
+            </button>
+          </p>
+
+          <form
+            id="shop-product-form"
+            class="form-grid"
+            @submit.prevent="saveAll(true)"
+          >
+            <label
+              >商品名称<input
+                v-model="form.name"
+                required
+                maxlength="120"
+                :disabled="savingBasic"
+            /></label>
+            <label
+              >商品分类<select
+                v-model="form.categoryId"
+                name="productCategory"
+                :disabled="savingBasic || !categories.length"
+              >
+                <option value="">请选择分类</option>
+                <option
+                  v-for="category in categories"
+                  :key="category.id"
+                  :value="category.id"
+                >
+                  {{ category.name }}
+                </option>
+              </select></label
+            >
+            <label
+              >原价（元）<input
+                v-model="form.originalPriceYuan"
+                name="originalPrice"
+                inputmode="decimal"
+                required
+                :disabled="savingBasic"
+            /></label>
+            <label
+              >现价（元）<input
+                v-model="form.currentPriceYuan"
+                name="currentPrice"
+                inputmode="decimal"
+                required
+                :disabled="savingBasic"
+            /></label>
+            <label
+              >库存<input
+                v-model="form.stock"
+                type="number"
+                min="0"
+                max="1000000"
+                required
+                :disabled="savingBasic"
+            /></label>
+            <label
+              >销售状态<select v-model="form.status" :disabled="savingBasic">
+                <option value="ON_SALE">上架</option>
+                <option value="OFF_SHELF">下架</option>
+              </select></label
+            >
+            <label class="full-field"
+              >商品说明<textarea
+                v-model="form.description"
+                required
+                maxlength="20000"
+                :disabled="savingBasic"
               />
-              <AppIcon v-else name="bag" :size="32" />
-            </div>
-            <div class="product-overview-copy">
-              <span class="product-category">{{
-                product.categoryName || "未分类"
-              }}</span>
-              <h3>{{ product.name }}</h3>
-              <p>{{ product.description }}</p>
-            </div>
-          </div>
-          <dl class="product-facts">
-            <div>
-              <dt>现价</dt>
-              <dd class="product-price">{{ money(product.priceCents) }}</dd>
-            </div>
-            <div>
-              <dt>原价</dt>
-              <dd>
-                <del v-if="product.originalPriceCents > product.priceCents">
-                  {{ money(product.originalPriceCents) }}
-                </del>
-                <template v-else>{{
-                  money(product.originalPriceCents)
-                }}</template>
-              </dd>
-            </div>
-            <div>
-              <dt>库存</dt>
-              <dd>{{ product.stock }} <small>件</small></dd>
-            </div>
-          </dl>
+            </label>
+            <ImageUpload
+              class="full-field"
+              label="上传商品图片"
+              category="SHOP"
+              :preview="form.imageUrl"
+              preview-alt="商品图片预览"
+              :disabled="savingBasic"
+              @uploaded="form.imageUrl = $event"
+            />
+          </form>
         </section>
 
         <section
           id="product-detail"
           class="product-detail-card"
           aria-labelledby="product-detail-title"
+          @focusin="activeSection = 'detail'"
         >
           <header class="product-section-heading">
             <div class="product-section-title">
@@ -217,6 +654,7 @@ onUnmounted(() => {
             >
           </header>
           <MarkdownEditor
+            media-category="SHOP"
             :key="productId"
             ref="editor"
             class="product-detail-editor"
@@ -228,31 +666,25 @@ onUnmounted(() => {
             @saved="savedVersion = $event"
           />
           <p class="product-editor-tip">
-            建议先讲核心卖点，再补充规格与使用说明；商品主图和价格请在上方「编辑商品信息」中修改。
+            建议先讲核心卖点，再补充规格与使用说明；修改商品信息或图文后，点击下方「保存商品」即可统一保存。
           </p>
         </section>
 
         <footer class="product-content-footer">
           <span
             class="product-save-status"
-            :class="{ 'is-dirty': editor?.dirty }"
+            :class="{ 'is-dirty': anyDirty }"
             role="status"
           >
             <i aria-hidden="true"></i>
-            {{
-              editor?.dirty
-                ? "图文有未保存修改"
-                : savedVersion !== null
-                  ? `图文已保存 · 版本 ${savedVersion}`
-                  : "商品资料与图文分别保存"
-            }}
+            {{ saveStatusText }}
           </span>
           <div class="footer-actions">
             <button
               v-if="editor?.versionConflict"
               type="button"
               class="secondary"
-              :disabled="editor.busy"
+              :disabled="anyBusy"
               @click="loadLatest"
             >
               读取最新版本
@@ -260,21 +692,41 @@ onUnmounted(() => {
             <button
               type="button"
               class="primary"
-              :disabled="
-                !editor?.ready ||
-                !editor.loaded ||
-                !editor.dirty ||
-                editor.busy ||
-                editor.versionConflict
-              "
-              @click="editor?.save()"
+              :disabled="!canSave"
+              @click="saveAll(false)"
             >
-              保存图文
+              {{ anyBusy ? "正在保存…" : "保存商品" }}
             </button>
           </div>
         </footer>
       </div>
     </div>
+
+    <ConfirmDialog
+      v-if="pendingPayload"
+      title="确认保存商品？"
+      :description="`将保存商品「${pendingPayload.name}」：${pendingSummary}。保存后立即生效，历史订单金额保留。`"
+      confirm-label="确认保存"
+      :busy="savingBasic"
+      @cancel="cancelSaveBasic"
+      @confirm="confirmSaveBasic"
+    />
+    <FormModal
+      v-if="detailPreviewOpen && product"
+      placement="right"
+      size="sm"
+      :title="`小程序详情预览 · ${form.name || product.name}`"
+      @close="closeDetailPreview"
+    >
+      <ProductDetailPreview
+        :product="previewProduct"
+        :markdown="previewMarkdown"
+        :content-loading="previewContentLoading"
+        :content-error="previewContentError"
+        subtitle="按当前编辑内容实时渲染（未保存修改也会同步呈现）"
+        @retry-content="loadPreviewMarkdown"
+      />
+    </FormModal>
   </main>
 </template>
 
@@ -408,9 +860,16 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
 }
-.product-info-edit {
-  flex-shrink: 0;
+.product-dirty-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--rf-warning-bg);
+  color: var(--rf-warning);
   font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 .product-overview {
   display: flex;

@@ -94,55 +94,21 @@ describe("shop administration", () => {
     );
     await flushPromises();
 
-    await click(wrapper, "编辑商品信息");
-    expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
-    expect(wrapper.text()).not.toContain("商品图文工作台");
-    expect(fetch.mock.calls.some(([path]) => path === contentPath)).toBe(false);
-    await wrapper.get('button[aria-label="关闭弹窗"]').trigger("click");
-
-    await wrapper
-      .get(`a[href^="/shop/products/${product.id}/content"]`)
-      .trigger("click");
+    const editLink = wrapper.get(
+      `a[href^="/shop/products/${product.id}/content"]`,
+    );
+    expect(editLink.text()).toBe("编辑商品");
+    expect(
+      wrapper.findAll("button").some((b) => b.text() === "编辑商品信息"),
+    ).toBe(false);
+    await editLink.trigger("click");
     await flushPromises();
     expect(wrapper.get("h1").text()).toBe("商品图文工作台");
-    expect(wrapper.find("#shop-product-form").exists()).toBe(false);
     expect(router.currentRoute.value.query.productQuery).toBe("背包");
     wrapper.unmount();
   });
 
-  it("opens the existing product form from the content editor and clears its edit query", async () => {
-    const fetch = vi.fn(async (path: string) => ({
-      ok: true,
-      status: 200,
-      json: async () => {
-        if (path.endsWith("/products")) return [product];
-        if (path.endsWith("/categories")) return [];
-        return orderPage;
-      },
-    }));
-    vi.stubGlobal("fetch", fetch);
-    const router = createRouter({
-      history: createMemoryHistory(),
-      routes: [{ path: "/shop", component: ShopView }],
-    });
-    await router.push("/shop?productQuery=背包&edit=product-1");
-    const wrapper = mount(
-      { template: "<RouterView />" },
-      { global: { plugins: [router] } },
-    );
-    await flushPromises();
-    expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
-    expect(
-      wrapper.get<HTMLInputElement>(".form-modal form input").element.value,
-    ).toBe("徒步背包");
-    await wrapper.get('button[aria-label="关闭弹窗"]').trigger("click");
-    await flushPromises();
-    expect(router.currentRoute.value.query.edit).toBeUndefined();
-    expect(router.currentRoute.value.query.productQuery).toBe("背包");
-    wrapper.unmount();
-  });
-
-  it("opens product information while the separate markdown request is pending", async () => {
+  it("renders editable product information while the separate markdown request is pending", async () => {
     let finishMarkdown!: (response: Response) => void;
     const markdown = new Promise<Response>((resolve) => {
       finishMarkdown = resolve;
@@ -180,10 +146,9 @@ describe("shop administration", () => {
     try {
       await flushPromises();
       expect(wrapper.text()).toContain("正在读取正文");
-      await wrapper.get('a[aria-label="编辑商品基本信息"]').trigger("click");
-      await flushPromises();
-      expect(router.currentRoute.value.path).toBe("/shop");
-      expect(wrapper.get('[role="dialog"] h2').text()).toBe("编辑商品信息");
+      expect(
+        wrapper.get<HTMLInputElement>("#shop-product-form input").element.value,
+      ).toBe("徒步背包");
     } finally {
       wrapper.unmount();
       finishMarkdown(
@@ -434,74 +399,49 @@ describe("shop administration", () => {
     expect(wrapper.text()).not.toContain(order.orderNo);
     wrapper.unmount();
   });
-  it("retains the form's original version after the catalog refreshes", async () => {
-    let catalogReads = 0;
-    let finishRefresh!: (value: (typeof product)[]) => void;
-    const refreshedCatalog = new Promise<(typeof product)[]>((resolve) => {
-      finishRefresh = resolve;
-    });
-    const fetchMock = vi.fn(
-      async (path: string, options: RequestInit = {}) => ({
-        ok: true,
-        status: 200,
-        json: async () =>
-          options.method === "PUT"
-            ? product
-            : path.includes("/admin/shop/products")
-              ? ++catalogReads === 1
-                ? [product]
-                : refreshedCatalog
-              : { ...orderPage, hasMore: true },
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
-    const wrapper = mount(ShopView, { global: { stubs: { teleport: true } } });
-    await flushPromises();
-    await click(wrapper, "订单与发货");
-    await click(wrapper, "下一页");
-    await click(wrapper, "商品与库存");
-    await click(wrapper, "编辑商品信息");
-    // A catalog request already in flight finishes after the edit draft opens.
-    finishRefresh([{ ...product, stock: 4, version: 3 }]);
-    await flushPromises();
-    await wrapper.get(".form-modal form input").setValue("新的商品名称");
-    await wrapper.get(".form-modal form").trigger("submit");
-    await flushPromises();
-    const call = fetchMock.mock.calls.find(([, o]) => o?.method === "PUT")!;
-    expect(JSON.parse(String(call[1]!.body))).toMatchObject({
-      stock: 8,
-      version: 2,
-    });
-    wrapper.unmount();
-  });
 
-  it("shows and focuses invalid-price feedback inside the product editor without sending a write", async () => {
+  it("shows and focuses invalid-price feedback inside the unified product editor without sending a write", async () => {
     const fetchMock = vi.fn(
       async (path: string, _options: RequestInit = {}) => ({
         ok: true,
         status: 200,
         json: async () =>
-          path.includes("/admin/shop/products") ? [product] : orderPage,
+          path.endsWith("/content/markdown")
+            ? { markdown: "", version: 1 }
+            : path.endsWith("/categories")
+              ? []
+              : path.includes("/admin/shop/products/product-1")
+                ? product
+                : orderPage,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const wrapper = mount(ShopView, { attachTo: document.body });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/shop", component: ShopView },
+        { path: "/shop/products/:id/content", component: ProductContentView },
+      ],
+    });
+    await router.push("/shop/products/product-1/content");
+    const wrapper = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] }, attachTo: document.body },
+    );
     try {
       await flushPromises();
-      await click(wrapper, "编辑商品信息");
       await wrapper.get('input[name="originalPrice"]').setValue("1");
       await wrapper.get('input[name="currentPrice"]').setValue("2");
-      await wrapper.get(".form-modal form").trigger("submit");
+      await wrapper.get("#shop-product-form").trigger("submit");
       await flushPromises();
-      const alert = wrapper.get('.form-modal [role="alert"]');
+      const alert = wrapper.get('#product-basic [role="alert"]');
       expect(alert.text()).toBe("原价不能低于现价");
       expect(document.activeElement).toBe(alert.element);
-      expect(wrapper.find('main > [role="alert"]').exists()).toBe(false);
       expect(
         fetchMock.mock.calls.some(([, options]) => options?.method === "PUT"),
       ).toBe(false);
       await wrapper.get('input[name="originalPrice"]').setValue("3");
-      await wrapper.get(".form-modal form").trigger("submit");
+      await wrapper.get("#shop-product-form").trigger("submit");
       await flushPromises();
       expect(
         fetchMock.mock.calls.some(([, options]) => options?.method === "PUT"),
@@ -511,7 +451,7 @@ describe("shop administration", () => {
     }
   });
 
-  it("keeps a rejected save's error and unchanged draft visible in the dialog", async () => {
+  it("keeps a rejected save's error and unchanged draft visible in the unified product editor", async () => {
     const fetchMock = vi.fn(
       async (path: string, options: RequestInit = {}) => ({
         ok: options.method !== "PUT",
@@ -519,30 +459,43 @@ describe("shop administration", () => {
         json: async () =>
           options.method === "PUT"
             ? { code: "STALE_VERSION", message: "商品已更新，请核对最新版本" }
-            : path.includes("/admin/shop/products")
-              ? [product]
-              : orderPage,
+            : path.endsWith("/content/markdown")
+              ? { markdown: "", version: 1 }
+              : path.endsWith("/categories")
+                ? []
+                : path.includes("/admin/shop/products/product-1")
+                  ? product
+                  : orderPage,
       }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const wrapper = mount(ShopView, { attachTo: document.body });
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: "/shop", component: ShopView },
+        { path: "/shop/products/:id/content", component: ProductContentView },
+      ],
+    });
+    await router.push("/shop/products/product-1/content");
+    const wrapper = mount(
+      { template: "<RouterView />" },
+      { global: { plugins: [router] }, attachTo: document.body },
+    );
     try {
       await flushPromises();
-      await click(wrapper, "编辑商品信息");
-      await wrapper.get(".form-modal form input").setValue("保留的商品名称");
-      await wrapper.get(".form-modal form").trigger("submit");
+      await wrapper.get("#shop-product-form input").setValue("保留的商品名称");
+      await wrapper.get("#shop-product-form").trigger("submit");
       await flushPromises();
-      const alert = wrapper.get('.form-modal [role="alert"]');
+      const alert = wrapper.get('#product-basic [role="alert"]');
       expect(alert.text()).toContain("内容冲突");
       expect(document.activeElement).toBe(alert.element);
       expect(
-        wrapper.get<HTMLInputElement>(".form-modal form input").element.value,
+        wrapper.get<HTMLInputElement>("#shop-product-form input").element.value,
       ).toBe("保留的商品名称");
       const call = fetchMock.mock.calls.find(
         ([, options]) => options?.method === "PUT",
       )!;
       expect(JSON.parse(String(call[1]!.body)).version).toBe(2);
-      expect(wrapper.find('main > [role="alert"]').exists()).toBe(false);
     } finally {
       wrapper.unmount();
     }

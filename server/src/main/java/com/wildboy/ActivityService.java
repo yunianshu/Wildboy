@@ -186,7 +186,7 @@ public class ActivityService {
     args.add(page * size);
     var items =
         db.query(
-            ACTIVITY_SELECT + where + " ORDER BY start_at,id LIMIT ? OFFSET ?",
+            ACTIVITY_SELECT + where + " ORDER BY start_at DESC,id DESC LIMIT ? OFFSET ?",
             this::map,
             args.toArray());
     return new Page<>(items, total, page, size, (long) (page + 1) * size < total);

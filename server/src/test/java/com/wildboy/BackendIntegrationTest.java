@@ -838,7 +838,12 @@ class BackendIntegrationTest {
     Activity first = activities.create(input(2), "fixture");
     db.update("UPDATE activity SET title=? WHERE id=?", "Forest 100% trail", first.id());
     Activity second = activities.create(input(2), "fixture");
-    db.update("UPDATE activity SET title=? WHERE id=?", "FOREST 100% loop", second.id());
+    db.update(
+        "UPDATE activity SET title=?, start_at=?, end_at=? WHERE id=?",
+        "FOREST 100% loop",
+        first.startAt().plusDays(1),
+        first.endAt().plusDays(1),
+        second.id());
     Activity unrelated = activities.create(input(2), "fixture");
     db.update("UPDATE activity SET title=?, location=? WHERE id=?", "Forest 100X loop", "Forest 100% park", unrelated.id());
     Activity published = publish(2);
@@ -850,12 +855,12 @@ class BackendIntegrationTest {
             .param("category", "WEEKLY").param("size", "1").header("Authorization", token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.total").value(2))
-        .andExpect(jsonPath("$.items[0].id").value(first.id()))
+        .andExpect(jsonPath("$.items[0].id").value(second.id()))
         .andExpect(jsonPath("$.hasMore").value(true));
     mvc.perform(get(path).param("title", "forest 100%").param("status", "DRAFT")
             .param("page", "1").param("size", "1").header("Authorization", token))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.items[0].id").value(second.id()))
+        .andExpect(jsonPath("$.items[0].id").value(first.id()))
         .andExpect(jsonPath("$.hasMore").value(false));
     mvc.perform(get(path).param("title", "a".repeat(101)).header("Authorization", token))
         .andExpect(status().isBadRequest());

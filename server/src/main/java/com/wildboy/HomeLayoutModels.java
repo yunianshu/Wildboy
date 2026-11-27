@@ -87,6 +87,24 @@ public final class HomeLayoutModels {
       List<GallerySlide> slides) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
+  public record FooterBlock(
+      String id,
+      String name,
+      Boolean enabled,
+      Integer colSpan,
+      Integer rowSpan,
+      String topType,
+      String topText,
+      String topImageUrl,
+      Integer topImageWidthPx,
+      Boolean topPreviewable,
+      String bottomType,
+      String bottomText,
+      String bottomImageUrl,
+      Integer bottomImageWidthPx,
+      Boolean bottomPreviewable) {}
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public record FooterConfig(
       Boolean followEnabled,
       String followTitle,
@@ -98,7 +116,10 @@ public final class HomeLayoutModels {
       List<String> cellOrder,
       String layoutPreset,
       Integer colRatio,
-      Integer rowRatio) {}
+      Integer rowRatio,
+      Integer columns,
+      List<Integer> colRatios,
+      List<FooterBlock> blocks) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record ModuleEntry(

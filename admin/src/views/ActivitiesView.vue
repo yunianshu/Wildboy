@@ -11,9 +11,17 @@ import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import FormModal from "../components/FormModal.vue";
+import ActivityDetailPreview from "../components/ActivityDetailPreview.vue";
 import ActivityOrdersView from "./ActivityOrdersView.vue";
+import RosterView from "./RosterView.vue";
 const orderScope = ref<{ id: string; title: string } | null>(null);
 const orderDrawer = ref<InstanceType<typeof ActivityOrdersView>>();
+const rosterScope = ref<{ id: string; title: string } | null>(null);
+const previewTarget = ref<Activity | null>(null);
+const previewMarkdown = ref("");
+const previewContentLoading = ref(false);
+const previewContentError = ref("");
+let previewEpoch = 0;
 function openOrders(item: Activity, event: MouseEvent) {
   (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
   orderScope.value = { id: item.id, title: item.title };
@@ -21,6 +29,47 @@ function openOrders(item: Activity, event: MouseEvent) {
 async function closeOrders() {
   if (orderDrawer.value && !(await orderDrawer.value.canLeave())) return;
   orderScope.value = null;
+}
+function openRoster(item: Activity, event: MouseEvent) {
+  (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
+  rosterScope.value = { id: item.id, title: item.title };
+}
+function closeRoster() {
+  rosterScope.value = null;
+}
+async function loadPreviewMarkdown(activityId: string) {
+  const token = ++previewEpoch;
+  previewContentLoading.value = true;
+  previewContentError.value = "";
+  try {
+    const res = await request<{ markdown?: string }>(
+      `/admin/activities/${encodeURIComponent(activityId)}/content/markdown`,
+    );
+    if (token === previewEpoch) {
+      previewMarkdown.value = res.markdown || "";
+    }
+  } catch (e) {
+    if (token === previewEpoch) {
+      previewContentError.value = `图文详情加载失败：${errorMessage(e)}`;
+    }
+  } finally {
+    if (token === previewEpoch) {
+      previewContentLoading.value = false;
+    }
+  }
+}
+function openPreview(item: Activity, event: MouseEvent) {
+  (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
+  previewTarget.value = item;
+  previewMarkdown.value = "";
+  void loadPreviewMarkdown(item.id);
+}
+function closePreview() {
+  previewEpoch++;
+  previewTarget.value = null;
+  previewMarkdown.value = "";
+  previewContentLoading.value = false;
+  previewContentError.value = "";
 }
 const reopenTarget = ref<Activity | null>(null),
   reopenNotice = ref("");
@@ -328,12 +377,25 @@ useForegroundRefresh(() => {
                 :aria-expanded="orderScope?.id === item.id"
                 @click="openOrders(item, $event)"
               >订单</button
-              ><RouterLink
+              ><button
                 v-else
-                :to="`/activities/${item.id}/registrations`"
-                class="table-action"
+                type="button"
+                class="table-action button-link"
+                aria-haspopup="dialog"
+                :aria-expanded="rosterScope?.id === item.id"
                 title="查看报名名单"
-              >名单</RouterLink>
+                @click="openRoster(item, $event)"
+              >名单</button
+              ><button
+                type="button"
+                class="table-action button-link"
+                aria-haspopup="dialog"
+                :aria-expanded="previewTarget?.id === item.id"
+                title="预览小程序活动详情页"
+                @click="openPreview(item, $event)"
+              >
+                预览</button
+              >
             </td>
           </tr>
         </tbody>
@@ -363,11 +425,35 @@ useForegroundRefresh(() => {
     >
       <ActivityOrdersView ref="orderDrawer" :scope="orderScope" />
     </FormModal>
+    <FormModal
+      v-if="rosterScope"
+      placement="right"
+      :title="`报名名单 · ${rosterScope.title}`"
+      @close="closeRoster"
+    >
+      <RosterView :scope="rosterScope" />
+    </FormModal>
     <ActivityReopenModal
       :activity="reopenTarget"
       @close="reopenTarget = null"
       @created="onReopened"
     />
+    <FormModal
+      v-if="previewTarget"
+      placement="right"
+      size="sm"
+      :title="`小程序详情预览 · ${previewTarget.title}`"
+      @close="closePreview"
+    >
+      <ActivityDetailPreview
+        :activity="previewTarget"
+        :markdown="previewMarkdown"
+        :content-loading="previewContentLoading"
+        :content-error="previewContentError"
+        subtitle="按当前已保存的活动信息与图文详情渲染"
+        @retry-content="previewTarget && loadPreviewMarkdown(previewTarget.id)"
+      />
+    </FormModal>
   </main>
 </template>
 <style scoped>

@@ -157,7 +157,15 @@
       <view wx:elif="{{mod.enabled && mod.id === 'FOOTER' && footer.cells.length}}" class="home-body">
         <view class="home-footer {{footer.cells.length === 1 ? 'home-footer-single' : ''}}" style="{{footer.gridStyle}}">
           <view wx:for="{{footer.cells}}" wx:key="id" class="home-footer-cell" style="{{item.cellStyle}}">
-            <view wx:if="{{item.kind === 'BRAND'}}" class="platform-brand">
+            <view wx:if="{{item.kind === 'BLOCK'}}" class="follow-qr-item">
+              <image wx:if="{{item.top.type === 'IMAGE' && item.top.previewable}}" class="platform-brand-image" src="{{item.top.url}}" style="width:{{item.top.widthPx}}px" mode="widthFix" show-menu-by-longpress data-url="{{item.top.url}}" bindtap="previewFollowQr" lazy-load aria-label="{{item.label || '底部图片'}}" />
+              <image wx:elif="{{item.top.type === 'IMAGE'}}" class="platform-brand-image" src="{{item.top.url}}" style="width:{{item.top.widthPx}}px" mode="widthFix" lazy-load aria-label="{{item.label || '底部图片'}}" />
+              <view wx:elif="{{item.top.type === 'TEXT'}}" class="follow-title">{{item.top.text}}</view>
+              <image wx:if="{{item.bottom.type === 'IMAGE' && item.bottom.previewable}}" class="platform-brand-image" src="{{item.bottom.url}}" style="width:{{item.bottom.widthPx}}px" mode="widthFix" show-menu-by-longpress data-url="{{item.bottom.url}}" bindtap="previewFollowQr" lazy-load aria-label="{{item.label || '底部图片'}}" />
+              <image wx:elif="{{item.bottom.type === 'IMAGE'}}" class="platform-brand-image" src="{{item.bottom.url}}" style="width:{{item.bottom.widthPx}}px" mode="widthFix" lazy-load aria-label="{{item.label || '底部图片'}}" />
+              <view wx:elif="{{item.bottom.type === 'TEXT'}}" class="follow-sub">{{item.bottom.text}}</view>
+            </view>
+            <view wx:elif="{{item.kind === 'BRAND'}}" class="platform-brand">
               <image class="platform-brand-image" src="{{footer.brandImageUrl}}" style="width:{{footer.brandWidthPx}}px" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
             </view>
             <view wx:elif="{{item.kind === 'TEXT'}}" class="follow-card">

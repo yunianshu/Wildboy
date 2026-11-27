@@ -16,8 +16,9 @@ import {
   type Activity,
   type HomeActionLink,
   type HomeGallerySlide,
+  type HomeFooterBlock,
   type HomeFooterCell,
-  type HomeFooterLayoutPreset,
+  type HomeFooterSlotType,
   type HomeLayoutConfig,
   type HomeModuleId,
   type HomeQrImage,
@@ -73,413 +74,390 @@ type ArticleOption = { id: string; title: string; status: string };
 
 const route = useRoute();
 const layout = ref<HomeLayoutConfig | null>(null);
-const footerCellLabels: Record<HomeFooterCell, string> = {
-  BRAND: "品牌底图",
-  TEXT: "关注说明",
-  QR1: "二维码 1",
-  QR2: "二维码 2",
-};
 const defaultFooterCells: HomeFooterCell[] = ["BRAND", "QR1", "TEXT", "QR2"];
-const brandWidthPresets = [
-  { label: "偏小", value: 160 },
-  { label: "标准", value: 216 },
-  { label: "偏大", value: 280 },
-] as const;
-
-type FooterSlotDef = { label: string; col: string; row: string };
-type FooterPresetDef = {
-  id: HomeFooterLayoutPreset;
-  group: 2 | 3 | 4;
+const footerSlotTypeOptions: Array<{ value: HomeFooterSlotType; label: string }> = [
+  { value: "NONE", label: "无" },
+  { value: "TEXT", label: "文字" },
+  { value: "IMAGE", label: "图片" },
+];
+const footerQuickTemplates: Array<{
+  id: string;
   label: string;
-  hasColSplit: boolean;
-  hasRowSplit: boolean;
-  slots: FooterSlotDef[];
-};
-
-const footerPresets: FooterPresetDef[] = [
-  {
-    id: "TWO_LR",
-    group: 2,
-    label: "左右",
-    hasColSplit: true,
-    hasRowSplit: false,
-    slots: [
-      { label: "左侧", col: "1", row: "1" },
-      { label: "右侧", col: "2", row: "1" },
-    ],
-  },
-  {
-    id: "TWO_TB",
-    group: 2,
-    label: "上下",
-    hasColSplit: false,
-    hasRowSplit: true,
-    slots: [
-      { label: "上方", col: "1", row: "1" },
-      { label: "下方", col: "1", row: "2" },
-    ],
-  },
-  {
-    id: "THREE_L1_R2",
-    group: 3,
-    label: "左1右2",
-    hasColSplit: true,
-    hasRowSplit: true,
-    slots: [
-      { label: "左侧通高", col: "1", row: "1 / span 2" },
-      { label: "右上", col: "2", row: "1" },
-      { label: "右下", col: "2", row: "2" },
-    ],
-  },
-  {
-    id: "THREE_L2_R1",
-    group: 3,
-    label: "左2右1",
-    hasColSplit: true,
-    hasRowSplit: true,
-    slots: [
-      { label: "左上", col: "1", row: "1" },
-      { label: "左下", col: "1", row: "2" },
-      { label: "右侧通高", col: "2", row: "1 / span 2" },
-    ],
-  },
-  {
-    id: "THREE_T1_B2",
-    group: 3,
-    label: "上1下2",
-    hasColSplit: true,
-    hasRowSplit: true,
-    slots: [
-      { label: "上方通宽", col: "1 / span 2", row: "1" },
-      { label: "左下", col: "1", row: "2" },
-      { label: "右下", col: "2", row: "2" },
-    ],
-  },
-  {
-    id: "THREE_T2_B1",
-    group: 3,
-    label: "上2下1",
-    hasColSplit: true,
-    hasRowSplit: true,
-    slots: [
-      { label: "左上", col: "1", row: "1" },
-      { label: "右上", col: "2", row: "1" },
-      { label: "下方通宽", col: "1 / span 2", row: "2" },
-    ],
-  },
-  {
-    id: "FOUR_GRID",
-    group: 4,
-    label: "四宫格",
-    hasColSplit: true,
-    hasRowSplit: true,
-    slots: [
-      { label: "左上", col: "1", row: "1" },
-      { label: "右上", col: "2", row: "1" },
-      { label: "左下", col: "1", row: "2" },
-      { label: "右下", col: "2", row: "2" },
-    ],
-  },
+  columns: 1 | 2 | 3;
+  colRatios: number[];
+  spans: Array<{ colSpan: number; rowSpan: number }>;
+}> = [
+  { id: "ONE_FULL", label: "1格通栏", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_LR", label: "2格左右", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_TB", label: "2格上下", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_L1_R2", label: "左1右2", columns: 2, colRatios: [45, 55], spans: [{ colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_T1_B2", label: "上1下2", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 2, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_COLS", label: "3列并排", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_GRID", label: "2×2四格", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_T1_B3", label: "上1下3", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 3, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
 ];
 
-const footerPresetMap = Object.fromEntries(
-  footerPresets.map((p) => [p.id, p]),
-) as Record<HomeFooterLayoutPreset, FooterPresetDef>;
-
-const footerPresetGroups = [2, 3, 4].map((count) => ({
-  count,
-  title: `${count} 区域`,
-  items: footerPresets.filter((p) => p.group === count),
-}));
-
-const activeFooterCell = ref<HomeFooterCell>("BRAND");
-const dragFooterPos = ref<number | null>(null);
-const dragOverFooterPos = ref<number | null>(null);
+const activeFooterBlockId = ref<string>("");
+const dragFooterIdx = ref<number | null>(null);
+const dragOverFooterIdx = ref<number | null>(null);
 const puzzleStageEl = ref<HTMLElement | null>(null);
-const draggingSplit = ref<"col" | "row" | null>(null);
+const draggingSplitIdx = ref<number | null>(null);
 
 function normalizeFooterCells(order?: HomeFooterCell[]) {
   return Array.isArray(order) && order.length === 4 && defaultFooterCells.every((id) => order.includes(id))
     ? [...order] : [...defaultFooterCells];
 }
 
-function normalizeFooterPreset(preset?: HomeFooterLayoutPreset): HomeFooterLayoutPreset {
-  return preset && preset in footerPresetMap ? preset : "FOUR_GRID";
+function defaultColRatiosFor(columns: number): number[] {
+  if (columns === 1) return [100];
+  if (columns === 3) return [33, 34, 33];
+  return [50, 50];
 }
 
-function normalizeFooterRatio(value?: number): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(25, Math.min(75, Math.round(n))) : 50;
+function normalizeFooterColumns(value?: number): 1 | 2 | 3 {
+  return value === 1 || value === 2 || value === 3 ? value : 2;
 }
 
-const footerCellsOrdered = computed<HomeFooterCell[]>(() =>
-  normalizeFooterCells(layout.value?.footer.cellOrder),
-);
+function normalizeFooterColRatios(raw: number[] | undefined, columns: 1 | 2 | 3): number[] {
+  if (Array.isArray(raw) && raw.length === columns) {
+    return raw.map((v) => {
+      const n = Number(v);
+      return Number.isFinite(n) ? Math.max(15, Math.min(85, Math.round(n))) : Math.round(100 / columns);
+    });
+  }
+  return defaultColRatiosFor(columns);
+}
 
-const footerPresetDef = computed<FooterPresetDef>(
-  () => footerPresetMap[normalizeFooterPreset(layout.value?.footer.layoutPreset)],
-);
-
-const footerColRatio = computed(() =>
-  normalizeFooterRatio(layout.value?.footer.colRatio),
-);
-
-const footerRowRatio = computed(() =>
-  normalizeFooterRatio(layout.value?.footer.rowRatio),
-);
-
-const footerActiveSlots = computed(() =>
-  footerPresetDef.value.slots.map((slot, posIdx) => ({
-    ...slot,
-    posIdx,
-    cellId: footerCellsOrdered.value[posIdx]!,
-  })),
-);
-
-const footerSpareSlots = computed(() =>
-  footerCellsOrdered.value
-    .slice(footerPresetDef.value.slots.length)
-    .map((cellId, idx) => ({
-      cellId,
-      posIdx: footerPresetDef.value.slots.length + idx,
-    })),
-);
-
-const isDefaultFooterLayout = computed(
-  () =>
-    footerPresetDef.value.id === "FOUR_GRID" &&
-    footerColRatio.value === 50 &&
-    footerRowRatio.value === 50 &&
-    footerCellsOrdered.value.every((id, idx) => id === defaultFooterCells[idx]),
-);
-
-const footerPuzzleGridStyle = computed(() => {
-  const preset = footerPresetDef.value;
+function makeEmptyFooterBlock(index: number): HomeFooterBlock {
   return {
-    gridTemplateColumns: preset.hasColSplit
-      ? `minmax(0, ${footerColRatio.value}fr) minmax(0, ${100 - footerColRatio.value}fr)`
-      : "minmax(0, 1fr)",
-    gridTemplateRows: preset.hasRowSplit
-      ? `minmax(0, ${footerRowRatio.value}fr) minmax(0, ${100 - footerRowRatio.value}fr)`
-      : "minmax(0, 1fr)",
+    id: `block-${Date.now().toString(36)}-${index}`,
+    name: `区域 ${index}`,
+    enabled: true,
+    colSpan: 1,
+    rowSpan: 1,
+    topType: "IMAGE",
+    topText: "",
+    topImageUrl: "",
+    topImageWidthPx: 110,
+    topPreviewable: true,
+    bottomType: "TEXT",
+    bottomText: "",
+    bottomImageUrl: "",
+    bottomImageWidthPx: 110,
+    bottomPreviewable: false,
   };
-});
-
-const footerColSplitterStyle = computed(() => {
-  const preset = footerPresetDef.value.id;
-  const base: Record<string, string> = {
-    left: `calc(${footerColRatio.value}% - 9px)`,
-  };
-  if (preset === "THREE_T1_B2") {
-    base.top = `${footerRowRatio.value}%`;
-    base.bottom = "0";
-  } else if (preset === "THREE_T2_B1") {
-    base.top = "0";
-    base.bottom = `${100 - footerRowRatio.value}%`;
-  } else {
-    base.top = "0";
-    base.bottom = "0";
-  }
-  return base;
-});
-
-const footerRowSplitterStyle = computed(() => {
-  const preset = footerPresetDef.value.id;
-  const base: Record<string, string> = {
-    top: `calc(${footerRowRatio.value}% - 9px)`,
-  };
-  if (preset === "THREE_L1_R2") {
-    base.left = `${footerColRatio.value}%`;
-    base.right = "0";
-  } else if (preset === "THREE_L2_R1") {
-    base.left = "0";
-    base.right = `${100 - footerColRatio.value}%`;
-  } else {
-    base.left = "0";
-    base.right = "0";
-  }
-  return base;
-});
-
-function setFooterPreset(preset: HomeFooterLayoutPreset) {
-  if (!layout.value) return;
-  layout.value.footer.layoutPreset = preset;
-  const activeIds = footerCellsOrdered.value.slice(0, footerPresetMap[preset].slots.length);
-  if (!activeIds.includes(activeFooterCell.value)) {
-    activeFooterCell.value = activeIds[0]!;
-  }
 }
 
-function swapFooterPositions(fromPos: number, toPos: number) {
-  const footer = layout.value?.footer;
-  if (!footer || fromPos === toPos || fromPos < 0 || toPos < 0 || fromPos > 3 || toPos > 3) return;
+function normalizeFooterBlock(b: Partial<HomeFooterBlock>, index: number, columns: number): HomeFooterBlock {
+  const cleanType = (t: unknown): HomeFooterSlotType =>
+    t === "TEXT" || t === "IMAGE" ? t : "NONE";
+  const cleanWidth = (w: unknown, fallback = 120) => {
+    const n = Number(w);
+    return Number.isFinite(n) ? Math.max(48, Math.min(360, Math.round(n))) : fallback;
+  };
+  return {
+    id: typeof b.id === "string" && b.id.trim() ? b.id.trim() : `block-${index + 1}`,
+    name: typeof b.name === "string" && b.name.trim() ? b.name.trim() : `区域 ${index + 1}`,
+    enabled: b.enabled !== false,
+    colSpan: Math.max(1, Math.min(columns, Math.round(Number(b.colSpan) || 1))),
+    rowSpan: Math.max(1, Math.min(2, Math.round(Number(b.rowSpan) || 1))),
+    topType: cleanType(b.topType),
+    topText: typeof b.topText === "string" ? b.topText : "",
+    topImageUrl: typeof b.topImageUrl === "string" ? b.topImageUrl : "",
+    topImageWidthPx: cleanWidth(b.topImageWidthPx, 120),
+    topPreviewable: Boolean(b.topPreviewable),
+    bottomType: cleanType(b.bottomType),
+    bottomText: typeof b.bottomText === "string" ? b.bottomText : "",
+    bottomImageUrl: typeof b.bottomImageUrl === "string" ? b.bottomImageUrl : "",
+    bottomImageWidthPx: cleanWidth(b.bottomImageWidthPx, 120),
+    bottomPreviewable: Boolean(b.bottomPreviewable),
+  };
+}
+
+function migrateLegacyFooterBlocks(footer: HomeLayoutConfig["footer"]): HomeFooterBlock[] {
   const order = normalizeFooterCells(footer.cellOrder);
-  [order[fromPos], order[toPos]] = [order[toPos]!, order[fromPos]!];
-  footer.cellOrder = order;
+  const qrs = footer.followQrcodes || [];
+  const list: HomeFooterBlock[] = [];
+  for (const id of order) {
+    if (id === "BRAND") {
+      list.push({
+        id: "brand",
+        name: "品牌底图",
+        enabled: footer.brandEnabled !== false,
+        colSpan: 1,
+        rowSpan: 1,
+        topType: "IMAGE",
+        topText: "",
+        topImageUrl: footer.brandImageUrl || DEFAULT_BRAND,
+        topImageWidthPx: footer.brandWidthPx || 216,
+        topPreviewable: false,
+        bottomType: "NONE",
+        bottomText: "",
+        bottomImageUrl: "",
+        bottomImageWidthPx: 120,
+        bottomPreviewable: false,
+      });
+    } else if (id === "TEXT") {
+      list.push({
+        id: "text",
+        name: "关注说明",
+        enabled: Boolean(footer.followEnabled && qrs.length > 0),
+        colSpan: 1,
+        rowSpan: 1,
+        topType: footer.followTitle?.trim() ? "TEXT" : "NONE",
+        topText: footer.followTitle || "",
+        topImageUrl: "",
+        topImageWidthPx: 120,
+        topPreviewable: false,
+        bottomType: footer.followSubtitle?.trim() ? "TEXT" : "NONE",
+        bottomText: footer.followSubtitle || "",
+        bottomImageUrl: "",
+        bottomImageWidthPx: 120,
+        bottomPreviewable: false,
+      });
+    } else {
+      const qrIdx = id === "QR1" ? 0 : 1;
+      const qr = qrs[qrIdx];
+      if (qr) {
+        list.push({
+          id: `qr-${qrIdx + 1}`,
+          name: qr.label?.trim() || `二维码 ${qrIdx + 1}`,
+          enabled: Boolean(footer.followEnabled),
+          colSpan: 1,
+          rowSpan: 1,
+          topType: "IMAGE",
+          topText: "",
+          topImageUrl: qr.url,
+          topImageWidthPx: 92,
+          topPreviewable: true,
+          bottomType: qr.label?.trim() ? "TEXT" : "NONE",
+          bottomText: qr.label || "",
+          bottomImageUrl: "",
+          bottomImageWidthPx: 92,
+          bottomPreviewable: false,
+        });
+      }
+    }
+  }
+  qrs.slice(2).forEach((qr, idx) => {
+    list.push({
+      id: `qr-${idx + 3}`,
+      name: qr.label?.trim() || `二维码 ${idx + 3}`,
+      enabled: Boolean(footer.followEnabled),
+      colSpan: 1,
+      rowSpan: 1,
+      topType: "IMAGE",
+      topText: "",
+      topImageUrl: qr.url,
+      topImageWidthPx: 92,
+      topPreviewable: true,
+      bottomType: qr.label?.trim() ? "TEXT" : "NONE",
+      bottomText: qr.label || "",
+      bottomImageUrl: "",
+      bottomImageWidthPx: 92,
+      bottomPreviewable: false,
+    });
+  });
+  return list;
 }
 
-function moveFooterCellTo(cell: HomeFooterCell, targetPos: number) {
-  const currentPos = footerCellsOrdered.value.indexOf(cell);
-  if (currentPos >= 0 && currentPos !== targetPos) {
-    swapFooterPositions(currentPos, targetPos);
+const footerBlocks = computed<HomeFooterBlock[]>(() => layout.value?.footer.blocks || []);
+const footerColumns = computed<1 | 2 | 3>(() =>
+  normalizeFooterColumns(layout.value?.footer.columns),
+);
+const footerColRatios = computed<number[]>(() =>
+  normalizeFooterColRatios(layout.value?.footer.colRatios, footerColumns.value),
+);
+
+const activeFooterBlockIndex = computed(() => {
+  const list = footerBlocks.value;
+  if (!list.length) return -1;
+  const idx = list.findIndex((b) => b.id === activeFooterBlockId.value);
+  return idx >= 0 ? idx : 0;
+});
+
+const activeFooterBlock = computed<HomeFooterBlock | null>(() => {
+  const idx = activeFooterBlockIndex.value;
+  return idx >= 0 ? footerBlocks.value[idx] ?? null : null;
+});
+
+function blockHasVisibleContent(b: HomeFooterBlock): boolean {
+  const topOk =
+    (b.topType === "TEXT" && Boolean(b.topText.trim())) ||
+    (b.topType === "IMAGE" && Boolean(b.topImageUrl.trim()));
+  const bottomOk =
+    (b.bottomType === "TEXT" && Boolean(b.bottomText.trim())) ||
+    (b.bottomType === "IMAGE" && Boolean(b.bottomImageUrl.trim()));
+  return topOk || bottomOk;
+}
+
+function footerBlockMeta(b: HomeFooterBlock) {
+  if (!b.enabled) return { active: false, badge: "已关闭", tone: "muted" as const };
+  if (!blockHasVisibleContent(b)) return { active: false, badge: "待填写", tone: "warn" as const };
+  return { active: true, badge: "显示中", tone: "ok" as const };
+}
+
+const footerPuzzleGridStyle = computed(() => ({
+  gridTemplateColumns: footerColRatios.value.map((r) => `minmax(0, ${r}fr)`).join(" "),
+  gridAutoFlow: "dense",
+}));
+
+const footerSplitPositions = computed(() => {
+  const cols = footerColumns.value;
+  if (cols <= 1) return [];
+  const ratios = footerColRatios.value;
+  const total = ratios.reduce((a, b) => a + b, 0) || 100;
+  const gapPx = 14;
+  const totalGap = gapPx * (cols - 1);
+  const out: Array<{ idx: number; left: string; label: string }> = [];
+  let acc = 0;
+  for (let i = 0; i < cols - 1; i++) {
+    acc += ratios[i]!;
+    const frac = acc / total;
+    out.push({
+      idx: i,
+      left: `calc((100% - ${totalGap}px) * ${frac} + ${i * gapPx}px)`,
+      label: `${ratios[i]}% : ${ratios[i + 1]}%`,
+    });
+  }
+  return out;
+});
+
+function setFooterColumns(cols: 1 | 2 | 3) {
+  if (!layout.value) return;
+  layout.value.footer.columns = cols;
+  layout.value.footer.colRatios = defaultColRatiosFor(cols);
+  for (const b of layout.value.footer.blocks || []) {
+    if (b.colSpan > cols) b.colSpan = cols;
   }
 }
 
-function swapSpareIntoActive(sparePosIdx: number) {
-  const activePos = footerCellsOrdered.value.indexOf(activeFooterCell.value);
-  const targetPos = activePos >= 0 && activePos < footerPresetDef.value.slots.length ? activePos : 0;
-  const spareCell = footerCellsOrdered.value[sparePosIdx];
-  swapFooterPositions(sparePosIdx, targetPos);
-  if (spareCell) activeFooterCell.value = spareCell;
+function applyFooterTemplate(tplId: string) {
+  const tpl = footerQuickTemplates.find((t) => t.id === tplId);
+  if (!tpl || !layout.value) return;
+  layout.value.footer.columns = tpl.columns;
+  layout.value.footer.colRatios = [...tpl.colRatios];
+  const blocks = layout.value.footer.blocks || (layout.value.footer.blocks = []);
+  while (blocks.length < tpl.spans.length && blocks.length < 12) {
+    blocks.push(makeEmptyFooterBlock(blocks.length + 1));
+  }
+  blocks.forEach((b, idx) => {
+    const span = tpl.spans[idx];
+    b.colSpan = span ? span.colSpan : 1;
+    b.rowSpan = span ? span.rowSpan : 1;
+    b.enabled = idx < tpl.spans.length;
+  });
+  if (blocks[0]) activeFooterBlockId.value = blocks[0].id;
 }
 
-function resetFooterOrder() {
+function addFooterBlock() {
   if (!layout.value) return;
-  layout.value.footer.layoutPreset = "FOUR_GRID";
-  layout.value.footer.colRatio = 50;
-  layout.value.footer.rowRatio = 50;
-  layout.value.footer.cellOrder = [...defaultFooterCells];
+  const blocks = layout.value.footer.blocks || (layout.value.footer.blocks = []);
+  if (blocks.length >= 12) return;
+  const created = makeEmptyFooterBlock(blocks.length + 1);
+  blocks.push(created);
+  activeFooterBlockId.value = created.id;
+}
+
+function removeFooterBlock(idx: number) {
+  const blocks = layout.value?.footer.blocks;
+  if (!blocks || idx < 0 || idx >= blocks.length) return;
+  blocks.splice(idx, 1);
+  const next = blocks[Math.min(idx, blocks.length - 1)];
+  activeFooterBlockId.value = next ? next.id : "";
+}
+
+function swapFooterBlockOrder(fromIdx: number, toIdx: number) {
+  const blocks = layout.value?.footer.blocks;
+  if (!blocks || fromIdx === toIdx || fromIdx < 0 || toIdx < 0 || fromIdx >= blocks.length || toIdx >= blocks.length) {
+    return;
+  }
+  [blocks[fromIdx], blocks[toIdx]] = [blocks[toIdx]!, blocks[fromIdx]!];
+}
+
+function startFooterBlockDrag(idx: number) {
+  dragFooterIdx.value = idx;
+}
+
+function dropFooterBlock(targetIdx: number) {
+  if (dragFooterIdx.value !== null) {
+    swapFooterBlockOrder(dragFooterIdx.value, targetIdx);
+  }
+  dragFooterIdx.value = null;
+  dragOverFooterIdx.value = null;
+}
+
+function endFooterBlockDrag() {
+  dragFooterIdx.value = null;
+  dragOverFooterIdx.value = null;
 }
 
 function resetFooterRatios() {
   if (!layout.value) return;
-  layout.value.footer.colRatio = 50;
-  layout.value.footer.rowRatio = 50;
+  layout.value.footer.colRatios = defaultColRatiosFor(footerColumns.value);
 }
 
-function nudgeFooterRatio(axis: "col" | "row", delta: number) {
+function nudgeFooterColRatio(splitIdx: number, delta: number) {
   if (!layout.value) return;
-  if (axis === "col") {
-    layout.value.footer.colRatio = normalizeFooterRatio(footerColRatio.value + delta);
-  } else {
-    layout.value.footer.rowRatio = normalizeFooterRatio(footerRowRatio.value + delta);
-  }
+  const ratios = [...footerColRatios.value];
+  const left = ratios[splitIdx];
+  const right = ratios[splitIdx + 1];
+  if (left === undefined || right === undefined) return;
+  const pairSum = left + right;
+  const nextLeft = Math.max(15, Math.min(pairSum - 15, left + delta));
+  ratios[splitIdx] = nextLeft;
+  ratios[splitIdx + 1] = pairSum - nextLeft;
+  layout.value.footer.colRatios = ratios;
 }
 
 function onSplitPointerMove(e: PointerEvent) {
-  const axis = draggingSplit.value;
+  const idx = draggingSplitIdx.value;
   const stage = puzzleStageEl.value;
-  if (!axis || !stage || !layout.value) return;
+  if (idx === null || !stage || !layout.value) return;
   const rect = stage.getBoundingClientRect();
-  if (axis === "col" && rect.width > 0) {
-    const pct = ((e.clientX - rect.left) / rect.width) * 100;
-    layout.value.footer.colRatio = normalizeFooterRatio(pct);
-  } else if (axis === "row" && rect.height > 0) {
-    const pct = ((e.clientY - rect.top) / rect.height) * 100;
-    layout.value.footer.rowRatio = normalizeFooterRatio(pct);
-  }
+  if (rect.width <= 0) return;
+  const ratios = [...footerColRatios.value];
+  const total = ratios.reduce((a, b) => a + b, 0) || 100;
+  const pct = Math.round(((e.clientX - rect.left) / rect.width) * total);
+  const beforeSum = ratios.slice(0, idx).reduce((a, b) => a + b, 0);
+  const pairSum = ratios[idx]! + ratios[idx + 1]!;
+  const nextLeft = Math.max(15, Math.min(pairSum - 15, pct - beforeSum));
+  ratios[idx] = nextLeft;
+  ratios[idx + 1] = pairSum - nextLeft;
+  layout.value.footer.colRatios = ratios;
 }
 
 function stopSplitDrag() {
-  draggingSplit.value = null;
+  draggingSplitIdx.value = null;
   window.removeEventListener("pointermove", onSplitPointerMove);
   window.removeEventListener("pointerup", stopSplitDrag);
   window.removeEventListener("pointercancel", stopSplitDrag);
 }
 
-function startSplitDrag(axis: "col" | "row", e: PointerEvent) {
+function startSplitDrag(splitIdx: number, e: PointerEvent) {
   e.preventDefault();
-  draggingSplit.value = axis;
+  draggingSplitIdx.value = splitIdx;
   window.addEventListener("pointermove", onSplitPointerMove);
   window.addEventListener("pointerup", stopSplitDrag);
   window.addEventListener("pointercancel", stopSplitDrag);
 }
 
-function startFooterCellDrag(pos: number) {
-  dragFooterPos.value = pos;
-}
-
-function dropFooterCell(targetPos: number) {
-  if (dragFooterPos.value !== null) {
-    swapFooterPositions(dragFooterPos.value, targetPos);
+function syncLegacyBrandWidth(block: HomeFooterBlock) {
+  if (layout.value && block.id === "brand" && block.topType === "IMAGE") {
+    layout.value.footer.brandWidthPx = block.topImageWidthPx;
   }
-  dragFooterPos.value = null;
-  dragOverFooterPos.value = null;
 }
 
-function endFooterCellDrag() {
-  dragFooterPos.value = null;
-  dragOverFooterPos.value = null;
-}
-
-function footerSlotQrIndex(cell: HomeFooterCell): number | null {
-  if (cell === "QR1") return 0;
-  if (cell === "QR2") return 1;
-  return null;
-}
-
-function footerCellMeta(cell: HomeFooterCell) {
-  const footer = layout.value?.footer;
-  if (!footer) return { active: false, badge: "未配置", tone: "muted" as const };
-  const qrs = footer.followQrcodes;
-  if (cell === "BRAND") {
-    return footer.brandEnabled
-      ? { active: true, badge: "显示中", tone: "ok" as const }
-      : { active: false, badge: "已关闭", tone: "muted" as const };
-  }
-  if (!footer.followEnabled) {
-    return { active: false, badge: "已关闭", tone: "muted" as const };
-  }
-  if (cell === "TEXT") {
-    if (!qrs.length) return { active: false, badge: "缺二维码", tone: "warn" as const };
-    if (!footer.followTitle.trim() && !footer.followSubtitle.trim()) {
-      return { active: false, badge: "未填文案", tone: "muted" as const };
-    }
-    return { active: true, badge: "显示中", tone: "ok" as const };
-  }
-  const idx = cell === "QR1" ? 0 : 1;
-  return qrs[idx]
-    ? { active: true, badge: "显示中", tone: "ok" as const }
-    : { active: false, badge: "未上传", tone: "muted" as const };
-}
-
-const footerPreviewCells = computed(() => {
-  const footer = layout.value?.footer;
-  if (!footer) return [];
-  const codes = footer.followEnabled ? footer.followQrcodes : [];
-  const map: Partial<Record<HomeFooterCell, { id: string; kind: "BRAND" | "TEXT" | "QR"; qr?: HomeQrImage }>> = {};
-  if (footer.brandEnabled) map.BRAND = { id: "BRAND", kind: "BRAND" };
-  if (codes.length && (footer.followTitle.trim() || footer.followSubtitle.trim()))
-    map.TEXT = { id: "TEXT", kind: "TEXT" };
-  if (codes[0]) map.QR1 = { id: "QR1", kind: "QR", qr: codes[0] };
-  if (codes[1]) map.QR2 = { id: "QR2", kind: "QR", qr: codes[1] };
-  const preset = footerPresetDef.value;
-  const activeIds = normalizeFooterCells(footer.cellOrder).slice(0, preset.slots.length);
-  const primary = activeIds.flatMap((id) => (map[id] ? [map[id]!] : []));
-  const applyPresetStyles = preset.id !== "FOUR_GRID" && primary.length === preset.slots.length;
-  return primary
-    .map((cell, idx) => ({
-      ...cell,
-      style: applyPresetStyles
-        ? {
-            gridColumn: preset.slots[idx]!.col,
-            gridRow: preset.slots[idx]!.row,
-          }
-        : undefined,
-    }))
-    .concat(
-      codes.slice(2).map((qr, index) => ({
-        id: "QR" + (index + 3),
-        kind: "QR" as const,
-        qr,
-        style: undefined,
-      })),
-    );
-});
+const footerPreviewBlocks = computed(() =>
+  footerBlocks.value.filter((b) => b.enabled && blockHasVisibleContent(b)),
+);
 
 const footerPreviewGridStyle = computed(() => {
-  if (footerPreviewCells.value.length <= 1) return undefined;
-  const preset = footerPresetDef.value;
-  const style: Record<string, string> = {
-    gridTemplateColumns: preset.hasColSplit
-      ? `minmax(0, ${footerColRatio.value}fr) minmax(0, ${100 - footerColRatio.value}fr)`
-      : "minmax(0, 1fr)",
+  if (footerPreviewBlocks.value.length <= 1) return undefined;
+  return {
+    gridTemplateColumns: footerColRatios.value.map((r) => `minmax(0, ${r}fr)`).join(" "),
+    gridAutoFlow: "dense",
   };
-  if (preset.hasRowSplit && footerRowRatio.value !== 50) {
-    style.gridTemplateRows = `minmax(0, ${footerRowRatio.value}fr) minmax(0, ${100 - footerRowRatio.value}fr)`;
-    style.minHeight = "156px";
-  }
-  return style;
 });
 
 const snapshot = ref("");
@@ -563,11 +541,17 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
   copy.footer.followTitle = copy.footer.followTitle || "";
   copy.footer.followSubtitle = copy.footer.followSubtitle || "";
   copy.footer.cellOrder = normalizeFooterCells(copy.footer.cellOrder);
-  copy.footer.layoutPreset = normalizeFooterPreset(copy.footer.layoutPreset);
-  copy.footer.colRatio = normalizeFooterRatio(copy.footer.colRatio);
-  copy.footer.rowRatio = normalizeFooterRatio(copy.footer.rowRatio);
   copy.footer.brandImageUrl = copy.footer.brandImageUrl || DEFAULT_BRAND;
   copy.footer.brandWidthPx = copy.footer.brandWidthPx || 216;
+  const cols = normalizeFooterColumns(copy.footer.columns);
+  copy.footer.columns = cols;
+  copy.footer.colRatios = normalizeFooterColRatios(copy.footer.colRatios, cols);
+  copy.footer.blocks = Array.isArray(copy.footer.blocks)
+    ? copy.footer.blocks.map((b, i) => normalizeFooterBlock(b, i, cols))
+    : migrateLegacyFooterBlocks(copy.footer);
+  if (copy.footer.blocks.length && !activeFooterBlockId.value) {
+    activeFooterBlockId.value = copy.footer.blocks[0]!.id;
+  }
   return copy;
 }
 
@@ -840,38 +824,6 @@ function addGallerySlide(url: string) {
   layout.value.gallery.slides.push(slide);
 }
 
-// Footer QRs
-function addFollowQr(url: string) {
-  if (!layout.value || layout.value.footer.followQrcodes.length >= 6) return;
-  layout.value.footer.followQrcodes.push({ url, label: "扫码关注" });
-}
-function uploadFooterSlotQr(cell: "QR1" | "QR2", url: string) {
-  if (!layout.value) return;
-  const list = layout.value.footer.followQrcodes;
-  const idx = cell === "QR1" ? 0 : 1;
-  if (list[idx]) {
-    list[idx]!.url = url;
-    return;
-  }
-  if (list.length < 6) {
-    list.push({ url, label: idx === 0 ? "官方公众号" : "扫码关注" });
-    if (list.length === 1) activeFooterCell.value = "QR1";
-  }
-}
-function removeFooterQr(idx: number) {
-  if (!layout.value) return;
-  layout.value.footer.followQrcodes.splice(idx, 1);
-}
-function dropFollowQr(toIdx: number) {
-  if (!layout.value || dragFollowQrIdx.value === null) return;
-  moveArrayItem(
-    layout.value.footer.followQrcodes,
-    dragFollowQrIdx.value,
-    toIdx,
-  );
-  dragFollowQrIdx.value = null;
-}
-
 async function save() {
   if (!layout.value || saving.value || conflict.value) return;
   error.value = "";
@@ -1041,6 +993,7 @@ onUnmounted(() => {
             />
             <div class="image-setting-controls">
               <ImageUpload
+                category="HOME"
                 label="上传替换顶部主图"
                 @uploaded="layout.hero.imageUrl = $event"
               />
@@ -1282,6 +1235,7 @@ onUnmounted(() => {
               />
               <div class="image-setting-controls">
                 <ImageUpload
+                  category="HOME"
                   label="上传自定义入口封面图"
                   @uploaded="activeShortcut.imageUrl = $event"
                 />
@@ -1440,6 +1394,7 @@ onUnmounted(() => {
                   8，可拖动排序）</strong
                 >
                 <ImageUpload
+                  category="HOME"
                   v-if="activeShortcut.popupImages.length < 8"
                   :key="`sc-qr-${activeShortcut.popupImages.length}`"
                   label="上传二维码图片"
@@ -1632,6 +1587,7 @@ onUnmounted(() => {
               />
               <div class="image-setting-controls">
                 <ImageUpload
+                  category="HOME"
                   label="上传替换装备横幅图"
                   @uploaded="layout.shop.bannerImageUrl = $event"
                 />
@@ -1756,6 +1712,7 @@ onUnmounted(() => {
             <div class="panel-head">
               <h3>自定义轮播图（{{ layout.gallery.slides.length }} / 10）</h3>
               <ImageUpload
+                category="HOME"
                 v-if="layout.gallery.slides.length < 10"
                 :key="`slide-up-${layout.gallery.slides.length}`"
                 label="上传新增轮播图"
@@ -1842,128 +1799,114 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 6. FOOTER (Puzzle board with 2/3/4 presets + draggable splitters + focused slot inspector) -->
+        <!-- 6. FOOTER (Generic flexible puzzle blocks: top text/image + bottom text/image) -->
         <div v-else-if="activeModule === 'FOOTER'" class="editor-panel">
           <div class="panel-head">
             <div>
               <h2>首页底部配置</h2>
               <p class="field-hint footer-panel-desc">
-                选择 2/3/4 区域拼图组合，拖动拼图块换位，推动中间分割条调整左右/上下比例，点击任意区域编辑内容。
+                每个区域均可自由组合「上部文字/图片 + 下部文字/图片」，支持 1–3 列自由排布、跨列/跨行、拖动换位与推动列宽。
               </p>
             </div>
             <div class="footer-head-toggles">
-              <label class="footer-toggle-pill">
-                <input
-                  v-model="layout.footer.brandEnabled"
-                  type="checkbox"
-                  data-footer-toggle="brand"
-                />
-                <span>显示品牌底图</span>
-              </label>
-              <label class="footer-toggle-pill">
-                <input
-                  v-model="layout.footer.followEnabled"
-                  type="checkbox"
-                  data-footer-toggle="follow"
-                />
-                <span>显示关注二维码</span>
-              </label>
+              <div class="footer-pos-switcher" role="group" aria-label="底部网格列数">
+                <span class="footer-pos-switcher-label">列数</span>
+                <button
+                  v-for="c in ([1, 2, 3] as const)"
+                  :key="c"
+                  type="button"
+                  class="footer-pos-btn"
+                  :class="{ 'is-current': footerColumns === c }"
+                  :data-footer-cols="c"
+                  :aria-pressed="footerColumns === c"
+                  @click="setFooterColumns(c)"
+                >
+                  {{ c }}列
+                </button>
+              </div>
               <button
-                v-if="!isDefaultFooterLayout"
                 type="button"
-                class="text-button"
-                @click="resetFooterOrder"
+                class="secondary"
+                :disabled="footerBlocks.length >= 12"
+                data-footer-add
+                @click="addFooterBlock"
               >
-                恢复默认排布
+                + 添加区域
               </button>
             </div>
           </div>
 
-          <!-- Puzzle Preset Selector (2 / 3 / 4 areas) -->
-          <div class="footer-preset-bar" role="group" aria-label="拼图区域排列组合">
-            <div
-              v-for="group in footerPresetGroups"
-              :key="group.count"
-              class="footer-preset-group"
-            >
-              <span class="footer-preset-group-label">{{ group.title }}</span>
-              <div class="footer-preset-items">
-                <button
-                  v-for="preset in group.items"
-                  :key="preset.id"
-                  type="button"
-                  class="footer-preset-card"
-                  :class="{ 'is-active': footerPresetDef.id === preset.id }"
-                  :data-footer-preset="preset.id"
-                  :aria-pressed="footerPresetDef.id === preset.id"
-                  @click="setFooterPreset(preset.id)"
-                >
-                  <span
-                    class="footer-preset-thumb"
-                    :class="`is-${preset.id.toLowerCase()}`"
-                    aria-hidden="true"
-                  >
-                    <i
-                      v-for="(slot, idx) in preset.slots"
-                      :key="idx"
-                      :style="{ gridColumn: slot.col, gridRow: slot.row }"
-                    />
-                  </span>
-                  <span>{{ preset.label }}</span>
-                </button>
-              </div>
+          <!-- Quick Layout Presets (1 to 4+ common arrangements) -->
+          <div class="footer-preset-bar" role="group" aria-label="快捷排列组合">
+            <span class="footer-preset-group-label">快捷排列</span>
+            <div class="footer-preset-items">
+              <button
+                v-for="tpl in footerQuickTemplates"
+                :key="tpl.id"
+                type="button"
+                class="footer-preset-card"
+                :data-footer-preset="tpl.id"
+                @click="applyFooterTemplate(tpl.id)"
+              >
+                {{ tpl.label }}
+              </button>
             </div>
           </div>
 
-          <!-- Interactive Puzzle Stage with Draggable Splitters -->
+          <!-- Interactive Generic Puzzle Canvas -->
           <div
+            v-if="footerBlocks.length"
             ref="puzzleStageEl"
-            class="footer-puzzle-stage"
-            :class="{ 'is-resizing': !!draggingSplit }"
+            class="footer-puzzle-stage footer-puzzle-stage-auto"
+            :class="{ 'is-resizing': draggingSplitIdx !== null }"
           >
             <div
               class="footer-puzzle-grid"
               role="list"
-              aria-label="首页底部拼图排布"
+              aria-label="首页底部区域排布"
               :style="footerPuzzleGridStyle"
             >
               <div
-                v-for="slot in footerActiveSlots"
-                :key="slot.cellId"
+                v-for="(block, bIdx) in footerBlocks"
+                :key="block.id"
                 class="footer-slot-card"
                 :class="{
-                  'is-selected': activeFooterCell === slot.cellId,
-                  'is-muted': !footerCellMeta(slot.cellId).active,
-                  'is-dragging': dragFooterPos === slot.posIdx,
-                  'is-drag-over': dragOverFooterPos === slot.posIdx && dragFooterPos !== slot.posIdx,
+                  'is-selected': activeFooterBlock?.id === block.id,
+                  'is-muted': !footerBlockMeta(block).active,
+                  'is-dragging': dragFooterIdx === bIdx,
+                  'is-drag-over': dragOverFooterIdx === bIdx && dragFooterIdx !== bIdx,
                 }"
-                :style="{ gridColumn: slot.col, gridRow: slot.row }"
+                :style="{
+                  gridColumn: block.colSpan > 1 ? `span ${Math.min(block.colSpan, footerColumns)}` : undefined,
+                  gridRow: block.rowSpan > 1 ? `span ${block.rowSpan}` : undefined,
+                }"
                 role="listitem"
                 tabindex="0"
                 draggable="true"
-                :data-footer-pos="slot.posIdx"
-                :data-footer-cell="slot.cellId"
-                :aria-pressed="activeFooterCell === slot.cellId"
-                @click="activeFooterCell = slot.cellId"
-                @keydown.enter.prevent="activeFooterCell = slot.cellId"
-                @keydown.space.prevent="activeFooterCell = slot.cellId"
-                @dragstart="startFooterCellDrag(slot.posIdx)"
-                @dragenter.prevent="dragOverFooterPos = slot.posIdx"
-                @dragover.prevent="dragOverFooterPos = slot.posIdx"
-                @drop.prevent="dropFooterCell(slot.posIdx)"
-                @dragend="endFooterCellDrag"
+                :data-footer-pos="bIdx"
+                :data-footer-block="block.id"
+                :aria-pressed="activeFooterBlock?.id === block.id"
+                @click="activeFooterBlockId = block.id"
+                @keydown.enter.prevent="activeFooterBlockId = block.id"
+                @keydown.space.prevent="activeFooterBlockId = block.id"
+                @dragstart="startFooterBlockDrag(bIdx)"
+                @dragenter.prevent="dragOverFooterIdx = bIdx"
+                @dragover.prevent="dragOverFooterIdx = bIdx"
+                @drop.prevent="dropFooterBlock(bIdx)"
+                @dragend="endFooterBlockDrag"
               >
                 <div class="footer-slot-head">
                   <div class="footer-slot-title">
-                    <span class="footer-pos-tag">{{ slot.label }}</span>
-                    <strong>{{ footerCellLabels[slot.cellId] }}</strong>
+                    <strong>{{ block.name }}</strong>
+                    <span v-if="block.colSpan > 1" class="footer-pos-tag">占{{ Math.min(block.colSpan, footerColumns) }}列</span>
+                    <span v-if="block.rowSpan > 1" class="footer-pos-tag">跨2行</span>
                   </div>
                   <div class="footer-slot-right">
                     <span
                       class="footer-status-pill"
-                      :class="`is-${footerCellMeta(slot.cellId).tone}`"
+                      :class="`is-${footerBlockMeta(block).tone}`"
                     >
-                      {{ footerCellMeta(slot.cellId).badge }}
+                      {{ footerBlockMeta(block).badge }}
                     </span>
                     <span class="footer-drag-grip" title="拖动换位" aria-hidden="true">
                       <AppIcon name="grip" :size="14" />
@@ -1972,412 +1915,302 @@ onUnmounted(() => {
                 </div>
 
                 <div class="footer-slot-body">
-                  <template v-if="slot.cellId === 'BRAND'">
+                  <template v-if="block.topType === 'IMAGE' && block.topImageUrl">
                     <img
                       class="footer-slot-brand-img"
-                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
+                      :src="brandPreviewUrl(block.topImageUrl)"
                       alt=""
                     />
-                    <span class="footer-slot-meta">宽 {{ layout.footer.brandWidthPx }} px</span>
                   </template>
+                  <strong
+                    v-else-if="block.topType === 'TEXT' && block.topText.trim()"
+                    class="footer-slot-text-title"
+                  >
+                    {{ block.topText }}
+                  </strong>
 
-                  <template v-else-if="slot.cellId === 'TEXT'">
-                    <strong class="footer-slot-text-title">
-                      {{ layout.footer.followTitle.trim() || "未填写关注标题" }}
-                    </strong>
-                    <span class="footer-slot-text-sub">
-                      {{ layout.footer.followSubtitle.trim() || "点击编辑引导副文案" }}
-                    </span>
+                  <template v-if="block.bottomType === 'IMAGE' && block.bottomImageUrl">
+                    <img
+                      class="footer-slot-qr-img"
+                      :src="brandPreviewUrl(block.bottomImageUrl)"
+                      alt=""
+                    />
                   </template>
+                  <span
+                    v-else-if="block.bottomType === 'TEXT' && block.bottomText.trim()"
+                    class="footer-slot-text-sub"
+                  >
+                    {{ block.bottomText }}
+                  </span>
 
-                  <template v-else>
-                    <template v-if="layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]">
-                      <img
-                        class="footer-slot-qr-img"
-                        :src="layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]!.url"
-                        alt=""
-                      />
-                      <span class="footer-slot-meta">
-                        {{ layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]!.label || "未命名二维码" }}
-                      </span>
-                    </template>
-                    <div v-else class="footer-slot-empty">
-                      <AppIcon name="upload" :size="18" />
-                      <span>点击上传二维码</span>
-                    </div>
-                  </template>
+                  <div v-if="!blockHasVisibleContent(block)" class="footer-slot-empty">
+                    <AppIcon name="plus" :size="16" />
+                    <span>点击配置文字或图片</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Left/Right Push Splitter -->
+            <!-- Column Ratio Push Splitters -->
             <button
-              v-if="footerPresetDef.hasColSplit"
+              v-for="split in footerSplitPositions"
+              :key="split.idx"
               type="button"
               class="footer-splitter footer-splitter-v"
-              :class="{ 'is-active': draggingSplit === 'col' }"
-              :style="footerColSplitterStyle"
-              data-footer-splitter="col"
+              :class="{ 'is-active': draggingSplitIdx === split.idx }"
+              :style="{ left: split.left, top: '0', bottom: '0' }"
+              :data-footer-splitter="`col-${split.idx}`"
               aria-label="左右推动调整列宽比例"
-              title="左右拖动调整宽度比例"
-              @pointerdown="startSplitDrag('col', $event)"
-              @keydown.left.prevent="nudgeFooterRatio('col', -5)"
-              @keydown.right.prevent="nudgeFooterRatio('col', 5)"
+              title="左右拖动调整列宽比例"
+              @pointerdown="startSplitDrag(split.idx, $event)"
+              @keydown.left.prevent="nudgeFooterColRatio(split.idx, -5)"
+              @keydown.right.prevent="nudgeFooterColRatio(split.idx, 5)"
             >
               <span class="footer-splitter-handle" />
-              <span v-if="draggingSplit === 'col'" class="footer-splitter-tip">
-                {{ footerColRatio }}% : {{ 100 - footerColRatio }}%
-              </span>
-            </button>
-
-            <!-- Top/Bottom Push Splitter -->
-            <button
-              v-if="footerPresetDef.hasRowSplit"
-              type="button"
-              class="footer-splitter footer-splitter-h"
-              :class="{ 'is-active': draggingSplit === 'row' }"
-              :style="footerRowSplitterStyle"
-              data-footer-splitter="row"
-              aria-label="上下推动调整行高比例"
-              title="上下拖动调整高度比例"
-              @pointerdown="startSplitDrag('row', $event)"
-              @keydown.up.prevent="nudgeFooterRatio('row', -5)"
-              @keydown.down.prevent="nudgeFooterRatio('row', 5)"
-            >
-              <span class="footer-splitter-handle" />
-              <span v-if="draggingSplit === 'row'" class="footer-splitter-tip">
-                {{ footerRowRatio }}% : {{ 100 - footerRowRatio }}%
+              <span v-if="draggingSplitIdx === split.idx" class="footer-splitter-tip">
+                {{ split.label }}
               </span>
             </button>
           </div>
+          <div v-else class="footer-off-banner">
+            <span>当前没有底部区域，点击右上角「+ 添加区域」或选择快捷排列即可开始配置。</span>
+          </div>
 
-          <!-- Ratio Status & Quick Reset Bar -->
-          <div class="footer-ratio-bar">
+          <!-- Column Ratio Bar -->
+          <div v-if="footerColumns > 1 && footerBlocks.length" class="footer-ratio-bar">
             <div class="footer-ratio-stats">
-              <span v-if="footerPresetDef.hasColSplit" class="footer-ratio-chip">
-                左右比例 <strong>{{ footerColRatio }}% : {{ 100 - footerColRatio }}%</strong>
+              <span class="footer-ratio-chip">
+                列宽比例 <strong>{{ footerColRatios.map((r) => `${r}%`).join(" : ") }}</strong>
               </span>
-              <span v-if="footerPresetDef.hasRowSplit" class="footer-ratio-chip">
-                上下比例 <strong>{{ footerRowRatio }}% : {{ 100 - footerRowRatio }}%</strong>
-              </span>
-              <span class="field-hint">可拖动中间绿条推动左右/上下比例</span>
+              <span class="field-hint">拖动列间分割条可推动左右宽度比例</span>
             </div>
             <button
-              v-if="footerColRatio !== 50 || footerRowRatio !== 50"
+              v-if="footerColRatios.some((r, i) => r !== defaultColRatiosFor(footerColumns)[i])"
               type="button"
               class="text-button"
               @click="resetFooterRatios"
             >
-              均分 50/50
+              恢复均分
             </button>
           </div>
 
-          <!-- Spare Modules Dock (for 2-area / 3-area puzzles) -->
-          <div v-if="footerSpareSlots.length" class="footer-spare-dock">
-            <span class="footer-spare-label">未放入拼图的模块（拖入上方格子或点击换入）：</span>
-            <div class="footer-spare-list">
-              <div
-                v-for="spare in footerSpareSlots"
-                :key="spare.cellId"
-                class="footer-spare-chip"
-                draggable="true"
-                :data-footer-spare="spare.cellId"
-                @dragstart="startFooterCellDrag(spare.posIdx)"
-                @dragend="endFooterCellDrag"
-              >
-                <AppIcon name="grip" :size="13" />
-                <strong>{{ footerCellLabels[spare.cellId] }}</strong>
+          <!-- Generic Block Inspector (Top: None/Text/Image + Bottom: None/Text/Image) -->
+          <div v-if="activeFooterBlock" class="sub-box footer-inspector">
+            <div class="footer-inspector-head">
+              <div class="footer-inspector-title">
+                <input
+                  v-model="activeFooterBlock.name"
+                  class="footer-block-name-input"
+                  maxlength="40"
+                  aria-label="区域名称"
+                  placeholder="区域名称（如：品牌底图 / 公众号）"
+                />
+                <label class="footer-toggle-pill">
+                  <input
+                    v-model="activeFooterBlock.enabled"
+                    type="checkbox"
+                    data-footer-toggle="block"
+                  />
+                  <span>显示</span>
+                </label>
+              </div>
+              <div class="footer-inspector-actions">
+                <div v-if="footerColumns > 1" class="footer-pos-switcher" role="group" aria-label="横跨列数">
+                  <span class="footer-pos-switcher-label">占宽</span>
+                  <button
+                    v-for="span in footerColumns"
+                    :key="span"
+                    type="button"
+                    class="footer-pos-btn"
+                    :class="{ 'is-current': Math.min(activeFooterBlock.colSpan, footerColumns) === span }"
+                    @click="activeFooterBlock.colSpan = span"
+                  >
+                    {{ span }}列
+                  </button>
+                </div>
+                <div class="footer-pos-switcher" role="group" aria-label="纵跨行数">
+                  <span class="footer-pos-switcher-label">占高</span>
+                  <button
+                    v-for="rSpan in ([1, 2] as const)"
+                    :key="rSpan"
+                    type="button"
+                    class="footer-pos-btn"
+                    :class="{ 'is-current': activeFooterBlock.rowSpan === rSpan }"
+                    @click="activeFooterBlock.rowSpan = rSpan"
+                  >
+                    {{ rSpan }}行
+                  </button>
+                </div>
                 <button
                   type="button"
                   class="text-button"
-                  @click="swapSpareIntoActive(spare.posIdx)"
+                  :disabled="activeFooterBlockIndex <= 0"
+                  @click="swapFooterBlockOrder(activeFooterBlockIndex, activeFooterBlockIndex - 1)"
                 >
-                  换入当前格
+                  前移
                 </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Focused Slot Inspector -->
-          <div class="sub-box footer-inspector">
-            <div class="footer-inspector-head">
-              <div class="footer-inspector-title">
-                <h3>{{ footerCellLabels[activeFooterCell] }}设置</h3>
-                <span
-                  class="footer-status-pill"
-                  :class="`is-${footerCellMeta(activeFooterCell).tone}`"
-                >
-                  {{ footerCellMeta(activeFooterCell).badge }}
-                </span>
-              </div>
-              <div class="footer-pos-switcher" role="group" aria-label="调整当前格子位置">
-                <span class="footer-pos-switcher-label">位置</span>
                 <button
-                  v-for="slot in footerActiveSlots"
-                  :key="slot.posIdx"
                   type="button"
-                  class="footer-pos-btn"
-                  :class="{ 'is-current': slot.cellId === activeFooterCell }"
-                  :aria-pressed="slot.cellId === activeFooterCell"
-                  @click="moveFooterCellTo(activeFooterCell, slot.posIdx)"
+                  class="text-button danger-text"
+                  data-footer-delete
+                  @click="removeFooterBlock(activeFooterBlockIndex)"
                 >
-                  {{ slot.label }}
+                  删除
                 </button>
               </div>
             </div>
 
-            <!-- Inspector: BRAND -->
-            <template v-if="activeFooterCell === 'BRAND'">
-              <div v-if="!layout.footer.brandEnabled" class="footer-off-banner">
-                <span>品牌底图当前已关闭，不会在小程序首页底部显示。</span>
-                <button
-                  type="button"
-                  class="secondary"
-                  @click="layout.footer.brandEnabled = true"
-                >
-                  开启品牌底图
-                </button>
-              </div>
-              <template v-else>
-                <div class="image-setting-row">
-                  <div class="brand-preview-box">
-                    <img
-                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
-                      alt="野小子底图预览"
-                      :style="{
-                        width: `${Math.round(layout.footer.brandWidthPx * 0.65)}px`,
-                      }"
-                    />
-                  </div>
-                  <div class="image-setting-controls">
-                    <ImageUpload
-                      compact
-                      label="替换品牌底图"
-                      @uploaded="layout.footer.brandImageUrl = $event"
-                    />
+            <div class="footer-parts-grid">
+              <!-- Top Part -->
+              <div class="footer-part-card">
+                <div class="footer-part-head">
+                  <strong>上部内容</strong>
+                  <div class="footer-pos-switcher" role="group" aria-label="上部内容类型">
                     <button
-                      v-if="layout.footer.brandImageUrl !== DEFAULT_BRAND"
+                      v-for="opt in footerSlotTypeOptions"
+                      :key="opt.value"
                       type="button"
-                      class="text-button"
-                      @click="layout.footer.brandImageUrl = DEFAULT_BRAND"
+                      class="footer-pos-btn"
+                      :class="{ 'is-current': activeFooterBlock.topType === opt.value }"
+                      :data-footer-top-type="opt.value"
+                      @click="activeFooterBlock.topType = opt.value"
                     >
-                      恢复默认透明野小子底图
+                      {{ opt.label }}
                     </button>
                   </div>
                 </div>
 
-                <div class="size-slider-row">
-                  <div class="footer-size-head">
-                    <label for="footer-brand-width">
-                      底图显示宽度：<strong>{{ layout.footer.brandWidthPx }} px</strong>
-                      <span class="field-hint">（小程序内宽度 80–360px）</span>
-                    </label>
-                    <div class="footer-preset-chips">
-                      <button
-                        v-for="preset in brandWidthPresets"
-                        :key="preset.value"
-                        type="button"
-                        class="footer-preset-btn"
-                        :class="{ 'is-active': layout.footer.brandWidthPx === preset.value }"
-                        @click="layout.footer.brandWidthPx = preset.value"
-                      >
-                        {{ preset.label }} {{ preset.value }}px
-                      </button>
-                    </div>
-                  </div>
-                  <div class="slider-inputs">
-                    <input
-                      id="footer-brand-width"
-                      v-model.number="layout.footer.brandWidthPx"
-                      type="range"
-                      min="80"
-                      max="360"
-                      step="4"
-                    />
-                    <input
-                      v-model.number="layout.footer.brandWidthPx"
-                      type="number"
-                      min="80"
-                      max="360"
-                      class="px-number"
-                      aria-label="底图显示宽度像素值"
-                    />
-                  </div>
-                </div>
-              </template>
-            </template>
-
-            <!-- Inspector: TEXT -->
-            <template v-else-if="activeFooterCell === 'TEXT'">
-              <div v-if="!layout.footer.followEnabled" class="footer-off-banner">
-                <span>关注二维码区当前已关闭，关注说明不会显示。</span>
-                <button
-                  type="button"
-                  class="secondary"
-                  @click="layout.footer.followEnabled = true"
-                >
-                  开启关注二维码区
-                </button>
-              </div>
-              <template v-else>
-                <p v-if="!layout.footer.followQrcodes.length" class="footer-inline-tip">
-                  提示：需至少上传 1 张关注二维码后，关注说明才会在小程序首页底部展示。
-                </p>
-                <div class="field-row">
-                  <label>
-                    关注区标题
-                    <input
-                      v-model="layout.footer.followTitle"
-                      maxlength="60"
-                      placeholder="关注野小子公众号"
-                    />
-                  </label>
-                  <label>
-                    引导副文案
-                    <input
-                      v-model="layout.footer.followSubtitle"
-                      maxlength="120"
-                      placeholder="长按识别二维码 · 获取最新山野路线与活动动态"
-                    />
-                  </label>
-                </div>
-              </template>
-            </template>
-
-            <!-- Inspector: QR1 / QR2 -->
-            <template v-else>
-              <div v-if="!layout.footer.followEnabled" class="footer-off-banner">
-                <span>关注二维码区当前已关闭，二维码不会在小程序首页底部显示。</span>
-                <button
-                  type="button"
-                  class="secondary"
-                  @click="layout.footer.followEnabled = true"
-                >
-                  开启关注二维码区
-                </button>
-              </div>
-              <template v-else>
-                <div
-                  v-if="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]"
-                  class="footer-qr-editor"
-                >
-                  <img
-                    class="footer-qr-editor-img"
-                    :src="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.url"
-                    alt="底部关注二维码"
+                <label v-if="activeFooterBlock.topType === 'TEXT'">
+                  上部文字
+                  <input
+                    v-model="activeFooterBlock.topText"
+                    maxlength="120"
+                    placeholder="输入标题或说明文字"
                   />
-                  <div class="footer-qr-editor-fields">
-                    <label>
-                      二维码说明标签
-                      <input
-                        v-model="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.label"
-                        maxlength="40"
-                        placeholder="如：微信公众号 / 客服微信 / 视频号"
+                </label>
+
+                <template v-else-if="activeFooterBlock.topType === 'IMAGE'">
+                  <div class="footer-part-image-row">
+                    <div v-if="activeFooterBlock.topImageUrl" class="footer-part-preview">
+                      <img
+                        :src="brandPreviewUrl(activeFooterBlock.topImageUrl)"
+                        :alt="activeFooterBlock.id === 'brand' ? '野小子底图预览' : '上部图片预览'"
                       />
-                    </label>
-                    <div class="footer-qr-editor-actions">
+                    </div>
+                    <div class="image-setting-controls">
                       <ImageUpload
+                        category="HOME"
                         compact
-                        :key="`replace-${activeFooterCell}-${layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.url}`"
-                        label="替换图片"
-                        @uploaded="uploadFooterSlotQr(activeFooterCell as 'QR1' | 'QR2', $event)"
+                        :key="`top-img-${activeFooterBlock.id}-${activeFooterBlock.topImageUrl}`"
+                        :label="activeFooterBlock.topImageUrl ? '替换图片' : '上传图片'"
+                        @uploaded="activeFooterBlock.topImageUrl = $event"
                       />
-                      <button
-                        v-if="layout.footer.followQrcodes.length >= 2"
-                        type="button"
-                        class="text-button"
-                        @click="moveArrayItem(layout.footer.followQrcodes, 0, 1)"
-                      >
-                        与{{ activeFooterCell === 'QR1' ? '二维码 2' : '二维码 1' }}互换图片
-                      </button>
-                      <button
-                        type="button"
-                        class="text-button danger-text"
-                        @click="removeFooterQr(footerSlotQrIndex(activeFooterCell)!)"
-                      >
-                        删除此二维码
-                      </button>
+                      <label class="switch-inline">
+                        <input v-model="activeFooterBlock.topPreviewable" type="checkbox" />
+                        可长按识别 / 点击放大（二维码）
+                      </label>
                     </div>
                   </div>
-                </div>
-                <div v-else class="footer-qr-empty-editor">
-                  <p class="field-hint">
-                    {{
-                      activeFooterCell === "QR2" && !layout.footer.followQrcodes.length
-                        ? "当前还没有上传二维码，上传后将先填入「二维码 1」。"
-                        : `当前「${footerCellLabels[activeFooterCell]}」未上传图片，小程序中会自动跳过不占位。`
-                    }}
-                  </p>
-                  <ImageUpload
-                    :key="`upload-${activeFooterCell}-${layout.footer.followQrcodes.length}`"
-                    :label="`上传${footerCellLabels[activeFooterCell]}`"
-                    @uploaded="uploadFooterSlotQr(activeFooterCell as 'QR1' | 'QR2', $event)"
-                  />
-                </div>
-              </template>
-            </template>
-          </div>
-
-          <!-- Extra QRs (#3 - #6) shown once QR1 & QR2 are populated -->
-          <div
-            v-if="layout.footer.followEnabled && layout.footer.followQrcodes.length >= 2"
-            class="sub-box footer-extra-qrs"
-          >
-            <div class="qr-section-head">
-              <div>
-                <strong>更多二维码（{{ Math.max(0, layout.footer.followQrcodes.length - 2) }} / 4）</strong>
-                <p class="field-hint">第 3 张起的二维码将按顺序排在四格下方，可拖动调整顺序。</p>
+                  <div class="size-slider-row">
+                    <label>
+                      图片宽度：<strong>{{ activeFooterBlock.topImageWidthPx }} px</strong>
+                    </label>
+                    <div class="slider-inputs">
+                      <input
+                        v-model.number="activeFooterBlock.topImageWidthPx"
+                        type="range"
+                        min="48"
+                        max="360"
+                        step="4"
+                        @input="syncLegacyBrandWidth(activeFooterBlock)"
+                      />
+                      <input
+                        v-model.number="activeFooterBlock.topImageWidthPx"
+                        type="number"
+                        min="48"
+                        max="360"
+                        class="px-number"
+                        @input="syncLegacyBrandWidth(activeFooterBlock)"
+                      />
+                    </div>
+                  </div>
+                </template>
+                <p v-else class="field-hint">上部留空，仅显示下部内容。</p>
               </div>
-              <ImageUpload
-                v-if="layout.footer.followQrcodes.length < 6"
-                compact
-                :key="`footer-extra-qr-${layout.footer.followQrcodes.length}`"
-                label="添加更多二维码"
-                @uploaded="addFollowQr"
-              />
-            </div>
 
-            <div
-              v-if="layout.footer.followQrcodes.length > 2"
-              class="qr-cards-grid"
-            >
-              <div
-                v-for="(qr, extraIdx) in layout.footer.followQrcodes.slice(2)"
-                :key="extraIdx + 2"
-                class="qr-card"
-                draggable="true"
-                @dragstart="dragFollowQrIdx = extraIdx + 2"
-                @dragover.prevent
-                @drop="dropFollowQr(extraIdx + 2)"
-              >
-                <img :src="qr.url" alt="底部关注二维码" />
-                <input
-                  v-model="qr.label"
-                  maxlength="40"
-                  placeholder="如：客服微信 / 活动交流群"
-                />
-                <div class="qr-card-actions">
-                  <button
-                    type="button"
-                    class="text-button"
-                    @click="
-                      moveArrayItem(
-                        layout.footer.followQrcodes,
-                        extraIdx + 2,
-                        extraIdx + 1,
-                      )
-                    "
-                  >
-                    前移
-                  </button>
-                  <button
-                    type="button"
-                    class="text-button danger-text"
-                    @click="removeFooterQr(extraIdx + 2)"
-                  >
-                    删除
-                  </button>
+              <!-- Bottom Part -->
+              <div class="footer-part-card">
+                <div class="footer-part-head">
+                  <strong>下部内容</strong>
+                  <div class="footer-pos-switcher" role="group" aria-label="下部内容类型">
+                    <button
+                      v-for="opt in footerSlotTypeOptions"
+                      :key="opt.value"
+                      type="button"
+                      class="footer-pos-btn"
+                      :class="{ 'is-current': activeFooterBlock.bottomType === opt.value }"
+                      :data-footer-bottom-type="opt.value"
+                      @click="activeFooterBlock.bottomType = opt.value"
+                    >
+                      {{ opt.label }}
+                    </button>
+                  </div>
                 </div>
+
+                <label v-if="activeFooterBlock.bottomType === 'TEXT'">
+                  下部文字
+                  <input
+                    v-model="activeFooterBlock.bottomText"
+                    maxlength="120"
+                    placeholder="输入副文案或标签（如：官方公众号）"
+                  />
+                </label>
+
+                <template v-else-if="activeFooterBlock.bottomType === 'IMAGE'">
+                  <div class="footer-part-image-row">
+                    <div v-if="activeFooterBlock.bottomImageUrl" class="footer-part-preview">
+                      <img
+                        :src="brandPreviewUrl(activeFooterBlock.bottomImageUrl)"
+                        alt="下部图片预览"
+                      />
+                    </div>
+                    <div class="image-setting-controls">
+                      <ImageUpload
+                        category="HOME"
+                        compact
+                        :key="`bottom-img-${activeFooterBlock.id}-${activeFooterBlock.bottomImageUrl}`"
+                        :label="activeFooterBlock.bottomImageUrl ? '替换图片' : '上传图片'"
+                        @uploaded="activeFooterBlock.bottomImageUrl = $event"
+                      />
+                      <label class="switch-inline">
+                        <input v-model="activeFooterBlock.bottomPreviewable" type="checkbox" />
+                        可长按识别 / 点击放大（二维码）
+                      </label>
+                    </div>
+                  </div>
+                  <div class="size-slider-row">
+                    <label>
+                      图片宽度：<strong>{{ activeFooterBlock.bottomImageWidthPx }} px</strong>
+                    </label>
+                    <div class="slider-inputs">
+                      <input
+                        v-model.number="activeFooterBlock.bottomImageWidthPx"
+                        type="range"
+                        min="48"
+                        max="360"
+                        step="4"
+                      />
+                      <input
+                        v-model.number="activeFooterBlock.bottomImageWidthPx"
+                        type="number"
+                        min="48"
+                        max="360"
+                        class="px-number"
+                      />
+                    </div>
+                  </div>
+                </template>
+                <p v-else class="field-hint">下部留空，仅显示上部内容。</p>
               </div>
             </div>
           </div>
@@ -2520,10 +2353,10 @@ onUnmounted(() => {
 
               <div
                 v-else-if="
-                  mod.enabled && mod.id === 'FOOTER' && footerPreviewCells.length
+                  mod.enabled && mod.id === 'FOOTER' && footerPreviewBlocks.length
                 "
                 class="pv-footer pv-interactive"
-                :class="{ 'pv-footer-single': footerPreviewCells.length === 1 }"
+                :class="{ 'pv-footer-single': footerPreviewBlocks.length === 1 }"
                 :style="footerPreviewGridStyle"
                 role="button"
                 tabindex="0"
@@ -2534,26 +2367,43 @@ onUnmounted(() => {
                 @keydown.space.prevent="activeModule = 'FOOTER'"
               >
                 <div
-                  v-for="cell in footerPreviewCells"
-                  :key="cell.id"
+                  v-for="block in footerPreviewBlocks"
+                  :key="block.id"
                   class="pv-footer-cell"
-                  :data-cell="cell.id"
-                  :style="cell.style"
+                  :data-cell="block.id"
+                  :style="{
+                    gridColumn: block.colSpan > 1 ? `span ${Math.min(block.colSpan, footerColumns)}` : undefined,
+                    gridRow: block.rowSpan > 1 ? `span ${block.rowSpan}` : undefined,
+                  }"
                 >
-                  <div v-if="cell.kind === 'BRAND'" class="pv-brand-wrap">
-                    <img
-                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
-                      alt=""
-                      :style="{ width: `${Math.round((layout.footer.brandWidthPx / 375) * 240)}px` }"
-                    />
-                  </div>
-                  <div v-else-if="cell.kind === 'TEXT'" class="pv-follow-box">
-                    <strong v-if="layout.footer.followTitle.trim()">{{ layout.footer.followTitle }}</strong>
-                    <small v-if="layout.footer.followSubtitle.trim()">{{ layout.footer.followSubtitle }}</small>
-                  </div>
-                  <div v-else-if="cell.qr" class="pv-qr-item">
-                    <img :src="cell.qr.url" alt="" />
-                    <span v-if="cell.qr.label?.trim()">{{ cell.qr.label }}</span>
+                  <div class="pv-qr-item">
+                    <div
+                      v-if="block.topType === 'IMAGE' && block.topImageUrl"
+                      class="pv-brand-wrap"
+                    >
+                      <img
+                        :src="brandPreviewUrl(block.topImageUrl)"
+                        alt=""
+                        :style="{ width: `${Math.round((block.topImageWidthPx / 375) * 240)}px` }"
+                      />
+                    </div>
+                    <strong v-else-if="block.topType === 'TEXT' && block.topText.trim()">
+                      {{ block.topText }}
+                    </strong>
+
+                    <div
+                      v-if="block.bottomType === 'IMAGE' && block.bottomImageUrl"
+                      class="pv-brand-wrap"
+                    >
+                      <img
+                        :src="brandPreviewUrl(block.bottomImageUrl)"
+                        alt=""
+                        :style="{ width: `${Math.round((block.bottomImageWidthPx / 375) * 240)}px` }"
+                      />
+                    </div>
+                    <small v-else-if="block.bottomType === 'TEXT' && block.bottomText.trim()">
+                      {{ block.bottomText }}
+                    </small>
                   </div>
                 </div>
               </div>
@@ -2561,41 +2411,6 @@ onUnmounted(() => {
           </div>
         </div>
       </aside>
-    </div>
-
-    <div
-      v-if="layout && !loading"
-      class="layout-save-bar"
-      role="region"
-      aria-label="首页配置保存操作"
-    >
-      <span class="layout-save-status">
-        {{
-          conflict
-            ? "首页配置已在别处更新，请先加载最新版本"
-            : dirty
-              ? "有未保存的首页配置改动"
-              : "当前配置已保存"
-        }}
-      </span>
-      <div class="heading-actions">
-        <button
-          v-if="conflict"
-          type="button"
-          class="secondary"
-          @click="reloadAfterConflict"
-        >
-          加载最新版本
-        </button>
-        <button
-          type="button"
-          class="primary"
-          :disabled="saving || loading || conflict || !layout"
-          @click="save"
-        >
-          {{ saving ? "正在保存…" : "保存首页配置" }}
-        </button>
-      </div>
     </div>
   </main>
 </template>
@@ -2616,26 +2431,6 @@ onUnmounted(() => {
   color: var(--rf-warning);
   font-size: 12px;
   font-weight: 600;
-}
-.layout-save-bar {
-  position: sticky;
-  bottom: 12px;
-  z-index: var(--z-sticky-bar);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 20px;
-  padding: 12px 16px;
-  border: 1px solid var(--rf-line);
-  border-radius: 12px;
-  background: var(--rf-surface-glass);
-  box-shadow: var(--rf-shadow-floating);
-  backdrop-filter: blur(14px);
-}
-.layout-save-status {
-  color: var(--rf-muted);
-  font-size: 13px;
 }
 .builder-grid {
   display: grid;
@@ -2668,11 +2463,6 @@ onUnmounted(() => {
   }
   .module-editor {
     align-self: stretch;
-  }
-  .layout-save-bar {
-    position: static;
-    flex-shrink: 0;
-    margin-top: 12px;
   }
 }
 @media (max-width: 1199px) {
@@ -3270,8 +3060,69 @@ onUnmounted(() => {
 }
 .footer-puzzle-stage {
   position: relative;
-  height: 288px;
   user-select: none;
+}
+.footer-puzzle-stage-auto .footer-puzzle-grid {
+  height: auto;
+  grid-auto-rows: minmax(112px, auto);
+}
+.footer-block-name-input {
+  width: 180px;
+  max-width: 100%;
+  font-weight: 600;
+}
+.footer-inspector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.footer-parts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 820px) {
+  .footer-parts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.footer-part-card {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-part-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.footer-part-image-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.footer-part-preview {
+  width: 72px;
+  height: 72px;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #f6f8f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.footer-part-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 .footer-puzzle-stage.is-resizing {
   user-select: none;
@@ -3285,20 +3136,31 @@ onUnmounted(() => {
 .footer-splitter {
   position: absolute;
   z-index: 4;
+  min-width: 0;
+  min-height: 0;
   border: 0;
+  border-radius: 0;
   padding: 0;
+  margin: 0;
   background: transparent;
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   touch-action: none;
 }
+.footer-splitter:hover,
+.footer-splitter:focus-visible,
+.footer-splitter:active {
+  background: transparent;
+  box-shadow: none;
+}
 .footer-splitter-v {
-  width: 18px;
+  width: 14px;
   cursor: col-resize;
 }
 .footer-splitter-h {
-  height: 18px;
+  height: 14px;
   cursor: row-resize;
 }
 .footer-splitter-handle {

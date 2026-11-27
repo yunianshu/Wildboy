@@ -555,6 +555,81 @@ public class HomeLayoutService {
           "TWO_LR",
           "TWO_TB");
 
+  private static final Set<String> FOOTER_SLOT_TYPES = Set.of("NONE", "TEXT", "IMAGE");
+
+  private static List<Integer> defaultColRatios(int columns) {
+    return switch (columns) {
+      case 1 -> List.of(100);
+      case 3 -> List.of(33, 34, 33);
+      default -> List.of(50, 50);
+    };
+  }
+
+  private List<FooterBlock> validateFooterBlocks(List<FooterBlock> rawBlocks) {
+    if (rawBlocks == null) return null;
+    if (rawBlocks.size() > 12) bad("底部区域最多配置 12 个");
+    var result = new ArrayList<FooterBlock>();
+    int idx = 1;
+    for (FooterBlock b : rawBlocks) {
+      if (b == null) bad("底部区域项无效");
+      String id = clean(b.id());
+      if (id.isEmpty() || !id.matches("[A-Za-z0-9_-]{1,64}")) id = "block-" + idx;
+      String name = clean(b.name());
+      if (name.length() > 40) bad("底部区域名称最多 40 字");
+      if (name.isEmpty()) name = "区域 " + idx;
+      boolean enabled = b.enabled() == null || b.enabled();
+      int colSpan = b.colSpan() == null ? 1 : Math.clamp(b.colSpan(), 1, 3);
+      int rowSpan = b.rowSpan() == null ? 1 : Math.clamp(b.rowSpan(), 1, 2);
+
+      String topType = clean(b.topType()).toUpperCase(Locale.ROOT);
+      if (!FOOTER_SLOT_TYPES.contains(topType)) topType = "NONE";
+      String topText = clean(b.topText());
+      if (topText.length() > 120) bad("底部区域上部文字最多 120 字");
+      String topImg = clean(b.topImageUrl());
+      if (!topImg.isEmpty()
+          && !DEFAULT_BRAND_IMAGE.equals(topImg)
+          && !ContentService.safeImage(topImg)) {
+        bad("底部区域上部图片地址无效");
+      }
+      int topWidth = b.topImageWidthPx() == null ? 120 : Math.clamp(b.topImageWidthPx(), 48, 360);
+      boolean topPreviewable = Boolean.TRUE.equals(b.topPreviewable());
+
+      String bottomType = clean(b.bottomType()).toUpperCase(Locale.ROOT);
+      if (!FOOTER_SLOT_TYPES.contains(bottomType)) bottomType = "NONE";
+      String bottomText = clean(b.bottomText());
+      if (bottomText.length() > 120) bad("底部区域下部文字最多 120 字");
+      String bottomImg = clean(b.bottomImageUrl());
+      if (!bottomImg.isEmpty()
+          && !DEFAULT_BRAND_IMAGE.equals(bottomImg)
+          && !ContentService.safeImage(bottomImg)) {
+        bad("底部区域下部图片地址无效");
+      }
+      int bottomWidth =
+          b.bottomImageWidthPx() == null ? 120 : Math.clamp(b.bottomImageWidthPx(), 48, 360);
+      boolean bottomPreviewable = Boolean.TRUE.equals(b.bottomPreviewable());
+
+      result.add(
+          new FooterBlock(
+              id,
+              name,
+              enabled,
+              colSpan,
+              rowSpan,
+              topType,
+              topText,
+              topImg,
+              topWidth,
+              topPreviewable,
+              bottomType,
+              bottomText,
+              bottomImg,
+              bottomWidth,
+              bottomPreviewable));
+      idx++;
+    }
+    return List.copyOf(result);
+  }
+
   private FooterConfig validateFooter(FooterConfig in) {
     if (in == null) bad("请提供底部关注与底图配置");
     boolean followEnabled = Boolean.TRUE.equals(in.followEnabled());
@@ -578,7 +653,10 @@ public class HomeLayoutService {
         (in.cellOrder() == null
                 || in.layoutPreset() == null
                 || in.colRatio() == null
-                || in.rowRatio() == null)
+                || in.rowRatio() == null
+                || in.columns() == null
+                || in.colRatios() == null
+                || in.blocks() == null)
             ? get(true).footer()
             : null;
     List<String> cellOrder = in.cellOrder();
@@ -615,6 +693,32 @@ public class HomeLayoutService {
     if (rowRatio < 25 || rowRatio > 75) {
       bad("底部上下比例须在 25–75 之间");
     }
+    int columns =
+        in.columns() != null
+            ? in.columns()
+            : (previous == null || previous.columns() == null ? 2 : previous.columns());
+    if (columns < 1 || columns > 3) {
+      bad("底部列数须在 1–3 列之间");
+    }
+    List<Integer> rawRatios =
+        in.colRatios() != null
+            ? in.colRatios()
+            : (previous == null ? null : previous.colRatios());
+    List<Integer> colRatios;
+    if (rawRatios != null && rawRatios.size() == columns) {
+      var cleanRatios = new ArrayList<Integer>(columns);
+      for (Integer r : rawRatios) {
+        if (r == null || r < 15 || r > 85) bad("底部列宽比例须在 15–85 之间");
+        cleanRatios.add(r);
+      }
+      colRatios = List.copyOf(cleanRatios);
+    } else {
+      colRatios = defaultColRatios(columns);
+    }
+    List<FooterBlock> blocks =
+        in.blocks() != null
+            ? validateFooterBlocks(in.blocks())
+            : (previous == null ? null : previous.blocks());
     return new FooterConfig(
         followEnabled,
         followTitle,
@@ -626,7 +730,10 @@ public class HomeLayoutService {
         List.copyOf(cellOrder),
         layoutPreset,
         colRatio,
-        rowRatio);
+        rowRatio,
+        columns,
+        colRatios,
+        blocks);
   }
 
   @Transactional

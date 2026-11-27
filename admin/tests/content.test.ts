@@ -270,14 +270,17 @@ describe("product content page", () => {
     await flushPromises();
     instances[0].ready();
     await flushPromises();
-    expect(w.get(".product-overview").text()).toContain("轻量徒步背包");
-    expect(w.get(".product-facts").text()).toContain("¥199.00");
-    expect(w.get(".product-facts").text()).toContain("8");
-    expect(w.get(".product-cover img").attributes("src")).toBe(
-      "/assets/backpack.jpg",
+    expect(
+      w.get<HTMLInputElement>("#shop-product-form input").element.value,
+    ).toBe("轻量徒步背包");
+    expect(
+      w.get<HTMLInputElement>('input[name="currentPrice"]').element.value,
+    ).toBe("199.00");
+    expect(w.get<HTMLInputElement>('input[type="number"]').element.value).toBe(
+      "8",
     );
     const save = () =>
-      w.findAll("button").find((button) => button.text() === "保存图文")!;
+      w.findAll("button").find((button) => button.text() === "保存商品")!;
     expect(save().attributes("disabled")).toBeDefined();
     instances[0].value = "新的商品卖点与规格";
     instances[0].fireInput();
@@ -294,14 +297,11 @@ describe("product content page", () => {
       version: 4,
     });
     expect(w.get(".product-save-status").text()).toContain("版本 5");
-    await w.get('a[aria-label="编辑商品基本信息"]').trigger("click");
+    await w.get("header a.button").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.path).toBe("/shop");
     expect(router.currentRoute.value.query).toMatchObject({
       productQuery: "背包",
-      productId: "product-1",
-      edit: "product-1",
-      tab: "products",
     });
     w.unmount();
   });

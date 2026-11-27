@@ -301,6 +301,24 @@ export interface HomeGalleryConfig {
   slides: HomeGallerySlide[];
 }
 export type HomeFooterCell = "BRAND" | "TEXT" | "QR1" | "QR2";
+export type HomeFooterSlotType = "NONE" | "TEXT" | "IMAGE";
+export interface HomeFooterBlock {
+  id: string;
+  name: string;
+  enabled: boolean;
+  colSpan: number;
+  rowSpan: number;
+  topType: HomeFooterSlotType;
+  topText: string;
+  topImageUrl: string;
+  topImageWidthPx: number;
+  topPreviewable: boolean;
+  bottomType: HomeFooterSlotType;
+  bottomText: string;
+  bottomImageUrl: string;
+  bottomImageWidthPx: number;
+  bottomPreviewable: boolean;
+}
 export type HomeFooterLayoutPreset =
   | "FOUR_GRID"
   | "THREE_L1_R2"
@@ -314,6 +332,9 @@ export interface HomeFooterConfig {
   layoutPreset?: HomeFooterLayoutPreset;
   colRatio?: number;
   rowRatio?: number;
+  columns?: number;
+  colRatios?: number[];
+  blocks?: HomeFooterBlock[];
   followEnabled: boolean;
   followTitle: string;
   followSubtitle: string;

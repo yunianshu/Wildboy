@@ -196,6 +196,9 @@ onUnmounted(() => {
   border-radius: var(--rf-modal-radius) 0 0 var(--rf-modal-radius);
   box-shadow: -16px 0 56px #071a132b;
 }
+.form-modal.form-modal-right.sm {
+  width: min(100%, 480px);
+}
 .form-modal-right > .form-modal-body {
   flex: 1;
   scrollbar-gutter: stable;

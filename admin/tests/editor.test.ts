@@ -460,7 +460,7 @@ describe("editor workflow", () => {
     edited.wrapper.unmount();
   });
 
-  it("explains rich content on a new activity and still saves the draft from that section", async () => {
+  it("opens rich content on a new activity and saves the draft from that section", async () => {
     const fetch = vi.fn();
     withMedia(fetch, () => ({
       ok: true,
@@ -470,11 +470,8 @@ describe("editor workflow", () => {
     vi.stubGlobal("fetch", fetch);
     const { wrapper, router } = await render("/activities/new");
     await sectionButton(wrapper, "图文详情").trigger("click");
-    const pending = wrapper.get(".activity-rich-pending");
-    expect(pending.isVisible()).toBe(true);
-    expect(wrapper.find(".activity-rich-card").exists()).toBe(false);
-    expect(pending.text()).toContain("保存活动后可编辑图文详情");
-    // 新建页的图文板块只是说明，右侧报名价格和底部保存栏仍然可用。
+    expect(wrapper.get(".activity-rich-card").isVisible()).toBe(true);
+    expect(wrapper.get(".md-canvas").isVisible()).toBe(true);
     expect(wrapper.get(".editor-actions").isVisible()).toBe(true);
     expect(wrapper.get(".editor-actions").text()).toContain("保存草稿");
     expect(wrapper.get(".editor-tip").isVisible()).toBe(true);
@@ -660,6 +657,7 @@ describe("editor workflow", () => {
           json: async () => [
             {
               name: "旧站名",
+              displayName: "厦门北站",
               address: "厦门北站南广场",
               latitude: 24.6,
               longitude: 118.1,
@@ -688,13 +686,14 @@ describe("editor workflow", () => {
       .trigger("click");
     await flushPromises();
     const choices = wrapper.findAll(".point-choice");
-    expect(choices.map((choice) => choice.text())).toEqual([
-      "厦门北站南广场",
+    expect(choices.map((choice) => choice.get(".point-name").text())).toEqual([
+      "厦门北站",
       "会展中心东门",
       "海滨公园东门",
     ]);
+    expect(choices[0]!.get(".point-detail").text()).toBe("厦门北站南广场");
     for (const choice of choices)
-      await choice.get("input").setValue(choice.text() !== "海滨公园东门");
+      await choice.get("input").setValue(choice.get(".point-name").text() !== "海滨公园东门");
     expect(
       fetch.mock.calls.some(([, options]) => options?.method === "POST"),
     ).toBe(false);

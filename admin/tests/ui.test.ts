@@ -78,9 +78,10 @@ describe("real component flows", () => {
     expect(records[0].text()).toContain("待支付 2 人");
     expect(records[0].get('button[aria-haspopup="dialog"]').text()).toBe("订单");
     expect(records[0].find('a[href="/activity-orders?activityId=paid"]').exists()).toBe(false);
+    expect(records[1].get('button[aria-haspopup="dialog"]').text()).toBe("名单");
     expect(
       records[1].find('a[href="/activities/free/registrations"]').exists(),
-    ).toBe(true);
+    ).toBe(false);
     expect(records[1].text()).not.toContain("待支付");
     expect(wrapper.get("h1").text()).toBe("活动管理");
     wrapper.unmount();

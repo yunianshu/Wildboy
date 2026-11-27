@@ -607,7 +607,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
 });
 
 
-it("swaps configured cells live via board drag/switcher and hides unconfigured cells without placeholders", async () => {
+it("manages generic top/bottom footer blocks, supports 1-3 columns, drag swap, and column splitter push", async () => {
   const layout = sampleLayout();
   layout.footer.followQrcodes.push({ url: "/assets/video.jpg", label: "视频号" });
   vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
@@ -621,44 +621,37 @@ it("swaps configured cells live via board drag/switcher and hides unconfigured c
   await flushPromises();
   const footer = w.get(".pv-footer");
   const order = () => footer.findAll(".pv-footer-cell").map((item) => item.attributes("data-cell"));
-  expect(order()).toEqual(["BRAND", "QR1", "TEXT", "QR2"]);
-  expect(footer.findAll(".pv-qr-item").map((item) => item.text()))
-    .toEqual(["官方公众号", "视频号"]);
+  expect(order()).toEqual(["brand", "qr-1", "text", "qr-2"]);
   await footer.trigger("click");
 
-  // Drag QR2 (pos 3) onto pos 0 (BRAND) to swap them
+  // Drag qr-2 (pos 3) onto pos 0 (brand) to swap them
   const slots = () => w.findAll(".footer-slot-card");
   await slots()[3]!.trigger("dragstart");
   await slots()[0]!.trigger("drop");
-  expect(order()).toEqual(["QR2", "QR1", "TEXT", "BRAND"]);
+  expect(order()).toEqual(["qr-2", "qr-1", "text", "brand"]);
 
-  // Select TEXT (now at pos 2) and move it to 右上 (pos 1) via position switcher
-  await w.get('.footer-slot-card[data-footer-cell="TEXT"]').trigger("click");
-  await w.findAll(".footer-pos-btn")[1]!.trigger("click");
-  expect(order()).toEqual(["QR2", "TEXT", "QR1", "BRAND"]);
+  // Switch to 3 columns, push column splitter, and add a new generic block
+  await w.get('button[data-footer-cols="3"]').trigger("click");
+  expect(w.findAll(".footer-splitter")).toHaveLength(2);
+  await w.get('button[data-footer-splitter="col-0"]').trigger("keydown.left");
+  expect(footer.attributes("style")).toContain("28fr");
 
-  // Switch to 3-area puzzle (左1右2), push col/row splitters, and verify spare module dock
-  await w.get('button[data-footer-preset="THREE_L1_R2"]').trigger("click");
-  expect(w.findAll(".footer-slot-card")).toHaveLength(3);
-  expect(w.findAll(".footer-spare-chip")).toHaveLength(1);
-  expect(order()).toEqual(["QR2", "TEXT", "QR1"]);
-  await w.get('button[data-footer-splitter="col"]').trigger("keydown.left");
-  await w.get('button[data-footer-splitter="row"]').trigger("keydown.down");
-  expect(w.text()).toContain("45% : 55%");
-  expect(w.text()).toContain("55% : 45%");
-  expect(footer.attributes("style")).toContain("45fr");
-  expect(footer.attributes("style")).toContain("55fr");
+  await w.get("button[data-footer-add]").trigger("click");
+  expect(w.findAll(".footer-slot-card")).toHaveLength(5);
+  await w.get('button[data-footer-top-type="TEXT"]').trigger("click");
+  await w.get('.footer-part-card input[placeholder="输入标题或说明文字"]').setValue("山野热线");
+  expect(footer.text()).toContain("山野热线");
 
-  // Swap back to 4-grid and delete both QR codes via their focused slot editors
-  await w.get('button[data-footer-preset="FOUR_GRID"]').trigger("click");
-  await w.get('.footer-slot-card[data-footer-cell="QR1"]').trigger("click");
-  await w.get(".footer-qr-editor-actions .danger-text").trigger("click");
-  await w.get(".footer-qr-editor-actions .danger-text").trigger("click");
-  expect(w.find(".pv-follow-box").exists()).toBe(false);
-  expect(w.find(".pv-brand-wrap").exists()).toBe(true);
+  // Delete the added block
+  await w.get("button[data-footer-delete]").trigger("click");
+  expect(w.findAll(".footer-slot-card")).toHaveLength(4);
+  expect(footer.text()).not.toContain("山野热线");
 
-  const brandSwitch = w.get('input[data-footer-toggle="brand"]');
-  await brandSwitch.setValue(false);
+  // Disable all remaining blocks -> preview footer hides completely
+  for (let i = 0; i < 4; i++) {
+    await w.findAll(".footer-slot-card")[i]!.trigger("click");
+    await w.get('input[data-footer-toggle="block"]').setValue(false);
+  }
   expect(w.find(".pv-footer").exists()).toBe(false);
   w.unmount();
 });

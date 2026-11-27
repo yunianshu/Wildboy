@@ -10,6 +10,7 @@ afterEach(async () => {
   wrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   await flushPromises();
   document.body.replaceChildren();
+  localStorage.clear();
 });
 function render(component: Parameters<typeof mount>[0], options = {}) {
   const wrapper = mount(component, { attachTo: document.body, ...options });
@@ -86,6 +87,54 @@ describe("form modal keyboard behavior", () => {
       ]),
     );
     expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+  });
+
+  it("selects today for an empty date and applies it only on confirmation", async () => {
+    const wrapper = render(DateTimeField, {
+      props: { id: "date-default", label: "选择日期和时间", modelValue: "" },
+    });
+    const trigger = wrapper.get("#date-default");
+    await trigger.trigger("click");
+    const today = wrapper.get(".calendar-day.is-today");
+    expect(today.attributes("aria-pressed")).toBe("true");
+    expect(wrapper.emitted("update:modelValue")).toBeUndefined();
+    const label = today.attributes("aria-label");
+    await wrapper
+      .get('[role="dialog"] .dialog-actions .primary')
+      .trigger("click");
+    expect(wrapper.emitted("update:modelValue")).toEqual([[`${label}T09:00`]]);
+  });
+
+  it("ranks confirmed times across instances and ignores cancelled choices", async () => {
+    const props = {
+      id: "ranked-time",
+      label: "开始时间",
+      modelValue: "",
+      presets: ["09:00", "14:00"],
+    };
+    const wrapper = render(DateTimeField, { props });
+    for (const [hour, minute] of [
+      ["14", "00"],
+      ["08", "15"],
+      ["08", "15"],
+    ]) {
+      await wrapper.get("#ranked-time").trigger("click");
+      await wrapper.get('select[aria-label="选择小时"]').setValue(hour);
+      await wrapper.get('select[aria-label="选择分钟"]').setValue(minute);
+      await wrapper.get(".dialog-actions .primary").trigger("click");
+    }
+    await wrapper.get("#ranked-time").trigger("click");
+    await wrapper.get('select[aria-label="选择小时"]').setValue("09");
+    await wrapper.get(".dialog-actions .secondary").trigger("click");
+    wrapper.unmount();
+    wrappers.pop();
+
+    const reopened = render(DateTimeField, { props });
+    await reopened.get("#ranked-time").trigger("click");
+    expect(
+      reopened.findAll(".time-choice").map((button) => button.text()),
+    ).toEqual(["08:15", "14:00", "09:00"]);
+    expect(reopened.get(".time-choice.is-active").text()).toBe("08:15");
   });
 
   it("requests Escape closure without bypassing a consumer's draft guard", async () => {

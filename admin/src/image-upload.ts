@@ -1,4 +1,5 @@
 import { ApiError, request } from "./api";
+import type { MediaAsset, MediaCategory } from "./media";
 
 const MAX_BYTES = 4 * 1024 * 1024;
 const MAX_PIXELS = 16_000_000;
@@ -125,7 +126,11 @@ async function shrink(file: File, factor: number, isCurrent: () => boolean) {
   }
 }
 
-export async function uploadAdminImage(file: File, isCurrent: () => boolean) {
+export async function uploadAdminImage(
+  file: File,
+  isCurrent: () => boolean,
+  options?: { name?: string; category?: MediaCategory },
+) {
   if (!["image/jpeg", "image/png"].includes(file.type) || file.size === 0)
     throw invalid();
   if (file.size > SOURCE_BYTES)
@@ -148,12 +153,18 @@ export async function uploadAdminImage(file: File, isCurrent: () => boolean) {
     width * height <= MAX_PIXELS &&
     Math.max(width, height) <= MAX_SIDE &&
     file.size <= MAX_BYTES;
+  const cleanName = (options?.name ?? file.name ?? "")
+    .trim()
+    .slice(0, 120);
   const upload = async (blob: Blob) => {
     const dataBase64 = (await read<string>(blob, "data")).split(",")[1];
     if (!isCurrent()) return;
-    return request<{ url: string }>("/admin/media", {
+    const payload: Record<string, string> = { dataBase64 };
+    if (cleanName) payload.name = cleanName;
+    if (options?.category) payload.category = options.category;
+    return request<MediaAsset>("/admin/media", {
       method: "POST",
-      body: JSON.stringify({ dataBase64 }),
+      body: JSON.stringify(payload),
     });
   };
   try {

@@ -230,9 +230,10 @@ describe("user management and WeChat admin roles", () => {
     expect(section.text()).toContain("2 位参与人");
     expect(section.text()).toContain("证件已脱敏");
     expect(section.text()).not.toContain("3502");
-    expect(section.get("a").attributes("href")).toBe(
-      "/activities/activity-1/registrations",
-    );
+    const rosterBtn = section
+      .findAll("button")
+      .find((b) => b.text() === "查看活动名单");
+    expect(rosterBtn?.attributes("aria-haspopup")).toBe("dialog");
     await wrapper
       .get('select[name="registrationStatus"]')
       .setValue("CANCELLED");

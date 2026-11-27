@@ -30,6 +30,8 @@ import {
 import UiState from "../components/UiState.vue";
 import FormModal from "../components/FormModal.vue";
 import ConfirmDialog from "../components/ConfirmDialog.vue";
+import RosterView from "./RosterView.vue";
+const rosterScope = ref<{ id: string; title: string } | null>(null);
 
 const sourceLabels: Record<AdminUser["accountSource"], string> = {
   WECHAT: "微信登录",
@@ -757,24 +759,32 @@ useForegroundRefresh(() => {
                   >
                 </p>
                 <RouterLink
+                  v-if="registration.source === 'ACTIVITY_ORDER'"
                   class="text-button button"
-                  :to="
-                    registration.source === 'ACTIVITY_ORDER'
-                      ? {
-                          path: '/activity-orders',
-                          query: {
-                            activityId: registration.activityId,
-                            orderId: registration.id,
-                          },
-                        }
-                      : `/activities/${encodeURIComponent(registration.activityId)}/registrations`
-                  "
-                  >{{
-                    registration.source === "ACTIVITY_ORDER"
-                      ? "查看此活动订单"
-                      : "查看活动名单"
-                  }}</RouterLink
+                  :to="{
+                    path: '/activity-orders',
+                    query: {
+                      activityId: registration.activityId,
+                      orderId: registration.id,
+                    },
+                  }"
+                  >查看此活动订单</RouterLink
                 >
+                <button
+                  v-else
+                  type="button"
+                  class="text-button button"
+                  aria-haspopup="dialog"
+                  :aria-expanded="rosterScope?.id === registration.activityId"
+                  @click="
+                    rosterScope = {
+                      id: registration.activityId,
+                      title: registration.activityTitle,
+                    }
+                  "
+                >
+                  查看活动名单
+                </button>
               </article>
             </div>
             <nav
@@ -812,6 +822,14 @@ useForegroundRefresh(() => {
           关闭
         </button>
       </div>
+    </FormModal>
+    <FormModal
+      v-if="rosterScope"
+      placement="right"
+      :title="`报名名单 · ${rosterScope.title}`"
+      @close="rosterScope = null"
+    >
+      <RosterView :scope="rosterScope" />
     </FormModal>
     <ConfirmDialog
       v-if="pendingRole"
