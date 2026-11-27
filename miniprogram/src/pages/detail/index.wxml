@@ -65,11 +65,9 @@
 
     <view wx:if="{{activity.galleryUrls.length}}" class="article-section">
       <view class="section-bar">活动相册</view>
-      <scroll-view class="article-gallery" scroll-x enhanced show-scrollbar="{{false}}">
-        <view class="gallery-strip">
-          <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="aspectFill" lazy-load data-url="{{item}}" bindtap="previewPhoto" aria-label="查看第 {{index + 1}} 张活动照片" />
-        </view>
-      </scroll-view>
+      <view class="article-gallery">
+        <image wx:for="{{activity.galleryUrls}}" wx:key="*this" src="{{item}}" mode="widthFix" lazy-load data-url="{{item}}" bindtap="previewPhoto" aria-label="查看第 {{index + 1}} 张活动照片" />
+      </view>
     </view>
     <view class="article-section" wx:if="{{attendees.length}}">
       <view class="section-bar section-bar-row">

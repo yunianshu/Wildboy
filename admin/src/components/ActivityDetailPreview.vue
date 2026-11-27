@@ -550,17 +550,16 @@ const actionButton = computed(() => {
 }
 
 .mp-gallery-strip {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   padding: 4px 14px 14px;
-  overflow-x: auto;
 }
 
 .mp-gallery-strip img {
-  flex: 0 0 120px;
-  width: 120px;
-  height: 82px;
-  object-fit: cover;
+  display: block;
+  width: 100%;
+  height: auto;
   border-radius: 8px;
   background: var(--rf-soft);
 }
