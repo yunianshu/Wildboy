@@ -114,10 +114,12 @@ select {
 }
 input:focus,
 textarea:focus,
-select:focus {
-  outline: 2px solid var(--rf-line);
-  outline-offset: 1px;
-  border-color: var(--admin-primary);
+select:focus,
+.field-focus-frame:focus-within,
+[contenteditable="true"][role="textbox"]:focus {
+  outline: 2px solid var(--rf-primary);
+  outline-offset: -2px;
+  border-color: var(--rf-primary);
 }
 input:not([type="checkbox"], [type="radio"], [type="file"]),
 select {

@@ -135,7 +135,7 @@ beforeEach(() => {
 });
 
 describe("HomeLayoutView modular workbench", () => {
-  it("reorders featured activities, configures WeChat OA link and resizes footer brand image", async () => {
+  it("swaps featured activity and product ranks, previews their cards, and saves the layout", async () => {
     const fetch = vi.fn(async (url: string, opts: any = {}) => {
       if (url.includes("/admin/home/layout")) {
         return {
@@ -147,13 +147,51 @@ describe("HomeLayoutView modular workbench", () => {
               : sampleLayout(),
         };
       }
+      if (url.endsWith("/admin/home/activity-suggestions")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => [
+            {
+              id: "act-auto",
+              title: "海岸晨行",
+              location: "东山岛",
+              status: "PUBLISHED",
+              category: "WEEKLY",
+              coverUrl: "/uploads/coast.jpg",
+              startAt: "2027-01-02T08:00:00+08:00",
+              priceCents: 0,
+            },
+          ],
+        };
+      }
       if (url.endsWith("/admin/shop/products")) {
         return {
           ok: true,
           status: 200,
           json: async () => [
-            { id: "pack", name: "轻量背包", status: "ON_SALE" },
-            { id: "off-sale", name: "旧款背包", status: "OFF_SALE" },
+            {
+              id: "pack",
+              name: "轻量背包",
+              imageUrl: "/uploads/pack.jpg",
+              priceCents: 9900,
+              status: "ON_SALE",
+            },
+            {
+              id: "pole",
+              name: "登山杖",
+              imageUrl: "/uploads/pole.jpg",
+              priceCents: 6900,
+              status: "ON_SALE",
+            },
+            {
+              id: "lamp",
+              name: "头灯",
+              imageUrl: "/uploads/lamp.jpg",
+              priceCents: 4900,
+              status: "ON_SALE",
+            },
+            { id: "off-sale", name: "旧款背包", status: "OFF_SHELF" },
           ],
         };
       }
@@ -253,6 +291,40 @@ describe("HomeLayoutView modular workbench", () => {
       .filter((b) => b.text() === "前移");
     await moveFrontBtns[1]!.trigger("click");
 
+    const activityCards = () =>
+      w.findAll(".featured-activities .featured-rank-card");
+    const activityTitles = () =>
+      activityCards().map((card) => card.get("strong").text());
+    expect(activityTitles()).toEqual(["路线A", "路线B", "路线C"]);
+    const cards = activityCards();
+    const dataTransfer = { setData: vi.fn() };
+    expect(cards[0]!.attributes("draggable")).toBe("true");
+    await cards[0]!.trigger("dragstart", { dataTransfer });
+    await cards[2]!.trigger("dragover", { dataTransfer });
+    await cards[2]!.trigger("drop", { dataTransfer });
+    await cards[0]!.trigger("dragend", { dataTransfer });
+    expect(activityTitles()).toEqual(["路线C", "路线B", "路线A"]);
+    // An unrelated drop after a cancelled drag must not reuse its source.
+    await cards[1]!.trigger("dragstart", { dataTransfer });
+    await cards[1]!.trigger("dragend", { dataTransfer });
+    await cards[2]!.trigger("drop", { dataTransfer });
+    expect(activityTitles()).toEqual(["路线C", "路线B", "路线A"]);
+    const activityPreview = w.findAll(".pv-activity-card");
+    expect(activityPreview.slice(0, 3).map((card) => card.text())).toEqual([
+      expect.stringMatching(/路线C.*漳州/),
+      expect.stringMatching(/路线B.*泉州/),
+      expect.stringMatching(/路线A.*厦门/),
+    ]);
+    expect(
+      activityPreview
+        .slice(0, 3)
+        .map((card) => card.get("img").attributes("src")),
+    ).toEqual([
+      "/assets/category-holiday.jpg",
+      "/assets/category-domestic.jpg",
+      "/assets/category-weekly.jpg",
+    ]);
+
     await w
       .findAll("button")
       .find((b) => b.text() === "下一页")!
@@ -266,6 +338,9 @@ describe("HomeLayoutView modular workbench", () => {
         fetch.mock.calls.some(([url]) => url.includes("keyword=%E6%AD%A6")),
       ).toBe(true);
     });
+    expect(
+      w.findAll(".pv-activity-card strong").map((item) => item.text()),
+    ).toEqual(["路线C", "路线B", "路线A", "海岸晨行"]);
     await w.get(".candidate-list button").trigger("click");
 
     // Switch to SHORTCUTS and set "野小子" to WECHAT_ARTICLE
@@ -296,8 +371,32 @@ describe("HomeLayoutView modular workbench", () => {
       .find((c) => c.text().includes("装备横幅与商品"))!
       .trigger("click");
     const products = w.findAll(".product-pick-btn");
-    expect(products.map((b) => b.text())).toEqual(["轻量背包"]);
-    await products[0]!.trigger("click");
+    expect(products.map((button) => button.text())).toEqual([
+      expect.stringContaining("轻量背包"),
+      expect.stringContaining("登山杖"),
+      expect.stringContaining("头灯"),
+    ]);
+    for (const product of products) await product.trigger("click");
+    const productCards = () =>
+      w.findAll(".featured-products .featured-rank-card");
+    const rankedProducts = productCards();
+    expect(rankedProducts).toHaveLength(3);
+    expect(rankedProducts[0]!.attributes("draggable")).toBe("true");
+    await rankedProducts[0]!.trigger("dragstart", { dataTransfer });
+    await rankedProducts[2]!.trigger("dragover", { dataTransfer });
+    await rankedProducts[2]!.trigger("drop", { dataTransfer });
+    await rankedProducts[0]!.trigger("dragend", { dataTransfer });
+    const rankedNames = ["头灯", "登山杖", "轻量背包"];
+    expect(productCards().map((card) => card.get("strong").text())).toEqual(
+      rankedNames,
+    );
+    const productPreview = w.findAll(".pv-product-card");
+    expect(productPreview.map((card) => card.text())).toEqual(
+      rankedNames.map((name) => expect.stringContaining(name)),
+    );
+    expect(
+      productPreview.map((card) => card.get("img").attributes("src")),
+    ).toEqual(["/uploads/lamp.jpg", "/uploads/pole.jpg", "/uploads/pack.jpg"]);
 
     // Switch to FOOTER and change brandWidthPx
     await w
@@ -322,9 +421,9 @@ describe("HomeLayoutView modular workbench", () => {
     const putCall = fetch.mock.calls.find((c) => c[1]?.method === "PUT")!;
     const saved = JSON.parse(putCall[1].body);
     expect(saved.activities.featuredActivityIds).toEqual([
-      "act-1",
-      "act-2",
       "act-3",
+      "act-2",
+      "act-1",
       "act-later",
     ]);
     expect(saved.shortcuts.items[2].type).toBe("WECHAT_ARTICLE");
@@ -335,7 +434,7 @@ describe("HomeLayoutView modular workbench", () => {
     expect(saved.shortcuts.items[2].wechatArticleUrl).toBe(
       "https://mp.weixin.qq.com/s?__biz=example&mid=123",
     );
-    expect(saved.shop.featuredProductIds).toEqual(["pack"]);
+    expect(saved.shop.featuredProductIds).toEqual(["lamp", "pole", "pack"]);
     expect(saved.footer.brandWidthPx).toBe(300);
     expect(saved.footer.brandImageUrl).toBe(
       "/assets/platform-brand-original-transparent.png",
@@ -508,7 +607,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
 });
 
 
-it("swaps configured cells live and hides unconfigured cells without placeholders", async () => {
+it("swaps configured cells live via board drag/switcher and hides unconfigured cells without placeholders", async () => {
   const layout = sampleLayout();
   layout.footer.followQrcodes.push({ url: "/assets/video.jpg", label: "视频号" });
   vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
@@ -526,18 +625,39 @@ it("swaps configured cells live and hides unconfigured cells without placeholder
   expect(footer.findAll(".pv-qr-item").map((item) => item.text()))
     .toEqual(["官方公众号", "视频号"]);
   await footer.trigger("click");
-  const positions = w.findAll(".footer-position-grid select");
-  await positions[0]!.setValue("QR2");
+
+  // Drag QR2 (pos 3) onto pos 0 (BRAND) to swap them
+  const slots = () => w.findAll(".footer-slot-card");
+  await slots()[3]!.trigger("dragstart");
+  await slots()[0]!.trigger("drop");
   expect(order()).toEqual(["QR2", "QR1", "TEXT", "BRAND"]);
-  expect((positions[3]!.element as HTMLSelectElement).value).toBe("BRAND");
-  await positions[1]!.setValue("TEXT");
+
+  // Select TEXT (now at pos 2) and move it to 右上 (pos 1) via position switcher
+  await w.get('.footer-slot-card[data-footer-cell="TEXT"]').trigger("click");
+  await w.findAll(".footer-pos-btn")[1]!.trigger("click");
   expect(order()).toEqual(["QR2", "TEXT", "QR1", "BRAND"]);
-  for (let i = 0; i < 2; i++) {
-    await w.get(".qr-cards-grid .danger-text").trigger("click");
-  }
+
+  // Switch to 3-area puzzle (左1右2), push col/row splitters, and verify spare module dock
+  await w.get('button[data-footer-preset="THREE_L1_R2"]').trigger("click");
+  expect(w.findAll(".footer-slot-card")).toHaveLength(3);
+  expect(w.findAll(".footer-spare-chip")).toHaveLength(1);
+  expect(order()).toEqual(["QR2", "TEXT", "QR1"]);
+  await w.get('button[data-footer-splitter="col"]').trigger("keydown.left");
+  await w.get('button[data-footer-splitter="row"]').trigger("keydown.down");
+  expect(w.text()).toContain("45% : 55%");
+  expect(w.text()).toContain("55% : 45%");
+  expect(footer.attributes("style")).toContain("45fr");
+  expect(footer.attributes("style")).toContain("55fr");
+
+  // Swap back to 4-grid and delete both QR codes via their focused slot editors
+  await w.get('button[data-footer-preset="FOUR_GRID"]').trigger("click");
+  await w.get('.footer-slot-card[data-footer-cell="QR1"]').trigger("click");
+  await w.get(".footer-qr-editor-actions .danger-text").trigger("click");
+  await w.get(".footer-qr-editor-actions .danger-text").trigger("click");
   expect(w.find(".pv-follow-box").exists()).toBe(false);
   expect(w.find(".pv-brand-wrap").exists()).toBe(true);
-  const brandSwitch = w.findAll(".editor-panel input[type=checkbox]")[1]!;
+
+  const brandSwitch = w.get('input[data-footer-toggle="brand"]');
   await brandSwitch.setValue(false);
   expect(w.find(".pv-footer").exists()).toBe(false);
   w.unmount();

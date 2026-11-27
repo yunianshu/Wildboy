@@ -88,6 +88,19 @@ public class HomeLayoutService {
     return new PublicHomeResponse(layout, resolvedActivities, resolvedEquipment);
   }
 
+  List<Models.Activity> activitySuggestions() {
+    return db.query(
+        """
+        SELECT a.*, COALESCE((SELECT SUM(o.party_size) FROM activity_order o
+          WHERE o.activity_id=a.id AND o.status='PENDING_PAYMENT'), 0) AS pending_payment_count
+        FROM activity a
+        WHERE a.status='PUBLISHED'
+        ORDER BY (a.start_at < CURRENT_TIMESTAMP) ASC, a.start_at ASC, a.id ASC
+        LIMIT 24
+        """,
+        activities::map);
+  }
+
   private List<Models.Activity> resolveFeaturedActivities(ActivitiesConfig cfg) {
     int maxCount = cfg == null || cfg.maxCount() == null ? 6 : Math.clamp(cfg.maxCount(), 1, 12);
     boolean autoFill = cfg == null || cfg.autoFill() == null || cfg.autoFill();
@@ -111,19 +124,7 @@ public class HomeLayoutService {
     }
 
     if (autoFill && result.size() < maxCount) {
-      // Prefer upcoming published activities first, then fallback to other published activities
-      var upcoming =
-          db.query(
-              """
-              SELECT a.*, COALESCE((SELECT SUM(o.party_size) FROM activity_order o
-                WHERE o.activity_id=a.id AND o.status='PENDING_PAYMENT'), 0) AS pending_payment_count
-              FROM activity a
-              WHERE a.status='PUBLISHED'
-              ORDER BY (a.start_at < CURRENT_TIMESTAMP) ASC, a.start_at ASC, a.id ASC
-              LIMIT 24
-              """,
-              activities::map);
-      for (Models.Activity a : upcoming) {
+      for (Models.Activity a : activitySuggestions()) {
         if (result.size() >= maxCount) break;
         if (seen.add(a.id())) {
           result.add(a);
@@ -543,6 +544,16 @@ public class HomeLayoutService {
 
   private static final List<String> DEFAULT_FOOTER_CELLS =
       List.of("BRAND", "QR1", "TEXT", "QR2");
+  private static final String DEFAULT_FOOTER_PRESET = "FOUR_GRID";
+  private static final Set<String> FOOTER_PRESETS =
+      Set.of(
+          "FOUR_GRID",
+          "THREE_L1_R2",
+          "THREE_L2_R1",
+          "THREE_T1_B2",
+          "THREE_T2_B1",
+          "TWO_LR",
+          "TWO_TB");
 
   private FooterConfig validateFooter(FooterConfig in) {
     if (in == null) bad("请提供底部关注与底图配置");
@@ -563,20 +574,59 @@ public class HomeLayoutService {
     if (brandWidthPx < 80 || brandWidthPx > 360) {
       bad("野小子底图宽度须在 80–360px 之间");
     }
+    FooterConfig previous =
+        (in.cellOrder() == null
+                || in.layoutPreset() == null
+                || in.colRatio() == null
+                || in.rowRatio() == null)
+            ? get(true).footer()
+            : null;
     List<String> cellOrder = in.cellOrder();
     if (cellOrder == null) {
-      // An older admin build omits this field. Keep the saved order on its other edits.
-      var previous = get(true).footer();
-      cellOrder = previous == null ? null : previous.cellOrder();
-      if (cellOrder == null) cellOrder = DEFAULT_FOOTER_CELLS;
+      cellOrder = previous == null || previous.cellOrder() == null ? DEFAULT_FOOTER_CELLS : previous.cellOrder();
     }
     if (cellOrder.size() != DEFAULT_FOOTER_CELLS.size()
         || !new HashSet<>(cellOrder).containsAll(DEFAULT_FOOTER_CELLS)) {
       bad("底部四格须各包含一次底图、说明和前两张二维码");
     }
+    String layoutPreset = in.layoutPreset();
+    if (layoutPreset == null || layoutPreset.isBlank()) {
+      layoutPreset =
+          previous == null || previous.layoutPreset() == null || previous.layoutPreset().isBlank()
+              ? DEFAULT_FOOTER_PRESET
+              : previous.layoutPreset();
+    } else {
+      layoutPreset = clean(layoutPreset);
+    }
+    if (!FOOTER_PRESETS.contains(layoutPreset)) {
+      bad("底部拼图排布模板无效");
+    }
+    int colRatio =
+        in.colRatio() != null
+            ? in.colRatio()
+            : (previous == null || previous.colRatio() == null ? 50 : previous.colRatio());
+    if (colRatio < 25 || colRatio > 75) {
+      bad("底部左右比例须在 25–75 之间");
+    }
+    int rowRatio =
+        in.rowRatio() != null
+            ? in.rowRatio()
+            : (previous == null || previous.rowRatio() == null ? 50 : previous.rowRatio());
+    if (rowRatio < 25 || rowRatio > 75) {
+      bad("底部上下比例须在 25–75 之间");
+    }
     return new FooterConfig(
-        followEnabled, followTitle, followSubtitle, followQrcodes,
-        brandEnabled, brandImageUrl, brandWidthPx, List.copyOf(cellOrder));
+        followEnabled,
+        followTitle,
+        followSubtitle,
+        followQrcodes,
+        brandEnabled,
+        brandImageUrl,
+        brandWidthPx,
+        List.copyOf(cellOrder),
+        layoutPreset,
+        colRatio,
+        rowRatio);
   }
 
   @Transactional

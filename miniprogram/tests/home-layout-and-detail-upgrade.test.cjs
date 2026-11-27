@@ -390,6 +390,25 @@ test("the native home footer renders custom cells, omits blanks and preserves ad
   assert.deepEqual(cells({followTitle: " ", brandEnabled: false}), ["QR1","QR2","QR3"]);
   assert.deepEqual(cells({followQrcodes: []}), ["BRAND"]);
   assert.deepEqual(cells({followEnabled: false, brandEnabled: false}), []);
+  const threeFooter = normalizePublicHomeLayout({
+    layout: {
+      modules: [],
+      footer: { ...raw, layoutPreset: "THREE_L1_R2", colRatio: 40, rowRatio: 60 },
+    },
+  }).footer;
+  assert.deepEqual(threeFooter.cells.map((cell) => cell.id), ["BRAND", "QR1", "TEXT", "QR3"]);
+  assert.equal(threeFooter.cells[0].cellStyle, "grid-column:1;grid-row:1 / span 2;");
+  assert.match(threeFooter.gridStyle, /minmax\(0,40fr\) minmax\(0,60fr\)/);
+  assert.match(threeFooter.gridStyle, /minmax\(0,60fr\) minmax\(0,40fr\)/);
+  const twoTbFooter = normalizePublicHomeLayout({
+    layout: {
+      modules: [],
+      footer: { ...raw, followQrcodes: [raw.followQrcodes[0]], layoutPreset: "TWO_TB", rowRatio: 35 },
+    },
+  }).footer;
+  assert.deepEqual(twoTbFooter.cells.map((cell) => cell.id), ["BRAND", "QR1"]);
+  assert.match(twoTbFooter.gridStyle, /grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(twoTbFooter.gridStyle, /minmax\(0,35fr\) minmax\(0,65fr\)/);
   const home = mountPage("home");
   const urls = ["https://example.test/oa.png", "https://example.test/video.png"];
   home.data.footer = normalizePublicHomeLayout({layout: {modules: [], footer: {...raw, cellOrder: ["BRAND","QR2","TEXT","QR1"], followQrcodes: urls.map((url) => ({ url, label: "" }))} }}).footer;

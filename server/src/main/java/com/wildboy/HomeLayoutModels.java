@@ -95,7 +95,10 @@ public final class HomeLayoutModels {
       Boolean brandEnabled,
       String brandImageUrl,
       Integer brandWidthPx,
-      List<String> cellOrder) {}
+      List<String> cellOrder,
+      String layoutPreset,
+      Integer colRatio,
+      Integer rowRatio) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record ModuleEntry(

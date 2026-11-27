@@ -2,6 +2,7 @@ package com.wildboy;
 
 import static com.wildboy.HomeLayoutModels.*;
 
+import java.util.List;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,11 @@ public class HomeLayoutController {
   @GetMapping("/admin/home/layout")
   public LayoutConfig adminLayout() {
     return service.get(true);
+  }
+
+  @GetMapping("/admin/home/activity-suggestions")
+  public List<Models.Activity> activitySuggestions() {
+    return service.activitySuggestions();
   }
 
   @PutMapping("/admin/home/layout")

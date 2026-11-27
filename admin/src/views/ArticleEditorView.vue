@@ -471,7 +471,7 @@ useForegroundRefresh(() => {
               :disabled="saving"
             ></textarea>
           </div>
-          <div class="article-summary-field">
+          <div class="article-summary-field field-focus-frame">
             <div class="article-field-meta">
               <label for="article-summary">
                 文章摘要 <small>用于文章列表与分享卡片</small>
@@ -793,7 +793,7 @@ useForegroundRefresh(() => {
 }
 .article-title-input {
   min-height: 66px;
-  padding: 9px 0 18px;
+  padding: 9px 8px 18px;
   overflow: hidden;
   border-bottom: 1px solid var(--rf-line);
   resize: none;
@@ -802,13 +802,8 @@ useForegroundRefresh(() => {
   line-height: 1.5;
   letter-spacing: -0.4px;
 }
-.article-title-input:focus,
 .article-summary-input:focus {
   outline: 0;
-}
-.article-title-input:focus {
-  border-bottom-color: var(--rf-primary);
-  box-shadow: 0 1px 0 var(--rf-primary);
 }
 .article-title-input::placeholder,
 .article-summary-input::placeholder {

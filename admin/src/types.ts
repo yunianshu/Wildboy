@@ -301,8 +301,19 @@ export interface HomeGalleryConfig {
   slides: HomeGallerySlide[];
 }
 export type HomeFooterCell = "BRAND" | "TEXT" | "QR1" | "QR2";
+export type HomeFooterLayoutPreset =
+  | "FOUR_GRID"
+  | "THREE_L1_R2"
+  | "THREE_L2_R1"
+  | "THREE_T1_B2"
+  | "THREE_T2_B1"
+  | "TWO_LR"
+  | "TWO_TB";
 export interface HomeFooterConfig {
   cellOrder?: HomeFooterCell[];
+  layoutPreset?: HomeFooterLayoutPreset;
+  colRatio?: number;
+  rowRatio?: number;
   followEnabled: boolean;
   followTitle: string;
   followSubtitle: string;

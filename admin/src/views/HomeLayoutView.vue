@@ -4,8 +4,11 @@ import { onBeforeRouteLeave, useRoute } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
+import FeaturedRankList from "../components/FeaturedRankList.vue";
+import { displayDate } from "../forms";
 import defaultBrandPreview from "../assets/platform-brand-original-transparent.png";
 import ImageUpload from "../components/ImageUpload.vue";
+import HomeGalleryPreview from "../components/HomeGalleryPreview.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import {
@@ -14,6 +17,7 @@ import {
   type HomeActionLink,
   type HomeGallerySlide,
   type HomeFooterCell,
+  type HomeFooterLayoutPreset,
   type HomeLayoutConfig,
   type HomeModuleId,
   type HomeQrImage,
@@ -76,22 +80,357 @@ const footerCellLabels: Record<HomeFooterCell, string> = {
   QR2: "二维码 2",
 };
 const defaultFooterCells: HomeFooterCell[] = ["BRAND", "QR1", "TEXT", "QR2"];
-const footerPositions = ["左上", "右上", "左下", "右下"];
+const brandWidthPresets = [
+  { label: "偏小", value: 160 },
+  { label: "标准", value: 216 },
+  { label: "偏大", value: 280 },
+] as const;
+
+type FooterSlotDef = { label: string; col: string; row: string };
+type FooterPresetDef = {
+  id: HomeFooterLayoutPreset;
+  group: 2 | 3 | 4;
+  label: string;
+  hasColSplit: boolean;
+  hasRowSplit: boolean;
+  slots: FooterSlotDef[];
+};
+
+const footerPresets: FooterPresetDef[] = [
+  {
+    id: "TWO_LR",
+    group: 2,
+    label: "左右",
+    hasColSplit: true,
+    hasRowSplit: false,
+    slots: [
+      { label: "左侧", col: "1", row: "1" },
+      { label: "右侧", col: "2", row: "1" },
+    ],
+  },
+  {
+    id: "TWO_TB",
+    group: 2,
+    label: "上下",
+    hasColSplit: false,
+    hasRowSplit: true,
+    slots: [
+      { label: "上方", col: "1", row: "1" },
+      { label: "下方", col: "1", row: "2" },
+    ],
+  },
+  {
+    id: "THREE_L1_R2",
+    group: 3,
+    label: "左1右2",
+    hasColSplit: true,
+    hasRowSplit: true,
+    slots: [
+      { label: "左侧通高", col: "1", row: "1 / span 2" },
+      { label: "右上", col: "2", row: "1" },
+      { label: "右下", col: "2", row: "2" },
+    ],
+  },
+  {
+    id: "THREE_L2_R1",
+    group: 3,
+    label: "左2右1",
+    hasColSplit: true,
+    hasRowSplit: true,
+    slots: [
+      { label: "左上", col: "1", row: "1" },
+      { label: "左下", col: "1", row: "2" },
+      { label: "右侧通高", col: "2", row: "1 / span 2" },
+    ],
+  },
+  {
+    id: "THREE_T1_B2",
+    group: 3,
+    label: "上1下2",
+    hasColSplit: true,
+    hasRowSplit: true,
+    slots: [
+      { label: "上方通宽", col: "1 / span 2", row: "1" },
+      { label: "左下", col: "1", row: "2" },
+      { label: "右下", col: "2", row: "2" },
+    ],
+  },
+  {
+    id: "THREE_T2_B1",
+    group: 3,
+    label: "上2下1",
+    hasColSplit: true,
+    hasRowSplit: true,
+    slots: [
+      { label: "左上", col: "1", row: "1" },
+      { label: "右上", col: "2", row: "1" },
+      { label: "下方通宽", col: "1 / span 2", row: "2" },
+    ],
+  },
+  {
+    id: "FOUR_GRID",
+    group: 4,
+    label: "四宫格",
+    hasColSplit: true,
+    hasRowSplit: true,
+    slots: [
+      { label: "左上", col: "1", row: "1" },
+      { label: "右上", col: "2", row: "1" },
+      { label: "左下", col: "1", row: "2" },
+      { label: "右下", col: "2", row: "2" },
+    ],
+  },
+];
+
+const footerPresetMap = Object.fromEntries(
+  footerPresets.map((p) => [p.id, p]),
+) as Record<HomeFooterLayoutPreset, FooterPresetDef>;
+
+const footerPresetGroups = [2, 3, 4].map((count) => ({
+  count,
+  title: `${count} 区域`,
+  items: footerPresets.filter((p) => p.group === count),
+}));
+
+const activeFooterCell = ref<HomeFooterCell>("BRAND");
+const dragFooterPos = ref<number | null>(null);
+const dragOverFooterPos = ref<number | null>(null);
+const puzzleStageEl = ref<HTMLElement | null>(null);
+const draggingSplit = ref<"col" | "row" | null>(null);
 
 function normalizeFooterCells(order?: HomeFooterCell[]) {
   return Array.isArray(order) && order.length === 4 && defaultFooterCells.every((id) => order.includes(id))
     ? [...order] : [...defaultFooterCells];
 }
 
-function placeFooterCell(position: number, event: Event) {
+function normalizeFooterPreset(preset?: HomeFooterLayoutPreset): HomeFooterLayoutPreset {
+  return preset && preset in footerPresetMap ? preset : "FOUR_GRID";
+}
+
+function normalizeFooterRatio(value?: number): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(25, Math.min(75, Math.round(n))) : 50;
+}
+
+const footerCellsOrdered = computed<HomeFooterCell[]>(() =>
+  normalizeFooterCells(layout.value?.footer.cellOrder),
+);
+
+const footerPresetDef = computed<FooterPresetDef>(
+  () => footerPresetMap[normalizeFooterPreset(layout.value?.footer.layoutPreset)],
+);
+
+const footerColRatio = computed(() =>
+  normalizeFooterRatio(layout.value?.footer.colRatio),
+);
+
+const footerRowRatio = computed(() =>
+  normalizeFooterRatio(layout.value?.footer.rowRatio),
+);
+
+const footerActiveSlots = computed(() =>
+  footerPresetDef.value.slots.map((slot, posIdx) => ({
+    ...slot,
+    posIdx,
+    cellId: footerCellsOrdered.value[posIdx]!,
+  })),
+);
+
+const footerSpareSlots = computed(() =>
+  footerCellsOrdered.value
+    .slice(footerPresetDef.value.slots.length)
+    .map((cellId, idx) => ({
+      cellId,
+      posIdx: footerPresetDef.value.slots.length + idx,
+    })),
+);
+
+const isDefaultFooterLayout = computed(
+  () =>
+    footerPresetDef.value.id === "FOUR_GRID" &&
+    footerColRatio.value === 50 &&
+    footerRowRatio.value === 50 &&
+    footerCellsOrdered.value.every((id, idx) => id === defaultFooterCells[idx]),
+);
+
+const footerPuzzleGridStyle = computed(() => {
+  const preset = footerPresetDef.value;
+  return {
+    gridTemplateColumns: preset.hasColSplit
+      ? `minmax(0, ${footerColRatio.value}fr) minmax(0, ${100 - footerColRatio.value}fr)`
+      : "minmax(0, 1fr)",
+    gridTemplateRows: preset.hasRowSplit
+      ? `minmax(0, ${footerRowRatio.value}fr) minmax(0, ${100 - footerRowRatio.value}fr)`
+      : "minmax(0, 1fr)",
+  };
+});
+
+const footerColSplitterStyle = computed(() => {
+  const preset = footerPresetDef.value.id;
+  const base: Record<string, string> = {
+    left: `calc(${footerColRatio.value}% - 9px)`,
+  };
+  if (preset === "THREE_T1_B2") {
+    base.top = `${footerRowRatio.value}%`;
+    base.bottom = "0";
+  } else if (preset === "THREE_T2_B1") {
+    base.top = "0";
+    base.bottom = `${100 - footerRowRatio.value}%`;
+  } else {
+    base.top = "0";
+    base.bottom = "0";
+  }
+  return base;
+});
+
+const footerRowSplitterStyle = computed(() => {
+  const preset = footerPresetDef.value.id;
+  const base: Record<string, string> = {
+    top: `calc(${footerRowRatio.value}% - 9px)`,
+  };
+  if (preset === "THREE_L1_R2") {
+    base.left = `${footerColRatio.value}%`;
+    base.right = "0";
+  } else if (preset === "THREE_L2_R1") {
+    base.left = "0";
+    base.right = `${100 - footerColRatio.value}%`;
+  } else {
+    base.left = "0";
+    base.right = "0";
+  }
+  return base;
+});
+
+function setFooterPreset(preset: HomeFooterLayoutPreset) {
+  if (!layout.value) return;
+  layout.value.footer.layoutPreset = preset;
+  const activeIds = footerCellsOrdered.value.slice(0, footerPresetMap[preset].slots.length);
+  if (!activeIds.includes(activeFooterCell.value)) {
+    activeFooterCell.value = activeIds[0]!;
+  }
+}
+
+function swapFooterPositions(fromPos: number, toPos: number) {
   const footer = layout.value?.footer;
-  if (!footer) return;
+  if (!footer || fromPos === toPos || fromPos < 0 || toPos < 0 || fromPos > 3 || toPos > 3) return;
   const order = normalizeFooterCells(footer.cellOrder);
-  const current = (event.target as HTMLSelectElement).value as HomeFooterCell;
-  const previous = order.indexOf(current);
-  if (previous < 0 || previous === position) return;
-  [order[previous], order[position]] = [order[position]!, current];
+  [order[fromPos], order[toPos]] = [order[toPos]!, order[fromPos]!];
   footer.cellOrder = order;
+}
+
+function moveFooterCellTo(cell: HomeFooterCell, targetPos: number) {
+  const currentPos = footerCellsOrdered.value.indexOf(cell);
+  if (currentPos >= 0 && currentPos !== targetPos) {
+    swapFooterPositions(currentPos, targetPos);
+  }
+}
+
+function swapSpareIntoActive(sparePosIdx: number) {
+  const activePos = footerCellsOrdered.value.indexOf(activeFooterCell.value);
+  const targetPos = activePos >= 0 && activePos < footerPresetDef.value.slots.length ? activePos : 0;
+  const spareCell = footerCellsOrdered.value[sparePosIdx];
+  swapFooterPositions(sparePosIdx, targetPos);
+  if (spareCell) activeFooterCell.value = spareCell;
+}
+
+function resetFooterOrder() {
+  if (!layout.value) return;
+  layout.value.footer.layoutPreset = "FOUR_GRID";
+  layout.value.footer.colRatio = 50;
+  layout.value.footer.rowRatio = 50;
+  layout.value.footer.cellOrder = [...defaultFooterCells];
+}
+
+function resetFooterRatios() {
+  if (!layout.value) return;
+  layout.value.footer.colRatio = 50;
+  layout.value.footer.rowRatio = 50;
+}
+
+function nudgeFooterRatio(axis: "col" | "row", delta: number) {
+  if (!layout.value) return;
+  if (axis === "col") {
+    layout.value.footer.colRatio = normalizeFooterRatio(footerColRatio.value + delta);
+  } else {
+    layout.value.footer.rowRatio = normalizeFooterRatio(footerRowRatio.value + delta);
+  }
+}
+
+function onSplitPointerMove(e: PointerEvent) {
+  const axis = draggingSplit.value;
+  const stage = puzzleStageEl.value;
+  if (!axis || !stage || !layout.value) return;
+  const rect = stage.getBoundingClientRect();
+  if (axis === "col" && rect.width > 0) {
+    const pct = ((e.clientX - rect.left) / rect.width) * 100;
+    layout.value.footer.colRatio = normalizeFooterRatio(pct);
+  } else if (axis === "row" && rect.height > 0) {
+    const pct = ((e.clientY - rect.top) / rect.height) * 100;
+    layout.value.footer.rowRatio = normalizeFooterRatio(pct);
+  }
+}
+
+function stopSplitDrag() {
+  draggingSplit.value = null;
+  window.removeEventListener("pointermove", onSplitPointerMove);
+  window.removeEventListener("pointerup", stopSplitDrag);
+  window.removeEventListener("pointercancel", stopSplitDrag);
+}
+
+function startSplitDrag(axis: "col" | "row", e: PointerEvent) {
+  e.preventDefault();
+  draggingSplit.value = axis;
+  window.addEventListener("pointermove", onSplitPointerMove);
+  window.addEventListener("pointerup", stopSplitDrag);
+  window.addEventListener("pointercancel", stopSplitDrag);
+}
+
+function startFooterCellDrag(pos: number) {
+  dragFooterPos.value = pos;
+}
+
+function dropFooterCell(targetPos: number) {
+  if (dragFooterPos.value !== null) {
+    swapFooterPositions(dragFooterPos.value, targetPos);
+  }
+  dragFooterPos.value = null;
+  dragOverFooterPos.value = null;
+}
+
+function endFooterCellDrag() {
+  dragFooterPos.value = null;
+  dragOverFooterPos.value = null;
+}
+
+function footerSlotQrIndex(cell: HomeFooterCell): number | null {
+  if (cell === "QR1") return 0;
+  if (cell === "QR2") return 1;
+  return null;
+}
+
+function footerCellMeta(cell: HomeFooterCell) {
+  const footer = layout.value?.footer;
+  if (!footer) return { active: false, badge: "未配置", tone: "muted" as const };
+  const qrs = footer.followQrcodes;
+  if (cell === "BRAND") {
+    return footer.brandEnabled
+      ? { active: true, badge: "显示中", tone: "ok" as const }
+      : { active: false, badge: "已关闭", tone: "muted" as const };
+  }
+  if (!footer.followEnabled) {
+    return { active: false, badge: "已关闭", tone: "muted" as const };
+  }
+  if (cell === "TEXT") {
+    if (!qrs.length) return { active: false, badge: "缺二维码", tone: "warn" as const };
+    if (!footer.followTitle.trim() && !footer.followSubtitle.trim()) {
+      return { active: false, badge: "未填文案", tone: "muted" as const };
+    }
+    return { active: true, badge: "显示中", tone: "ok" as const };
+  }
+  const idx = cell === "QR1" ? 0 : 1;
+  return qrs[idx]
+    ? { active: true, badge: "显示中", tone: "ok" as const }
+    : { active: false, badge: "未上传", tone: "muted" as const };
 }
 
 const footerPreviewCells = computed(() => {
@@ -104,13 +443,51 @@ const footerPreviewCells = computed(() => {
     map.TEXT = { id: "TEXT", kind: "TEXT" };
   if (codes[0]) map.QR1 = { id: "QR1", kind: "QR", qr: codes[0] };
   if (codes[1]) map.QR2 = { id: "QR2", kind: "QR", qr: codes[1] };
-  return normalizeFooterCells(footer.cellOrder)
-    .flatMap((id) => map[id] ? [map[id]!] : [])
-    .concat(codes.slice(2).map((qr, index) => ({ id: "QR" + (index + 3), kind: "QR" as const, qr })));
+  const preset = footerPresetDef.value;
+  const activeIds = normalizeFooterCells(footer.cellOrder).slice(0, preset.slots.length);
+  const primary = activeIds.flatMap((id) => (map[id] ? [map[id]!] : []));
+  const applyPresetStyles = preset.id !== "FOUR_GRID" && primary.length === preset.slots.length;
+  return primary
+    .map((cell, idx) => ({
+      ...cell,
+      style: applyPresetStyles
+        ? {
+            gridColumn: preset.slots[idx]!.col,
+            gridRow: preset.slots[idx]!.row,
+          }
+        : undefined,
+    }))
+    .concat(
+      codes.slice(2).map((qr, index) => ({
+        id: "QR" + (index + 3),
+        kind: "QR" as const,
+        qr,
+        style: undefined,
+      })),
+    );
+});
+
+const footerPreviewGridStyle = computed(() => {
+  if (footerPreviewCells.value.length <= 1) return undefined;
+  const preset = footerPresetDef.value;
+  const style: Record<string, string> = {
+    gridTemplateColumns: preset.hasColSplit
+      ? `minmax(0, ${footerColRatio.value}fr) minmax(0, ${100 - footerColRatio.value}fr)`
+      : "minmax(0, 1fr)",
+  };
+  if (preset.hasRowSplit && footerRowRatio.value !== 50) {
+    style.gridTemplateRows = `minmax(0, ${footerRowRatio.value}fr) minmax(0, ${100 - footerRowRatio.value}fr)`;
+    style.minHeight = "156px";
+  }
+  return style;
 });
 
 const snapshot = ref("");
 const activeModule = ref<HomeModuleId>("ACTIVITIES");
+const moduleEditor = ref<HTMLElement>();
+watch(activeModule, () => {
+  if (moduleEditor.value) moduleEditor.value.scrollTop = 0;
+}, { flush: "post" });
 const activeShortcutIdx = ref(0);
 const loading = ref(false);
 const saving = ref(false);
@@ -120,16 +497,20 @@ const success = ref("");
 
 const ACTIVITY_PAGE_SIZE = 50;
 const activityCatalog = reactive(new Map<string, Activity>());
+const activitySuggestions = ref<string[]>([]);
+const activityPreviewLoading = ref(false);
+const activityDetailsFailed = ref(false);
+const activitySuggestionsFailed = ref(false);
 const allActivities = computed(() => [...activityCatalog.values()]);
 const activityPage = ref<Page<Activity> | null>(null);
 const activityLoading = ref(false);
 const activityError = ref("");
 let activityRequest: AbortController | undefined;
 const allProducts = ref<Product[]>([]);
+const productCatalogState = ref<"loading" | "ready" | "error">("loading");
 const allArticles = ref<ArticleOption[]>([]);
 const activityFilter = ref("");
 const dragModuleIdx = ref<number | null>(null);
-const dragActivityIdx = ref<number | null>(null);
 const dragShortcutIdx = ref<number | null>(null);
 const dragQrIdx = ref<number | null>(null);
 const dragFollowQrIdx = ref<number | null>(null);
@@ -182,6 +563,9 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
   copy.footer.followTitle = copy.footer.followTitle || "";
   copy.footer.followSubtitle = copy.footer.followSubtitle || "";
   copy.footer.cellOrder = normalizeFooterCells(copy.footer.cellOrder);
+  copy.footer.layoutPreset = normalizeFooterPreset(copy.footer.layoutPreset);
+  copy.footer.colRatio = normalizeFooterRatio(copy.footer.colRatio);
+  copy.footer.rowRatio = normalizeFooterRatio(copy.footer.rowRatio);
   copy.footer.brandImageUrl = copy.footer.brandImageUrl || DEFAULT_BRAND;
   copy.footer.brandWidthPx = copy.footer.brandWidthPx || 216;
   return copy;
@@ -253,11 +637,18 @@ watch(activityFilter, (_value, _previous, onCleanup) => {
 });
 
 async function loadCatalogs(featuredIds: string[]) {
+  productCatalogState.value = "loading";
   await Promise.allSettled([
-    loadActivityPage().then(() => loadFeaturedActivities(featuredIds)),
-    request<Product[]>("/admin/shop/products").then((products) => {
-      allProducts.value = products.filter((p) => p.status === "ON_SALE");
-    }),
+    loadActivityPreview(featuredIds),
+    request<Product[]>("/admin/shop/products")
+      .then((products) => {
+        allProducts.value = products.filter((p) => p.status === "ON_SALE");
+        productCatalogState.value = "ready";
+      })
+      .catch(() => {
+        allProducts.value = [];
+        productCatalogState.value = "error";
+      }),
     request<Page<ArticleOption>>("/admin/articles?page=0&size=50").then(
       (page) => {
         allArticles.value = page.items.filter((a) => a.status === "PUBLISHED");
@@ -267,7 +658,7 @@ async function loadCatalogs(featuredIds: string[]) {
 }
 
 async function loadFeaturedActivities(ids: string[]) {
-  await Promise.allSettled(
+  await Promise.all(
     ids
       .filter((id) => !activityCatalog.has(id))
       .map(async (id) => {
@@ -279,21 +670,52 @@ async function loadFeaturedActivities(ids: string[]) {
   );
 }
 
-const selectedActivities = computed(() => {
-  if (!layout.value) return [];
-  return layout.value.activities.featuredActivityIds.map((id) => {
-    const found = activityCatalog.get(id);
-    return (
-      found || {
-        id,
-        title: `活动 (${id.slice(0, 8)})`,
-        category: "WEEKLY",
-        coverUrl: "",
-        location: "已选活动",
-        startAt: "",
-      }
-    );
-  });
+async function loadActivityPreview(featuredIds: string[]) {
+  activityPreviewLoading.value = true;
+  activityDetailsFailed.value = false;
+  activitySuggestionsFailed.value = false;
+  activityCatalog.clear();
+  activitySuggestions.value = [];
+  const [details, suggestions] = await Promise.allSettled([
+    loadActivityPage().then(() => loadFeaturedActivities(featuredIds)),
+    request<Activity[]>("/admin/home/activity-suggestions").then((items) => {
+      for (const activity of items) activityCatalog.set(activity.id, activity);
+      activitySuggestions.value = items.map((activity) => activity.id);
+    }),
+  ]);
+  activityDetailsFailed.value = details.status === "rejected";
+  activitySuggestionsFailed.value = suggestions.status === "rejected";
+  activityPreviewLoading.value = false;
+}
+
+const activityOptions = computed(() => allActivities.value.map((activity) => ({
+  id: activity.id,
+  title: activity.title,
+  imageUrl: activity.coverUrl,
+  detail: activity.location,
+})));
+const productOptions = computed(() => allProducts.value.map((product) => ({
+  id: product.id,
+  title: product.name,
+  imageUrl: product.imageUrl,
+})));
+const previewActivities = computed(() => {
+  const config = layout.value?.activities;
+  if (!config) return [];
+  const ids = new Set(config.featuredActivityIds);
+  if (config.autoFill) {
+    for (const id of activitySuggestions.value) ids.add(id);
+  }
+  return [...ids].flatMap((id) => {
+    const activity = activityCatalog.get(id);
+    return activity ? [activity] : [];
+  }).slice(0, config.maxCount);
+});
+
+const activityPreviewIncomplete = computed(() => {
+  const config = layout.value?.activities;
+  return activityDetailsFailed.value || (activitySuggestionsFailed.value &&
+    config?.autoFill && previewActivities.value.length < config.maxCount);
 });
 
 const candidateActivities = computed(() => {
@@ -334,18 +756,6 @@ function addFeaturedActivity(id: string) {
   const list = layout.value.activities.featuredActivityIds;
   if (list.length >= 12 || list.includes(id)) return;
   list.push(id);
-}
-function removeFeaturedActivity(idx: number) {
-  layout.value?.activities.featuredActivityIds.splice(idx, 1);
-}
-function dropFeaturedActivity(toIdx: number) {
-  if (!layout.value || dragActivityIdx.value === null) return;
-  moveArrayItem(
-    layout.value.activities.featuredActivityIds,
-    dragActivityIdx.value,
-    toIdx,
-  );
-  dragActivityIdx.value = null;
 }
 
 // Shortcuts add/remove/drag
@@ -395,6 +805,20 @@ function dropPopupQr(list: HomeQrImage[], toIdx: number) {
 }
 
 // Shop featured products
+const previewProducts = computed(() => {
+  const shop = layout.value?.shop;
+  if (!shop || !shop.showProducts) return [];
+  const products = new Map(allProducts.value.map((product) => [product.id, product]));
+  const ids = new Set(shop.featuredProductIds);
+  if (shop.autoFill) {
+    for (const id of products.keys()) ids.add(id);
+  }
+  return Array.from(ids)
+    .map((id) => products.get(id))
+    .filter((product): product is Product => !!product)
+    .slice(0, shop.maxCount);
+});
+
 function toggleFeaturedProduct(id: string) {
   if (!layout.value) return;
   const list = layout.value.shop.featuredProductIds;
@@ -420,6 +844,23 @@ function addGallerySlide(url: string) {
 function addFollowQr(url: string) {
   if (!layout.value || layout.value.footer.followQrcodes.length >= 6) return;
   layout.value.footer.followQrcodes.push({ url, label: "扫码关注" });
+}
+function uploadFooterSlotQr(cell: "QR1" | "QR2", url: string) {
+  if (!layout.value) return;
+  const list = layout.value.footer.followQrcodes;
+  const idx = cell === "QR1" ? 0 : 1;
+  if (list[idx]) {
+    list[idx]!.url = url;
+    return;
+  }
+  if (list.length < 6) {
+    list.push({ url, label: idx === 0 ? "官方公众号" : "扫码关注" });
+    if (list.length === 1) activeFooterCell.value = "QR1";
+  }
+}
+function removeFooterQr(idx: number) {
+  if (!layout.value) return;
+  layout.value.footer.followQrcodes.splice(idx, 1);
 }
 function dropFollowQr(toIdx: number) {
   if (!layout.value || dragFollowQrIdx.value === null) return;
@@ -485,6 +926,7 @@ onMounted(() => {
 });
 onUnmounted(() => {
   activityRequest?.abort();
+  stopSplitDrag();
   window.removeEventListener("beforeunload", protectBeforeUnload);
 });
 </script>
@@ -587,7 +1029,7 @@ onUnmounted(() => {
       </aside>
 
       <!-- Center: Active module editor -->
-      <section class="module-editor">
+      <section ref="moduleEditor" class="module-editor">
         <!-- 1. HERO -->
         <div v-if="activeModule === 'HERO'" class="editor-panel">
           <h2>顶部主视觉（头图与主标题）</h2>
@@ -1091,7 +1533,7 @@ onUnmounted(() => {
           <div class="inline-controls">
             <label class="field checkbox-field">
               <input v-model="layout.activities.autoFill" type="checkbox" />
-              手动精选题数不足
+              手动精选活动不足
               {{ layout.activities.maxCount }}
               个时，自动按出发时间补齐其他已发布活动
             </label>
@@ -1102,70 +1544,22 @@ onUnmounted(() => {
           </div>
 
           <div class="sub-box">
-            <h3>
-              已排定首页展示顺序（共
-              {{ selectedActivities.length }} 场，按住卡片拖动即可调整前后位置）
-            </h3>
-            <p v-if="!selectedActivities.length" class="muted">
-              当前未手动指定置顶活动，小程序将按出发时间自动展示最近
-              {{ layout.activities.maxCount }}
-              场活动。可从下方列表点击「加入首页」固定位置。
+            <h3>已排定活动（{{ layout.activities.featuredActivityIds.length }} 场）</h3>
+            <p v-if="!layout.activities.featuredActivityIds.length" class="muted">
+              可从下方列表将活动加入首页排位。
             </p>
-            <div v-else class="featured-act-grid">
-              <div
-                v-for="(act, idx) in selectedActivities"
-                :key="act.id"
-                class="featured-act-card"
-                draggable="true"
-                @dragstart="dragActivityIdx = idx"
-                @dragover.prevent
-                @drop="dropFeaturedActivity(idx)"
-              >
-                <span class="slot-badge">第 {{ idx + 1 }} 位</span>
-                <img v-if="act.coverUrl" :src="act.coverUrl" alt="" />
-                <div class="featured-act-info">
-                  <strong>{{ act.title }}</strong>
-                  <small>{{ act.location }}</small>
-                </div>
-                <div class="featured-act-actions">
-                  <button
-                    type="button"
-                    class="text-button"
-                    :disabled="idx === 0"
-                    @click="
-                      moveArrayItem(
-                        layout.activities.featuredActivityIds,
-                        idx,
-                        idx - 1,
-                      )
-                    "
-                  >
-                    前移
-                  </button>
-                  <button
-                    type="button"
-                    class="text-button"
-                    :disabled="idx === selectedActivities.length - 1"
-                    @click="
-                      moveArrayItem(
-                        layout.activities.featuredActivityIds,
-                        idx,
-                        idx + 1,
-                      )
-                    "
-                  >
-                    后移
-                  </button>
-                  <button
-                    type="button"
-                    class="text-button danger-text"
-                    @click="removeFeaturedActivity(idx)"
-                  >
-                    移出
-                  </button>
-                </div>
-              </div>
-            </div>
+            <template v-else>
+              <p v-if="layout.activities.featuredActivityIds.length > 1" class="field-hint">
+                将一张卡片拖到另一张上即可交换排位。
+              </p>
+              <FeaturedRankList
+                v-model="layout.activities.featuredActivityIds"
+                class="featured-activities"
+                item-label="活动"
+                :options="activityOptions"
+                :disabled="saving"
+              />
+            </template>
           </div>
 
           <div class="sub-box">
@@ -1201,7 +1595,7 @@ onUnmounted(() => {
                 <button
                   type="button"
                   class="secondary"
-                  :disabled="layout.activities.featuredActivityIds.length >= 12"
+                  :disabled="saving || layout.activities.featuredActivityIds.length >= 12"
                   @click="addFeaturedActivity(act.id)"
                 >
                   加入首页排位
@@ -1292,17 +1686,33 @@ onUnmounted(() => {
             </label>
           </div>
 
+          <div v-if="layout.shop.showProducts && layout.shop.featuredProductIds.length" class="sub-box">
+            <h3>已排定商品（{{ layout.shop.featuredProductIds.length }} 件）</h3>
+            <p v-if="layout.shop.featuredProductIds.length > 1" class="field-hint">
+              将一张卡片拖到另一张上即可交换排位。
+            </p>
+            <FeaturedRankList
+              v-model="layout.shop.featuredProductIds"
+              class="featured-products"
+              item-label="商品"
+              :options="productOptions"
+              :disabled="saving"
+            />
+          </div>
+
           <div
             v-if="layout.shop.showProducts && allProducts.length"
             class="sub-box"
           >
-            <h3>选择优先展示的商品（按勾选先后排序）</h3>
+            <h3>选择优先展示的商品</h3>
             <div class="product-pick-grid">
               <button
                 v-for="prod in allProducts"
                 :key="prod.id"
                 type="button"
                 class="product-pick-btn"
+                :disabled="saving || (layout.shop.featuredProductIds.length >= 8 && !layout.shop.featuredProductIds.includes(prod.id))"
+                :aria-pressed="layout.shop.featuredProductIds.includes(prod.id)"
                 :class="{
                   'is-picked': layout.shop.featuredProductIds.includes(prod.id),
                 }"
@@ -1432,165 +1842,544 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- 6. FOOTER (Scan-to-follow QRs + Wildboy brand image & size!) -->
+        <!-- 6. FOOTER (Puzzle board with 2/3/4 presets + draggable splitters + focused slot inspector) -->
         <div v-else-if="activeModule === 'FOOTER'" class="editor-panel">
-          <h2>首页底部配置</h2>
-
-          <div class="sub-box">
-            <strong>四格位置</strong>
-            <p class="field-hint">选一个格子的内容，两格会自动互换。未配置的内容不占位，第 3 张起的二维码按列表顺序排在下面。</p>
-            <div class="footer-position-grid">
-              <label v-for="(position, index) in footerPositions" :key="position">
-                {{ position }}
-                <select :value="layout.footer.cellOrder?.[index]" @change="placeFooterCell(index, $event)">
-                  <option v-for="id in defaultFooterCells" :key="id" :value="id">{{ footerCellLabels[id] }}</option>
-                </select>
+          <div class="panel-head">
+            <div>
+              <h2>首页底部配置</h2>
+              <p class="field-hint footer-panel-desc">
+                选择 2/3/4 区域拼图组合，拖动拼图块换位，推动中间分割条调整左右/上下比例，点击任意区域编辑内容。
+              </p>
+            </div>
+            <div class="footer-head-toggles">
+              <label class="footer-toggle-pill">
+                <input
+                  v-model="layout.footer.brandEnabled"
+                  type="checkbox"
+                  data-footer-toggle="brand"
+                />
+                <span>显示品牌底图</span>
               </label>
+              <label class="footer-toggle-pill">
+                <input
+                  v-model="layout.footer.followEnabled"
+                  type="checkbox"
+                  data-footer-toggle="follow"
+                />
+                <span>显示关注二维码</span>
+              </label>
+              <button
+                v-if="!isDefaultFooterLayout"
+                type="button"
+                class="text-button"
+                @click="resetFooterOrder"
+              >
+                恢复默认排布
+              </button>
             </div>
           </div>
 
-          <div class="sub-box">
-            <label class="field checkbox-field">
-              <input v-model="layout.footer.followEnabled" type="checkbox" />
-              在小程序首页底部显示关注二维码
-            </label>
-            <template v-if="layout.footer.followEnabled">
-              <p class="field-hint">前两张对应四格里的「二维码 1」「二维码 2」。没有上传二维码时，不显示关注说明。</p>
-              <div class="field-row">
-                <label>
-                  关注区标题
-                  <input
-                    v-model="layout.footer.followTitle"
-                    maxlength="60"
-                    placeholder="关注野小子公众号"
-                  />
-                </label>
-                <label>
-                  引导副文案
-                  <input
-                    v-model="layout.footer.followSubtitle"
-                    maxlength="120"
-                    placeholder="长按识别二维码 · 获取最新山野路线与活动动态"
-                  />
-                </label>
-              </div>
-
-              <div class="qr-section-head">
-                <strong
-                  >底部二维码列表（{{ layout.footer.followQrcodes.length }} /
-                  6，可上传多个并拖动排序）</strong
+          <!-- Puzzle Preset Selector (2 / 3 / 4 areas) -->
+          <div class="footer-preset-bar" role="group" aria-label="拼图区域排列组合">
+            <div
+              v-for="group in footerPresetGroups"
+              :key="group.count"
+              class="footer-preset-group"
+            >
+              <span class="footer-preset-group-label">{{ group.title }}</span>
+              <div class="footer-preset-items">
+                <button
+                  v-for="preset in group.items"
+                  :key="preset.id"
+                  type="button"
+                  class="footer-preset-card"
+                  :class="{ 'is-active': footerPresetDef.id === preset.id }"
+                  :data-footer-preset="preset.id"
+                  :aria-pressed="footerPresetDef.id === preset.id"
+                  @click="setFooterPreset(preset.id)"
                 >
-                <ImageUpload
-                  v-if="layout.footer.followQrcodes.length < 6"
-                  :key="`footer-qr-${layout.footer.followQrcodes.length}`"
-                  label="上传关注二维码"
-                  @uploaded="addFollowQr"
-                />
+                  <span
+                    class="footer-preset-thumb"
+                    :class="`is-${preset.id.toLowerCase()}`"
+                    aria-hidden="true"
+                  >
+                    <i
+                      v-for="(slot, idx) in preset.slots"
+                      :key="idx"
+                      :style="{ gridColumn: slot.col, gridRow: slot.row }"
+                    />
+                  </span>
+                  <span>{{ preset.label }}</span>
+                </button>
               </div>
+            </div>
+          </div>
 
+          <!-- Interactive Puzzle Stage with Draggable Splitters -->
+          <div
+            ref="puzzleStageEl"
+            class="footer-puzzle-stage"
+            :class="{ 'is-resizing': !!draggingSplit }"
+          >
+            <div
+              class="footer-puzzle-grid"
+              role="list"
+              aria-label="首页底部拼图排布"
+              :style="footerPuzzleGridStyle"
+            >
               <div
-                v-if="layout.footer.followQrcodes.length"
-                class="qr-cards-grid"
+                v-for="slot in footerActiveSlots"
+                :key="slot.cellId"
+                class="footer-slot-card"
+                :class="{
+                  'is-selected': activeFooterCell === slot.cellId,
+                  'is-muted': !footerCellMeta(slot.cellId).active,
+                  'is-dragging': dragFooterPos === slot.posIdx,
+                  'is-drag-over': dragOverFooterPos === slot.posIdx && dragFooterPos !== slot.posIdx,
+                }"
+                :style="{ gridColumn: slot.col, gridRow: slot.row }"
+                role="listitem"
+                tabindex="0"
+                draggable="true"
+                :data-footer-pos="slot.posIdx"
+                :data-footer-cell="slot.cellId"
+                :aria-pressed="activeFooterCell === slot.cellId"
+                @click="activeFooterCell = slot.cellId"
+                @keydown.enter.prevent="activeFooterCell = slot.cellId"
+                @keydown.space.prevent="activeFooterCell = slot.cellId"
+                @dragstart="startFooterCellDrag(slot.posIdx)"
+                @dragenter.prevent="dragOverFooterPos = slot.posIdx"
+                @dragover.prevent="dragOverFooterPos = slot.posIdx"
+                @drop.prevent="dropFooterCell(slot.posIdx)"
+                @dragend="endFooterCellDrag"
               >
-                <div
-                  v-for="(qr, qIdx) in layout.footer.followQrcodes"
-                  :key="qIdx"
-                  class="qr-card"
-                  draggable="true"
-                  @dragstart="dragFollowQrIdx = qIdx"
-                  @dragover.prevent
-                  @drop="dropFollowQr(qIdx)"
+                <div class="footer-slot-head">
+                  <div class="footer-slot-title">
+                    <span class="footer-pos-tag">{{ slot.label }}</span>
+                    <strong>{{ footerCellLabels[slot.cellId] }}</strong>
+                  </div>
+                  <div class="footer-slot-right">
+                    <span
+                      class="footer-status-pill"
+                      :class="`is-${footerCellMeta(slot.cellId).tone}`"
+                    >
+                      {{ footerCellMeta(slot.cellId).badge }}
+                    </span>
+                    <span class="footer-drag-grip" title="拖动换位" aria-hidden="true">
+                      <AppIcon name="grip" :size="14" />
+                    </span>
+                  </div>
+                </div>
+
+                <div class="footer-slot-body">
+                  <template v-if="slot.cellId === 'BRAND'">
+                    <img
+                      class="footer-slot-brand-img"
+                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
+                      alt=""
+                    />
+                    <span class="footer-slot-meta">宽 {{ layout.footer.brandWidthPx }} px</span>
+                  </template>
+
+                  <template v-else-if="slot.cellId === 'TEXT'">
+                    <strong class="footer-slot-text-title">
+                      {{ layout.footer.followTitle.trim() || "未填写关注标题" }}
+                    </strong>
+                    <span class="footer-slot-text-sub">
+                      {{ layout.footer.followSubtitle.trim() || "点击编辑引导副文案" }}
+                    </span>
+                  </template>
+
+                  <template v-else>
+                    <template v-if="layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]">
+                      <img
+                        class="footer-slot-qr-img"
+                        :src="layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]!.url"
+                        alt=""
+                      />
+                      <span class="footer-slot-meta">
+                        {{ layout.footer.followQrcodes[footerSlotQrIndex(slot.cellId)!]!.label || "未命名二维码" }}
+                      </span>
+                    </template>
+                    <div v-else class="footer-slot-empty">
+                      <AppIcon name="upload" :size="18" />
+                      <span>点击上传二维码</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Left/Right Push Splitter -->
+            <button
+              v-if="footerPresetDef.hasColSplit"
+              type="button"
+              class="footer-splitter footer-splitter-v"
+              :class="{ 'is-active': draggingSplit === 'col' }"
+              :style="footerColSplitterStyle"
+              data-footer-splitter="col"
+              aria-label="左右推动调整列宽比例"
+              title="左右拖动调整宽度比例"
+              @pointerdown="startSplitDrag('col', $event)"
+              @keydown.left.prevent="nudgeFooterRatio('col', -5)"
+              @keydown.right.prevent="nudgeFooterRatio('col', 5)"
+            >
+              <span class="footer-splitter-handle" />
+              <span v-if="draggingSplit === 'col'" class="footer-splitter-tip">
+                {{ footerColRatio }}% : {{ 100 - footerColRatio }}%
+              </span>
+            </button>
+
+            <!-- Top/Bottom Push Splitter -->
+            <button
+              v-if="footerPresetDef.hasRowSplit"
+              type="button"
+              class="footer-splitter footer-splitter-h"
+              :class="{ 'is-active': draggingSplit === 'row' }"
+              :style="footerRowSplitterStyle"
+              data-footer-splitter="row"
+              aria-label="上下推动调整行高比例"
+              title="上下拖动调整高度比例"
+              @pointerdown="startSplitDrag('row', $event)"
+              @keydown.up.prevent="nudgeFooterRatio('row', -5)"
+              @keydown.down.prevent="nudgeFooterRatio('row', 5)"
+            >
+              <span class="footer-splitter-handle" />
+              <span v-if="draggingSplit === 'row'" class="footer-splitter-tip">
+                {{ footerRowRatio }}% : {{ 100 - footerRowRatio }}%
+              </span>
+            </button>
+          </div>
+
+          <!-- Ratio Status & Quick Reset Bar -->
+          <div class="footer-ratio-bar">
+            <div class="footer-ratio-stats">
+              <span v-if="footerPresetDef.hasColSplit" class="footer-ratio-chip">
+                左右比例 <strong>{{ footerColRatio }}% : {{ 100 - footerColRatio }}%</strong>
+              </span>
+              <span v-if="footerPresetDef.hasRowSplit" class="footer-ratio-chip">
+                上下比例 <strong>{{ footerRowRatio }}% : {{ 100 - footerRowRatio }}%</strong>
+              </span>
+              <span class="field-hint">可拖动中间绿条推动左右/上下比例</span>
+            </div>
+            <button
+              v-if="footerColRatio !== 50 || footerRowRatio !== 50"
+              type="button"
+              class="text-button"
+              @click="resetFooterRatios"
+            >
+              均分 50/50
+            </button>
+          </div>
+
+          <!-- Spare Modules Dock (for 2-area / 3-area puzzles) -->
+          <div v-if="footerSpareSlots.length" class="footer-spare-dock">
+            <span class="footer-spare-label">未放入拼图的模块（拖入上方格子或点击换入）：</span>
+            <div class="footer-spare-list">
+              <div
+                v-for="spare in footerSpareSlots"
+                :key="spare.cellId"
+                class="footer-spare-chip"
+                draggable="true"
+                :data-footer-spare="spare.cellId"
+                @dragstart="startFooterCellDrag(spare.posIdx)"
+                @dragend="endFooterCellDrag"
+              >
+                <AppIcon name="grip" :size="13" />
+                <strong>{{ footerCellLabels[spare.cellId] }}</strong>
+                <button
+                  type="button"
+                  class="text-button"
+                  @click="swapSpareIntoActive(spare.posIdx)"
                 >
-                  <img :src="qr.url" alt="底部关注二维码" />
-                  <input
-                    v-model="qr.label"
-                    maxlength="40"
-                    placeholder="如：微信公众号 / 客服微信"
-                  />
-                  <div class="qr-card-actions">
+                  换入当前格
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Focused Slot Inspector -->
+          <div class="sub-box footer-inspector">
+            <div class="footer-inspector-head">
+              <div class="footer-inspector-title">
+                <h3>{{ footerCellLabels[activeFooterCell] }}设置</h3>
+                <span
+                  class="footer-status-pill"
+                  :class="`is-${footerCellMeta(activeFooterCell).tone}`"
+                >
+                  {{ footerCellMeta(activeFooterCell).badge }}
+                </span>
+              </div>
+              <div class="footer-pos-switcher" role="group" aria-label="调整当前格子位置">
+                <span class="footer-pos-switcher-label">位置</span>
+                <button
+                  v-for="slot in footerActiveSlots"
+                  :key="slot.posIdx"
+                  type="button"
+                  class="footer-pos-btn"
+                  :class="{ 'is-current': slot.cellId === activeFooterCell }"
+                  :aria-pressed="slot.cellId === activeFooterCell"
+                  @click="moveFooterCellTo(activeFooterCell, slot.posIdx)"
+                >
+                  {{ slot.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Inspector: BRAND -->
+            <template v-if="activeFooterCell === 'BRAND'">
+              <div v-if="!layout.footer.brandEnabled" class="footer-off-banner">
+                <span>品牌底图当前已关闭，不会在小程序首页底部显示。</span>
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="layout.footer.brandEnabled = true"
+                >
+                  开启品牌底图
+                </button>
+              </div>
+              <template v-else>
+                <div class="image-setting-row">
+                  <div class="brand-preview-box">
+                    <img
+                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
+                      alt="野小子底图预览"
+                      :style="{
+                        width: `${Math.round(layout.footer.brandWidthPx * 0.65)}px`,
+                      }"
+                    />
+                  </div>
+                  <div class="image-setting-controls">
+                    <ImageUpload
+                      compact
+                      label="替换品牌底图"
+                      @uploaded="layout.footer.brandImageUrl = $event"
+                    />
                     <button
+                      v-if="layout.footer.brandImageUrl !== DEFAULT_BRAND"
                       type="button"
                       class="text-button"
-                      :disabled="qIdx === 0"
-                      @click="
-                        moveArrayItem(
-                          layout.footer.followQrcodes,
-                          qIdx,
-                          qIdx - 1,
-                        )
-                      "
+                      @click="layout.footer.brandImageUrl = DEFAULT_BRAND"
                     >
-                      前移
-                    </button>
-                    <button
-                      type="button"
-                      class="text-button danger-text"
-                      @click="layout.footer.followQrcodes.splice(qIdx, 1)"
-                    >
-                      删除
+                      恢复默认透明野小子底图
                     </button>
                   </div>
                 </div>
+
+                <div class="size-slider-row">
+                  <div class="footer-size-head">
+                    <label for="footer-brand-width">
+                      底图显示宽度：<strong>{{ layout.footer.brandWidthPx }} px</strong>
+                      <span class="field-hint">（小程序内宽度 80–360px）</span>
+                    </label>
+                    <div class="footer-preset-chips">
+                      <button
+                        v-for="preset in brandWidthPresets"
+                        :key="preset.value"
+                        type="button"
+                        class="footer-preset-btn"
+                        :class="{ 'is-active': layout.footer.brandWidthPx === preset.value }"
+                        @click="layout.footer.brandWidthPx = preset.value"
+                      >
+                        {{ preset.label }} {{ preset.value }}px
+                      </button>
+                    </div>
+                  </div>
+                  <div class="slider-inputs">
+                    <input
+                      id="footer-brand-width"
+                      v-model.number="layout.footer.brandWidthPx"
+                      type="range"
+                      min="80"
+                      max="360"
+                      step="4"
+                    />
+                    <input
+                      v-model.number="layout.footer.brandWidthPx"
+                      type="number"
+                      min="80"
+                      max="360"
+                      class="px-number"
+                      aria-label="底图显示宽度像素值"
+                    />
+                  </div>
+                </div>
+              </template>
+            </template>
+
+            <!-- Inspector: TEXT -->
+            <template v-else-if="activeFooterCell === 'TEXT'">
+              <div v-if="!layout.footer.followEnabled" class="footer-off-banner">
+                <span>关注二维码区当前已关闭，关注说明不会显示。</span>
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="layout.footer.followEnabled = true"
+                >
+                  开启关注二维码区
+                </button>
               </div>
+              <template v-else>
+                <p v-if="!layout.footer.followQrcodes.length" class="footer-inline-tip">
+                  提示：需至少上传 1 张关注二维码后，关注说明才会在小程序首页底部展示。
+                </p>
+                <div class="field-row">
+                  <label>
+                    关注区标题
+                    <input
+                      v-model="layout.footer.followTitle"
+                      maxlength="60"
+                      placeholder="关注野小子公众号"
+                    />
+                  </label>
+                  <label>
+                    引导副文案
+                    <input
+                      v-model="layout.footer.followSubtitle"
+                      maxlength="120"
+                      placeholder="长按识别二维码 · 获取最新山野路线与活动动态"
+                    />
+                  </label>
+                </div>
+              </template>
+            </template>
+
+            <!-- Inspector: QR1 / QR2 -->
+            <template v-else>
+              <div v-if="!layout.footer.followEnabled" class="footer-off-banner">
+                <span>关注二维码区当前已关闭，二维码不会在小程序首页底部显示。</span>
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="layout.footer.followEnabled = true"
+                >
+                  开启关注二维码区
+                </button>
+              </div>
+              <template v-else>
+                <div
+                  v-if="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]"
+                  class="footer-qr-editor"
+                >
+                  <img
+                    class="footer-qr-editor-img"
+                    :src="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.url"
+                    alt="底部关注二维码"
+                  />
+                  <div class="footer-qr-editor-fields">
+                    <label>
+                      二维码说明标签
+                      <input
+                        v-model="layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.label"
+                        maxlength="40"
+                        placeholder="如：微信公众号 / 客服微信 / 视频号"
+                      />
+                    </label>
+                    <div class="footer-qr-editor-actions">
+                      <ImageUpload
+                        compact
+                        :key="`replace-${activeFooterCell}-${layout.footer.followQrcodes[footerSlotQrIndex(activeFooterCell)!]!.url}`"
+                        label="替换图片"
+                        @uploaded="uploadFooterSlotQr(activeFooterCell as 'QR1' | 'QR2', $event)"
+                      />
+                      <button
+                        v-if="layout.footer.followQrcodes.length >= 2"
+                        type="button"
+                        class="text-button"
+                        @click="moveArrayItem(layout.footer.followQrcodes, 0, 1)"
+                      >
+                        与{{ activeFooterCell === 'QR1' ? '二维码 2' : '二维码 1' }}互换图片
+                      </button>
+                      <button
+                        type="button"
+                        class="text-button danger-text"
+                        @click="removeFooterQr(footerSlotQrIndex(activeFooterCell)!)"
+                      >
+                        删除此二维码
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="footer-qr-empty-editor">
+                  <p class="field-hint">
+                    {{
+                      activeFooterCell === "QR2" && !layout.footer.followQrcodes.length
+                        ? "当前还没有上传二维码，上传后将先填入「二维码 1」。"
+                        : `当前「${footerCellLabels[activeFooterCell]}」未上传图片，小程序中会自动跳过不占位。`
+                    }}
+                  </p>
+                  <ImageUpload
+                    :key="`upload-${activeFooterCell}-${layout.footer.followQrcodes.length}`"
+                    :label="`上传${footerCellLabels[activeFooterCell]}`"
+                    @uploaded="uploadFooterSlotQr(activeFooterCell as 'QR1' | 'QR2', $event)"
+                  />
+                </div>
+              </template>
             </template>
           </div>
 
-          <div class="sub-box">
-            <label class="field checkbox-field">
-              <input v-model="layout.footer.brandEnabled" type="checkbox" />
-              显示底部「野小子」品牌标识底图
-            </label>
-            <template v-if="layout.footer.brandEnabled">
-              <div class="image-setting-row">
-                <div class="brand-preview-box">
-                  <img
-                    :src="brandPreviewUrl(layout.footer.brandImageUrl)"
-                    alt="野小子底图预览"
-                    :style="{
-                      width: `${Math.round(layout.footer.brandWidthPx * 0.65)}px`,
-                    }"
-                  />
-                </div>
-                <div class="image-setting-controls">
-                  <ImageUpload
-                    label="上传替换野小子底图"
-                    @uploaded="layout.footer.brandImageUrl = $event"
-                  />
+          <!-- Extra QRs (#3 - #6) shown once QR1 & QR2 are populated -->
+          <div
+            v-if="layout.footer.followEnabled && layout.footer.followQrcodes.length >= 2"
+            class="sub-box footer-extra-qrs"
+          >
+            <div class="qr-section-head">
+              <div>
+                <strong>更多二维码（{{ Math.max(0, layout.footer.followQrcodes.length - 2) }} / 4）</strong>
+                <p class="field-hint">第 3 张起的二维码将按顺序排在四格下方，可拖动调整顺序。</p>
+              </div>
+              <ImageUpload
+                v-if="layout.footer.followQrcodes.length < 6"
+                compact
+                :key="`footer-extra-qr-${layout.footer.followQrcodes.length}`"
+                label="添加更多二维码"
+                @uploaded="addFollowQr"
+              />
+            </div>
+
+            <div
+              v-if="layout.footer.followQrcodes.length > 2"
+              class="qr-cards-grid"
+            >
+              <div
+                v-for="(qr, extraIdx) in layout.footer.followQrcodes.slice(2)"
+                :key="extraIdx + 2"
+                class="qr-card"
+                draggable="true"
+                @dragstart="dragFollowQrIdx = extraIdx + 2"
+                @dragover.prevent
+                @drop="dropFollowQr(extraIdx + 2)"
+              >
+                <img :src="qr.url" alt="底部关注二维码" />
+                <input
+                  v-model="qr.label"
+                  maxlength="40"
+                  placeholder="如：客服微信 / 活动交流群"
+                />
+                <div class="qr-card-actions">
                   <button
-                    v-if="layout.footer.brandImageUrl !== DEFAULT_BRAND"
                     type="button"
                     class="text-button"
-                    @click="layout.footer.brandImageUrl = DEFAULT_BRAND"
+                    @click="
+                      moveArrayItem(
+                        layout.footer.followQrcodes,
+                        extraIdx + 2,
+                        extraIdx + 1,
+                      )
+                    "
                   >
-                    恢复默认透明野小子底图
+                    前移
+                  </button>
+                  <button
+                    type="button"
+                    class="text-button danger-text"
+                    @click="removeFooterQr(extraIdx + 2)"
+                  >
+                    删除
                   </button>
                 </div>
               </div>
-
-              <div class="size-slider-row">
-                <label>
-                  底图显示宽度：<strong
-                    >{{ layout.footer.brandWidthPx }} px</strong
-                  >（小程序内实际显示宽度，范围 80–360px）
-                </label>
-                <div class="slider-inputs">
-                  <input
-                    v-model.number="layout.footer.brandWidthPx"
-                    type="range"
-                    min="80"
-                    max="360"
-                    step="4"
-                  />
-                  <input
-                    v-model.number="layout.footer.brandWidthPx"
-                    type="number"
-                    min="80"
-                    max="360"
-                    class="px-number"
-                  />
-                </div>
-              </div>
-            </template>
+            </div>
           </div>
         </div>
       </section>
@@ -1662,29 +2451,32 @@ onUnmounted(() => {
                 @keydown.enter.prevent="activeModule = 'ACTIVITIES'"
                 @keydown.space.prevent="activeModule = 'ACTIVITIES'"
               >
-                <div class="pv-block-title">{{ layout.activities.title }}</div>
-                <div class="pv-mini-grid">
-                  <div
-                    v-for="(act, idx) in selectedActivities.slice(
-                      0,
-                      layout.activities.maxCount,
-                    )"
-                    :key="act.id"
-                    class="pv-mini-card"
-                  >
-                    <span>#{{ idx + 1 }} {{ act.title }}</span>
+                <div class="pv-activities-head">
+                  <div>
+                    <small v-if="layout.activities.eyebrow">{{ layout.activities.eyebrow }}</small>
+                    <div class="pv-block-title">{{ layout.activities.title }}</div>
                   </div>
-                  <div
-                    v-if="!selectedActivities.length"
-                    class="pv-mini-placeholder"
-                  >
-                    自动展示最多 {{ layout.activities.maxCount }} 场活动
-                  </div>
+                  <span v-if="layout.activities.showAllLink">全部</span>
                 </div>
+                <div v-if="previewActivities.length" class="pv-activity-grid">
+                  <article v-for="act in previewActivities" :key="act.id" class="pv-activity-card">
+                    <img v-if="act.coverUrl" :src="act.coverUrl" alt="" />
+                    <small>{{ [categories[act.category], act.startAt && displayDate(act.startAt)].filter(Boolean).join(" · ") }}</small>
+                    <strong>{{ act.title }}</strong>
+                    <span v-if="act.location">{{ act.location }}</span>
+                    <b v-if="Number.isInteger(act.priceCents)">
+                      {{ act.priceCents === 0 ? "免费参与" : `¥${(act.priceCents / 100).toFixed(2)} / 人` }}
+                    </b>
+                  </article>
+                </div>
+                <p v-if="activityPreviewIncomplete" class="pv-mini-placeholder" role="status">部分活动预览加载失败</p>
+                <p v-else-if="!previewActivities.length" class="pv-mini-placeholder">
+                  {{ activityPreviewLoading ? "正在加载活动…" : "暂无活动" }}
+                </p>
               </div>
 
               <div
-                v-else-if="mod.enabled && mod.id === 'SHOP'"
+                v-else-if="mod.enabled && mod.id === 'SHOP' && (layout.shop.showBanner || layout.shop.showProducts)"
                 class="pv-block pv-interactive"
                 role="button"
                 tabindex="0"
@@ -1695,37 +2487,36 @@ onUnmounted(() => {
                 @keydown.space.prevent="activeModule = 'SHOP'"
               >
                 <div v-if="layout.shop.showBanner" class="pv-shop-banner">
-                  <strong>{{ layout.shop.bannerTitle }}</strong>
-                  <small>{{ layout.shop.bannerCta }}</small>
+                  <img :src="layout.shop.bannerImageUrl || '/assets/equipment-banner.jpg'" alt="" />
+                  <div class="pv-shop-copy">
+                    <small v-if="layout.shop.bannerTag">{{ layout.shop.bannerTag }}</small>
+                    <strong v-if="layout.shop.bannerTitle">{{ layout.shop.bannerTitle }}</strong>
+                    <span v-if="layout.shop.bannerCta">{{ layout.shop.bannerCta }} ›</span>
+                  </div>
                 </div>
-                <div
-                  v-if="layout.shop.showProducts"
-                  class="pv-mini-placeholder"
-                >
-                  精选装备 × {{ layout.shop.maxCount }}
+                <div v-if="previewProducts.length" class="pv-products">
+                  <div v-for="product in previewProducts" :key="product.id" class="pv-product-card">
+                    <img v-if="product.imageUrl" :src="product.imageUrl" alt="" />
+                    <strong>{{ product.name }}</strong>
+                    <del v-if="product.priceCents > 0 && product.originalPriceCents > product.priceCents">
+                      原价 ¥{{ (product.originalPriceCents / 100).toFixed(2) }}
+                    </del>
+                    <span v-if="Number.isFinite(product.priceCents)">¥{{ (product.priceCents / 100).toFixed(2) }}</span>
+                  </div>
                 </div>
+                <small v-else-if="layout.shop.showProducts" class="muted">{{
+                  productCatalogState === "loading" ? "正在加载装备…" :
+                    productCatalogState === "error" ? "商品列表加载失败" : "装备正在准备中"
+                }}</small>
               </div>
 
-              <div
+              <HomeGalleryPreview
                 v-else-if="mod.enabled && mod.id === 'GALLERY'"
-                class="pv-block pv-interactive"
-                role="button"
-                tabindex="0"
-                :aria-pressed="activeModule === 'GALLERY'"
-                aria-label="编辑图集轮播模块"
-                @click="activeModule = 'GALLERY'"
-                @keydown.enter.prevent="activeModule = 'GALLERY'"
-                @keydown.space.prevent="activeModule = 'GALLERY'"
-              >
-                <div class="pv-block-title">{{ layout.gallery.title }}</div>
-                <div class="pv-mini-placeholder">
-                  {{
-                    layout.gallery.mode === "CUSTOM"
-                      ? `自定义轮播 (${layout.gallery.slides.length} 张)`
-                      : "自动山野文章轮播"
-                  }}
-                </div>
-              </div>
+                class="pv-block"
+                :config="layout.gallery"
+                :active="activeModule === 'GALLERY'"
+                @edit="activeModule = 'GALLERY'"
+              />
 
               <div
                 v-else-if="
@@ -1733,6 +2524,7 @@ onUnmounted(() => {
                 "
                 class="pv-footer pv-interactive"
                 :class="{ 'pv-footer-single': footerPreviewCells.length === 1 }"
+                :style="footerPreviewGridStyle"
                 role="button"
                 tabindex="0"
                 :aria-pressed="activeModule === 'FOOTER'"
@@ -1741,7 +2533,13 @@ onUnmounted(() => {
                 @keydown.enter.prevent="activeModule = 'FOOTER'"
                 @keydown.space.prevent="activeModule = 'FOOTER'"
               >
-                <div v-for="cell in footerPreviewCells" :key="cell.id" class="pv-footer-cell" :data-cell="cell.id">
+                <div
+                  v-for="cell in footerPreviewCells"
+                  :key="cell.id"
+                  class="pv-footer-cell"
+                  :data-cell="cell.id"
+                  :style="cell.style"
+                >
                   <div v-if="cell.kind === 'BRAND'" class="pv-brand-wrap">
                     <img
                       :src="brandPreviewUrl(layout.footer.brandImageUrl)"
@@ -1845,7 +2643,39 @@ onUnmounted(() => {
   gap: 16px;
   align-items: start;
 }
-@media (max-width: 1180px) {
+.builder-grid > * {
+  min-width: 0;
+}
+@media (min-width: 1200px) and (min-height: 480px) {
+  .layout-workspace {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding-bottom: 12px;
+  }
+  .builder-grid {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .module-rail,
+  .module-editor,
+  .phone-preview {
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+  .module-editor {
+    align-self: stretch;
+  }
+  .layout-save-bar {
+    position: static;
+    flex-shrink: 0;
+    margin-top: 12px;
+  }
+}
+@media (max-width: 1199px) {
   .builder-grid {
     grid-template-columns: 220px minmax(0, 1fr);
   }
@@ -1855,7 +2685,7 @@ onUnmounted(() => {
 }
 @media (max-width: 780px) {
   .builder-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 .module-rail,
@@ -2062,46 +2892,6 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
 }
-.featured-act-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-.featured-act-card {
-  position: relative;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: #fff;
-  cursor: grab;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.slot-badge {
-  align-self: flex-start;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--rf-primary, #247a52);
-  color: #fff;
-}
-.featured-act-card img {
-  width: 100%;
-  height: 96px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-.featured-act-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.featured-act-actions {
-  display: flex;
-  gap: 8px;
-}
 .compact-search {
   max-width: 220px;
 }
@@ -2282,20 +3072,44 @@ onUnmounted(() => {
   font-weight: 700;
   margin-bottom: 6px;
 }
-.pv-mini-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
+.pv-activities-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
 }
-.pv-mini-card {
-  padding: 6px;
-  border-radius: 6px;
-  background: #eaf4e7;
+.pv-activities-head .pv-block-title { margin: 0; }
+.pv-activities-head small, .pv-activities-head > span {
+  color: var(--rf-primary);
   font-size: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
+.pv-activity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 6px;
+}
+.pv-activity-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  gap: 3px;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 1.4;
+}
+.pv-activity-card img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.pv-activity-card small, .pv-activity-card span {
+  color: var(--rf-muted);
+  font-size: 10px;
+}
+.pv-activity-card b { color: var(--rf-primary); }
 .pv-mini-placeholder {
   font-size: 11px;
   color: var(--rf-muted);
@@ -2303,28 +3117,564 @@ onUnmounted(() => {
   padding: 6px;
 }
 .pv-shop-banner {
-  padding: 8px;
+  position: relative;
+  overflow: hidden;
   border-radius: 6px;
-  background: #eaf4e7;
-  color: #1f5c3f;
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  margin-bottom: 4px;
+  background: #314b36;
+  color: #fff;
 }
-.footer-position-grid {
+.pv-shop-banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pv-shop-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 82px;
+  gap: 3px;
+  padding: 8px;
+  background: linear-gradient(90deg, #102519ba, transparent);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.pv-products {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+  gap: 8px;
 }
-.footer-position-grid label {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+.pv-shop-banner + .pv-products {
+  margin-top: 8px;
 }
-.footer-position-grid select {
+.pv-product-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.pv-product-card img {
   width: 100%;
+  aspect-ratio: 1.2;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.pv-product-card del {
+  color: var(--rf-muted);
+  font-size: 10px;
+}
+.pv-product-card span {
+  color: var(--rf-primary, #247a52);
+  font-weight: 650;
+}
+.footer-panel-desc {
+  margin: 4px 0 0;
+}
+.footer-head-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.footer-toggle-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: var(--rf-surface-subtle, #f9fbf9);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 0;
+}
+.footer-toggle-pill input {
+  width: auto;
+  margin: 0;
+}
+.footer-preset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: var(--rf-surface-subtle, #f9fbf9);
+}
+.footer-preset-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.footer-preset-group-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rf-muted, #687b70);
+}
+.footer-preset-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.footer-preset-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  color: var(--rf-ink, #18271f);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.footer-preset-card:hover {
+  border-color: var(--rf-primary, #167a52);
+}
+.footer-preset-card.is-active {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+  font-weight: 600;
+}
+.footer-preset-thumb {
+  width: 24px;
+  height: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+}
+.footer-preset-thumb.is-two_lr {
+  grid-template-rows: 1fr;
+}
+.footer-preset-thumb.is-two_tb {
+  grid-template-columns: 1fr;
+}
+.footer-preset-thumb i {
+  display: block;
+  border-radius: 2px;
+  background: #c7d6cc;
+}
+.footer-preset-card.is-active .footer-preset-thumb i {
+  background: var(--rf-primary, #167a52);
+}
+.footer-puzzle-stage {
+  position: relative;
+  height: 288px;
+  user-select: none;
+}
+.footer-puzzle-stage.is-resizing {
+  user-select: none;
+}
+.footer-puzzle-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  gap: 14px;
+}
+.footer-splitter {
+  position: absolute;
+  z-index: 4;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+.footer-splitter-v {
+  width: 18px;
+  cursor: col-resize;
+}
+.footer-splitter-h {
+  height: 18px;
+  cursor: row-resize;
+}
+.footer-splitter-handle {
+  display: block;
+  border-radius: 999px;
+  background: #c5d4ca;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.footer-splitter-v .footer-splitter-handle {
+  width: 4px;
+  height: 44px;
+}
+.footer-splitter-h .footer-splitter-handle {
+  width: 44px;
+  height: 4px;
+}
+.footer-splitter:hover .footer-splitter-handle,
+.footer-splitter:focus-visible .footer-splitter-handle,
+.footer-splitter.is-active .footer-splitter-handle {
+  background: var(--rf-primary, #167a52);
+  transform: scale(1.15);
+}
+.footer-splitter-tip {
+  position: absolute;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--rf-ink, #18271f);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.footer-ratio-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-ratio-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.footer-ratio-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rf-surface-subtle, #f9fbf9);
+  border: 1px solid var(--rf-line, #dce3dd);
+  color: var(--rf-ink, #18271f);
+}
+.footer-spare-dock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px dashed var(--rf-line, #dce3dd);
+  background: var(--rf-surface-subtle, #f9fbf9);
+  font-size: 12px;
+}
+.footer-spare-label {
+  color: var(--rf-muted, #687b70);
+}
+.footer-spare-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.footer-spare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  cursor: grab;
+}
+.footer-slot-card {
   min-width: 0;
+  min-height: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--rf-line, #dce3dd);
+  background: var(--rf-surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: grab;
+  overflow: hidden;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
+}
+.footer-slot-card:hover {
+  border-color: var(--rf-primary, #167a52);
+}
+.footer-slot-card:focus-visible {
+  outline: 2px solid var(--rf-primary, #167a52);
+  outline-offset: 2px;
+}
+.footer-slot-card.is-selected {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rf-primary, #167a52) 18%, transparent);
+}
+.footer-slot-card.is-muted {
+  background: var(--rf-surface-subtle, #f9fbf9);
+  opacity: 0.78;
+}
+.footer-slot-card.is-muted.is-selected {
+  opacity: 1;
+}
+.footer-slot-card.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+.footer-slot-card.is-drag-over {
+  border-style: dashed;
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+}
+.footer-slot-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.footer-slot-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+}
+.footer-pos-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--rf-neutral-bg, #eff3f0);
+  color: var(--rf-muted, #687b70);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.footer-slot-card.is-selected .footer-pos-tag {
+  background: #fff;
+  color: var(--rf-primary-text, #126743);
+}
+.footer-slot-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.footer-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.footer-status-pill.is-ok {
+  background: var(--rf-success-bg, #eaf5ed);
+  color: var(--rf-success, #24724b);
+}
+.footer-status-pill.is-warn {
+  background: var(--rf-warning-bg, #fbf3e2);
+  color: var(--rf-warning, #94661f);
+}
+.footer-status-pill.is-muted {
+  background: var(--rf-neutral-bg, #eff3f0);
+  color: var(--rf-neutral, #64766b);
+}
+.footer-drag-grip {
+  display: inline-flex;
+  align-items: center;
+  color: var(--rf-muted, #687b70);
+}
+.footer-slot-body {
+  flex: 1;
+  min-height: 54px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px dashed var(--rf-line, #dce3dd);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  overflow: hidden;
+}
+.footer-slot-brand-img {
+  max-width: 120px;
+  max-height: 44px;
+  object-fit: contain;
+}
+.footer-slot-qr-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid var(--rf-line, #dce3dd);
+}
+.footer-slot-meta {
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-slot-text-title {
+  font-size: 13px;
+  color: var(--rf-ink, #18271f);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.footer-slot-text-sub {
+  font-size: 11px;
+  color: var(--rf-muted, #687b70);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.footer-slot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-inspector {
+  gap: 12px;
+}
+.footer-inspector-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rf-line, #dce3dd);
+}
+.footer-inspector-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.footer-pos-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.footer-pos-switcher-label {
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+  margin-right: 2px;
+}
+.footer-pos-btn {
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  color: var(--rf-ink, #18271f);
+  font-size: 12px;
+  cursor: pointer;
+}
+.footer-pos-btn:hover {
+  border-color: var(--rf-primary, #167a52);
+}
+.footer-pos-btn.is-current {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-primary, #167a52);
+  color: var(--rf-on-primary, #fff);
+  font-weight: 600;
+}
+.footer-off-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px dashed var(--rf-line, #dce3dd);
+  font-size: 13px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-inline-tip {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--rf-warning-bg, #fbf3e2);
+  color: var(--rf-warning, #94661f);
+  font-size: 12px;
+}
+.footer-size-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.footer-preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.footer-preset-btn {
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+  cursor: pointer;
+}
+.footer-preset-btn.is-active {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+  font-weight: 600;
+}
+.footer-qr-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.footer-qr-editor-img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--rf-line, #dce3dd);
+  flex-shrink: 0;
+}
+.footer-qr-editor-fields {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-qr-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.footer-qr-empty-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.footer-extra-qrs p {
+  margin: 2px 0 0;
 }
 .pv-footer {
   padding: 8px 4px 10px;

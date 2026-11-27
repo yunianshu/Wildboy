@@ -26,12 +26,6 @@ input::placeholder,
 textarea::placeholder {
   color: var(--rf-muted);
 }
-input:focus,
-textarea:focus,
-select:focus {
-  outline: 2px solid var(--rf-primary);
-  outline-offset: 1px;
-}
 .topnav {
   background: var(--rf-surface);
 }

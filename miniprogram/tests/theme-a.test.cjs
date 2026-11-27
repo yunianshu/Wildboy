@@ -10,7 +10,7 @@ const hash = s => crypto.createHash("sha256").update(s).digest("hex");
 // were refreshed for modular homepage customization, the About entry route and the explicitly requested footer layout.
 const protectedFiles = {
   "pages/home/index.ts": "eeffa0e80a94b063b5284acf09fbbfc80c05162df20dcde1a3ee181b8d5507ec",
-  "pages/home/index.wxml": "a42cf33c107bc02537a1d9e6ec7d05c77763ca1e21270ca85c7a91bbd1cac141",
+  "pages/home/index.wxml": "3f268d8f1396923a5bdcea516c3c57f39de1d1b64af1e8f6e810dba59bec5191",
   "pages/home/index.json": "5983938690a29e5e0c2c102a4d679490c6642acaa5b7db74d517b7785c686f12",
   "custom-tab-bar/index.ts": "a9747f588099ea16f0891c2e32b93f985990f2aec7eace78febe0381536d9730",
   "custom-tab-bar/index.wxml": "a4eee778aa15c73f03f5d642cac763afd3550ddb075f383f281d09c05d546b76",

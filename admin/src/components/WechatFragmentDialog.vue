@@ -214,10 +214,6 @@ onMounted(async () => {
   font-size: 16px;
   line-height: 1.7;
 }
-.fragment-field:focus {
-  outline: 2px solid var(--rf-primary);
-  outline-offset: 1px;
-}
 .fragment-field:empty::before {
   content: "粘贴公众号正文";
   color: var(--rf-muted);

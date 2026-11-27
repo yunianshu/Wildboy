@@ -16,11 +16,6 @@ select:not([multiple], [size]):hover:enabled {
   background-color: var(--rf-bg);
 }
 
-select:not([multiple], [size]):focus-visible {
-  outline: 2px solid var(--rf-primary);
-  outline-offset: 2px;
-  border-color: var(--rf-primary);
-}
 
 select:not([multiple], [size]):disabled {
   background-color: var(--rf-neutral-bg);

@@ -175,7 +175,10 @@ class HomeLayoutAndActivityUpgradeTest {
             true,
             "/assets/hero-hiking.jpg",
             280,
-            List.of("TEXT", "QR2", "BRAND", "QR1"));
+            List.of("TEXT", "QR2", "BRAND", "QR1"),
+            "THREE_L1_R2",
+            42,
+            58);
     var updated =
         new LayoutConfig(
             current.version(),
@@ -201,7 +204,10 @@ class HomeLayoutAndActivityUpgradeTest {
                 .value("https://mp.weixin.qq.com/s/AbCdEfGh123456"))
         .andExpect(jsonPath("$.footer.brandWidthPx").value(280))
         .andExpect(jsonPath("$.footer.cellOrder[0]").value("TEXT"))
-        .andExpect(jsonPath("$.footer.cellOrder[1]").value("QR2"));
+        .andExpect(jsonPath("$.footer.cellOrder[1]").value("QR2"))
+        .andExpect(jsonPath("$.footer.layoutPreset").value("THREE_L1_R2"))
+        .andExpect(jsonPath("$.footer.colRatio").value(42))
+        .andExpect(jsonPath("$.footer.rowRatio").value(58));
 
     var legacy = (com.fasterxml.jackson.databind.node.ObjectNode) json.valueToTree(updated);
     legacy.put("version", current.version() + 1);
@@ -214,6 +220,9 @@ class HomeLayoutAndActivityUpgradeTest {
                 .content(json.writeValueAsString(legacy)))
         .andExpect(status().isBadRequest());
     legacyFooter.remove("cellOrder");
+    legacyFooter.remove("layoutPreset");
+    legacyFooter.remove("colRatio");
+    legacyFooter.remove("rowRatio");
     mvc.perform(
             put("/api/v1/admin/home/layout")
                 .header("Authorization", adminHeader)
@@ -221,14 +230,27 @@ class HomeLayoutAndActivityUpgradeTest {
                 .content(json.writeValueAsString(legacy)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.footer.cellOrder[0]").value("TEXT"))
+        .andExpect(jsonPath("$.footer.layoutPreset").value("THREE_L1_R2"))
+        .andExpect(jsonPath("$.footer.colRatio").value(42))
+        .andExpect(jsonPath("$.footer.rowRatio").value(58))
         .andExpect(jsonPath("$.footer.followQrcodes[0].label").value("公众号"));
 
     // Verify public layout resolves pinned activities first (a1 before a3, then auto-filled a2!)
     var publicResp = homeLayout.publicHome();
     assertThat(publicResp.layout().footer().cellOrder()).containsExactly("TEXT", "QR2", "BRAND", "QR1");
+    assertThat(publicResp.layout().footer().layoutPreset()).isEqualTo("THREE_L1_R2");
+    assertThat(publicResp.layout().footer().colRatio()).isEqualTo(42);
+    assertThat(publicResp.layout().footer().rowRatio()).isEqualTo(58);
     assertThat(publicResp.featuredActivities().stream().map(Activity::id).toList())
         .startsWith(a1.id(), a3.id())
         .contains(a2.id());
+    var suggestions = mvc.perform(
+            get("/api/v1/admin/home/activity-suggestions").header("Authorization", adminHeader))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsByteArray();
+    assertThat(json.readValue(suggestions, Activity[].class))
+        .extracting(Activity::id)
+        .containsSubsequence(a2.id(), a3.id(), a1.id());
 
     // Reject non-mp.weixin.qq.com URLs for WECHAT_ARTICLE
     var badShortcuts =

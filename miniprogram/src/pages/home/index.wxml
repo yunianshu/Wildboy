@@ -155,8 +155,8 @@
       </view>
 
       <view wx:elif="{{mod.enabled && mod.id === 'FOOTER' && footer.cells.length}}" class="home-body">
-        <view class="home-footer {{footer.cells.length === 1 ? 'home-footer-single' : ''}}">
-          <view wx:for="{{footer.cells}}" wx:key="id" class="home-footer-cell">
+        <view class="home-footer {{footer.cells.length === 1 ? 'home-footer-single' : ''}}" style="{{footer.gridStyle}}">
+          <view wx:for="{{footer.cells}}" wx:key="id" class="home-footer-cell" style="{{item.cellStyle}}">
             <view wx:if="{{item.kind === 'BRAND'}}" class="platform-brand">
               <image class="platform-brand-image" src="{{footer.brandImageUrl}}" style="width:{{footer.brandWidthPx}}px" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
             </view>
