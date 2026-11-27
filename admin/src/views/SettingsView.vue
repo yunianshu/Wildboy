@@ -4,7 +4,7 @@ import { onMounted, ref, watch } from "vue";
 import { currentUser, errorMessage, request } from "../api";
 import FormModal from "../components/FormModal.vue";
 import PaginationBar from "../components/PaginationBar.vue";
-import DateTimeField from "../components/DateTimeField.vue";
+import AppIcon from "../components/AppIcon.vue";
 import UiState from "../components/UiState.vue";
 const settingsTab = ref<"paths" | "reconcile">("paths");
 const settingsTabs = [
@@ -164,18 +164,42 @@ function epochOf(local: string): number | null {
   const ms = Date.parse(local + ":00+08:00");
   return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
 }
+const rangeDialog = ref(false);
+const rangeDraft = ref({ begin: "", end: "" });
+
+function paymentRangeError(beginValue: string, endValue: string) {
+  const begin = epochOf(beginValue);
+  const end = epochOf(endValue);
+  if ((beginValue && begin === null) || (endValue && end === null))
+    return "支付时间格式无效。";
+  if (begin !== null && end !== null && begin > end)
+    return "开始时间不能晚于结束时间。";
+  return "";
+}
+
+function openPaymentRange(event: MouseEvent) {
+  (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
+  rangeDraft.value = { begin: wxBegin.value, end: wxEnd.value };
+  rangeDialog.value = true;
+}
+
+function applyPaymentRange() {
+  const { begin, end } = rangeDraft.value;
+  if (paymentRangeError(begin, end)) return;
+  wxBegin.value = begin;
+  wxEnd.value = end;
+  rangeDialog.value = false;
+}
+
 async function queryWechatOrders() {
   if (wxLoading.value) return;
+  const error = paymentRangeError(wxBegin.value, wxEnd.value);
+  if (error) {
+    wxError.value = error;
+    return;
+  }
   const begin = epochOf(wxBegin.value);
   const end = epochOf(wxEnd.value);
-  if ((wxBegin.value && begin === null) || (wxEnd.value && end === null)) {
-    wxError.value = "支付时间格式无效。";
-    return;
-  }
-  if (begin !== null && end !== null && begin > end) {
-    wxError.value = "开始时间不能晚于结束时间。";
-    return;
-  }
   const params = new URLSearchParams({ size: "20" });
   if (begin !== null) params.set("begin", String(begin));
   if (end !== null) params.set("end", String(end));
@@ -419,16 +443,25 @@ useForegroundRefresh(() => {
         按微信侧发货管理维度查询支付单（get_order_list），用于核对发货/确认收货/结算状态；数据来自微信，仅作对账用途。
       </p>
       <form class="wechat-orders-filters" @submit.prevent="queryWechatOrders()">
-        <DateTimeField
-          id="wxBegin"
-          v-model="wxBegin"
-          label="支付开始（北京时间）"
-        />
-        <DateTimeField
-          id="wxEnd"
-          v-model="wxEnd"
-          label="支付结束（北京时间）"
-        />
+        <div class="payment-range-filter">
+          <label for="wx-payment-range">支付时间（北京时间）</label>
+          <button
+            id="wx-payment-range"
+            type="button"
+            class="secondary payment-range-trigger"
+            aria-haspopup="dialog"
+            :disabled="wxLoading"
+            @click="openPaymentRange"
+          >
+            <AppIcon name="calendar" :size="16" />
+            <span v-if="wxBegin || wxEnd" class="payment-range-summary">
+              <span>{{ wxBegin ? wxBegin.replace("T", " ") : "不限开始" }}</span>
+              <span>至</span>
+              <span>{{ wxEnd ? wxEnd.replace("T", " ") : "不限结束" }}</span>
+            </span>
+            <span v-else>选择支付时间范围</span>
+          </button>
+        </div>
         <label
           >状态
           <select v-model="wxState" name="wxState">
@@ -469,6 +502,38 @@ useForegroundRefresh(() => {
           </button>
         </div>
       </form>
+      <FormModal v-if="rangeDialog" @close="rangeDialog = false">
+        <template #title><h2>支付时间范围</h2></template>
+        <form id="wx-payment-range-form" @submit.prevent="applyPaymentRange">
+          <p class="muted payment-range-note">北京时间。任一端留空表示不限。</p>
+          <div class="payment-range-fields">
+            <label for="wxBegin">
+              支付开始
+              <input id="wxBegin" v-model="rangeDraft.begin" type="datetime-local" step="60" />
+            </label>
+            <label for="wxEnd">
+              支付结束
+              <input id="wxEnd" v-model="rangeDraft.end" type="datetime-local" step="60" />
+            </label>
+          </div>
+          <p
+            v-if="paymentRangeError(rangeDraft.begin, rangeDraft.end)"
+            class="error-box"
+            role="alert"
+          >{{ paymentRangeError(rangeDraft.begin, rangeDraft.end) }}</p>
+        </form>
+        <template #footer>
+          <div class="dialog-actions">
+            <button type="button" class="secondary" @click="rangeDialog = false">取消</button>
+            <button
+              type="submit"
+              form="wx-payment-range-form"
+              class="primary"
+              :disabled="!!paymentRangeError(rangeDraft.begin, rangeDraft.end)"
+            >确定</button>
+          </div>
+        </template>
+      </FormModal>
       <p v-if="wxError" class="error-box" role="alert">{{ wxError }}</p>
       <UiState v-if="wxLoading && !wxOrders.length" kind="loading" compact
         >正在查询微信支付单…</UiState
@@ -567,26 +632,57 @@ useForegroundRefresh(() => {
   margin-bottom: 12px;
 }
 .wechat-orders-filters > label,
-.wechat-orders-filters > :deep(.datetime-field) {
+.payment-range-filter {
   min-width: 0;
   margin: 0;
-}
-.wechat-orders-filters > label,
-.wechat-orders-filters :deep(.datetime-label) {
   color: var(--admin-body);
   font-size: 13px;
 }
-.wechat-orders-filters :deep(.datetime-label) {
+.payment-range-filter {
+  grid-column: 1 / -1;
+}
+.payment-range-filter > label {
+  display: block;
   margin: 0 0 8px;
 }
-.wechat-orders-filters :deep(.datetime-label .app-icon) {
-  flex-shrink: 0;
+.payment-range-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
 }
-.wechat-orders-filters :deep(.datetime-inputs) {
-  grid-template-columns: minmax(0, 1.35fr) minmax(90px, 0.65fr);
+.payment-range-trigger > .app-icon {
+  flex: none;
 }
-.wechat-orders-filters :deep(.datetime-field > .field-error:empty) {
-  display: none;
+.payment-range-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.payment-range-summary > span {
+  white-space: nowrap;
+}
+.payment-range-note {
+  margin: 0 0 16px;
+}
+.payment-range-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+}
+.payment-range-fields > label,
+.payment-range-fields input {
+  min-width: 0;
+}
+.payment-range-fields input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
 }
 .wechat-orders-filters > label > :is(input, select) {
   display: block;
@@ -594,7 +690,7 @@ useForegroundRefresh(() => {
   margin: 8px 0 0;
 }
 .wechat-orders-filters > label > :is(input, select),
-.wechat-orders-filters :deep(.datetime-inputs input),
+.payment-range-trigger,
 .wechat-orders-actions > button {
   min-height: var(--filter-control-height);
 }
@@ -610,9 +706,10 @@ useForegroundRefresh(() => {
 @container reconciliation (min-width: 960px) {
   .wechat-orders-filters {
     grid-template-columns:
-      repeat(2, minmax(228px, 288px)) minmax(100px, 128px)
+      minmax(315px, 520px) minmax(100px, 128px)
       minmax(132px, 202px) max-content;
   }
+  .payment-range-filter,
   .wechat-orders-actions {
     grid-column: auto;
   }
@@ -620,9 +717,6 @@ useForegroundRefresh(() => {
 @container reconciliation (max-width: 525px) {
   .wechat-orders-filters {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
-  }
-  .wechat-orders-filters > :deep(.datetime-field) {
-    grid-column: 1 / -1;
   }
   .wechat-orders-actions > button {
     flex: 1;

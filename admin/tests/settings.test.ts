@@ -280,3 +280,55 @@ it("queries wechat order list with filters and pagination", async () => {
   expect(third[0]).toContain("orderState=2");
   w.unmount();
 });
+
+
+it("applies both Beijing payment times together without querying until submitted", async () => {
+  const fetchWechat = vi.fn(async (_url: string) => ({
+    ok: true,
+    status: 200,
+    json: async () => ({ attempted: true, errcode: 0, lastIndex: "", orders: [] }),
+  }));
+  vi.stubGlobal("fetch", fetchWechat);
+  const w = await view();
+  const ordersCalls = () => fetchWechat.mock.calls
+    .map(([url]) => url)
+    .filter((url) => url.includes("/wechat-orders?"));
+  await w.findAll(".task-tabs button")[1]!.trigger("click");
+  const trigger = w.get("#wx-payment-range");
+  await trigger.trigger("click");
+  expect(w.findAll('[role="dialog"]')).toHaveLength(1);
+  await w.get("#wxBegin").setValue("2026-11-27T10:15");
+  await w.get("#wxEnd").setValue("2026-11-27T09:10");
+  expect(w.get(".form-modal [role=alert]").text()).toContain("不能晚于");
+  expect(w.get('.form-modal button[type="submit"]').attributes("disabled")).toBeDefined();
+  await w.get("#wx-payment-range-form").trigger("submit");
+  expect(w.find("#wx-payment-range-form").exists()).toBe(true);
+  await w.get("#wxEnd").setValue("2026-11-28T11:40");
+  await w.get("#wx-payment-range-form").trigger("submit");
+  expect(trigger.text()).toContain("2026-11-27 10:15");
+  expect(trigger.text()).toContain("2026-11-28 11:40");
+  expect(ordersCalls()).toEqual([]);
+
+  await trigger.trigger("click");
+  await w.get("#wxBegin").setValue("2026-11-26T00:00");
+  expect((w.get("#wxEnd").element as HTMLInputElement).value).toBe("2026-11-28T11:40");
+  await w.findAll(".form-modal button").find((button) => button.text() === "取消")!.trigger("click");
+  expect(trigger.text()).toContain("2026-11-27 10:15");
+  expect(trigger.text()).not.toContain("2026-11-26");
+
+  await w.get(".wechat-orders-filters").trigger("submit");
+  await flushPromises();
+  const params = new URL(ordersCalls()[0]!, "https://example.test").searchParams;
+  expect(params.get("begin")).toBe(String(Date.parse("2026-11-27T02:15:00Z") / 1000));
+  expect(params.get("end")).toBe(String(Date.parse("2026-11-28T03:40:00Z") / 1000));
+
+  await trigger.trigger("click");
+  await w.get("#wxEnd").setValue("");
+  await w.get("#wx-payment-range-form").trigger("submit");
+  await w.get(".wechat-orders-filters").trigger("submit");
+  await flushPromises();
+  expect(new URL(ordersCalls()[1]!, "https://example.test").searchParams.has("end")).toBe(false);
+  await w.findAll(".wechat-orders-actions button").find((button) => button.text() === "重置")!.trigger("click");
+  expect(trigger.text()).toContain("选择支付时间范围");
+  w.unmount();
+});
