@@ -1,7 +1,7 @@
 import { ApiError, mediaUrl, request } from "../../utils/api";
 import type { Article } from "../../utils/articles";
 import { aboutIntro } from "../../utils/about-intro";
-import { aboutArticlePath, openWechatOfficialArticle, safeWechatArticleUrl } from "../../utils/home-shortcuts";
+import { aboutArticlePath, openWechatOfficialArticle, safeAboutArticleId, safeWechatArticleUrl } from "../../utils/home-shortcuts";
 
 type ReadableArticle = Pick<Article, "title" | "summary" | "coverUrl" | "contentNodes" | "activityId"> & { id?: string };
 
@@ -19,6 +19,8 @@ Page({
     pageMotionClass: "",
     article: null as ReadableArticle | null,
     isAbout: false,
+    isBundledAbout: false,
+    aboutFallback: false,
     originalUrl: "",
     loading: true,
     error: "",
@@ -27,10 +29,19 @@ Page({
   },
   _epoch: 0,
   _path: "",
+  _aboutContent: "",
   onLoad(options) {
     const id = safeId(options.id);
     if (options.about === "1" && options.id === undefined && options.official === undefined) {
-      this.setData({ article: aboutIntro, isAbout: true, originalUrl: articleSource(options.source), loading: false });
+      this._aboutContent = safeAboutArticleId(options.content);
+      if (this._aboutContent) this._path = `/articles/${this._aboutContent}`;
+      this.setData({
+        article: this._path ? null : aboutIntro,
+        isAbout: true,
+        isBundledAbout: !this._path,
+        originalUrl: articleSource(options.source),
+        loading: !!this._path,
+      });
       wx.setNavigationBarTitle?.({ title: aboutIntro.title });
       return;
     }
@@ -71,6 +82,8 @@ Page({
         throw new Error("文章加载失败，请重试");
       if (n !== this._epoch) return;
       this.setData({
+        isBundledAbout: false,
+        aboutFallback: false,
         article: {
           ...article,
           coverUrl: mediaUrl(article.coverUrl || ""),
@@ -83,7 +96,9 @@ Page({
       });
     } catch (e) {
       if (n !== this._epoch) return;
-      if (e instanceof ApiError && e.status === 404)
+      if (this.data.isAbout) {
+        this.setData({ article: aboutIntro, isBundledAbout: true, aboutFallback: true });
+      } else if (e instanceof ApiError && e.status === 404)
         this.setData({
           article: null,
           empty:
@@ -112,7 +127,7 @@ Page({
     const article = this.data.article;
     if (this.data.isAbout && article) return {
       title: article.title,
-      path: aboutArticlePath(this.data.originalUrl),
+      path: aboutArticlePath(this.data.originalUrl, this._aboutContent),
       imageUrl: article.coverUrl,
     };
     return article?.id ? {

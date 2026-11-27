@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class WechatImageImporter {
-  private static final Set<String> HOSTS = Set.of("mmbiz.qpic.cn", "mmbiz.qlogo.cn");
+  private static final Set<String> HOSTS = Set.of("mmbiz.qpic.cn", "mmbiz.qlogo.cn", "mmecoa.qpic.cn");
   private static final Duration TIMEOUT = Duration.ofSeconds(5);
   private final HttpClient client = HttpClient.newBuilder()
       .connectTimeout(Duration.ofSeconds(3)).followRedirects(HttpClient.Redirect.NEVER).build();

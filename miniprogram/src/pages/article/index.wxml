@@ -7,7 +7,8 @@
       <view class="title" aria-role="heading">{{article.title}}</view>
       <view wx:if="{{article.summary}}" class="article-summary">{{article.summary}}</view>
     </view>
-    <image wx:if="{{article.coverUrl && !isAbout}}" class="article-cover" src="{{article.coverUrl}}" mode="aspectFill" bindtap="previewCover" aria-label="查看封面大图" />
+    <ui-state wx:if="{{aboutFallback}}" kind="empty">暂时无法读取最新介绍，当前显示内置版本。<button class="secondary ui-button ui-button-block" bindtap="retry">重新加载</button></ui-state>
+    <image wx:if="{{article.coverUrl && !isBundledAbout}}" class="article-cover" src="{{article.coverUrl}}" mode="aspectFill" bindtap="previewCover" aria-label="查看封面大图" />
     <markdown-view nodes="{{article.contentNodes}}" preview-images="{{true}}" />
     <view class="article-actions">
       <button wx:if="{{originalUrl}}" class="secondary ui-button ui-button-block" bindtap="openOriginal">查看公众号原文</button>

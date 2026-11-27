@@ -235,6 +235,15 @@ public class HomeLayoutService {
                                     item.id(), item.name(), item.icon(), item.imageUrl(),
                                     item.type(), "", "", "", "", "", "", "", List.of());
                               }
+                              if ("WECHAT_ARTICLE".equals(item.type())
+                                  && "INTRO".equals(item.icon())
+                                  && !clean(item.articleId()).isEmpty()
+                                  && !isArticlePublished(item.articleId())) {
+                                return new ShortcutItem(
+                                    item.id(), item.name(), item.icon(), item.imageUrl(),
+                                    item.type(), "", "", "", item.wechatArticleUrl(),
+                                    "", "", "", List.of());
+                              }
                               if ("ACTIVITY".equals(item.type())
                                   && !isActivityPublished(item.activityId())) {
                                 return new ShortcutItem(
@@ -408,6 +417,16 @@ public class HomeLayoutService {
                   item.popupText(),
                   mergedPopupImages),
               false);
+      String introArticleId = validated.articleId();
+      if ("INTRO".equals(icon) && "WECHAT_ARTICLE".equals(validated.type())) {
+        introArticleId = clean(item.articleId());
+        // Older editors may carry the legacy official pointer over when switching types.
+        if ("OFFICIAL".equals(introArticleId)) introArticleId = "";
+        if (!introArticleId.isEmpty()
+            && (!introArticleId.matches(UUID_REGEX) || !isArticlePublished(introArticleId))) {
+          bad("请选择已发布的小程序介绍文章，或使用内置介绍");
+        }
+      }
       String id = clean(item.id());
       if (id.isEmpty() || !id.matches("[A-Za-z0-9_-]{1,64}")) id = "slot-" + idx;
       String firstPopupImg =
@@ -421,7 +440,7 @@ public class HomeLayoutService {
               validated.type(),
               validated.page(),
               validated.activityId(),
-              validated.articleId(),
+              introArticleId,
               validated.wechatArticleUrl(),
               validated.popupTitle(),
               validated.popupText(),

@@ -1,3 +1,4 @@
+import { readWechatClipboard } from "../src/wechatPaste";
 import * as confirmation from "../src/confirm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -398,4 +399,14 @@ describe("article editor page", () => {
     expect(button(w, "发布").exists()).toBe(true);
     w.unmount();
   });
+});
+
+it("recognizes an image-only paste from the WeChat article photo CDN", () => {
+  const html = '<img src="https://mmecoa.qpic.cn/photo/0">';
+  const event = {
+    clipboardData: {
+      getData: (type: string) => (type === "text/html" ? html : ""),
+    },
+  } as ClipboardEvent;
+  expect(readWechatClipboard(event)).toBe(html);
 });

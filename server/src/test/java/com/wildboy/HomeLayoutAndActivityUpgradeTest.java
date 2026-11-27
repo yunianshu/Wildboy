@@ -246,6 +246,39 @@ class HomeLayoutAndActivityUpgradeTest {
 
   @Test
   @org.springframework.transaction.annotation.Transactional
+  void introShortcutKeepsOriginalLinkAndOnlyExposesThePublishedArticle() throws Exception {
+    var id = UUID.randomUUID().toString();
+    var source = "https://mp.weixin.qq.com/s/AbCdEfGh123456";
+    db.update("INSERT INTO article(id,title,markdown,status) VALUES (?,?,?,'DRAFT')", id, "运营版介绍", "完整介绍正文");
+    var cfg = homeLayout.get(true);
+    var shortcut = new ShortcutItem(
+        "intro", "关于小子", "INTRO", "", "WECHAT_ARTICLE", "", "", id,
+        source, "", "", "", List.of());
+    var candidate = new LayoutConfig(cfg.version(), cfg.modules(), cfg.hero(),
+        new ShortcutsConfig(4, List.of(shortcut)), cfg.activities(), cfg.shop(), cfg.gallery(), cfg.footer());
+    var body = json.writeValueAsString(candidate);
+    mvc.perform(put("/api/v1/admin/home/layout").header("Authorization", adminHeader)
+        .contentType("application/json").content(body)).andExpect(status().isBadRequest());
+
+    db.update("UPDATE article SET status='PUBLISHED' WHERE id=?", id);
+    mvc.perform(put("/api/v1/admin/home/layout").header("Authorization", adminHeader)
+        .contentType("application/json").content(body)).andExpect(status().isOk())
+        .andExpect(jsonPath("$.shortcuts.items[0].articleId").value(id));
+    mvc.perform(get("/api/v1/home/layout")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.layout.shortcuts.items[0].articleId").value(id))
+        .andExpect(jsonPath("$.layout.shortcuts.items[0].wechatArticleUrl").value(source));
+    mvc.perform(get("/api/v1/articles/" + id)).andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("运营版介绍"));
+
+    db.update("UPDATE article SET status='DRAFT' WHERE id=?", id);
+    mvc.perform(get("/api/v1/home/layout")).andExpect(status().isOk())
+        .andExpect(jsonPath("$.layout.shortcuts.items[0].articleId").value(""))
+        .andExpect(jsonPath("$.layout.shortcuts.items[0].wechatArticleUrl").value(source));
+    mvc.perform(get("/api/v1/articles/" + id)).andExpect(status().isNotFound());
+  }
+
+  @Test
+  @org.springframework.transaction.annotation.Transactional
   void oldActivityEditsAndCopiesPreserveNewerSharedBoardingCoordinates() throws Exception {
     var oldStop = new NavigationPoint("north", "BOARDING", "North pier", "Old dock", 24.5, 118.1);
     var secondStop = new NavigationPoint("south", "BOARDING", "South pier", "South dock", 24.4, 118.2);

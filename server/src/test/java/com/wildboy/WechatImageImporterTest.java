@@ -19,6 +19,8 @@ class WechatImageImporterTest {
   @Test void acceptsOnlyExplicitHttpsImageHosts() {
     assertThat(WechatImageImporter.supports("https://mmbiz.qpic.cn/mmbiz_png/id/640?wx_fmt=png")).isTrue();
     assertThat(WechatImageImporter.supports("https://mmbiz.qlogo.cn:443/pic/0")).isTrue();
+    assertThat(WechatImageImporter.supports("https://mmecoa.qpic.cn/photo/0")).isTrue();
+    assertThat(WechatImageImporter.supports("https://mmecoa.qpic.cn.example.com/photo/0")).isFalse();
     var importer = new WechatImageImporter(new MediaService(directory.toString()));
     for (String url : List.of("http://mmbiz.qpic.cn/0", "https://cdn.example.com/0",
         "https://sub.mmbiz.qpic.cn/0", "https://mmbiz.qpic.cn:444/0",

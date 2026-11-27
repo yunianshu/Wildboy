@@ -124,6 +124,7 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
       id: item.id || `slot-${idx + 1}`,
       imageUrl: item.imageUrl || "",
       activityId: item.activityId || "",
+      articleId: item.articleId || "",
       wechatArticleUrl: item.wechatArticleUrl || "",
       popupImages: imgs,
     };
@@ -811,7 +812,10 @@ onUnmounted(() => {
 
             <label>
               点击后执行动作
-              <select v-model="activeShortcut.type">
+              <select
+                v-model="activeShortcut.type"
+                @change="activeShortcut.articleId = ''"
+              >
                 <option value="PAGE">打开小程序内页面</option>
                 <option value="WECHAT_ARTICLE">
                   微信公众号文章（介绍入口先在小程序内阅读）
@@ -847,9 +851,56 @@ onUnmounted(() => {
               <small class="field-hint">
                 复制公众号后台或微信内「复制链接」得到的
                 https://mp.weixin.qq.com/s/...
-                地址即可。使用「介绍」图标的入口会先显示小程序介绍，
-                文章链接放在介绍页底部；其他入口直接调起微信文章。
+                选择「海岸休闲图」的入口会先显示小程序介绍，
+                公众号原文链接放在介绍页底部。其他入口直接打开公众号文章。
               </small>
+              <template v-if="activeShortcut.icon === 'INTRO'">
+                <label>
+                  小程序介绍正文
+                  <select
+                    v-model="activeShortcut.articleId"
+                    aria-label="小程序介绍正文"
+                  >
+                    <option value="">内置介绍</option>
+                    <option
+                      v-if="
+                        activeShortcut.articleId &&
+                        !allArticles.some(
+                          (a) => a.id === activeShortcut?.articleId,
+                        )
+                      "
+                      :value="activeShortcut.articleId"
+                    >
+                      当前文章不在已发布列表中
+                    </option>
+                    <option
+                      v-for="art in allArticles"
+                      :key="art.id"
+                      :value="art.id"
+                    >
+                      {{ art.title }}
+                    </option>
+                  </select>
+                </label>
+                <small class="field-hint">
+                  到文章管理新建或编辑文章，点「粘贴公众号」导入正文和图片。发布后在这里选中，再保存首页配置。
+                  以后更新同一篇文章，先撤回为草稿，修改后重新发布，不用再改首页配置。
+                </small>
+                <RouterLink
+                  class="text-button"
+                  :to="
+                    allArticles.some((a) => a.id === activeShortcut?.articleId)
+                      ? '/articles/' + activeShortcut.articleId + '/edit'
+                      : '/articles'
+                  "
+                >
+                  {{
+                    allArticles.some((a) => a.id === activeShortcut?.articleId)
+                      ? "编辑这篇介绍"
+                      : "去文章管理"
+                  }}
+                </RouterLink>
+              </template>
             </div>
 
             <label v-else-if="activeShortcut.type === 'ACTIVITY'">

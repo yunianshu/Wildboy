@@ -107,6 +107,7 @@ test("modular home layout renders drag-ordered activities, multi-QR popup, WeCha
                 imageUrl: "",
                 type: "WECHAT_ARTICLE",
                 wechatArticleUrl: "https://mp.weixin.qq.com/s/WildboyStory2026",
+                articleId: "12345678-1234-1234-1234-123456789abc",
               },
             ],
           },
@@ -190,7 +191,7 @@ test("modular home layout renders drag-ordered activities, multi-QR popup, WeCha
   const url = "https://mp.weixin.qq.com/s/WildboyStory2026";
   await home.openCategory({ currentTarget: { dataset: { slot: 2 } } });
   assert.deepEqual(openedOfficialUrls, []);
-  assert.deepEqual(navigated, ["/pages/article/index?about=1&source=" + encodeURIComponent(url)]);
+  assert.deepEqual(navigated, ["/pages/article/index?about=1&source=" + encodeURIComponent(url) + "&content=12345678-1234-1234-1234-123456789abc"]);
 
   // Other explicitly external article actions keep their original behavior.
   await home.dispatchAction({ type: "WECHAT_ARTICLE", wechatArticleUrl: url });

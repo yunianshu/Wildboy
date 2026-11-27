@@ -9,7 +9,7 @@ const hash = s => crypto.createHash("sha256").update(s).digest("hex");
 // A-theme baseline protects home/tab behavior and layout. Home hashes
 // were refreshed for modular homepage customization and the About entry route.
 const protectedFiles = {
-  "pages/home/index.ts": "a03cb797b10311cb1ab838a126781fad3c57ef8b7e40666ee687bb271df2d2e2",
+  "pages/home/index.ts": "b298262a562dcc80aa0ad52e363e4a466303ccb26b86bb0e317b4b0e7c76d160",
   "pages/home/index.wxml": "b558f2830e8965c3cf2156a6020e1582e570b34eb2a1ea47374ba82393d24a0e",
   "pages/home/index.json": "5983938690a29e5e0c2c102a4d679490c6642acaa5b7db74d517b7785c686f12",
   "custom-tab-bar/index.ts": "a9747f588099ea16f0891c2e32b93f985990f2aec7eace78febe0381536d9730",

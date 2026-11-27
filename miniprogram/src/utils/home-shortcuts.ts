@@ -90,9 +90,15 @@ export function safeWechatArticleUrl(value: string): string {
     return "";
   return trimmed;
 }
-export function aboutArticlePath(rawUrl: string): string {
+export function safeAboutArticleId(value: unknown): string {
+  return typeof value === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) ? value : "";
+}
+export function aboutArticlePath(rawUrl: string, articleId?: string): string {
   const url = safeWechatArticleUrl(rawUrl);
-  return "/pages/article/index?about=1" + (url ? "&source=" + encodeURIComponent(url) : "");
+  const id = safeAboutArticleId(articleId);
+  return "/pages/article/index?about=1"
+    + (url ? "&source=" + encodeURIComponent(url) : "")
+    + (id ? "&content=" + id : "");
 }
 export function openWechatOfficialArticle(rawUrl: string): boolean {
   const url = safeWechatArticleUrl(rawUrl);

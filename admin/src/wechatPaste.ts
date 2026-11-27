@@ -7,7 +7,7 @@ export function readWechatClipboard(event: ClipboardEvent): string | null {
   const html = event.clipboardData?.getData("text/html")?.trim();
   if (!html) return null;
   const formatted =
-    /(?:mp\.weixin\.qq\.com|mmbiz\.|rich_media_content|js_content|data-(?:src|wechat)|<(?:section|table|blockquote|h[1-6])\b|<(?:span|p|div|img)\b[^>]*\bstyle\s*=)/i;
+    /(?:mp\.weixin\.qq\.com|mmbiz\.|mmecoa\.qpic\.cn|rich_media_content|js_content|data-(?:src|wechat)|<(?:section|table|blockquote|h[1-6])\b|<(?:span|p|div|img)\b[^>]*\bstyle\s*=)/i;
   return formatted.test(html) ? html : null;
 }
 

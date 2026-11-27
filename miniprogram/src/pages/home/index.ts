@@ -418,7 +418,7 @@ Page({
       if (entry.icon === "INTRO") {
         this.setData({ shortcutBusy: true });
         wx.navigateTo({
-          url: aboutArticlePath(entry.wechatArticleUrl),
+          url: aboutArticlePath(entry.wechatArticleUrl, entry.articleId),
           complete: () => this.setData({ shortcutBusy: false }),
         });
       } else openWechatOfficialArticle(entry.wechatArticleUrl || "");

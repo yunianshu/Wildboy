@@ -76,8 +76,36 @@ test("About renders offline and opens the original only on an explicit tap", asy
   }
   assert.deepEqual(calls, []);
   const markup = require("node:fs").readFileSync("dist/pages/article/index.wxml", "utf8");
-  assert.match(markup, /article\.coverUrl && !isAbout/);
+  assert.match(markup, /article\.coverUrl && !isBundledAbout/);
   assert.ok(markup.indexOf("查看公众号原文") > markup.indexOf("<markdown-view"));
+});
+test("bound introduction reads published edits and preserves the original link; failures fall back", async () => {
+  const id = "12345678-1234-1234-1234-123456789abc";
+  const source = "https://mp.weixin.qq.com/s/WildboyStory2026";
+  global.wx = {};
+  const p = page({ about: "1", source, content: id });
+  api.request = async (path) => {
+    calls.push(path);
+    return { ...article, id, title: "运营编辑的介绍" };
+  };
+  assert.equal(p.data.loading, true);
+  await p.load();
+  assert.deepEqual(calls, ["/articles/" + id]);
+  assert.equal(p.data.article.title, "运营编辑的介绍");
+  assert.equal(p.data.isBundledAbout, false);
+  assert.equal(p.data.originalUrl, source);
+  assert.match(p.onShareAppMessage().path, new RegExp("&content=" + id + "$"));
+
+  api.request = async () => { throw new api.ApiError("missing", 404, "NOT_FOUND"); };
+  await p.load(true);
+  assert.equal(p.data.article.title, "关于野小子");
+  assert.equal(p.data.aboutFallback, true);
+  assert.equal(p.data.originalUrl, source);
+
+  api.request = async () => ({ ...article, id, title: "重新发布的介绍" });
+  await p.load();
+  assert.equal(p.data.article.title, "重新发布的介绍");
+  assert.equal(p.data.aboutFallback, false);
 });
 test("invalid external URL does not block the local introduction or open a link", () => {
   global.wx = { openOfficialAccountArticle: () => assert.fail("external navigation") };

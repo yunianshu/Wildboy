@@ -208,6 +208,22 @@ describe("HomeLayoutView modular workbench", () => {
           }),
         };
       }
+      if (url.includes("/admin/articles?")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: [
+              {
+                id: "12345678-1234-1234-1234-123456789abc",
+                title: "运营版关于小子",
+                status: "PUBLISHED",
+              },
+              { id: "draft", title: "不能选的草稿", status: "DRAFT" },
+            ],
+          }),
+        };
+      }
       return { ok: true, status: 200, json: async () => ({ items: [] }) };
     });
     vi.stubGlobal("fetch", fetch);
@@ -271,6 +287,9 @@ describe("HomeLayoutView modular workbench", () => {
     await w
       .get('input[placeholder="https://mp.weixin.qq.com/s/..."]')
       .setValue("https://mp.weixin.qq.com/s?__biz=example&mid=123");
+    const intro = w.get('select[aria-label="小程序介绍正文"]');
+    expect(intro.text()).not.toContain("不能选的草稿");
+    await intro.setValue("12345678-1234-1234-1234-123456789abc");
 
     await w
       .findAll(".module-card")
@@ -309,6 +328,9 @@ describe("HomeLayoutView modular workbench", () => {
       "act-later",
     ]);
     expect(saved.shortcuts.items[2].type).toBe("WECHAT_ARTICLE");
+    expect(saved.shortcuts.items[2].articleId).toBe(
+      "12345678-1234-1234-1234-123456789abc",
+    );
     expect(saved.shortcuts.items[1].popupImages).toEqual([]);
     expect(saved.shortcuts.items[2].wechatArticleUrl).toBe(
       "https://mp.weixin.qq.com/s?__biz=example&mid=123",
