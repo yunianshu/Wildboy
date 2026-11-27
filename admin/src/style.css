@@ -302,7 +302,7 @@ a.text-button:hover {
   border: 1px solid var(--admin-line);
   border-radius: 12px;
   background: var(--admin-surface);
-  box-shadow: 0 12px 32px var(--rf-overlay);
+  box-shadow: 0 12px 32px var(--rf-floating-shadow-color);
 }
 .group-menu-item {
   display: flex;

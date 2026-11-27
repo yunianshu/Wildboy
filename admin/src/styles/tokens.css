@@ -33,7 +33,8 @@
   --rf-on-primary: #ffffff;
   --rf-primary-text: #126743;
   --rf-primary-hover: #105f40;
-  --rf-overlay: #0b1f18b3;
+  --rf-overlay: rgb(19 39 31 / 30%);
+  --rf-floating-shadow-color: #0b1f18b3;
   --rf-modal-radius: 16px;
   --rf-mini-control-height: 48px;
   --rf-modal-padding: 24px;

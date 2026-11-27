@@ -11,6 +11,7 @@ export interface NavigationPoint {
 }
 export interface BoardingPointLocation {
   name: string;
+  displayName?: string | null;
   address: string;
   latitude: number | null;
   longitude: number | null;

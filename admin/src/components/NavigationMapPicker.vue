@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { nextTick, onMounted, onUnmounted, ref } from "vue";
 import FormModal from "./FormModal.vue";
 import {
   mapKey,
@@ -16,7 +16,9 @@ const props = defineProps<{
   busy: boolean;
   error: string;
 }>();
-const emit = defineEmits<{ close: []; select: [place: MapPlace] }>();
+const emit = defineEmits<{ close: []; confirm: [place: MapPlace]; reselect: [] }>();
+const pending = ref<MapPlace>();
+const confirmButton = ref<HTMLButtonElement>();
 const frame = ref<HTMLIFrameElement>();
 const url = mapKey() ? pickerUrl(props.initial) : null;
 
@@ -31,7 +33,21 @@ function receiveSelection(event: MessageEvent<unknown>) {
   )
     return;
   const place = readSelection(event.data);
-  if (place) emit("select", place);
+  if (!place || (!place.title && !place.address)) return;
+  emit("reselect");
+  pending.value = place;
+  void nextTick(() => confirmButton.value?.focus({ preventScroll: true }));
+}
+
+function confirmSelection() {
+  if (!props.busy && pending.value) emit("confirm", pending.value);
+}
+
+function reselect() {
+  if (props.busy) return;
+  pending.value = undefined;
+  emit("reselect");
+  void nextTick(() => frame.value?.focus({ preventScroll: true }));
 }
 
 onMounted(() => window.addEventListener("message", receiveSelection));
@@ -51,7 +67,7 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
     </p>
     <template v-else>
       <p v-if="error" class="field-error picker-error" role="alert">
-        {{ error }} 可在地图中重新确认。
+        {{ error }}
       </p>
       <p v-if="busy" class="picker-status" role="status">正在保存上车点…</p>
       <div class="picker-surface" :inert="busy">
@@ -63,14 +79,23 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
           referrerpolicy="strict-origin-when-cross-origin"
         />
       </div>
+      <div class="picker-footer">
+        <div v-if="pending" class="picker-selection" aria-label="已选上车点">
+          <strong>{{ pending.title || pending.address }}</strong>
+          <p v-if="pending.address && pending.address !== pending.title">{{ pending.address }}</p>
+        </div>
+        <div class="picker-actions">
+          <button v-if="pending" type="button" class="secondary" :disabled="busy" @click="reselect">取消选中</button>
+          <button ref="confirmButton" type="button" class="primary" :disabled="busy || !pending" @click="confirmSelection">
+            保存
+          </button>
+        </div>
+      </div>
     </template>
   </FormModal>
 </template>
 
 <style scoped>
-.map-picker-backdrop {
-  --rf-overlay: rgb(19 39 31 / 30%);
-}
 .picker-surface {
   overflow: hidden;
   border-radius: var(--rf-control-radius);
@@ -79,8 +104,34 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
 .map-picker-frame {
   display: block;
   width: 100%;
-  height: clamp(290px, 62dvh, 564px);
+  height: clamp(260px, 56dvh, 520px);
   border: 0;
+}
+.picker-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 16px;
+  padding-top: 12px;
+}
+.picker-selection {
+  display: grid;
+  flex: 1 1 200px;
+  gap: 3px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.picker-selection p {
+  margin: 0;
+  color: var(--rf-muted);
+}
+.picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-inline-start: auto;
 }
 .picker-error,
 .picker-status {

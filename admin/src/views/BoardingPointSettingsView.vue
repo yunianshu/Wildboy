@@ -34,6 +34,9 @@ function open(row?: BoardingPointLocation) {
   actionError.value = notice.value = "";
   pickerOpen.value = true;
 }
+function displayName(row: BoardingPointLocation) {
+  return row.displayName?.trim() || row.address || row.name;
+}
 function close() {
   if (!busy.value) {
     pickerOpen.value = false;
@@ -71,6 +74,7 @@ async function save(place: MapPlace) {
       method: "POST",
       body: JSON.stringify({
         name,
+        displayName: place.title === address ? "" : place.title,
         address,
         latitude: place.latitude,
         longitude: place.longitude,
@@ -147,7 +151,12 @@ onMounted(load);
       <li v-for="row in points" :key="row.name">
         <div class="stop-address">
           <AppIcon name="location" :size="18" />
-          <span>{{ row.address || row.name }}</span>
+          <div class="stop-label">
+            <span class="stop-name">{{ displayName(row) }}</span>
+            <span v-if="row.address && row.address !== displayName(row)" class="stop-detail">
+              {{ row.address }}
+            </span>
+          </div>
         </div>
         <div class="stop-actions">
           <button
@@ -178,7 +187,8 @@ onMounted(load);
       :busy="busy"
       :error="actionError"
       @close="close"
-      @select="save"
+      @confirm="save"
+      @reselect="actionError = ''"
     />
   </main>
 </template>
@@ -210,6 +220,18 @@ onMounted(load);
 .stop-address :deep(svg) {
   flex-shrink: 0;
   color: var(--rf-muted);
+}
+.stop-label {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.stop-name {
+  font-weight: 600;
+}
+.stop-detail {
+  color: var(--rf-muted);
+  font-size: 0.875em;
 }
 .stop-actions {
   display: flex;

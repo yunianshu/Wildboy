@@ -301,6 +301,14 @@ class HomeLayoutAndActivityUpgradeTest {
         new BoardingPointLocation("South pier", "South dock", null, null));
     activities.saveBoardingPointLocation(new BoardingPointLocation("North pier", "New dock", null, null));
     assertThat(activities.listBoardingPointLocations()).contains(new BoardingPointLocation("North pier", "New dock", null, null));
+    var namedPoint = new BoardingPointLocation("North pier", "New dock", 24.6, 118.3, "Pier gate");
+    assertThat(activities.saveBoardingPointLocation(namedPoint)).isEqualTo(namedPoint);
+    assertThat(activities.listBoardingPointLocations()).contains(namedPoint);
+    activities.saveBoardingPointLocation(new BoardingPointLocation("North pier", "New dock", 24.6, 118.3));
+    assertThat(activities.listBoardingPointLocations()).contains(namedPoint);
+    var renamedPoint = new BoardingPointLocation("North pier", "Other dock", 24.6, 118.3, "Other gate");
+    activities.saveBoardingPointLocation(renamedPoint);
+    assertThat(activities.listBoardingPointLocations()).contains(renamedPoint).doesNotContain(namedPoint);
     activities.deleteBoardingPointLocation("North pier");
     assertThat(activities.get(copied.id(), true).navigationPoints()).contains(oldStop);
     assertThat(activities.listBoardingPointLocations()).noneMatch(p -> p.name().equals("North pier"));

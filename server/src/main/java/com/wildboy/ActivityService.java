@@ -259,12 +259,13 @@ public class ActivityService {
 
   public List<BoardingPointLocation> listBoardingPointLocations() {
     return db.query(
-        "SELECT name, address, latitude, longitude FROM activity_boarding_point ORDER BY name",
+        "SELECT name, address, latitude, longitude, display_name FROM activity_boarding_point ORDER BY name",
         (r, n) -> new BoardingPointLocation(
             r.getString("name"),
             r.getString("address") == null ? "" : r.getString("address"),
             r.getObject("latitude", Double.class),
-            r.getObject("longitude", Double.class)));
+            r.getObject("longitude", Double.class),
+            r.getString("display_name")));
   }
 
   public String saveBoardingPoint(String name) {
@@ -279,14 +280,19 @@ public class ActivityService {
     String address = input.address() == null ? "" : input.address().strip();
     validateCoordinates(input.latitude(), input.longitude());
     return db.queryForObject("""
-        INSERT INTO activity_boarding_point(name, address, latitude, longitude)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO activity_boarding_point(name, address, latitude, longitude, display_name)
+        VALUES (?, ?, ?, ?, ?)
         ON CONFLICT (name) DO UPDATE SET
-          address = EXCLUDED.address, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude
-        RETURNING name, address, latitude, longitude
+          address = EXCLUDED.address, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
+          display_name = CASE WHEN EXCLUDED.display_name IS NOT NULL THEN EXCLUDED.display_name
+                              WHEN activity_boarding_point.address = EXCLUDED.address THEN activity_boarding_point.display_name
+                              ELSE NULL END
+        RETURNING name, address, latitude, longitude, display_name
         """, (r, n) -> new BoardingPointLocation(r.getString("name"), r.getString("address"),
-            r.getObject("latitude", Double.class), r.getObject("longitude", Double.class)),
-        point, address, input.latitude(), input.longitude());
+            r.getObject("latitude", Double.class), r.getObject("longitude", Double.class),
+            r.getString("display_name")),
+        point, address, input.latitude(), input.longitude(),
+        input.displayName() == null ? null : input.displayName().strip());
   }
 
   public void deleteBoardingPointLocation(String name) {

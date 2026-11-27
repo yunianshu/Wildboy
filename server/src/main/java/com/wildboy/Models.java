@@ -49,7 +49,12 @@ public final class Models {
       @NotBlank @Size(max = 200) String name,
       @Size(max = 300) String address,
       @DecimalMin("-90.0") @DecimalMax("90.0") Double latitude,
-      @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude) {}
+      @DecimalMin("-180.0") @DecimalMax("180.0") Double longitude,
+      @Size(max = 200) String displayName) {
+    public BoardingPointLocation(String name, String address, Double latitude, Double longitude) {
+      this(name, address, latitude, longitude, null);
+    }
+  }
 
   public record AttendeeView(
       String nickname,

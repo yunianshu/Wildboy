@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
+import type { BoardingPointLocation } from "../src/types";
 import BoardingPointSettingsView from "../src/views/BoardingPointSettingsView.vue";
 
 const pickerOrigin = "https://apis.map.qq.com";
@@ -20,7 +21,7 @@ let wrapper: VueWrapper;
 function response(body: unknown, status = 200) {
   return { ok: status < 400, status, json: async () => body };
 }
-async function openPage(rows = [original], key = "synthetic-test-key") {
+async function openPage(rows: BoardingPointLocation[] = [original], key = "synthetic-test-key") {
   vi.stubEnv("VITE_TENCENT_MAP_PICKER_KEY", key);
   vi.stubGlobal(
     "fetch",
@@ -60,7 +61,7 @@ afterEach(() => {
 });
 
 describe("上车点一步选址保存", () => {
-  it("opens one map dialog and saves directly on map confirmation", async () => {
+  it("opens one dialog and waits for explicit confirmation before saving", async () => {
     await openPage();
     expect(wrapper.find("[role=dialog]").exists()).toBe(false);
     await button("新增上车点").trigger("click");
@@ -76,19 +77,29 @@ describe("上车点一步选址保存", () => {
     expect(url.origin + url.pathname).toBe(pickerOrigin + "/tools/locpicker");
     expect(url.searchParams.get("coordtype")).toBe("5");
     expect(frame().contentWindow).not.toBeNull();
+    expect(button("保存").attributes("disabled")).toBeDefined();
     expect(posts()).toHaveLength(0);
 
     sendSelection(frame().contentWindow, { origin: "https://mapapi.qq.com" });
     await flushPromises();
+    expect(posts()).toHaveLength(0);
+    expect(wrapper.get(".picker-selection").text()).toContain(selection.poiname);
+    expect(wrapper.get(".picker-selection").text()).toContain(selection.poiaddress);
+    expect(button("保存").attributes("disabled")).toBeUndefined();
+    await button("保存").trigger("click");
+    await flushPromises();
     expect(posts()).toHaveLength(1);
     expect(JSON.parse(String(posts()[0][1]?.body))).toEqual({
       name: selection.poiaddress,
+      displayName: selection.poiname,
       address: selection.poiaddress,
       latitude: selection.latlng.lat,
       longitude: selection.latlng.lng,
     });
     expect(wrapper.find("[role=dialog]").exists()).toBe(false);
-    expect(wrapper.get(".stop-list").text()).toContain(selection.poiaddress);
+    const row = wrapper.findAll(".stop-list li").find((item) => item.text().includes(selection.poiname))!;
+    expect(row.get(".stop-name").text()).toBe(selection.poiname);
+    expect(row.get(".stop-detail").text()).toBe(selection.poiaddress);
     expect(wrapper.get("[role=status]").text()).toBe("上车点已保存");
   });
 
@@ -98,12 +109,52 @@ describe("上车点一步选址保存", () => {
     expect(new URL(frame().src).searchParams.get("coord")).toBe("24.5,118.1");
     sendSelection(frame().contentWindow);
     await flushPromises();
+    await button("保存").trigger("click");
+    await flushPromises();
     expect(JSON.parse(String(posts()[0][1]?.body))).toMatchObject({
       name: original.name,
+      displayName: selection.poiname,
       address: selection.poiaddress,
     });
     expect(wrapper.findAll(".stop-list li")).toHaveLength(1);
     expect(wrapper.get(".stop-list").text()).not.toContain(original.address);
+  });
+
+  it("shows stored title and address after reload; legacy and unnamed points do not duplicate the address", async () => {
+    await openPage([{ ...original, displayName: selection.poiname, address: selection.poiaddress },
+      { ...original, name: "legacy" }]);
+    const [named, legacy] = wrapper.findAll(".stop-list li");
+    expect(named.get(".stop-name").text()).toBe(selection.poiname);
+    expect(named.get(".stop-detail").text()).toBe(selection.poiaddress);
+    expect(legacy.get(".stop-name").text()).toBe(original.address);
+    expect(legacy.find(".stop-detail").exists()).toBe(false);
+    await button("新增上车点").trigger("click");
+    sendSelection(frame().contentWindow, { data: { ...selection, poiname: "", poiaddress: "另一处详细地址" } });
+    await flushPromises();
+    await button("保存").trigger("click");
+    await flushPromises();
+    expect(JSON.parse(String(posts()[0][1]?.body))).toMatchObject({ displayName: "", address: "另一处详细地址" });
+    const unnamed = wrapper.findAll(".stop-list li").find((item) => item.text().includes("另一处详细地址"))!;
+    expect(unnamed.find(".stop-detail").exists()).toBe(false);
+  });
+
+  it("returns to the same map to reselect and closes without saving a preview", async () => {
+    await openPage();
+    await button("新增上车点").trigger("click");
+    const source = frame().contentWindow;
+    sendSelection(source);
+    await flushPromises();
+    await button("取消选中").trigger("click");
+    expect(frame().contentWindow).toBe(source);
+    expect(wrapper.find(".picker-selection").exists()).toBe(false);
+    expect(button("保存").attributes("disabled")).toBeDefined();
+    expect(posts()).toHaveLength(0);
+    sendSelection(source, { data: { ...selection, poiname: "另一个地点" } });
+    await flushPromises();
+    expect(wrapper.get(".picker-selection strong").text()).toBe("另一个地点");
+    await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
+    expect(posts()).toHaveLength(0);
+    expect(wrapper.find("[role=dialog]").exists()).toBe(false);
   });
 
   it("ignores unrelated windows, origins, malformed data and late replies", async () => {
@@ -149,6 +200,10 @@ describe("上车点一步选址保存", () => {
     sendSelection(source);
     sendSelection(source);
     await flushPromises();
+    expect(posts()).toHaveLength(0);
+    await button("保存").trigger("click");
+    await button("保存").trigger("click");
+    await flushPromises();
     expect(posts()).toHaveLength(1);
     expect(
       wrapper.get('[aria-label="关闭弹窗"]').attributes("disabled"),
@@ -161,7 +216,7 @@ describe("上车点一步选址保存", () => {
       selection.poiaddress,
     );
     expect(frame().contentWindow).toBe(source);
-    sendSelection(source);
+    await button("保存").trigger("click");
     await flushPromises();
     expect(posts()).toHaveLength(2);
     expect(wrapper.find("[role=dialog]").exists()).toBe(false);
@@ -171,6 +226,8 @@ describe("上车点一步选址保存", () => {
     await openPage([{ ...original, address: selection.poiaddress }]);
     await button("新增上车点").trigger("click");
     sendSelection(frame().contentWindow);
+    await flushPromises();
+    await button("保存").trigger("click");
     await flushPromises();
     expect(wrapper.get("[role=alert]").text()).toContain("这个上车地址已存在");
     expect(posts()).toHaveLength(0);
