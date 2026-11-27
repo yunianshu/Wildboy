@@ -280,11 +280,13 @@ describe("HomeLayoutView modular workbench", () => {
 
     expect(w.get("h1").text()).toBe("小程序首页配置");
     expect(w.get(".editor-panel h2").text()).toBe("首页精选活动");
-    // Add act-3 and reorder featured activities
-    const addBtn = w
-      .findAll("button")
-      .find((b) => b.text() === "加入首页排位")!;
+    // Verify 6 slots are shown on the left (2 filled + 4 empty) and rich cards on the right
+    expect(w.findAll(".activity-empty-slot").length).toBe(4);
+    expect(w.findAll(".candidate-card-btn img").length).toBeGreaterThan(0);
+    // Add act-3 into the next empty slot and reorder featured activities
+    const addBtn = w.get(".candidate-list .candidate-card-btn");
     await addBtn.trigger("click");
+    expect(w.findAll(".activity-empty-slot").length).toBe(3);
     // Move second item ("路线A") forward to #1
     const moveFrontBtns = w
       .findAll("button")

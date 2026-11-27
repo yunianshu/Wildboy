@@ -46,12 +46,25 @@ const source = computed(() =>
     : props.config.mode,
 );
 const publicSlides = ref<Slide[]>([]);
+const publicSourceLabel = ref("");
 const loadError = ref(false);
 const slides = computed(() =>
   source.value === "CUSTOM_SLIDES" ? customSlides.value : publicSlides.value,
 );
 const index = ref(0);
 const current = computed(() => slides.value[index.value]);
+const sourceLabel = computed(() =>
+  source.value === "CUSTOM_SLIDES" ? "自定义轮播图" : publicSourceLabel.value,
+);
+
+defineExpose({
+  slides,
+  index,
+  sourceLabel,
+  selectSlide(next: number) {
+    index.value = next;
+  },
+});
 
 watch(
   source,
@@ -62,6 +75,7 @@ watch(
     onCleanup(() => controller.abort());
     const options = { signal: controller.signal };
     publicSlides.value = [];
+    publicSourceLabel.value = "";
     loadError.value = false;
     try {
       const { items } = await request<Page<Article>>(
@@ -71,6 +85,7 @@ watch(
       if (controller.signal.aborted) return;
       const articles = items.filter((article) => !article.isOfficial);
       if (articles.length) {
+        publicSourceLabel.value = "已发布文章";
         publicSlides.value = articles.map(
           ({ id, title, coverUrl, summary }) => ({
             id,
@@ -90,6 +105,7 @@ watch(
         const home = await request<{ banners: Slide[] }>("/home", options);
         if (controller.signal.aborted) return;
         if (home.banners?.length) {
+          publicSourceLabel.value = "活动封面（备用内容）";
           publicSlides.value = home.banners;
           return;
         }
@@ -97,6 +113,7 @@ watch(
         if (controller.signal.aborted) return;
       }
     }
+    publicSourceLabel.value = "内置风景图（备用内容）";
     publicSlides.value = defaultSlides;
   },
   { immediate: true },

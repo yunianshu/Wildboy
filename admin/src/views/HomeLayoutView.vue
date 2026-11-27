@@ -462,6 +462,7 @@ const footerPreviewGridStyle = computed(() => {
 
 const snapshot = ref("");
 const activeModule = ref<HomeModuleId>("ACTIVITIES");
+const galleryPreview = ref<InstanceType<typeof HomeGalleryPreview>>();
 const moduleEditor = ref<HTMLElement>();
 watch(activeModule, () => {
   if (moduleEditor.value) moduleEditor.value.scrollTop = 0;
@@ -734,12 +735,79 @@ function dropModule(toIdx: number) {
   dragModuleIdx.value = null;
 }
 
-// Featured activities drag & reorder
+// Featured activities 6-slot workbench: fill, reorder, drag-swap & remove
+const dragActivityIdx = ref<number | null>(null);
+const overActivityIdx = ref<number | null>(null);
+
+const activitySlotCount = computed(() => {
+  const max = Number(layout.value?.activities.maxCount) || 6;
+  const filled = layout.value?.activities.featuredActivityIds.length ?? 0;
+  return Math.min(12, Math.max(1, max, filled));
+});
+
+const activitySlots = computed(() => {
+  const ids = layout.value?.activities.featuredActivityIds ?? [];
+  return Array.from({ length: activitySlotCount.value }, (_, index) => {
+    const id = ids[index] ?? null;
+    const activity = id ? activityCatalog.get(id) ?? null : null;
+    return { index, id, activity };
+  });
+});
+
+const nextActivitySlotIndex = computed(() => {
+  const ids = layout.value?.activities.featuredActivityIds ?? [];
+  return ids.length < activitySlotCount.value ? ids.length : -1;
+});
+
 function addFeaturedActivity(id: string) {
   if (!layout.value) return;
   const list = layout.value.activities.featuredActivityIds;
   if (list.length >= 12 || list.includes(id)) return;
   list.push(id);
+}
+
+function removeFeaturedActivity(index: number) {
+  if (!layout.value) return;
+  layout.value.activities.featuredActivityIds.splice(index, 1);
+}
+
+function moveFeaturedActivity(index: number, delta: -1 | 1) {
+  if (!layout.value) return;
+  const list = layout.value.activities.featuredActivityIds;
+  const target = index + delta;
+  if (target < 0 || target >= list.length) return;
+  [list[index], list[target]] = [list[target]!, list[index]!];
+}
+
+function startActivityDrag(index: number, event: DragEvent) {
+  if (saving.value) return;
+  dragActivityIdx.value = index;
+  overActivityIdx.value = null;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", String(index));
+  }
+}
+
+function overActivitySlot(index: number, event: DragEvent) {
+  if (dragActivityIdx.value === null) return;
+  event.preventDefault();
+  overActivityIdx.value = index;
+}
+
+function dropActivitySlot(index: number) {
+  const from = dragActivityIdx.value;
+  dragActivityIdx.value = null;
+  overActivityIdx.value = null;
+  if (!layout.value || from === null || from === index) return;
+  const list = layout.value.activities.featuredActivityIds;
+  if (from < 0 || from >= list.length || index < 0 || index >= list.length) return;
+  [list[from], list[index]] = [list[index]!, list[from]!];
+}
+
+function endActivityDrag() {
+  dragActivityIdx.value = null;
+  overActivityIdx.value = null;
 }
 
 // Shortcuts add/remove/drag
@@ -1485,168 +1553,302 @@ onUnmounted(() => {
               />
             </label>
           </div>
-          <div class="inline-controls">
-            <label class="field checkbox-field">
-              <input v-model="layout.activities.autoFill" type="checkbox" />
-              手动精选活动不足
-              {{ layout.activities.maxCount }}
-              个时，自动按出发时间补齐其他已发布活动
-            </label>
-            <label class="field checkbox-field">
-              <input v-model="layout.activities.showAllLink" type="checkbox" />
-              显示右上角「全部」入口
-            </label>
-          </div>
-
-          <div class="sub-box">
-            <h3>已排定活动（{{ layout.activities.featuredActivityIds.length }} 场）</h3>
-            <p v-if="!layout.activities.featuredActivityIds.length" class="muted">
-              可从下方列表将活动加入首页排位。
-            </p>
-            <template v-else>
-              <p v-if="layout.activities.featuredActivityIds.length > 1" class="field-hint">
-                将一张卡片拖到另一张上即可交换排位。
-              </p>
-              <FeaturedRankList
-                v-model="layout.activities.featuredActivityIds"
-                class="featured-activities"
-                item-label="活动"
-                :options="activityOptions"
-                :disabled="saving"
-              />
-            </template>
-          </div>
-
-          <div class="sub-box">
-            <div class="panel-head">
-              <h3>可选已发布活动</h3>
-              <input
-                v-model="activityFilter"
-                type="search"
-                class="compact-search"
-                placeholder="搜索活动名称或地点…"
-                maxlength="100"
-              />
+          <div class="sub-box activity-options-bar">
+            <div class="inline-controls">
+              <label class="field checkbox-field">
+                <input v-model="layout.activities.autoFill" type="checkbox" />
+                手动精选活动不足
+                {{ layout.activities.maxCount }}
+                个时，自动按出发时间补齐其他已发布活动
+              </label>
+              <label class="field checkbox-field">
+                <input v-model="layout.activities.showAllLink" type="checkbox" />
+                显示右上角「全部」入口
+              </label>
             </div>
-            <p v-if="activityLoading" role="status" class="muted">
-              正在加载活动…
-            </p>
-            <p v-else-if="activityError" role="alert" class="error-box">
-              {{ activityError }}
-              <button
-                type="button"
-                class="text-button"
-                @click="loadActivityPage()"
-              >
-                重试
-              </button>
-            </p>
-            <ul v-else-if="candidateActivities.length" class="candidate-list">
-              <li v-for="act in candidateActivities" :key="act.id">
-                <div>
-                  <strong>{{ act.title }}</strong>
-                  <small class="muted"> · {{ act.location }}</small>
-                </div>
+          </div>
+
+          <div class="activity-slot-workbench">
+            <section class="sub-box activity-slots-pane">
+              <div class="shop-section-head">
+                <h3>
+                  首页排位（{{ layout.activities.featuredActivityIds.length }} /
+                  {{ activitySlotCount }} 位）
+                </h3>
+                <span class="field-hint">点击右侧填入空位，拖动已填卡片可换位</span>
+              </div>
+              <div class="featured-activities activity-slots-grid">
+                <template v-for="slot in activitySlots" :key="slot.index">
+                  <article
+                    v-if="slot.id"
+                    class="featured-rank-card activity-filled-slot"
+                    :class="{
+                      'is-dragging': dragActivityIdx === slot.index,
+                      'is-drop-target':
+                        overActivityIdx === slot.index &&
+                        dragActivityIdx !== slot.index,
+                    }"
+                    :draggable="!saving"
+                    @dragstart="startActivityDrag(slot.index, $event)"
+                    @dragover="overActivitySlot(slot.index, $event)"
+                    @drop.prevent="dropActivitySlot(slot.index)"
+                    @dragend="endActivityDrag"
+                  >
+                    <div class="slot-card-media">
+                      <img
+                        v-if="slot.activity?.coverUrl"
+                        :src="slot.activity.coverUrl"
+                        alt=""
+                      />
+                      <div v-else class="slot-card-placeholder">
+                        <AppIcon name="mountain" :size="20" />
+                      </div>
+                      <span class="slot-rank-badge">第 {{ slot.index + 1 }} 位</span>
+                    </div>
+                    <div class="slot-card-body">
+                      <strong>{{ slot.activity?.title || "正在读取活动…" }}</strong>
+                      <small class="muted">{{
+                        slot.activity?.location || "活动详情同步中"
+                      }}</small>
+                      <div class="slot-card-actions">
+                        <button
+                          type="button"
+                          class="text-button"
+                          :disabled="saving || slot.index === 0"
+                          @click="moveFeaturedActivity(slot.index, -1)"
+                        >
+                          前移
+                        </button>
+                        <button
+                          type="button"
+                          class="text-button"
+                          :disabled="
+                            saving ||
+                            slot.index >=
+                              layout.activities.featuredActivityIds.length - 1
+                          "
+                          @click="moveFeaturedActivity(slot.index, 1)"
+                        >
+                          后移
+                        </button>
+                        <button
+                          type="button"
+                          class="text-button danger-text"
+                          :disabled="saving"
+                          @click="removeFeaturedActivity(slot.index)"
+                        >
+                          移出
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                  <div
+                    v-else
+                    class="activity-empty-slot"
+                    :class="{ 'is-next': nextActivitySlotIndex === slot.index }"
+                  >
+                    <span class="empty-slot-index">位置 {{ slot.index + 1 }}</span>
+                    <small>{{
+                      nextActivitySlotIndex === slot.index
+                        ? "下一个填入此位"
+                        : "空位 · 点击右侧填入"
+                    }}</small>
+                  </div>
+                </template>
+              </div>
+            </section>
+
+            <section class="sub-box activity-candidates-pane">
+              <div class="panel-head">
+                <h3>可选已发布活动</h3>
+                <input
+                  v-model="activityFilter"
+                  type="search"
+                  class="compact-search"
+                  placeholder="搜索活动名称或地点…"
+                  maxlength="100"
+                />
+              </div>
+              <p v-if="activityLoading" role="status" class="muted">
+                正在加载活动…
+              </p>
+              <p v-else-if="activityError" role="alert" class="error-box">
+                {{ activityError }}
                 <button
                   type="button"
-                  class="secondary"
-                  :disabled="saving || layout.activities.featuredActivityIds.length >= 12"
-                  @click="addFeaturedActivity(act.id)"
+                  class="text-button"
+                  @click="loadActivityPage()"
                 >
-                  加入首页排位
+                  重试
                 </button>
-              </li>
-            </ul>
-            <p v-else class="muted">本页没有可添加的已发布活动。</p>
-            <PaginationBar
-              v-if="activityPage && !activityError"
-              :page="activityPage.page"
-              :page-size="activityPage.size"
-              :total="activityPage.total"
-              :has-more="activityPage.hasMore"
-              :busy="activityLoading"
-              label="可选活动分页"
-              @change="loadActivityPage"
-            />
+              </p>
+              <ul v-else-if="candidateActivities.length" class="candidate-list">
+                <li
+                  v-for="act in candidateActivities"
+                  :key="act.id"
+                  class="candidate-card"
+                >
+                  <button
+                    type="button"
+                    class="candidate-card-btn"
+                    :disabled="
+                      saving || layout.activities.featuredActivityIds.length >= 12
+                    "
+                    @click="addFeaturedActivity(act.id)"
+                  >
+                    <div class="candidate-thumb">
+                      <img v-if="act.coverUrl" :src="act.coverUrl" alt="" />
+                      <AppIcon v-else name="mountain" :size="18" />
+                    </div>
+                    <div class="candidate-info">
+                      <strong class="candidate-title">{{ act.title }}</strong>
+                      <small class="candidate-meta">
+                        <span>{{ act.location }}</span>
+                        <span v-if="act.startAt">{{
+                          displayDate(act.startAt)
+                        }}</span>
+                        <span class="candidate-price">{{
+                          act.priceCents > 0
+                            ? `¥${(act.priceCents / 100).toFixed(2)}`
+                            : "免费"
+                        }}</span>
+                      </small>
+                    </div>
+                    <span class="candidate-fill-pill">
+                      {{
+                        nextActivitySlotIndex >= 0
+                          ? `填入第 ${nextActivitySlotIndex + 1} 位`
+                          : "加入排位"
+                      }}
+                    </span>
+                  </button>
+                </li>
+              </ul>
+              <p v-else class="muted">本页没有可添加的已发布活动。</p>
+              <PaginationBar
+                v-if="activityPage && !activityError"
+                :page="activityPage.page"
+                :page-size="activityPage.size"
+                :total="activityPage.total"
+                :has-more="activityPage.hasMore"
+                :busy="activityLoading"
+                label="可选活动分页"
+                @change="loadActivityPage"
+              />
+            </section>
           </div>
         </div>
 
         <!-- 4. SHOP -->
         <div v-else-if="activeModule === 'SHOP'" class="editor-panel">
           <h2>装备横幅与精选商品</h2>
-          <label class="field checkbox-field">
-            <input v-model="layout.shop.showBanner" type="checkbox" />
-            显示通栏装备横幅
-          </label>
-          <div v-if="layout.shop.showBanner" class="sub-box">
-            <div class="image-setting-row">
-              <img
-                :src="layout.shop.bannerImageUrl"
-                alt=""
-                class="banner-thumb"
-              />
-              <div class="image-setting-controls">
-                <ImageUpload
-                  category="HOME"
-                  label="上传替换装备横幅图"
-                  @uploaded="layout.shop.bannerImageUrl = $event"
-                />
-                <button
-                  v-if="
-                    layout.shop.bannerImageUrl !==
-                    '/assets/equipment-banner.jpg'
-                  "
-                  type="button"
-                  class="text-button"
-                  @click="
-                    layout.shop.bannerImageUrl = '/assets/equipment-banner.jpg'
-                  "
-                >
-                  恢复默认横幅图
-                </button>
+
+          <section class="sub-box shop-banner-card">
+            <div class="shop-section-head">
+              <label class="field checkbox-field">
+                <input v-model="layout.shop.showBanner" type="checkbox" />
+                <span>显示通栏装备横幅</span>
+              </label>
+              <button
+                v-if="
+                  layout.shop.showBanner &&
+                  layout.shop.bannerImageUrl !== '/assets/equipment-banner.jpg'
+                "
+                type="button"
+                class="text-button"
+                @click="
+                  layout.shop.bannerImageUrl = '/assets/equipment-banner.jpg'
+                "
+              >
+                恢复默认横幅图
+              </button>
+            </div>
+            <template v-if="layout.shop.showBanner">
+              <div class="shop-banner-media">
+                <div class="shop-banner-preview">
+                  <img
+                    :src="layout.shop.bannerImageUrl"
+                    alt=""
+                    class="banner-thumb"
+                  />
+                  <div class="shop-banner-preview-copy">
+                    <small v-if="layout.shop.bannerTag">{{
+                      layout.shop.bannerTag
+                    }}</small>
+                    <strong v-if="layout.shop.bannerTitle">{{
+                      layout.shop.bannerTitle
+                    }}</strong>
+                    <span v-if="layout.shop.bannerCta"
+                      >{{ layout.shop.bannerCta }} ›</span
+                    >
+                  </div>
+                </div>
+                <div class="shop-banner-upload">
+                  <ImageUpload
+                    category="HOME"
+                    label="上传替换装备横幅图"
+                    @uploaded="layout.shop.bannerImageUrl = $event"
+                  />
+                </div>
+              </div>
+              <div class="shop-banner-fields">
+                <label>
+                  横幅小标签
+                  <input v-model="layout.shop.bannerTag" maxlength="60" />
+                </label>
+                <label>
+                  横幅主标题
+                  <input v-model="layout.shop.bannerTitle" maxlength="60" />
+                </label>
+                <label>
+                  按钮文字
+                  <input v-model="layout.shop.bannerCta" maxlength="24" />
+                </label>
+              </div>
+            </template>
+          </section>
+
+          <section class="sub-box shop-products-toolbar">
+            <div class="shop-toolbar-row">
+              <label class="field checkbox-field">
+                <input v-model="layout.shop.showProducts" type="checkbox" />
+                <span>显示首页商品卡片网格</span>
+              </label>
+              <div v-if="layout.shop.showProducts" class="shop-toolbar-options">
+                <label class="compact-select shop-count-field">
+                  <span>展示件数</span>
+                  <input
+                    v-model.number="layout.shop.maxCount"
+                    type="number"
+                    min="1"
+                    max="8"
+                  />
+                </label>
+                <label class="field checkbox-field">
+                  <input v-model="layout.shop.autoFill" type="checkbox" />
+                  <span>自动补齐在售商品</span>
+                </label>
               </div>
             </div>
-            <div class="field-row">
-              <label>
-                横幅小标签
-                <input v-model="layout.shop.bannerTag" maxlength="60" />
-              </label>
-              <label>
-                横幅主标题
-                <input v-model="layout.shop.bannerTitle" maxlength="60" />
-              </label>
-              <label>
-                按钮文字
-                <input v-model="layout.shop.bannerCta" maxlength="24" />
-              </label>
+          </section>
+
+          <div
+            v-if="
+              layout.shop.showProducts &&
+              layout.shop.featuredProductIds.length
+            "
+            class="sub-box"
+          >
+            <div class="shop-section-head">
+              <h3>
+                已排定商品（{{ layout.shop.featuredProductIds.length }} 件）
+              </h3>
+              <span
+                v-if="layout.shop.featuredProductIds.length > 1"
+                class="field-hint"
+                >拖动卡片可调整展示顺序</span
+              >
             </div>
-          </div>
-
-          <div class="inline-controls">
-            <label class="field checkbox-field">
-              <input v-model="layout.shop.showProducts" type="checkbox" />
-              显示首页商品卡片网格
-            </label>
-            <label class="compact-select">
-              展示件数
-              <input
-                v-model.number="layout.shop.maxCount"
-                type="number"
-                min="1"
-                max="8"
-              />
-            </label>
-            <label class="field checkbox-field">
-              <input v-model="layout.shop.autoFill" type="checkbox" />
-              自动补齐在售商品
-            </label>
-          </div>
-
-          <div v-if="layout.shop.showProducts && layout.shop.featuredProductIds.length" class="sub-box">
-            <h3>已排定商品（{{ layout.shop.featuredProductIds.length }} 件）</h3>
-            <p v-if="layout.shop.featuredProductIds.length > 1" class="field-hint">
-              将一张卡片拖到另一张上即可交换排位。
-            </p>
             <FeaturedRankList
               v-model="layout.shop.featuredProductIds"
               class="featured-products"
@@ -1660,26 +1862,53 @@ onUnmounted(() => {
             v-if="layout.shop.showProducts && allProducts.length"
             class="sub-box"
           >
-            <h3>选择优先展示的商品</h3>
+            <div class="shop-section-head">
+              <h3>选择优先展示的商品</h3>
+              <span class="field-hint"
+                >已选 {{ layout.shop.featuredProductIds.length }} / 8 件 ·
+                点击卡片加入或移出</span
+              >
+            </div>
             <div class="product-pick-grid">
               <button
                 v-for="prod in allProducts"
                 :key="prod.id"
                 type="button"
                 class="product-pick-btn"
-                :disabled="saving || (layout.shop.featuredProductIds.length >= 8 && !layout.shop.featuredProductIds.includes(prod.id))"
+                :disabled="
+                  saving ||
+                  (layout.shop.featuredProductIds.length >= 8 &&
+                    !layout.shop.featuredProductIds.includes(prod.id))
+                "
                 :aria-pressed="layout.shop.featuredProductIds.includes(prod.id)"
                 :class="{
                   'is-picked': layout.shop.featuredProductIds.includes(prod.id),
                 }"
                 @click="toggleFeaturedProduct(prod.id)"
               >
-                <img :src="prod.imageUrl" alt="" />
-                <span>{{ prod.name }}</span>
-                <small v-if="layout.shop.featuredProductIds.includes(prod.id)">
-                  第
-                  {{ layout.shop.featuredProductIds.indexOf(prod.id) + 1 }} 位
-                </small>
+                <div class="product-pick-media">
+                  <img :src="prod.imageUrl" alt="" />
+                  <span
+                    v-if="layout.shop.featuredProductIds.includes(prod.id)"
+                    class="product-pick-badge"
+                  >
+                    第
+                    {{ layout.shop.featuredProductIds.indexOf(prod.id) + 1 }} 位
+                  </span>
+                </div>
+                <div class="product-pick-body">
+                  <span class="product-pick-name">{{ prod.name }}</span>
+                  <div class="product-pick-meta">
+                    <strong class="product-pick-price"
+                      >¥{{ (prod.priceCents / 100).toFixed(2) }}</strong
+                    >
+                    <small class="product-pick-state">{{
+                      layout.shop.featuredProductIds.includes(prod.id)
+                        ? "已选中"
+                        : "点击选择"
+                    }}</small>
+                  </div>
+                </div>
               </button>
             </div>
           </div>
@@ -1706,6 +1935,33 @@ onUnmounted(() => {
                 <option value="CUSTOM">自定义上传轮播图与跳转</option>
               </select>
             </label>
+          </div>
+
+          <div class="sub-box">
+            <h3>当前轮播内容</h3>
+            <p v-if="!galleryPreview" class="muted">板块显示后可查看当前轮播内容。</p>
+            <p v-else-if="!galleryPreview.slides.length" class="muted">正在加载轮播内容…</p>
+            <template v-else>
+              <p class="muted">
+                {{ galleryPreview.sourceLabel }} · 共 {{ galleryPreview.slides.length }} 项
+              </p>
+              <p v-if="layout.gallery.mode === 'AUTO_ARTICLES'" class="muted">
+                自动模式会在没有可展示的文章时使用备用内容。要指定图片、文案或跳转，可切换到自定义。
+              </p>
+              <ol class="gallery-preview-items">
+                <li v-for="(slide, index) in galleryPreview.slides" :key="slide.id">
+                  <button
+                    type="button"
+                    class="secondary gallery-preview-item"
+                    :aria-pressed="galleryPreview.index === index"
+                    @click="galleryPreview.selectSlide(index)"
+                  >
+                    <img v-if="slide.imageUrl" :src="slide.imageUrl" alt="" />
+                    <span>{{ index + 1 }}. {{ slide.title || "未填写标题" }}</span>
+                  </button>
+                </li>
+              </ol>
+            </template>
           </div>
 
           <div v-if="layout.gallery.mode === 'CUSTOM'" class="sub-box">
@@ -2345,6 +2601,7 @@ onUnmounted(() => {
 
               <HomeGalleryPreview
                 v-else-if="mod.enabled && mod.id === 'GALLERY'"
+                :ref="(instance) => (galleryPreview = instance as typeof galleryPreview)"
                 class="pv-block"
                 :config="layout.gallery"
                 :active="activeModule === 'GALLERY'"
@@ -2416,6 +2673,30 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.gallery-preview-items {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gallery-preview-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  text-align: left;
+}
+.gallery-preview-item img {
+  width: 48px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.gallery-preview-item[aria-pressed="true"] {
+  border-color: var(--rf-primary);
+  background: var(--rf-soft);
+}
 .heading-actions {
   display: flex;
   align-items: center;
@@ -2683,7 +2964,165 @@ onUnmounted(() => {
   justify-content: space-between;
 }
 .compact-search {
-  max-width: 220px;
+  max-width: 200px;
+}
+.activity-options-bar {
+  padding: 10px 14px;
+  background: #fff;
+}
+.activity-slot-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .activity-slot-workbench {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.activity-slots-pane,
+.activity-candidates-pane {
+  min-width: 0;
+}
+.activity-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.activity-filled-slot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  overflow: hidden;
+  cursor: grab;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
+}
+.activity-filled-slot:hover {
+  border-color: var(--rf-primary, #167a52);
+  box-shadow: 0 4px 12px rgba(16, 37, 29, 0.08);
+}
+.activity-filled-slot.is-dragging {
+  opacity: 0.55;
+}
+.activity-filled-slot.is-drop-target {
+  border-color: var(--rf-primary, #167a52);
+  box-shadow: 0 0 0 2px rgba(22, 122, 82, 0.22);
+}
+.slot-card-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9.5;
+  background: var(--rf-soft, #e9f4ed);
+  overflow: hidden;
+}
+.slot-card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.slot-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--rf-muted, #687b70);
+}
+.slot-rank-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(16, 37, 29, 0.78);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.slot-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px 7px;
+  min-width: 0;
+}
+.slot-card-body strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12.5px;
+  line-height: 1.35;
+  min-height: 2.7em;
+  color: var(--rf-ink, #18271f);
+}
+.slot-card-body small {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slot-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid var(--rf-line, #e0e8e2);
+}
+.slot-card-actions .text-button {
+  font-size: 11.5px;
+  padding: 0 2px;
+  min-height: 22px;
+}
+.activity-empty-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 158px;
+  padding: 12px 10px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--rf-field-line, #cdd9d0);
+  background: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  color: var(--rf-muted, #687b70);
+}
+.activity-empty-slot.is-next {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+}
+.empty-slot-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--rf-line, #dce3dd);
+  font-size: 12px;
+  font-weight: 600;
+}
+.activity-empty-slot.is-next .empty-slot-index {
+  background: var(--rf-primary, #167a52);
+  border-color: var(--rf-primary, #167a52);
+  color: #fff;
+}
+.activity-empty-slot small {
+  font-size: 11.5px;
+  line-height: 1.4;
 }
 .candidate-list {
   list-style: none;
@@ -2691,45 +3130,315 @@ onUnmounted(() => {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 240px;
+  gap: 8px;
+  max-height: 460px;
   overflow-y: auto;
 }
-.candidate-list li {
+.candidate-card {
+  margin: 0;
+  padding: 0;
+}
+.candidate-card-btn {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: 10px;
   background: #fff;
   border: 1px solid var(--rf-line, #dce3dd);
+  color: var(--rf-ink, #18271f);
+  font-weight: 400;
+  text-align: left;
+  white-space: normal;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+.candidate-card-btn:hover:not(:disabled) {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-surface-subtle, #f9fbf9);
+  box-shadow: 0 3px 10px rgba(16, 37, 29, 0.06);
+}
+.candidate-thumb {
+  flex: 0 0 74px;
+  width: 74px;
+  height: 54px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-muted, #687b70);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.candidate-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.candidate-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.candidate-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--rf-ink, #18271f);
+}
+.candidate-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 11.5px;
+  color: var(--rf-muted, #687b70);
+}
+.candidate-price {
+  color: var(--rf-primary-text, #126743);
+  font-weight: 600;
+}
+.candidate-fill-pill {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.candidate-card-btn:hover:not(:disabled) .candidate-fill-pill {
+  background: var(--rf-primary, #167a52);
+  color: #fff;
+}
+.shop-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.shop-section-head .checkbox-field {
+  margin: 0;
+  font-weight: 600;
+  color: var(--rf-ink);
+}
+.shop-banner-media {
+  display: grid;
+  grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+.shop-banner-preview {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #173025;
+  aspect-ratio: 16 / 8.5;
+}
+.shop-banner-preview .banner-thumb {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  display: block;
+}
+.shop-banner-preview-copy {
+  position: absolute;
+  inset: 0;
+  padding: 12px 14px;
+  background: linear-gradient(90deg, rgba(16, 37, 25, 0.78), rgba(16, 37, 25, 0.12));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+}
+.shop-banner-preview-copy small {
+  font-size: 11px;
+  opacity: 0.9;
+}
+.shop-banner-preview-copy strong {
+  font-size: 15px;
+  line-height: 1.3;
+}
+.shop-banner-preview-copy span {
+  font-size: 11px;
+  margin-top: 2px;
+  opacity: 0.92;
+}
+.shop-banner-upload {
+  min-width: 0;
+}
+.shop-banner-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(110px, 0.75fr);
+  gap: 12px;
+}
+.shop-banner-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+}
+.shop-products-toolbar {
+  padding: 12px 14px;
+  background: #fff;
+}
+.shop-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 18px;
+}
+.shop-toolbar-row .checkbox-field {
+  margin: 0;
+}
+.shop-toolbar-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+.shop-count-field {
+  font-size: 13px;
+  color: var(--rf-muted);
+}
+.shop-count-field input {
+  width: 68px;
+  height: 34px;
+  min-height: 34px;
+  padding: 4px 8px;
+  text-align: center;
+}
+@media (max-width: 780px) {
+  .shop-banner-media,
+  .shop-banner-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .product-pick-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(136px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  gap: 12px;
 }
 .product-pick-btn {
-  padding: 8px;
-  border-radius: 8px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: #fff;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
+  align-items: stretch;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  color: var(--rf-ink, #18271f);
+  font-weight: 400;
+  text-align: left;
+  white-space: normal;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+}
+.product-pick-btn:hover:not(:disabled) {
+  border-color: var(--rf-primary, #167a52);
+  box-shadow: 0 4px 12px rgba(16, 37, 29, 0.08);
 }
 .product-pick-btn.is-picked {
-  border-color: var(--rf-primary, #247a52);
-  background: var(--rf-soft, #eaf4e7);
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  box-shadow: 0 0 0 1px rgba(22, 122, 82, 0.18);
 }
-.product-pick-btn img {
+.product-pick-media {
+  position: relative;
   width: 100%;
-  height: 80px;
+  aspect-ratio: 16 / 10;
+  background: var(--rf-surface-subtle, #f9fbf9);
+  overflow: hidden;
+}
+.product-pick-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 0;
+}
+.product-pick-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--rf-primary, #167a52);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 2px 6px rgba(16, 37, 29, 0.22);
+}
+.product-pick-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  min-width: 0;
+}
+.product-pick-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--rf-ink, #18271f);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  min-height: 2.8em;
+  overflow-wrap: anywhere;
+}
+.product-pick-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.product-pick-price {
+  color: var(--rf-primary-text, #126743);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.product-pick-state {
+  color: var(--rf-muted, #687b70);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.product-pick-btn.is-picked .product-pick-state {
+  color: var(--rf-primary-text, #126743);
+  font-weight: 600;
 }
 .slide-row {
   display: flex;
@@ -2945,9 +3654,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 3px;
+  min-width: 0;
   font-size: 11px;
   overflow-wrap: anywhere;
+}
+.pv-product-card strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  width: 100%;
+  line-height: 1.35;
+  min-height: 2.7em;
 }
 .pv-product-card img {
   width: 100%;
@@ -3567,13 +4286,6 @@ onUnmounted(() => {
   gap: 3px;
   font-size: 10px;
 }
-.pv-qr-item img {
-  width: 52px;
-  max-width: 100%;
-  aspect-ratio: 1;
-  object-fit: contain;
-  background: #fff;
-}
 .pv-brand-wrap {
   display: flex;
   justify-content: center;
@@ -3581,6 +4293,7 @@ onUnmounted(() => {
   min-width: 0;
 }
 .pv-brand-wrap img {
+  display: block;
   max-width: 100%;
   height: auto;
 }
