@@ -46,13 +46,28 @@ type Audit = {
   action: string;
   created_at: string;
 };
+const props = withDefaults(
+  defineProps<{ section?: "overview" | "exceptions" | "audit" }>(),
+  { section: "overview" },
+);
+const headings = {
+  overview: {
+    title: "运营工作台",
+    description: "掌握活动、订单与履约状态，快速处理今天的重要事项。",
+  },
+  exceptions: {
+    title: "异常待办",
+    description: "查看待核对的订单与履约异常。",
+  },
+  audit: { title: "操作历史", description: "按对象或操作类型查询管理记录。" },
+};
+const heading = computed(() => headings[props.section]);
 const checking = ref("");
 const data = ref<Dashboard | null>(null),
   errors = ref(""),
   loading = ref(false),
   days = ref(7),
   appliedDays = ref(7),
-  tab = ref("overview"),
   exceptions = ref<Exception[]>([]),
   audits = ref<Audit[]>([]),
   page = ref(0),
@@ -195,7 +210,7 @@ async function load(p = 0) {
   loading.value = true;
   errors.value = "";
   try {
-    if (tab.value === "overview") {
+    if (props.section === "overview") {
       const requestedDays = days.value;
       const value = await request<Dashboard>(
         `/admin/dashboard?days=${requestedDays}`,
@@ -204,7 +219,7 @@ async function load(p = 0) {
       data.value = value;
       appliedDays.value = requestedDays;
       hasMore.value = false;
-    } else if (tab.value === "exceptions") {
+    } else if (props.section === "exceptions") {
       const value = await request<Page<Exception>>(
         `/admin/exceptions?page=${p}&size=20`,
       );
@@ -225,20 +240,12 @@ async function load(p = 0) {
   } catch (e) {
     if (n === epoch) {
       errors.value = errorMessage(e);
-      if (tab.value === "overview" && data.value)
+      if (props.section === "overview" && data.value)
         days.value = appliedDays.value;
     }
   } finally {
     if (n === epoch) loading.value = false;
   }
-}
-function select(value: string) {
-  tab.value = value;
-  page.value = 0;
-  pageTotal.value = undefined;
-  exceptions.value = [];
-  audits.value = [];
-  void load();
 }
 async function verify(id: string) {
   if (checking.value) return;
@@ -307,29 +314,13 @@ useForegroundRefresh(() => {
   <main class="workspace">
     <section class="page-heading operations-heading">
       <div>
-        <span class="heading-kicker">OPERATIONS OVERVIEW</span>
-        <h1>运营工作台</h1>
-        <p>掌握活动、订单与履约状态，快速处理今天的重要事项。</p>
+        <h1>{{ heading.title }}</h1>
+        <p>{{ heading.description }}</p>
       </div>
-      <span class="heading-status"><i></i>运营数据中心</span>
+      <span v-if="section === 'overview'" class="heading-status"
+        ><i></i>运营数据中心</span
+      >
     </section>
-    <div class="operation-toolbar">
-      <nav class="task-tabs" aria-label="工作台视图">
-        <button
-          v-for="[key, label] in [
-            ['overview', '概览'],
-            ['exceptions', '异常待办'],
-            ['audit', '操作历史'],
-          ]"
-          :key="key"
-          :class="tab === key ? 'primary' : 'secondary'"
-          :aria-pressed="tab === key"
-          @click="select(key)"
-        >
-          {{ label }}
-        </button>
-      </nav>
-    </div>
     <p v-if="notice" class="success-box" role="status">{{ notice }}</p>
     <p v-if="errors" class="error-box" role="alert">
       {{ errors }}
@@ -343,14 +334,14 @@ useForegroundRefresh(() => {
       </button>
     </p>
     <UiState v-if="loading" kind="loading" compact>正在加载…</UiState>
-    <template v-if="tab === 'overview'">
+    <template v-if="section === 'overview'">
       <template v-if="data">
         <section class="operations-hero">
           <div class="hero-copy">
             <h2>今天，也让户外生意稳步向前。</h2>
-            <button type="button" @click="select('exceptions')">
+            <RouterLink class="button hero-link" to="/operations/exceptions">
               查看异常待办<AppIcon name="arrow" :size="16" />
-            </button>
+            </RouterLink>
           </div>
           <TerrainScene compact class="hero-terrain" aria-hidden="true" />
         </section>
@@ -438,13 +429,7 @@ useForegroundRefresh(() => {
                     (data.shippingOverdue ?? 0) > 0,
                 }"
               >
-                <button
-                  type="button"
-                  class="text-button"
-                  @click="select('exceptions')"
-                >
-                  发货预警
-                </button>
+                <RouterLink to="/operations/exceptions">发货预警</RouterLink>
                 <strong
                   >{{ data.shippingDueSoon ?? 0 }} /
                   {{ data.shippingOverdue ?? 0 }}</strong
@@ -600,7 +585,7 @@ useForegroundRefresh(() => {
         </div>
       </template>
     </template>
-    <template v-else-if="tab === 'exceptions'"
+    <template v-else-if="section === 'exceptions'"
       ><UiState v-if="!loading && !errors && !exceptions.length" compact
         >暂无待办</UiState
       >
@@ -725,7 +710,9 @@ useForegroundRefresh(() => {
       </div></template
     >
     <PaginationBar
-      v-if="tab !== 'overview' && (pageTotal != null || hasMore || page > 0)"
+      v-if="
+        section !== 'overview' && (pageTotal != null || hasMore || page > 0)
+      "
       :page="page"
       :page-size="20"
       :total="pageTotal"
@@ -748,7 +735,6 @@ useForegroundRefresh(() => {
   margin: 6px 0 0;
   font-size: 12px;
 }
-.heading-kicker,
 .panel-kicker {
   color: var(--rf-primary);
   font-size: 9px;
@@ -772,41 +758,6 @@ useForegroundRefresh(() => {
   border-radius: 50%;
   background: #4fa776;
   box-shadow: 0 0 0 4px #4fa77612;
-}
-.operation-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px 16px;
-  margin-bottom: 18px;
-}
-.operation-toolbar .task-tabs {
-  margin: 0;
-}
-.operation-toolbar .task-tabs {
-  gap: 3px;
-  padding: 4px;
-  border: 1px solid #e2e9e4;
-  border-radius: 12px;
-  background: #e9eeea;
-}
-.operation-toolbar .task-tabs button {
-  --button-background: transparent;
-  --button-color: var(--rf-muted);
-  --button-border: transparent;
-  min-height: 34px;
-  padding: 6px 15px;
-  border-radius: 8px;
-  box-shadow: none;
-  font-size: 12px;
-}
-.operation-toolbar .task-tabs button.primary {
-  --button-background: var(--rf-surface);
-  --button-hover: var(--rf-surface);
-  --button-color: var(--rf-primary-text);
-  box-shadow: 0 2px 7px #183c2912;
-  transform: none;
 }
 .operations-hero {
   position: relative;
@@ -833,7 +784,7 @@ useForegroundRefresh(() => {
   line-height: 1.35;
   letter-spacing: -0.02em;
 }
-.hero-copy button {
+.hero-link {
   --button-background: #c5ed96;
   --button-hover: #d4f7ab;
   --button-color: #173823;
@@ -1157,12 +1108,6 @@ useForegroundRefresh(() => {
   .metric-group,
   .overview-panels > section {
     padding: 12px;
-  }
-  .task-tabs {
-    max-width: 100%;
-  }
-  .task-tabs button {
-    padding-inline: 10px;
   }
 }
 </style>

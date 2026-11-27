@@ -46,10 +46,17 @@ function fetcher() {
   vi.stubGlobal("fetch", f);
   return f;
 }
-const mountView = (c: any) =>
+const mountView = (c: any, section?: "exceptions" | "audit") =>
   mount(c, {
+    props: { section },
     global: {
-      stubs: { RouterLink: { props: ["to"], template: "<a><slot /></a>" } },
+      stubs: {
+        RouterLink: {
+          props: ["to"],
+          template:
+            '<a :href="typeof to === &quot;string&quot; ? to : undefined"><slot /></a>',
+        },
+      },
     },
   });
 describe("operational workflows", () => {
@@ -61,16 +68,15 @@ describe("operational workflows", () => {
     const warning = w.get(
       '[aria-labelledby="shipping-metrics"] .metric:nth-child(2)',
     );
-    expect(warning.get("button").text()).toBe("发货预警");
+    expect(warning.get("a").text()).toBe("发货预警");
+    expect(warning.get("a").attributes("href")).toBe("/operations/exceptions");
     expect(warning.get("strong").text()).toBe("2 / 1");
     expect(warning.get("small").text()).toBe("24h / 40h");
     expect(warning.classes()).toContain("has-task");
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "异常待办")!
-      .trigger("click");
+    w.unmount();
+    const exceptions = mountView(OperationsView, "exceptions");
     await flushPromises();
-    await w
+    await exceptions
       .findAll("button")
       .find((b) => b.text() === "核对支付")!
       .trigger("click");
@@ -83,8 +89,8 @@ describe("operational workflows", () => {
     ).toBe(true);
     clearSession();
     await flushPromises();
-    expect(w.text()).not.toContain("待核对支付");
-    w.unmount();
+    expect(exceptions.text()).not.toContain("待核对支付");
+    exceptions.unmount();
   });
   it("scopes date selection to shop metrics and keeps the last confirmed range on failure", async () => {
     const f = fetcher();
@@ -92,7 +98,8 @@ describe("operational workflows", () => {
     await flushPromises();
     const filter = '[aria-label="商城订单统计时间"]';
     const group = (id: string) => w.get(`[aria-labelledby="${id}"]`);
-    expect(w.get(".operation-toolbar").find("select").exists()).toBe(false);
+    expect(w.find(".operation-toolbar").exists()).toBe(false);
+    expect(w.find('[aria-label="工作台视图"]').exists()).toBe(false);
     const before = ["activity-metrics", "shipping-metrics"].map((id) =>
       group(id).text(),
     );
@@ -112,10 +119,9 @@ describe("operational workflows", () => {
     expect(w.find('[role="alert"]').exists()).toBe(true);
     expect((w.get(filter).element as HTMLSelectElement).value).toBe("14");
     expect(w.get(".trend-panel .panel-badge").text()).toBe("近 14 天");
-    await w.get(".hero-copy button").trigger("click");
-    await flushPromises();
-    expect(w.find(filter).exists()).toBe(false);
-    expect(w.text()).toContain("待核对支付");
+    expect(w.get(".hero-copy a").attributes("href")).toBe(
+      "/operations/exceptions",
+    );
     w.unmount();
   });
 
@@ -183,18 +189,32 @@ describe("operational workflows", () => {
     await flushPromises();
     expect(w.text()).toContain("未来活动已确认报名");
     expect(w.text()).toContain("名额占用 4 / 20 · 待支付 3");
-    await w
-      .findAll("button")
-      .find((b) => b.text() === "异常待办")!
-      .trigger("click");
+    w.unmount();
+    const exceptions = mount(OperationsView, {
+      props: { section: "exceptions" },
+      global: { plugins: [router] },
+    });
     await flushPromises();
-    expect(w.findAll("a").map((a) => a.attributes("href"))).toEqual([
+    expect(exceptions.findAll("a").map((a) => a.attributes("href"))).toEqual([
       "/activity-orders?orderId=payment-1&activityId=activity-1",
       "/activity-orders?orderId=refund-1&activityId=activity-1",
     ]);
-    expect(w.findAll("button").some((b) => b.text() === "核对支付")).toBe(
-      false,
-    );
-    w.unmount();
+    expect(
+      exceptions.findAll("button").some((b) => b.text() === "核对支付"),
+    ).toBe(false);
+    exceptions.unmount();
+  });
+
+  it("loads audit directly without requesting overview or exceptions", async () => {
+    const f = fetcher();
+    const audit = mountView(OperationsView, "audit");
+    await flushPromises();
+    expect(audit.get("h1").text()).toBe("操作历史");
+    expect(audit.find(".operations-hero").exists()).toBe(false);
+    expect(audit.find('[aria-label="筛选操作历史"]').exists()).toBe(true);
+    expect(f.mock.calls.map(([path]) => path)).toEqual([
+      "/api/v1/admin/audit?page=0&size=20",
+    ]);
+    audit.unmount();
   });
 });

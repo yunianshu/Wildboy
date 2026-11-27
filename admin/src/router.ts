@@ -36,6 +36,16 @@ export const router = createRouter({
     { path: "/activity-orders", component: ActivityOrdersView },
     { path: "/waitlist", redirect: "/operations" },
     { path: "/operations", component: OperationsView },
+    {
+      path: "/operations/exceptions",
+      component: OperationsView,
+      props: { section: "exceptions" },
+    },
+    {
+      path: "/operations/audit",
+      component: OperationsView,
+      props: { section: "audit" },
+    },
     { path: "/refunds", component: RefundsView },
     { path: "/shipping-reports", component: ShippingReportsView },
     { path: "/notifications", component: NotificationsView },

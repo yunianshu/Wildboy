@@ -13,6 +13,8 @@ const navigation = [
     key: "ops",
     items: [
       { path: "/operations", title: "运营工作台", icon: "dashboard" },
+      { path: "/operations/exceptions", title: "异常待办", icon: "bell" },
+      { path: "/operations/audit", title: "操作历史", icon: "document" },
       { path: "/notifications", title: "消息管理", icon: "bell" },
     ],
   },
@@ -61,6 +63,8 @@ const navigationByPath = navigation
 // 模块归属保持不变，侧栏直接显示全部有效入口。
 const moduleBySection: Record<string, string> = {
   "/operations": "ops",
+  "/operations/exceptions": "ops",
+  "/operations/audit": "ops",
   "/notifications": "ops",
   "/shop": "shop",
   "/shop/categories": "shop",
