@@ -10,6 +10,7 @@
     <image wx:if="{{article.coverUrl}}" class="article-cover" src="{{article.coverUrl}}" mode="aspectFill" bindtap="previewCover" aria-label="查看封面大图" />
     <markdown-view nodes="{{article.contentNodes}}" preview-images="{{true}}" />
     <view class="article-actions">
+      <button wx:if="{{originalUrl}}" class="secondary ui-button ui-button-block" bindtap="openOriginal">查看公众号原文</button>
       <button wx:if="{{article.activityId}}" class="primary ui-button ui-button-block" bindtap="openActivity">查看关联活动</button>
       <button class="secondary ui-button ui-button-block" open-type="share">分享文章</button>
     </view>

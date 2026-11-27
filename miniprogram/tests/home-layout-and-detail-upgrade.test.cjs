@@ -187,11 +187,14 @@ test("modular home layout renders drag-ordered activities, multi-QR popup, WeCha
   assert.equal(home.data.popupImages[0].label, "领队微信");
   home.closePopup();
 
-  // Tap "关于野小子" -> opens WeChat Official Account article natively
+  const url = "https://mp.weixin.qq.com/s/WildboyStory2026";
   await home.openCategory({ currentTarget: { dataset: { slot: 2 } } });
-  assert.deepEqual(openedOfficialUrls, [
-    "https://mp.weixin.qq.com/s/WildboyStory2026",
-  ]);
+  assert.deepEqual(openedOfficialUrls, []);
+  assert.deepEqual(navigated, ["/pages/article/index?about=1&source=" + encodeURIComponent(url)]);
+
+  // Other explicitly external article actions keep their original behavior.
+  await home.dispatchAction({ type: "WECHAT_ARTICLE", wechatArticleUrl: url });
+  assert.deepEqual(openedOfficialUrls, [url]);
 });
 
 test("activity detail displays confirmed attendee avatars/nicknames and supports single & multi-address map navigation", async () => {

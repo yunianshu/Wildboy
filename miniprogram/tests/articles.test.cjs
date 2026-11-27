@@ -44,6 +44,36 @@ test("official shortcut resolves published pointer", async () => {
   assert.deepEqual(calls, ["/articles/official"]);
   assert.equal(p.data.article.title, article.title);
 });
+test("About renders offline and opens the original only on an explicit tap", async () => {
+  const url = "https://mp.weixin.qq.com/s?param=%2B&mid=2026";
+  const opened = [];
+  global.wx = { openOfficialAccountArticle: ({ url }) => opened.push(url) };
+  for (const source of [url, encodeURIComponent(url)]) {
+    const p = page({ about: "1", source });
+    await p.load();
+    assert.equal(p.data.loading, false);
+    assert.equal(p.data.article.title, "关于野小子");
+    assert.equal(p.data.originalUrl, url);
+    const paths = [p.data.article.coverUrl, ...p.data.article.contentNodes.filter((n) => n.type === "image").map((n) => n.url)];
+    for (const path of paths) assert.ok(require("node:fs").existsSync("dist" + path));
+    assert.equal(p.onShareAppMessage().path, "/pages/article/index?about=1&source=" + encodeURIComponent(url));
+    assert.deepEqual(opened, []);
+    p.openOriginal();
+    assert.equal(opened.pop(), url);
+  }
+  assert.deepEqual(calls, []);
+  const markup = require("node:fs").readFileSync("dist/pages/article/index.wxml", "utf8");
+  assert.ok(markup.indexOf("查看公众号原文") > markup.indexOf("<markdown-view"));
+});
+test("invalid external URL does not block the local introduction or open a link", () => {
+  global.wx = { openOfficialAccountArticle: () => assert.fail("external navigation") };
+  for (const source of [undefined, "%xx", encodeURIComponent("https://mp.weixin.qq.com.evil.test/s/x")]) {
+    const p = page({ about: "1", source });
+    assert.equal(p.data.originalUrl, "");
+    assert.equal(p.data.article.title, "关于野小子");
+    p.openOriginal();
+  }
+});
 test("article detail uses safe native markdown nodes and id route", async () => {
   const p = page();
   await p.load();
@@ -62,6 +92,8 @@ test("invalid and ambiguous links make no request", async () => {
     { id: "../admin" },
     { official: "no" },
     { official: "1", id: "a" },
+    { about: "1", official: "1" },
+    { about: "1", id: "a" },
   ]) {
     const p = page(o);
     await p.load();

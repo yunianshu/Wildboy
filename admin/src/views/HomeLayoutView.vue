@@ -814,7 +814,7 @@ onUnmounted(() => {
               <select v-model="activeShortcut.type">
                 <option value="PAGE">打开小程序内页面</option>
                 <option value="WECHAT_ARTICLE">
-                  打开微信公众号文章（推荐用于「关于野小子」）
+                  微信公众号文章（介绍入口先在小程序内阅读）
                 </option>
                 <option value="POPUP">
                   弹出二维码 / 图文说明（支持上传多个二维码）
@@ -847,7 +847,8 @@ onUnmounted(() => {
               <small class="field-hint">
                 复制公众号后台或微信内「复制链接」得到的
                 https://mp.weixin.qq.com/s/...
-                地址即可，用户点击将在小程序内直接打开该公众号文章。
+                地址即可。使用「介绍」图标的入口会先显示小程序介绍，
+                文章链接放在介绍页底部；其他入口直接调起微信文章。
               </small>
             </div>
 

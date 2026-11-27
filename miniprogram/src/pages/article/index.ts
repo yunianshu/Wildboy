@@ -1,12 +1,25 @@
 import { ApiError, mediaUrl, request } from "../../utils/api";
-import { Article } from "../../utils/articles";
+import type { Article } from "../../utils/articles";
+import { aboutIntro } from "../../utils/about-intro";
+import { aboutArticlePath, openWechatOfficialArticle, safeWechatArticleUrl } from "../../utils/home-shortcuts";
+
+type ReadableArticle = Pick<Article, "title" | "summary" | "coverUrl" | "contentNodes" | "activityId"> & { id?: string };
+
+function articleSource(value: unknown): string {
+  if (typeof value !== "string" || value.length > 6144) return "";
+  const direct = safeWechatArticleUrl(value);
+  if (direct) return direct;
+  try { return safeWechatArticleUrl(decodeURIComponent(value)); } catch { return ""; }
+}
 import { message, safeId } from "../../utils/domain";
 import { enterPage } from "../../utils/page-motion";
 
 Page({
   data: {
     pageMotionClass: "",
-    article: null as Article | null,
+    article: null as ReadableArticle | null,
+    isAbout: false,
+    originalUrl: "",
     loading: true,
     error: "",
     empty: "",
@@ -16,6 +29,15 @@ Page({
   _path: "",
   onLoad(options) {
     const id = safeId(options.id);
+    if (options.about === "1" && options.id === undefined && options.official === undefined) {
+      this.setData({ article: aboutIntro, isAbout: true, originalUrl: articleSource(options.source), loading: false });
+      wx.setNavigationBarTitle?.({ title: aboutIntro.title });
+      return;
+    }
+    if (options.about !== undefined) {
+      this.setData({ loading: false, error: "文章链接无效" });
+      return;
+    }
     if (options.official === "1" && options.id === undefined)
       this._path = "/articles/official";
     else if (id && options.official === undefined)
@@ -82,9 +104,18 @@ Page({
     const id = safeId(this.data.article?.activityId);
     if (id) wx.navigateTo({ url: "/pages/detail/index?id=" + id });
   },
+  openOriginal() {
+    if (this.data.isAbout && this.data.originalUrl)
+      openWechatOfficialArticle(this.data.originalUrl);
+  },
   onShareAppMessage() {
     const article = this.data.article;
-    return article ? {
+    if (this.data.isAbout && article) return {
+      title: article.title,
+      path: aboutArticlePath(this.data.originalUrl),
+      imageUrl: article.coverUrl,
+    };
+    return article?.id ? {
       title: article.title,
       path: "/pages/article/index?id=" + encodeURIComponent(article.id),
       imageUrl: article.coverUrl,

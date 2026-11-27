@@ -15,6 +15,7 @@ import {
   shortcutPages,
   defaultShortcutViews,
   openWechatOfficialArticle,
+  aboutArticlePath,
 } from "../../utils/home-shortcuts";
 import {
   defaultActivitiesHeader,
@@ -414,7 +415,13 @@ Page({
     );
     if (!entry) return;
     if (entry.type === "WECHAT_ARTICLE") {
-      openWechatOfficialArticle(entry.wechatArticleUrl || "");
+      if (entry.icon === "INTRO") {
+        this.setData({ shortcutBusy: true });
+        wx.navigateTo({
+          url: aboutArticlePath(entry.wechatArticleUrl),
+          complete: () => this.setData({ shortcutBusy: false }),
+        });
+      } else openWechatOfficialArticle(entry.wechatArticleUrl || "");
       return;
     }
     if (entry.type === "POPUP") {

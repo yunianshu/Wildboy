@@ -90,6 +90,10 @@ export function safeWechatArticleUrl(value: string): string {
     return "";
   return trimmed;
 }
+export function aboutArticlePath(rawUrl: string): string {
+  const url = safeWechatArticleUrl(rawUrl);
+  return "/pages/article/index?about=1" + (url ? "&source=" + encodeURIComponent(url) : "");
+}
 export function openWechatOfficialArticle(rawUrl: string): boolean {
   const url = safeWechatArticleUrl(rawUrl);
   if (!url) {
