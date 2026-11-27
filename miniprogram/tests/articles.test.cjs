@@ -54,7 +54,20 @@ test("About renders offline and opens the original only on an explicit tap", asy
     assert.equal(p.data.loading, false);
     assert.equal(p.data.article.title, "关于野小子");
     assert.equal(p.data.originalUrl, url);
-    const paths = [p.data.article.coverUrl, ...p.data.article.contentNodes.filter((n) => n.type === "image").map((n) => n.url)];
+    const nodes = p.data.article.contentNodes;
+    const paragraphs = nodes.slice(0, 3);
+    assert.deepEqual(paragraphs.map((n) => n.type), ["paragraph", "paragraph", "paragraph"]);
+    assert.match(paragraphs[0].spans[0].s, /2000余次.*20000余人/);
+    assert.match(paragraphs[1].spans[0].s, /阿里转山.*长穿毕/);
+    assert.match(paragraphs[2].spans[0].s, /遇见风景。$/);
+    const photos = nodes.slice(3);
+    assert.ok(photos.every((n) => n.type === "image"));
+    assert.deepEqual(photos.map((n) => n.caption), [
+      "2019 川西长穿毕摄", "2023年他念他翁摄", "2025年三清山摄", "2025雨崩摄",
+      "2022乌孙古道摄", "2024珠峰东坡摄", "2023年川西格聂花海", "2024年川西贡嘎摄",
+    ]);
+    assert.equal(new Set(photos.map((n) => n.url)).size, 8);
+    const paths = [p.data.article.coverUrl, ...photos.map((n) => n.url)];
     for (const path of paths) assert.ok(require("node:fs").existsSync("dist" + path));
     assert.equal(p.onShareAppMessage().path, "/pages/article/index?about=1&source=" + encodeURIComponent(url));
     assert.deepEqual(opened, []);
@@ -63,6 +76,7 @@ test("About renders offline and opens the original only on an explicit tap", asy
   }
   assert.deepEqual(calls, []);
   const markup = require("node:fs").readFileSync("dist/pages/article/index.wxml", "utf8");
+  assert.match(markup, /article\.coverUrl && !isAbout/);
   assert.ok(markup.indexOf("查看公众号原文") > markup.indexOf("<markdown-view"));
 });
 test("invalid external URL does not block the local introduction or open a link", () => {
