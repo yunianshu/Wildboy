@@ -864,6 +864,12 @@ onUnmounted(() => {
   box-shadow: 0 0 0 1px var(--admin-line);
   background: var(--admin-surface);
 }
+.md-editor :deep(.vditor:has(.vditor-reset[contenteditable="true"]:focus)),
+.md-editor :deep(.vditor .vditor-input:focus) {
+  box-shadow: none;
+  outline: 2px solid var(--rf-primary);
+  outline-offset: -2px;
+}
 .md-editor :deep(.vditor-toolbar) {
   background: var(--admin-surface);
   border-bottom: 1px solid var(--admin-hairline);
