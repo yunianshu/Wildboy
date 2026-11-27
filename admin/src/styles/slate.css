@@ -841,15 +841,10 @@ td,
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #ffffff2e transparent;
+  scrollbar-width: none;
 }
 .sidebar-nav::-webkit-scrollbar {
-  width: 6px;
-}
-.sidebar-nav::-webkit-scrollbar-thumb {
-  border-radius: 3px;
-  background: #ffffff2e;
+  display: none;
 }
 .sidebar-link {
   position: relative;
