@@ -300,7 +300,9 @@ export interface HomeGalleryConfig {
   mode: "AUTO_ARTICLES" | "CUSTOM";
   slides: HomeGallerySlide[];
 }
+export type HomeFooterCell = "BRAND" | "TEXT" | "QR1" | "QR2";
 export interface HomeFooterConfig {
+  cellOrder?: HomeFooterCell[];
   followEnabled: boolean;
   followTitle: string;
   followSubtitle: string;

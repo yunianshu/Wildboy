@@ -94,7 +94,8 @@ public final class HomeLayoutModels {
       List<QrImage> followQrcodes,
       Boolean brandEnabled,
       String brandImageUrl,
-      Integer brandWidthPx) {}
+      Integer brandWidthPx,
+      List<String> cellOrder) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record ModuleEntry(

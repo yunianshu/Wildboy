@@ -454,7 +454,7 @@ Page({
   previewFollowQr(e: WechatMiniprogram.TouchEvent) {
     const current = String(e.currentTarget.dataset.url || "");
     if (!current || typeof wx.previewImage !== "function") return;
-    const urls = this.data.footer.followQrcodes.map((x) => x.url);
+    const urls = this.data.footer.cells.filter((cell) => cell.kind === "QR").map((cell) => cell.url);
     if (urls.length) wx.previewImage({ current, urls });
   },
   closePopup() {

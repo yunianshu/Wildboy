@@ -154,19 +154,19 @@
         </swiper>
       </view>
 
-      <view wx:elif="{{mod.enabled && mod.id === 'FOOTER' && (footer.brandEnabled || (footer.followEnabled && footer.followQrcodes.length))}}" class="home-body">
-        <view class="home-footer">
-          <view wx:if="{{footer.brandEnabled}}" class="platform-brand">
-            <image class="platform-brand-image" src="{{footer.brandImageUrl}}" style="width:{{footer.brandWidthPx}}px" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
-          </view>
-          <view wx:if="{{footer.followEnabled && footer.followQrcodes.length}}" class="follow-card">
-            <view wx:if="{{footer.followTitle}}" class="follow-title">{{footer.followTitle}}</view>
-            <view wx:if="{{footer.followSubtitle}}" class="follow-sub">{{footer.followSubtitle}}</view>
-            <view class="follow-qr-grid">
-              <view class="follow-qr-item" wx:for="{{footer.followQrcodes}}" wx:key="url">
-                <image class="follow-qr-image" src="{{item.url}}" mode="aspectFit" show-menu-by-longpress data-url="{{item.url}}" bindtap="previewFollowQr" aria-label="{{item.label || '关注二维码'}}" />
-                <view wx:if="{{item.label}}" class="follow-qr-label">{{item.label}}</view>
-              </view>
+      <view wx:elif="{{mod.enabled && mod.id === 'FOOTER' && footer.cells.length}}" class="home-body">
+        <view class="home-footer {{footer.cells.length === 1 ? 'home-footer-single' : ''}}">
+          <view wx:for="{{footer.cells}}" wx:key="id" class="home-footer-cell">
+            <view wx:if="{{item.kind === 'BRAND'}}" class="platform-brand">
+              <image class="platform-brand-image" src="{{footer.brandImageUrl}}" style="width:{{footer.brandWidthPx}}px" mode="widthFix" lazy-load aria-label="野小子户外平台标识" />
+            </view>
+            <view wx:elif="{{item.kind === 'TEXT'}}" class="follow-card">
+              <view wx:if="{{footer.followTitle}}" class="follow-title">{{footer.followTitle}}</view>
+              <view wx:if="{{footer.followSubtitle}}" class="follow-sub">{{footer.followSubtitle}}</view>
+            </view>
+            <view wx:else class="follow-qr-item">
+              <image class="follow-qr-image" src="{{item.url}}" mode="aspectFit" show-menu-by-longpress data-url="{{item.url}}" bindtap="previewFollowQr" aria-label="{{item.label || '关注二维码'}}" />
+              <view wx:if="{{item.label}}" class="follow-qr-label">{{item.label}}</view>
             </view>
           </view>
         </view>

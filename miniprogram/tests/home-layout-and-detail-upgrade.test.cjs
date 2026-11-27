@@ -338,21 +338,30 @@ test("an explicit empty shortcut image list clears a legacy QR", () => {
 });
 
 
-test("the native home footer packs brand then configured QR codes with no empty QR column", () => {
+test("the native home footer renders custom cells, omits blanks and preserves additional QR codes", () => {
   const { readFileSync } = require("node:fs");
   const { join } = require("node:path");
   const wxml = readFileSync(join(__dirname, "../dist/pages/home/index.wxml"), "utf8");
   const wxss = readFileSync(join(__dirname, "../dist/pages/home/index.wxss"), "utf8");
-  const footer = wxml.slice(wxml.indexOf('class="home-footer"'), wxml.indexOf('class="shortcut-mask"'));
-  assert.match(footer, /wx:if="{{footer\.followEnabled && footer\.followQrcodes\.length}}" class="follow-card"/);
-  assert.ok(footer.indexOf('class="platform-brand"') < footer.indexOf('class="follow-card"'));
+  const footer = wxml.slice(wxml.indexOf('class="home-footer {{'), wxml.indexOf('class="shortcut-mask"'));
+  assert.match(footer, /wx:for="{{footer\.cells}}" wx:key="id"/);
   assert.match(footer, /show-menu-by-longpress[^>]+bindtap="previewFollowQr"/);
-  assert.match(wxss, /\.follow-qr-grid\s*\{[^}]*flex-direction:\s*column/);
+  assert.match(wxss, /\.home-footer\s*\{[^}]*grid-template-columns:\s*repeat\(2,/);
+  const { normalizePublicHomeLayout } = require("../dist/utils/home-layout.js");
+  const raw = { followEnabled: true, brandEnabled: true, followTitle: "关注", followSubtitle: "",
+    followQrcodes: ["one", "two", "three"].map(s => ({url: "/assets/" + s + ".png", label: ""})) };
+  const cells = (args) => normalizePublicHomeLayout({layout: { modules: [], footer: {...raw, ...args} }}).footer.cells.map(cell => cell.id);
+  assert.deepEqual(cells({}), ["BRAND","QR1","TEXT","QR2","QR3"]);
+  assert.deepEqual(cells({cellOrder: ["TEXT","QR2","BRAND","QR1"]}), ["TEXT","QR2","BRAND","QR1","QR3"]);
+  assert.deepEqual(cells({cellOrder: ["TEXT","TEXT","BRAND","QR1"]}), ["BRAND","QR1","TEXT","QR2","QR3"]);
+  assert.deepEqual(cells({followTitle: " ", brandEnabled: false}), ["QR1","QR2","QR3"]);
+  assert.deepEqual(cells({followQrcodes: []}), ["BRAND"]);
+  assert.deepEqual(cells({followEnabled: false, brandEnabled: false}), []);
   const home = mountPage("home");
   const urls = ["https://example.test/oa.png", "https://example.test/video.png"];
-  home.data.footer.followQrcodes = urls.map((url) => ({ url, label: "" }));
+  home.data.footer = normalizePublicHomeLayout({layout: {modules: [], footer: {...raw, cellOrder: ["BRAND","QR2","TEXT","QR1"], followQrcodes: urls.map((url) => ({ url, label: "" }))} }}).footer;
   const calls = [];
   wx.previewImage = (input) => calls.push(input);
   home.previewFollowQr({ currentTarget: { dataset: { url: urls[1] } } });
-  assert.deepEqual(calls.map(({ current, urls }) => ({ current, urls })), [{ current: urls[1], urls }]);
+  assert.deepEqual(calls.map(({ current, urls }) => ({ current, urls })), [{ current: urls[1], urls: [urls[1], urls[0]] }]);
 });

@@ -13,6 +13,7 @@ import {
   type Activity,
   type HomeActionLink,
   type HomeGallerySlide,
+  type HomeFooterCell,
   type HomeLayoutConfig,
   type HomeModuleId,
   type HomeQrImage,
@@ -45,7 +46,7 @@ const moduleLabels: Record<HomeModuleId, { title: string; desc: string }> = {
   GALLERY: { title: "山野之间轮播", desc: "自动取文章或自定义轮播图" },
   FOOTER: {
     title: "底部关注码与底图",
-    desc: "左侧品牌底图，右侧关注二维码",
+    desc: "自定义底图、说明和二维码的四格位置",
   },
 };
 const pageOptions = [
@@ -68,6 +69,46 @@ type ArticleOption = { id: string; title: string; status: string };
 
 const route = useRoute();
 const layout = ref<HomeLayoutConfig | null>(null);
+const footerCellLabels: Record<HomeFooterCell, string> = {
+  BRAND: "品牌底图",
+  TEXT: "关注说明",
+  QR1: "二维码 1",
+  QR2: "二维码 2",
+};
+const defaultFooterCells: HomeFooterCell[] = ["BRAND", "QR1", "TEXT", "QR2"];
+const footerPositions = ["左上", "右上", "左下", "右下"];
+
+function normalizeFooterCells(order?: HomeFooterCell[]) {
+  return Array.isArray(order) && order.length === 4 && defaultFooterCells.every((id) => order.includes(id))
+    ? [...order] : [...defaultFooterCells];
+}
+
+function placeFooterCell(position: number, event: Event) {
+  const footer = layout.value?.footer;
+  if (!footer) return;
+  const order = normalizeFooterCells(footer.cellOrder);
+  const current = (event.target as HTMLSelectElement).value as HomeFooterCell;
+  const previous = order.indexOf(current);
+  if (previous < 0 || previous === position) return;
+  [order[previous], order[position]] = [order[position]!, current];
+  footer.cellOrder = order;
+}
+
+const footerPreviewCells = computed(() => {
+  const footer = layout.value?.footer;
+  if (!footer) return [];
+  const codes = footer.followEnabled ? footer.followQrcodes : [];
+  const map: Partial<Record<HomeFooterCell, { id: string; kind: "BRAND" | "TEXT" | "QR"; qr?: HomeQrImage }>> = {};
+  if (footer.brandEnabled) map.BRAND = { id: "BRAND", kind: "BRAND" };
+  if (codes.length && (footer.followTitle.trim() || footer.followSubtitle.trim()))
+    map.TEXT = { id: "TEXT", kind: "TEXT" };
+  if (codes[0]) map.QR1 = { id: "QR1", kind: "QR", qr: codes[0] };
+  if (codes[1]) map.QR2 = { id: "QR2", kind: "QR", qr: codes[1] };
+  return normalizeFooterCells(footer.cellOrder)
+    .flatMap((id) => map[id] ? [map[id]!] : [])
+    .concat(codes.slice(2).map((qr, index) => ({ id: "QR" + (index + 3), kind: "QR" as const, qr })));
+});
+
 const snapshot = ref("");
 const activeModule = ref<HomeModuleId>("ACTIVITIES");
 const activeShortcutIdx = ref(0);
@@ -138,6 +179,9 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
     action: s.action || emptyAction("NONE"),
   }));
   copy.footer.followQrcodes = copy.footer.followQrcodes || [];
+  copy.footer.followTitle = copy.footer.followTitle || "";
+  copy.footer.followSubtitle = copy.footer.followSubtitle || "";
+  copy.footer.cellOrder = normalizeFooterCells(copy.footer.cellOrder);
   copy.footer.brandImageUrl = copy.footer.brandImageUrl || DEFAULT_BRAND;
   copy.footer.brandWidthPx = copy.footer.brandWidthPx || 216;
   return copy;
@@ -1390,7 +1434,20 @@ onUnmounted(() => {
 
         <!-- 6. FOOTER (Scan-to-follow QRs + Wildboy brand image & size!) -->
         <div v-else-if="activeModule === 'FOOTER'" class="editor-panel">
-          <h2>底部「扫码关注」二维码 & 「野小子」底图设置</h2>
+          <h2>首页底部配置</h2>
+
+          <div class="sub-box">
+            <strong>四格位置</strong>
+            <p class="field-hint">选一个格子的内容，两格会自动互换。未配置的内容不占位，第 3 张起的二维码按列表顺序排在下面。</p>
+            <div class="footer-position-grid">
+              <label v-for="(position, index) in footerPositions" :key="position">
+                {{ position }}
+                <select :value="layout.footer.cellOrder?.[index]" @change="placeFooterCell(index, $event)">
+                  <option v-for="id in defaultFooterCells" :key="id" :value="id">{{ footerCellLabels[id] }}</option>
+                </select>
+              </label>
+            </div>
+          </div>
 
           <div class="sub-box">
             <label class="field checkbox-field">
@@ -1398,7 +1455,7 @@ onUnmounted(() => {
               在小程序首页底部显示关注二维码
             </label>
             <template v-if="layout.footer.followEnabled">
-              <p class="field-hint">二维码按列表顺序在底图右侧从上到下显示。没有上传时，整列不显示。</p>
+              <p class="field-hint">前两张对应四格里的「二维码 1」「二维码 2」。没有上传二维码时，不显示关注说明。</p>
               <div class="field-row">
                 <label>
                   关注区标题
@@ -1672,11 +1729,10 @@ onUnmounted(() => {
 
               <div
                 v-else-if="
-                  mod.enabled && mod.id === 'FOOTER' &&
-                  (layout.footer.brandEnabled ||
-                    (layout.footer.followEnabled && layout.footer.followQrcodes.length))
+                  mod.enabled && mod.id === 'FOOTER' && footerPreviewCells.length
                 "
                 class="pv-footer pv-interactive"
+                :class="{ 'pv-footer-single': footerPreviewCells.length === 1 }"
                 role="button"
                 tabindex="0"
                 :aria-pressed="activeModule === 'FOOTER'"
@@ -1685,30 +1741,21 @@ onUnmounted(() => {
                 @keydown.enter.prevent="activeModule = 'FOOTER'"
                 @keydown.space.prevent="activeModule = 'FOOTER'"
               >
-                <div v-if="layout.footer.brandEnabled" class="pv-brand-wrap">
-                  <img
-                    :src="brandPreviewUrl(layout.footer.brandImageUrl)"
-                    alt=""
-                    :style="{
-                      width: `${Math.round((layout.footer.brandWidthPx / 375) * 240)}px`,
-                    }"
-                  />
-                </div>
-                <div
-                  v-if="layout.footer.followEnabled && layout.footer.followQrcodes.length"
-                  class="pv-follow-box"
-                >
-                  <strong v-if="layout.footer.followTitle">{{ layout.footer.followTitle }}</strong>
-                  <small v-if="layout.footer.followSubtitle">{{ layout.footer.followSubtitle }}</small>
-                  <div class="pv-qr-row">
-                    <div
-                      v-for="(qr, idx) in layout.footer.followQrcodes"
-                      :key="idx"
-                      class="pv-qr-item"
-                    >
-                      <img :src="qr.url" alt="" />
-                      <span v-if="qr.label">{{ qr.label }}</span>
-                    </div>
+                <div v-for="cell in footerPreviewCells" :key="cell.id" class="pv-footer-cell" :data-cell="cell.id">
+                  <div v-if="cell.kind === 'BRAND'" class="pv-brand-wrap">
+                    <img
+                      :src="brandPreviewUrl(layout.footer.brandImageUrl)"
+                      alt=""
+                      :style="{ width: `${Math.round((layout.footer.brandWidthPx / 375) * 240)}px` }"
+                    />
+                  </div>
+                  <div v-else-if="cell.kind === 'TEXT'" class="pv-follow-box">
+                    <strong v-if="layout.footer.followTitle.trim()">{{ layout.footer.followTitle }}</strong>
+                    <small v-if="layout.footer.followSubtitle.trim()">{{ layout.footer.followSubtitle }}</small>
+                  </div>
+                  <div v-else-if="cell.qr" class="pv-qr-item">
+                    <img :src="cell.qr.url" alt="" />
+                    <span v-if="cell.qr.label?.trim()">{{ cell.qr.label }}</span>
                   </div>
                 </div>
               </div>
@@ -2265,35 +2312,48 @@ onUnmounted(() => {
   font-size: 11px;
   margin-bottom: 4px;
 }
+.footer-position-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.footer-position-grid label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.footer-position-grid select {
+  width: 100%;
+  min-width: 0;
+}
 .pv-footer {
   padding: 8px 4px 10px;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: center;
-  justify-content: center;
-  gap: 9px;
+  gap: 8px 5px;
   cursor: pointer;
 }
-.pv-follow-box {
-  width: 30%;
-  flex: 0 0 auto;
+.pv-footer-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pv-footer-cell {
+  min-width: 0;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 10px;
   overflow-wrap: anywhere;
 }
-.pv-qr-row,
+.pv-follow-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10px;
+}
 .pv-qr-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-.pv-qr-row {
-  gap: 7px;
-}
-.pv-qr-item {
   gap: 3px;
+  font-size: 10px;
 }
 .pv-qr-item img {
   width: 52px;

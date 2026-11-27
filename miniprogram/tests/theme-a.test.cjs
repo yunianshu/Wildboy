@@ -9,15 +9,15 @@ const hash = s => crypto.createHash("sha256").update(s).digest("hex");
 // A-theme baseline protects home/tab behavior and layout. Home hashes
 // were refreshed for modular homepage customization, the About entry route and the explicitly requested footer layout.
 const protectedFiles = {
-  "pages/home/index.ts": "b298262a562dcc80aa0ad52e363e4a466303ccb26b86bb0e317b4b0e7c76d160",
-  "pages/home/index.wxml": "6aea335220c9b83c597843f76cbcad44f3de85024578eaa73a6a8c461264afc2",
+  "pages/home/index.ts": "eeffa0e80a94b063b5284acf09fbbfc80c05162df20dcde1a3ee181b8d5507ec",
+  "pages/home/index.wxml": "a42cf33c107bc02537a1d9e6ec7d05c77763ca1e21270ca85c7a91bbd1cac141",
   "pages/home/index.json": "5983938690a29e5e0c2c102a4d679490c6642acaa5b7db74d517b7785c686f12",
   "custom-tab-bar/index.ts": "a9747f588099ea16f0891c2e32b93f985990f2aec7eace78febe0381536d9730",
   "custom-tab-bar/index.wxml": "a4eee778aa15c73f03f5d642cac763afd3550ddb075f383f281d09c05d546b76",
   "styles/motion.wxss": "e44ccd63751deaf59ca0c70b4e147354759a58298dac02f29351f2fb7b56437b"
 };
 const protectedLayouts = {
-  "pages/home/index.wxss": "afe7c55a5bfda218082c2f79b41aa9bbee186c7b3d8b65fc55fe27ae9b08c5ef",
+  "pages/home/index.wxss": "8d11c90441d7399eb4fcb37b5d549b5e2a770bbfe554aab3ef48a2be9c61d54d",
   "custom-tab-bar/index.wxss": "ad9011267cd91c372d14dcbd606925146042c64bf8db616b99b880b723084f9a",
   "app.wxss": "037600165cb1510c704d8b44b673b28f994f057704c9951f87a5b25d033eded8",
   "components/ui-state/index.wxss": "88a85d7ba144fc562dbc208aea491020a62588c04db6d3fa3b1b61e65c3846f2"

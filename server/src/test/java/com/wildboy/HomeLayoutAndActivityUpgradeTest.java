@@ -174,7 +174,8 @@ class HomeLayoutAndActivityUpgradeTest {
                 new QrImage("/assets/category-leisure.jpg", "客服二维码")),
             true,
             "/assets/hero-hiking.jpg",
-            280);
+            280,
+            List.of("TEXT", "QR2", "BRAND", "QR1"));
     var updated =
         new LayoutConfig(
             current.version(),
@@ -198,10 +199,33 @@ class HomeLayoutAndActivityUpgradeTest {
         .andExpect(
             jsonPath("$.shortcuts.items[1].wechatArticleUrl")
                 .value("https://mp.weixin.qq.com/s/AbCdEfGh123456"))
-        .andExpect(jsonPath("$.footer.brandWidthPx").value(280));
+        .andExpect(jsonPath("$.footer.brandWidthPx").value(280))
+        .andExpect(jsonPath("$.footer.cellOrder[0]").value("TEXT"))
+        .andExpect(jsonPath("$.footer.cellOrder[1]").value("QR2"));
+
+    var legacy = (com.fasterxml.jackson.databind.node.ObjectNode) json.valueToTree(updated);
+    legacy.put("version", current.version() + 1);
+    var legacyFooter = (com.fasterxml.jackson.databind.node.ObjectNode) legacy.get("footer");
+    legacyFooter.putArray("cellOrder").add("TEXT").add("TEXT").add("BRAND").add("QR1");
+    mvc.perform(
+            put("/api/v1/admin/home/layout")
+                .header("Authorization", adminHeader)
+                .contentType("application/json")
+                .content(json.writeValueAsString(legacy)))
+        .andExpect(status().isBadRequest());
+    legacyFooter.remove("cellOrder");
+    mvc.perform(
+            put("/api/v1/admin/home/layout")
+                .header("Authorization", adminHeader)
+                .contentType("application/json")
+                .content(json.writeValueAsString(legacy)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.footer.cellOrder[0]").value("TEXT"))
+        .andExpect(jsonPath("$.footer.followQrcodes[0].label").value("公众号"));
 
     // Verify public layout resolves pinned activities first (a1 before a3, then auto-filled a2!)
     var publicResp = homeLayout.publicHome();
+    assertThat(publicResp.layout().footer().cellOrder()).containsExactly("TEXT", "QR2", "BRAND", "QR1");
     assertThat(publicResp.featuredActivities().stream().map(Activity::id).toList())
         .startsWith(a1.id(), a3.id())
         .contains(a2.id());

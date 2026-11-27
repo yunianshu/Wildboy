@@ -508,7 +508,7 @@ describe("Anytime activity editing, navigation points and reopen modal", () => {
 });
 
 
-it("previews the brand first and suppresses the QR column when no code is configured", async () => {
+it("swaps configured cells live and hides unconfigured cells without placeholders", async () => {
   const layout = sampleLayout();
   layout.footer.followQrcodes.push({ url: "/assets/video.jpg", label: "视频号" });
   vi.stubGlobal("fetch", vi.fn(async (url: string) => ({
@@ -521,11 +521,17 @@ it("previews the brand first and suppresses the QR column when no code is config
   const w = mount(HomeLayoutView, { global: { stubs: { RouterLink: true } } });
   await flushPromises();
   const footer = w.get(".pv-footer");
-  expect(Array.from(footer.element.children, (child) => child.className))
-    .toEqual(["pv-brand-wrap", "pv-follow-box"]);
+  const order = () => footer.findAll(".pv-footer-cell").map((item) => item.attributes("data-cell"));
+  expect(order()).toEqual(["BRAND", "QR1", "TEXT", "QR2"]);
   expect(footer.findAll(".pv-qr-item").map((item) => item.text()))
     .toEqual(["官方公众号", "视频号"]);
   await footer.trigger("click");
+  const positions = w.findAll(".footer-position-grid select");
+  await positions[0]!.setValue("QR2");
+  expect(order()).toEqual(["QR2", "QR1", "TEXT", "BRAND"]);
+  expect((positions[3]!.element as HTMLSelectElement).value).toBe("BRAND");
+  await positions[1]!.setValue("TEXT");
+  expect(order()).toEqual(["QR2", "TEXT", "QR1", "BRAND"]);
   for (let i = 0; i < 2; i++) {
     await w.get(".qr-cards-grid .danger-text").trigger("click");
   }

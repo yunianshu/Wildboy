@@ -90,7 +90,13 @@ export interface HomeGalleryView {
   slides: HomeGallerySlideView[];
 }
 
+type FooterCellId = "BRAND" | "TEXT" | "QR1" | "QR2";
+type FooterCellView = { id: string; kind: "BRAND" | "TEXT" | "QR"; url: string; label: string };
+const defaultFooterOrder: FooterCellId[] = ["BRAND", "QR1", "TEXT", "QR2"];
+
 export interface HomeFooterView {
+  cellOrder: FooterCellId[];
+  cells: FooterCellView[];
   followEnabled: boolean;
   followTitle: string;
   followSubtitle: string;
@@ -178,7 +184,32 @@ export const defaultGalleryView: HomeGalleryView = {
   slides: [],
 };
 
-export const defaultFooterView: HomeFooterView = {
+function footerCells(footer: Omit<HomeFooterView, "cells">): FooterCellView[] {
+  const qrs = footer.followEnabled ? footer.followQrcodes : [];
+  const mapped: Partial<Record<FooterCellId, FooterCellView>> = {};
+  if (footer.brandEnabled) mapped.BRAND = { id: "BRAND", kind: "BRAND", url: footer.brandImageUrl, label: "" };
+  if (qrs.length && (footer.followTitle || footer.followSubtitle))
+    mapped.TEXT = { id: "TEXT", kind: "TEXT", url: "", label: "" };
+  const qrCell = (qr: HomeQrImage, index: number): FooterCellView => ({
+    id: "QR" + (index + 1), kind: "QR", url: qr.url, label: qr.label,
+  });
+  if (qrs[0]) mapped.QR1 = qrCell(qrs[0], 0);
+  if (qrs[1]) mapped.QR2 = qrCell(qrs[1], 1);
+  const cells: FooterCellView[] = [];
+  for (const id of footer.cellOrder) {
+    const cell = mapped[id];
+    if (cell) cells.push(cell);
+  }
+  return cells.concat(qrs.slice(2).map((qr, index) => qrCell(qr, index + 2)));
+}
+
+function normalizeFooterOrder(order: unknown): FooterCellId[] {
+  return Array.isArray(order) && order.length === 4 && defaultFooterOrder.every((id) => order.includes(id))
+    ? order as FooterCellId[] : [...defaultFooterOrder];
+}
+
+const defaultFooterConfig: Omit<HomeFooterView, "cells"> = {
+  cellOrder: [...defaultFooterOrder],
   followEnabled: false,
   followTitle: "关注野小子",
   followSubtitle: "长按识别二维码 · 获取最新山野路线与动态",
@@ -186,6 +217,10 @@ export const defaultFooterView: HomeFooterView = {
   brandEnabled: true,
   brandImageUrl: "/assets/platform-brand-original-transparent.png",
   brandWidthPx: 216,
+};
+export const defaultFooterView: HomeFooterView = {
+  ...defaultFooterConfig,
+  cells: footerCells(defaultFooterConfig),
 };
 
 function sanitizeQrList(raw: unknown): HomeQrImage[] {
@@ -425,15 +460,16 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
   const brandWidthPx = Number.isFinite(rawWidth)
     ? Math.max(80, Math.min(360, Math.round(rawWidth)))
     : 216;
-  const footerView: HomeFooterView = {
+  const footerConfig: Omit<HomeFooterView, "cells"> = {
+    cellOrder: normalizeFooterOrder(raw.footer?.cellOrder),
     followEnabled: Boolean(raw.footer?.followEnabled),
     followTitle:
       typeof raw.footer?.followTitle === "string"
-        ? raw.footer.followTitle
+        ? raw.footer.followTitle.trim()
         : defaultFooterView.followTitle,
     followSubtitle:
       typeof raw.footer?.followSubtitle === "string"
-        ? raw.footer.followSubtitle
+        ? raw.footer.followSubtitle.trim()
         : defaultFooterView.followSubtitle,
     followQrcodes: sanitizeQrList(raw.footer?.followQrcodes),
     brandEnabled: raw.footer?.brandEnabled !== false,
@@ -449,6 +485,6 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
     activitiesHeader,
     shop: shopView,
     gallery: galleryView,
-    footer: footerView,
+    footer: { ...footerConfig, cells: footerCells(footerConfig) },
   };
 }

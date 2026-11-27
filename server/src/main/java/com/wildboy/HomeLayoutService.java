@@ -541,6 +541,9 @@ public class HomeLayoutService {
     return new GalleryConfig(eyebrow, title, mode, slides);
   }
 
+  private static final List<String> DEFAULT_FOOTER_CELLS =
+      List.of("BRAND", "QR1", "TEXT", "QR2");
+
   private FooterConfig validateFooter(FooterConfig in) {
     if (in == null) bad("请提供底部关注与底图配置");
     boolean followEnabled = Boolean.TRUE.equals(in.followEnabled());
@@ -560,9 +563,20 @@ public class HomeLayoutService {
     if (brandWidthPx < 80 || brandWidthPx > 360) {
       bad("野小子底图宽度须在 80–360px 之间");
     }
+    List<String> cellOrder = in.cellOrder();
+    if (cellOrder == null) {
+      // An older admin build omits this field. Keep the saved order on its other edits.
+      var previous = get(true).footer();
+      cellOrder = previous == null ? null : previous.cellOrder();
+      if (cellOrder == null) cellOrder = DEFAULT_FOOTER_CELLS;
+    }
+    if (cellOrder.size() != DEFAULT_FOOTER_CELLS.size()
+        || !new HashSet<>(cellOrder).containsAll(DEFAULT_FOOTER_CELLS)) {
+      bad("底部四格须各包含一次底图、说明和前两张二维码");
+    }
     return new FooterConfig(
         followEnabled, followTitle, followSubtitle, followQrcodes,
-        brandEnabled, brandImageUrl, brandWidthPx);
+        brandEnabled, brandImageUrl, brandWidthPx, List.copyOf(cellOrder));
   }
 
   @Transactional
