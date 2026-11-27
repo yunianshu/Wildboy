@@ -65,6 +65,9 @@ describe("上车点一步选址保存", () => {
     expect(wrapper.find("[role=dialog]").exists()).toBe(false);
     await button("新增上车点").trigger("click");
     expect(wrapper.findAll("[role=dialog]")).toHaveLength(1);
+    expect(
+      wrapper.find(".form-modal-backdrop.map-picker-backdrop").exists(),
+    ).toBe(true);
     expect(wrapper.find("input").exists()).toBe(false);
     expect(wrapper.text()).not.toMatch(
       /地图选点|手工输入|配额|经纬度|保存上车点/,

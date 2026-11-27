@@ -39,7 +39,13 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
 </script>
 
 <template>
-  <FormModal size="lg" :title="title" :busy="busy" @close="emit('close')">
+  <FormModal
+    class="map-picker-backdrop"
+    size="lg"
+    :title="title"
+    :busy="busy"
+    @close="emit('close')"
+  >
     <p v-if="!url" class="error-box" role="alert">
       地图选址尚未配置，暂时无法选择地址。
     </p>
@@ -62,6 +68,9 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
 </template>
 
 <style scoped>
+.map-picker-backdrop {
+  --rf-overlay: rgb(19 39 31 / 30%);
+}
 .picker-surface {
   overflow: hidden;
   border-radius: var(--rf-control-radius);
