@@ -16,12 +16,13 @@ import AppIcon from "../components/AppIcon.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
 import { useRosterExport } from "../rosterExport";
+const props = defineProps<{ scope?: { id: string; title: string } }>();
 const route = useRoute();
 const activityId = computed(() =>
-  typeof route.query.activityId === "string" ? route.query.activityId : "",
+  props.scope?.id ?? (typeof route.query.activityId === "string" ? route.query.activityId : ""),
 );
 const orderId = computed(() =>
-  typeof route.query.orderId === "string" ? route.query.orderId : "",
+  !props.scope && typeof route.query.orderId === "string" ? route.query.orderId : "",
 );
 const searchDraft = ref("");
 const statusDraft = ref("");
@@ -244,6 +245,7 @@ async function canLeave() {
     (!hasDraft() || (await askConfirm("退款填写内容未保存，确定放弃吗？")))
   );
 }
+defineExpose({ canLeave });
 async function close() {
   if (!(await canLeave())) return;
   clearDetail();
@@ -550,9 +552,9 @@ useForegroundRefresh(() => {
 }, 45_000);
 </script>
 <template>
-  <main class="workspace activity-orders-workspace">
-    <div class="page-heading">
-      <h1>
+  <component :is="scope ? 'div' : 'main'" :class="['activity-orders-workspace', scope ? 'activity-orders-embedded' : 'workspace']">
+    <div v-if="!scope || currentUser?.role === 'ADMIN'" class="page-heading">
+      <h1 v-if="!scope">
         {{
           orderId ? "活动订单核对" : activityId ? "收费活动名单" : "活动订单"
         }}
@@ -565,7 +567,7 @@ useForegroundRefresh(() => {
           class="primary"
           type="button"
           :disabled="busy || exporting"
-          @click="downloadRoster(activityId, items[0]?.activityTitle ?? '')"
+          @click="downloadRoster(activityId, scope?.title || items[0]?.activityTitle || '')"
         >
           {{ exporting ? "正在导出…" : "导出已确认名单" }}
         </button>
@@ -573,14 +575,14 @@ useForegroundRefresh(() => {
     </div>
     <p v-if="exportError" role="alert" class="error-box">{{ exportError }}</p>
     <div v-if="activityId || orderId" class="activity-order-scope">
-      <strong>{{
+      <strong v-if="!scope">{{
         items[0]?.activityTitle ||
         (activityId ? `活动 ${activityId}` : `订单 ${orderId}`)
       }}</strong>
       <span v-if="activityId && !orderId"
         >待支付仅保留名额。已支付或免支付确认后计入报名。</span
       >
-      <RouterLink class="button text-button" to="/activity-orders"
+      <RouterLink v-if="!scope" class="button text-button" to="/activity-orders"
         ><AppIcon name="back" :size="16" />查看全部活动订单</RouterLink
       >
     </div>
@@ -661,6 +663,7 @@ useForegroundRefresh(() => {
         清除筛选
       </button>
     </UiState>
+    <div class="activity-order-layout">
     <div v-if="items.length" class="table-scroll activity-order-table">
       <table role="table" aria-label="活动订单">
         <thead role="rowgroup">
@@ -722,6 +725,7 @@ useForegroundRefresh(() => {
       label="活动订单分页"
       @change="load"
     />
+    </div>
     <FormModal
       :busy="busy"
       v-if="selected"
@@ -963,7 +967,7 @@ useForegroundRefresh(() => {
         </button>
       </div>
     </FormModal>
-  </main>
+  </component>
 </template>
 <style scoped>
 .activity-order-pager,
@@ -1103,7 +1107,14 @@ useForegroundRefresh(() => {
   overflow-wrap: anywhere;
 }
 
-@media (max-width: 720px) {
+.activity-orders-embedded .page-heading {
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.activity-order-layout {
+  container: activity-order-layout / inline-size;
+}
+@container activity-order-layout (max-width: 720px) {
   .activity-order-table {
     overflow: visible;
     background: transparent;

@@ -10,6 +10,18 @@ import AppIcon from "../components/AppIcon.vue";
 import ActivityReopenModal from "../components/ActivityReopenModal.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
+import FormModal from "../components/FormModal.vue";
+import ActivityOrdersView from "./ActivityOrdersView.vue";
+const orderScope = ref<{ id: string; title: string } | null>(null);
+const orderDrawer = ref<InstanceType<typeof ActivityOrdersView>>();
+function openOrders(item: Activity, event: MouseEvent) {
+  (event.currentTarget as HTMLButtonElement).focus({ preventScroll: true });
+  orderScope.value = { id: item.id, title: item.title };
+}
+async function closeOrders() {
+  if (orderDrawer.value && !(await orderDrawer.value.canLeave())) return;
+  orderScope.value = null;
+}
 const reopenTarget = ref<Activity | null>(null),
   reopenNotice = ref("");
 function isExpired(item: Activity) {
@@ -137,11 +149,6 @@ function resetFilters() {
   category.value = "";
   status.value = "";
   applyFilters();
-}
-function rosterLink(item: Activity) {
-  return item.priceCents > 0
-    ? { path: "/activity-orders", query: { activityId: item.id } }
-    : `/activities/${item.id}/registrations`;
 }
 watch(page, () => {
   rememberFilters();
@@ -313,16 +320,20 @@ useForegroundRefresh(() => {
                 @click="reopenTarget = item"
               >
                 复制活动</button
+              ><button
+                v-if="item.priceCents > 0"
+                type="button"
+                class="table-action button-link"
+                aria-haspopup="dialog"
+                :aria-expanded="orderScope?.id === item.id"
+                @click="openOrders(item, $event)"
+              >订单</button
               ><RouterLink
-                :to="rosterLink(item)"
+                v-else
+                :to="`/activities/${item.id}/registrations`"
                 class="table-action"
-                :title="
-                  item.priceCents > 0
-                    ? '收费活动的名单与订单在「活动订单」中查看'
-                    : '查看报名名单'
-                "
-                >{{ item.priceCents > 0 ? "订单" : "名单" }}</RouterLink
-              >
+                title="查看报名名单"
+              >名单</RouterLink>
             </td>
           </tr>
         </tbody>
@@ -344,6 +355,14 @@ useForegroundRefresh(() => {
     >
       共 {{ result.total }} 场活动
     </p>
+    <FormModal
+      v-if="orderScope"
+      placement="right"
+      :title="`活动订单 · ${orderScope.title}`"
+      @close="closeOrders"
+    >
+      <ActivityOrdersView ref="orderDrawer" :scope="orderScope" />
+    </FormModal>
     <ActivityReopenModal
       :activity="reopenTarget"
       @close="reopenTarget = null"

@@ -132,3 +132,78 @@ it("copies a published activity as a draft by default and opens its editor with 
   );
   w.unmount();
 });
+
+it("opens only the chosen paid activity orders in a right drawer without routing away", async () => {
+  const free = { ...source, id: "free", title: "免费同行活动", priceCents: 0 };
+  const order = {
+    id: "paid-order",
+    orderNo: "ACT-ORDER-01",
+    activityId: source.id,
+    activityTitle: source.title,
+    status: "PAID",
+    partySize: 1,
+    originalTotalCents: 8000,
+    totalCents: 7500,
+    currency: "CNY",
+    version: 1,
+  };
+  const fetcher = vi.fn(async (url: string, _options?: RequestInit) => {
+    if (url.includes("/admin/activities?"))
+      return response({ items: [source, free], total: 21, page: 1, size: 8, hasMore: true });
+    if (url.endsWith("/refund")) return response({});
+    if (url.endsWith("/participants")) return response([]);
+    return response({ items: [order], total: 21, page: 0, size: 20, hasMore: true });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: "/activities", component: ActivitiesView },
+      { path: "/activity-orders", component: { template: "<h1>独立订单页</h1>" } },
+      { path: "/activities/:id/registrations", component: { template: "<div/>" } },
+    ],
+  });
+  await router.push("/activities?title=徒步&category=DOMESTIC&page=1");
+  const w = mount({ template: "<RouterView/>" }, {
+    global: { plugins: [router] },
+    attachTo: document.body,
+  });
+  try {
+    await flushPromises();
+    const before = router.currentRoute.value.fullPath;
+    expect(w.findAll("a").find((a) => a.text() === "名单")?.attributes("href"))
+      .toBe("/activities/free/registrations");
+    const button = w.findAll("button").find((b) => b.text() === "订单")!;
+    expect(w.find(".form-modal-right").exists()).toBe(false);
+    await button.trigger("click");
+    await flushPromises();
+    const drawer = w.get(".form-modal-right");
+    expect(drawer.attributes("role")).toBe("dialog");
+    expect(drawer.text()).toContain("活动订单 · 溪谷徒步");
+    expect(drawer.text()).toContain("ACT-ORDER-01");
+    expect(drawer.text()).not.toContain("查看全部活动订单");
+    expect(fetcher.mock.calls.at(-1)?.[0]).toContain("page=0&size=20&activityId=source");
+    expect(router.currentRoute.value.fullPath).toBe(before);
+    await drawer.get('[aria-label="订单状态"]').setValue("PAID");
+    await flushPromises();
+    expect(fetcher.mock.calls.at(-1)?.[0]).toContain("status=PAID&activityId=source");
+    await drawer.findAll("button").find((b) => b.text() === "下一页")!.trigger("click");
+    await flushPromises();
+    expect(fetcher.mock.calls.at(-1)?.[0]).toContain("page=1&size=20&status=PAID&activityId=source");
+    await drawer.findAll("button").find((b) => b.text() === "查看订单")!.trigger("click");
+    await flushPromises();
+    expect(w.findAll('[role="dialog"]')).toHaveLength(2);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await flushPromises();
+    expect(w.findAll('[role="dialog"]')).toHaveLength(1);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await flushPromises();
+    expect(w.find('[role="dialog"]').exists()).toBe(false);
+    expect(router.currentRoute.value.fullPath).toBe(before);
+    expect(document.activeElement).toBe(button.element);
+    expect(w.get<HTMLInputElement>('input[aria-label="活动名称"]').element.value).toBe("徒步");
+    expect(fetcher.mock.calls.every(([, options]) => !options?.method)).toBe(true);
+  } finally {
+    w.unmount();
+  }
+});

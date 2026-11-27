@@ -26,7 +26,7 @@ beforeEach(() => {
   vi.unstubAllGlobals();
 });
 describe("real component flows", () => {
-  it("renders A activity table without losing paid/free routes or price precision", async () => {
+  it("renders activity prices, paid order drawer triggers and free roster links", async () => {
     const rows = [
       {
         id: "paid",
@@ -76,9 +76,8 @@ describe("real component flows", () => {
     expect(records).toHaveLength(2);
     expect(records[0].text()).toContain("¥68.01");
     expect(records[0].text()).toContain("待支付 2 人");
-    expect(
-      records[0].find('a[href="/activity-orders?activityId=paid"]').exists(),
-    ).toBe(true);
+    expect(records[0].get('button[aria-haspopup="dialog"]').text()).toBe("订单");
+    expect(records[0].find('a[href="/activity-orders?activityId=paid"]').exists()).toBe(false);
     expect(
       records[1].find('a[href="/activities/free/registrations"]').exists(),
     ).toBe(true);

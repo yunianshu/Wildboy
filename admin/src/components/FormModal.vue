@@ -16,6 +16,7 @@ const props = withDefaults(
     busy?: boolean;
     confirmation?: boolean;
     title?: string;
+    placement?: "center" | "right";
   }>(),
   {
     size: "md",
@@ -144,13 +145,13 @@ onUnmounted(() => {
 <template>
   <div
     class="form-modal-backdrop"
-    :class="{ 'dialog-overlay': confirmation }"
+    :class="{ 'dialog-overlay': confirmation, 'form-modal-right-backdrop': placement === 'right' }"
     @click.self="close"
   >
     <section
       ref="dialog"
       class="form-modal"
-      :class="[size === 'md' ? undefined : size, { dialog: confirmation }]"
+      :class="[size === 'md' ? undefined : size, { dialog: confirmation, 'form-modal-right': placement === 'right' }]"
       role="dialog"
       aria-modal="true"
       :aria-labelledby="headingId"
@@ -180,3 +181,42 @@ onUnmounted(() => {
     </section>
   </div>
 </template>
+
+<style scoped>
+.form-modal-backdrop.form-modal-right-backdrop {
+  padding: 0;
+  justify-content: flex-end;
+}
+.form-modal.form-modal-right {
+  width: min(100%, 880px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border-radius: var(--rf-modal-radius) 0 0 var(--rf-modal-radius);
+  box-shadow: -16px 0 56px #071a132b;
+}
+.form-modal-right > .form-modal-body {
+  flex: 1;
+  scrollbar-gutter: stable;
+}
+:global(html:has(.form-modal-right-backdrop)) {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+@media (max-width: 720px) {
+  .form-modal.form-modal-right {
+    border-radius: 0;
+    padding: 12px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .form-modal.form-modal-right {
+    animation: drawer-in 180ms ease-out;
+  }
+}
+@keyframes drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+</style>
