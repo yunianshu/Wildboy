@@ -100,7 +100,8 @@ class MembershipMergeMigrationTest {
            {"kind":"MEETING","label":"集合处","address":"景区大门"}]
           """);
       var latest = Flyway.configure().dataSource(source).load();
-      assertThat(latest.migrate().migrationsExecuted).isEqualTo(2);
+      assertThat(latest.migrate().migrationsExecuted).isEqualTo(3);
+      assertThat(db.queryForObject("SELECT count(*) FROM media_asset", Integer.class)).isZero();
       assertThat(db.queryForMap("SELECT address, latitude, display_name FROM activity_boarding_point WHERE name='厦门北站南广场'"))
           .containsEntry("address", "厦门北站南广场").containsEntry("latitude", 24.6).containsEntry("display_name", null);
       assertThat(db.queryForObject("SELECT COUNT(*) FROM activity_boarding_point WHERE address='景区大门'", Integer.class)).isZero();
