@@ -1,6 +1,6 @@
 {
   "name": "wildboy-admin",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "Wildboy outdoor activity administration",
   "directories": {
     "test": "tests"

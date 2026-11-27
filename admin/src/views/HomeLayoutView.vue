@@ -8,6 +8,7 @@ import FeaturedRankList from "../components/FeaturedRankList.vue";
 import { displayDate } from "../forms";
 import defaultBrandPreview from "../assets/platform-brand-original-transparent.png";
 import ImageUpload from "../components/ImageUpload.vue";
+import { uploadAdminImage } from "../image-upload";
 import HomeGalleryPreview from "../components/HomeGalleryPreview.vue";
 import PaginationBar from "../components/PaginationBar.vue";
 import UiState from "../components/UiState.vue";
@@ -80,22 +81,51 @@ const footerSlotTypeOptions: Array<{ value: HomeFooterSlotType; label: string }>
   { value: "TEXT", label: "文字" },
   { value: "IMAGE", label: "图片" },
 ];
-const footerQuickTemplates: Array<{
+type FooterQuickTemplateGroup = "1-2格" | "3格" | "4格" | "5-6格";
+type FooterQuickTemplate = {
   id: string;
+  group: FooterQuickTemplateGroup;
   label: string;
   columns: 1 | 2 | 3;
   colRatios: number[];
   spans: Array<{ colSpan: number; rowSpan: number }>;
-}> = [
-  { id: "ONE_FULL", label: "1格通栏", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }] },
-  { id: "TWO_LR", label: "2格左右", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "TWO_TB", label: "2格上下", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "THREE_L1_R2", label: "左1右2", columns: 2, colRatios: [45, 55], spans: [{ colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "THREE_T1_B2", label: "上1下2", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 2, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "THREE_COLS", label: "3列并排", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "FOUR_GRID", label: "2×2四格", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
-  { id: "FOUR_T1_B3", label: "上1下3", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 3, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+};
+const footerQuickTemplates: FooterQuickTemplate[] = [
+  // 1-2格
+  { id: "ONE_FULL", group: "1-2格", label: "1格通栏", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_LR", group: "1-2格", label: "2格左右", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_LR_WIDE_L", group: "1-2格", label: "左宽右窄", columns: 2, colRatios: [65, 35], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_LR_WIDE_R", group: "1-2格", label: "左窄右宽", columns: 2, colRatios: [35, 65], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "TWO_TB", group: "1-2格", label: "2格上下", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  // 3格
+  { id: "THREE_L1_R2", group: "3格", label: "左1右2", columns: 2, colRatios: [45, 55], spans: [{ colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_L2_R1", group: "3格", label: "左2右1", columns: 2, colRatios: [55, 45], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_T1_B2", group: "3格", label: "上1下2", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 2, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_T2_B1", group: "3格", label: "上2下1", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 2, rowSpan: 1 }] },
+  { id: "THREE_COLS", group: "3格", label: "3列并排", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "THREE_TB", group: "3格", label: "3格竖排", columns: 1, colRatios: [100], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  // 4格
+  { id: "FOUR_GRID", group: "4格", label: "2×2四格", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_T1_B3", group: "4格", label: "上1下3", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 3, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_T3_B1", group: "4格", label: "上3下1", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 3, rowSpan: 1 }] },
+  { id: "FOUR_L1_M1_R2", group: "4格", label: "左1中1右2", columns: 3, colRatios: [34, 33, 33], spans: [{ colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_L2_M1_R1", group: "4格", label: "左2中1右1", columns: 3, colRatios: [33, 33, 34], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FOUR_T1_M2_B1", group: "4格", label: "上1中2下1", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 2, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 2, rowSpan: 1 }] },
+  // 5-6格
+  { id: "FIVE_L1_R4", group: "5-6格", label: "左1右4", columns: 3, colRatios: [36, 32, 32], spans: [{ colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "FIVE_L4_R1", group: "5-6格", label: "左4右1", columns: 3, colRatios: [32, 32, 36], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 2 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "SIX_3X2", group: "5-6格", label: "3×2六格", columns: 3, colRatios: [33, 34, 33], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
+  { id: "SIX_2X3", group: "5-6格", label: "2×3六格", columns: 2, colRatios: [50, 50], spans: [{ colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }, { colSpan: 1, rowSpan: 1 }] },
 ];
+const footerQuickTemplateGroups: Array<{
+  label: FooterQuickTemplateGroup;
+  items: FooterQuickTemplate[];
+}> = (["1-2格", "3格", "4格", "5-6格"] as FooterQuickTemplateGroup[]).map(
+  (group) => ({
+    label: group,
+    items: footerQuickTemplates.filter((t) => t.group === group),
+  }),
+);
 
 const activeFooterBlockId = ref<string>("");
 const dragFooterIdx = ref<number | null>(null);
@@ -332,6 +362,33 @@ function setFooterColumns(cols: 1 | 2 | 3) {
   }
 }
 
+const activeFooterTemplateId = computed(() => {
+  const cols = footerColumns.value;
+  const ratios = footerColRatios.value;
+  const activeBlocks = footerBlocks.value.filter((b) => b.enabled !== false);
+  const match = footerQuickTemplates.find((tpl) => {
+    if (tpl.columns !== cols || tpl.spans.length !== activeBlocks.length) {
+      return false;
+    }
+    const ratiosMatch =
+      tpl.colRatios.length === ratios.length &&
+      tpl.colRatios.every((r, i) => Math.abs(r - (ratios[i] ?? 0)) <= 4);
+    if (!ratiosMatch) return false;
+    return tpl.spans.every(
+      (s, i) =>
+        activeBlocks[i]?.colSpan === s.colSpan &&
+        activeBlocks[i]?.rowSpan === s.rowSpan,
+    );
+  });
+  return match?.id ?? "";
+});
+
+function footerTemplateThumbStyle(tpl: FooterQuickTemplate) {
+  return {
+    gridTemplateColumns: tpl.colRatios.map((r) => `minmax(0, ${r}fr)`).join(" "),
+  };
+}
+
 function applyFooterTemplate(tplId: string) {
   const tpl = footerQuickTemplates.find((t) => t.id === tplId);
   if (!tpl || !layout.value) return;
@@ -470,6 +527,33 @@ watch(activeModule, () => {
 const activeShortcutIdx = ref(0);
 const loading = ref(false);
 const saving = ref(false);
+const importingBrand = ref(false);
+const brandImportError = ref("");
+async function importDefaultBrand(block: HomeFooterBlock) {
+  if (importingBrand.value || saving.value || block.topImageUrl !== DEFAULT_BRAND) return;
+  const actor = currentUser.value;
+  const isCurrent = () =>
+    actor === currentUser.value &&
+    footerBlocks.value.includes(block) &&
+    block.topImageUrl === DEFAULT_BRAND;
+  importingBrand.value = true;
+  brandImportError.value = "";
+  try {
+    const response = await fetch(defaultBrandPreview);
+    if (!response.ok) throw new Error("默认品牌底图读取失败，请重试。");
+    const blob = await response.blob();
+    const asset = await uploadAdminImage(
+      new File([blob], "野小子品牌底图.png", { type: "image/png" }),
+      isCurrent,
+      { name: "野小子品牌底图", category: "HOME" },
+    );
+    if (asset && isCurrent()) block.topImageUrl = asset.url;
+  } catch (e) {
+    if (isCurrent()) brandImportError.value = errorMessage(e);
+  } finally {
+    importingBrand.value = false;
+  }
+}
 const conflict = ref(false);
 const error = ref("");
 const success = ref("");
@@ -708,6 +792,14 @@ const candidateActivities = computed(() => {
   const chosen = new Set(layout.value.activities.featuredActivityIds);
   return activityPage.value.items.filter((a) => !chosen.has(a.id));
 });
+
+const shortcutTypeLabels: Record<string, string> = {
+  PAGE: "页面",
+  WECHAT_ARTICLE: "公众号",
+  POPUP: "弹窗",
+  ACTIVITY: "活动",
+  ARTICLE: "文章",
+};
 
 const activeShortcut = computed<HomeShortcutItem | null>(() => {
   const items = layout.value?.shortcuts.items;
@@ -1053,28 +1145,62 @@ onUnmounted(() => {
         <!-- 1. HERO -->
         <div v-if="activeModule === 'HERO'" class="editor-panel">
           <h2>顶部主视觉（头图与主标题）</h2>
-          <div class="image-setting-row">
-            <img
-              :src="layout.hero.imageUrl"
-              alt="顶部主视觉预览"
-              class="banner-thumb"
-            />
-            <div class="image-setting-controls">
-              <ImageUpload
-                category="HOME"
-                label="上传替换顶部主图"
-                @uploaded="layout.hero.imageUrl = $event"
-              />
+          <section class="sub-box hero-media-card">
+            <div class="hero-media-head">
+              <div class="hero-media-title">
+                <h3>主视觉头图</h3>
+                <span class="hero-media-hint">建议横向高清图，支持拖拽或素材库替换</span>
+              </div>
               <button
                 v-if="layout.hero.imageUrl !== '/assets/hero-hiking.jpg'"
                 type="button"
-                class="text-button"
+                class="text-button hero-reset-btn"
                 @click="layout.hero.imageUrl = '/assets/hero-hiking.jpg'"
               >
                 恢复默认山野主图
               </button>
             </div>
-          </div>
+            <div class="hero-media-body">
+              <div class="hero-media-preview">
+                <img
+                  :src="layout.hero.imageUrl"
+                  alt="顶部主视觉预览"
+                  class="hero-media-img"
+                />
+                <div class="hero-media-overlay">
+                  <div
+                    v-if="layout.hero.brandName || layout.hero.brandCaption"
+                    class="hero-preview-brand"
+                  >
+                    <strong v-if="layout.hero.brandName">{{
+                      layout.hero.brandName
+                    }}</strong>
+                    <span v-if="layout.hero.brandCaption">{{
+                      layout.hero.brandCaption
+                    }}</span>
+                  </div>
+                  <div class="hero-preview-copy">
+                    <small v-if="layout.hero.kicker">{{
+                      layout.hero.kicker
+                    }}</small>
+                    <strong v-if="layout.hero.title">{{
+                      layout.hero.title
+                    }}</strong>
+                    <span v-if="layout.hero.subtitle">{{
+                      layout.hero.subtitle
+                    }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="hero-media-upload">
+                <ImageUpload
+                  category="HOME"
+                  label="上传替换顶部主图"
+                  @uploaded="layout.hero.imageUrl = $event"
+                />
+              </div>
+            </div>
+          </section>
           <div class="field-row">
             <label>
               左上角品牌名
@@ -1173,9 +1299,12 @@ onUnmounted(() => {
 
         <!-- 2. SHORTCUTS -->
         <div v-else-if="activeModule === 'SHORTCUTS'" class="editor-panel">
-          <div class="panel-head">
+          <div class="panel-head shortcut-panel-head">
             <div>
-              <h2>快捷入口区（支持自由增删、拖动排序、多二维码、跳公众号）</h2>
+              <h2>快捷入口区</h2>
+              <p class="field-hint shortcut-panel-sub">
+                按小程序真实列数排布，点击卡片编辑，拖动可调整顺序（最多 8 个）
+              </p>
             </div>
             <div class="inline-controls">
               <label class="compact-select">
@@ -1197,7 +1326,12 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="shortcut-chips">
+          <div
+            class="shortcut-chips"
+            :style="{
+              gridTemplateColumns: `repeat(${Math.min(4, Math.max(2, layout.shortcuts.columns || 4))}, minmax(0, 1fr))`,
+            }"
+          >
             <div
               v-for="(sc, idx) in layout.shortcuts.items"
               :key="sc.id"
@@ -1217,17 +1351,35 @@ onUnmounted(() => {
                 "
                 alt=""
               />
-              <span>{{ idx + 1 }}. {{ sc.name || "未命名" }}</span>
+              <span class="shortcut-chip-index">{{ idx + 1 }}</span>
+              <span class="shortcut-chip-type">{{
+                shortcutTypeLabels[sc.type] || "入口"
+              }}</span>
+              <div class="shortcut-chip-shade">
+                <span class="shortcut-chip-name">{{
+                  sc.name || "未命名"
+                }}</span>
+              </div>
             </div>
+            <button
+              v-if="layout.shortcuts.items.length < 8"
+              type="button"
+              class="shortcut-add-slot"
+              @click="addShortcut"
+            >
+              <AppIcon name="plus" :size="18" />
+              <span>新增入口</span>
+            </button>
           </div>
 
-          <div v-if="activeShortcut" class="sub-box">
-            <div class="panel-head">
-              <h3>
-                正在编辑第 {{ activeShortcutIdx + 1 }} 个入口：{{
-                  activeShortcut.name
-                }}
-              </h3>
+          <div v-if="activeShortcut" class="sub-box shortcut-editor-card">
+            <div class="panel-head shortcut-editor-head">
+              <div class="shortcut-editor-title">
+                <span class="shortcut-editing-badge"
+                  >#{{ activeShortcutIdx + 1 }}</span
+                >
+                <h3>{{ activeShortcut.name || "未命名入口" }}</h3>
+              </div>
               <div class="inline-controls">
                 <button
                   type="button"
@@ -1272,81 +1424,142 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <div class="field-row">
-              <label>
-                入口名称（1–12字）
-                <input
-                  v-model="activeShortcut.name"
-                  maxlength="12"
-                  placeholder="如：关于野小子"
-                />
-              </label>
-              <label>
-                默认底图风格（未上传自定义图时使用）
-                <select v-model="activeShortcut.icon">
-                  <option v-for="[k, label] in iconPresets" :key="k" :value="k">
-                    {{ label }}
-                  </option>
-                </select>
-              </label>
-            </div>
+            <div class="shortcut-appearance">
+              <div class="shortcut-preview-col">
+                <div class="shortcut-live-preview">
+                  <img
+                    :src="
+                      activeShortcut.imageUrl ||
+                      presetIconImages[activeShortcut.icon] ||
+                      presetIconImages.WEEKLY
+                    "
+                    alt="入口背景图"
+                  />
+                  <div class="shortcut-live-shade">
+                    <strong>{{ activeShortcut.name || "入口名称" }}</strong>
+                    <small>{{
+                      shortcutTypeLabels[activeShortcut.type] || "页面"
+                    }}</small>
+                  </div>
+                </div>
+                <div class="shortcut-preview-foot">
+                  <small class="muted">{{
+                    activeShortcut.imageUrl ? "已用自定义封面" : "当前使用预设底图"
+                  }}</small>
+                  <button
+                    v-if="activeShortcut.imageUrl"
+                    type="button"
+                    class="text-button"
+                    @click="activeShortcut.imageUrl = ''"
+                  >
+                    恢复预设
+                  </button>
+                </div>
+              </div>
 
-            <div class="image-setting-row">
-              <img
-                :src="
-                  activeShortcut.imageUrl ||
-                  presetIconImages[activeShortcut.icon] ||
-                  presetIconImages.WEEKLY
-                "
-                alt="入口背景图"
-                class="small-thumb"
-              />
-              <div class="image-setting-controls">
+              <div class="shortcut-fields-col">
+                <div class="shortcut-basic-row">
+                  <label>
+                    入口名称（1–12字）
+                    <input
+                      v-model="activeShortcut.name"
+                      maxlength="12"
+                      placeholder="如：关于野小子"
+                    />
+                  </label>
+                  <label>
+                    默认底图风格
+                    <select v-model="activeShortcut.icon">
+                      <option
+                        v-for="[k, label] in iconPresets"
+                        :key="k"
+                        :value="k"
+                      >
+                        {{ label }}
+                      </option>
+                    </select>
+                  </label>
+                </div>
                 <ImageUpload
                   category="HOME"
                   label="上传自定义入口封面图"
                   @uploaded="activeShortcut.imageUrl = $event"
                 />
-                <button
-                  v-if="activeShortcut.imageUrl"
-                  type="button"
-                  class="text-button"
-                  @click="activeShortcut.imageUrl = ''"
-                >
-                  恢复使用预设底图
-                </button>
               </div>
             </div>
 
-            <label>
-              点击后执行动作
-              <select
-                v-model="activeShortcut.type"
-                @change="activeShortcut.articleId = ''"
+            <div class="shortcut-action-box">
+              <div
+                class="shortcut-action-row"
+                :class="{
+                  'is-two-col':
+                    activeShortcut.type === 'PAGE' ||
+                    activeShortcut.type === 'ACTIVITY' ||
+                    activeShortcut.type === 'ARTICLE',
+                }"
               >
-                <option value="PAGE">打开小程序内页面</option>
-                <option value="WECHAT_ARTICLE">
-                  微信公众号文章（介绍入口先在小程序内阅读）
-                </option>
-                <option value="POPUP">
-                  弹出二维码 / 图文说明（支持上传多个二维码）
-                </option>
-                <option value="ACTIVITY">打开指定活动详情</option>
-                <option value="ARTICLE">打开小程序内置文章</option>
-              </select>
-            </label>
+                <label>
+                  点击后执行动作
+                  <select
+                    v-model="activeShortcut.type"
+                    @change="activeShortcut.articleId = ''"
+                  >
+                    <option value="PAGE">打开小程序内页面</option>
+                    <option value="WECHAT_ARTICLE">
+                      微信公众号文章（介绍入口先在小程序内阅读）
+                    </option>
+                    <option value="POPUP">
+                      弹出二维码 / 图文说明（支持上传多个二维码）
+                    </option>
+                    <option value="ACTIVITY">打开指定活动详情</option>
+                    <option value="ARTICLE">打开小程序内置文章</option>
+                  </select>
+                </label>
 
-            <label v-if="activeShortcut.type === 'PAGE'">
-              选择小程序页面
-              <select v-model="activeShortcut.page">
-                <option v-for="[k, label] in pageOptions" :key="k" :value="k">
-                  {{ label }}
-                </option>
-              </select>
-            </label>
+                <label v-if="activeShortcut.type === 'PAGE'">
+                  选择小程序页面
+                  <select v-model="activeShortcut.page">
+                    <option
+                      v-for="[k, label] in pageOptions"
+                      :key="k"
+                      :value="k"
+                    >
+                      {{ label }}
+                    </option>
+                  </select>
+                </label>
+
+                <label v-else-if="activeShortcut.type === 'ACTIVITY'">
+                  选择目标活动
+                  <select v-model="activeShortcut.activityId">
+                    <option value="">请选择已发布活动</option>
+                    <option
+                      v-for="a in allActivities"
+                      :key="a.id"
+                      :value="a.id"
+                    >
+                      {{ a.title }}
+                    </option>
+                  </select>
+                </label>
+
+                <label v-else-if="activeShortcut.type === 'ARTICLE'">
+                  选择小程序内置文章
+                  <select v-model="activeShortcut.articleId">
+                    <option value="OFFICIAL">官方介绍</option>
+                    <option
+                      v-for="art in allArticles"
+                      :key="art.id"
+                      :value="art.id"
+                    >
+                      {{ art.title }}
+                    </option>
+                  </select>
+                </label>
+              </div>
 
             <div
-              v-else-if="activeShortcut.type === 'WECHAT_ARTICLE'"
+              v-if="activeShortcut.type === 'WECHAT_ARTICLE'"
               class="wechat-tip-box"
             >
               <label>
@@ -1410,30 +1623,6 @@ onUnmounted(() => {
                 </RouterLink>
               </template>
             </div>
-
-            <label v-else-if="activeShortcut.type === 'ACTIVITY'">
-              选择目标活动
-              <select v-model="activeShortcut.activityId">
-                <option value="">请选择已发布活动</option>
-                <option v-for="a in allActivities" :key="a.id" :value="a.id">
-                  {{ a.title }}
-                </option>
-              </select>
-            </label>
-
-            <label v-else-if="activeShortcut.type === 'ARTICLE'">
-              选择小程序内置文章
-              <select v-model="activeShortcut.articleId">
-                <option value="OFFICIAL">官方介绍</option>
-                <option
-                  v-for="art in allArticles"
-                  :key="art.id"
-                  :value="art.id"
-                >
-                  {{ art.title }}
-                </option>
-              </select>
-            </label>
 
             <div
               v-else-if="activeShortcut.type === 'POPUP'"
@@ -1527,6 +1716,7 @@ onUnmounted(() => {
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </div>
@@ -2092,20 +2282,48 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Quick Layout Presets (1 to 4+ common arrangements) -->
+          <!-- Quick Layout Presets (1 to 6 common arrangements) -->
           <div class="footer-preset-bar" role="group" aria-label="快捷排列组合">
-            <span class="footer-preset-group-label">快捷排列</span>
-            <div class="footer-preset-items">
-              <button
-                v-for="tpl in footerQuickTemplates"
-                :key="tpl.id"
-                type="button"
-                class="footer-preset-card"
-                :data-footer-preset="tpl.id"
-                @click="applyFooterTemplate(tpl.id)"
+            <div class="footer-preset-bar-head">
+              <span class="footer-preset-group-label">快捷排列</span>
+              <span class="footer-preset-bar-hint">点击一键切换常见版式，切换后仍可继续拖拽或微调列宽</span>
+            </div>
+            <div class="footer-preset-groups">
+              <div
+                v-for="group in footerQuickTemplateGroups"
+                :key="group.label"
+                class="footer-preset-group"
               >
-                {{ tpl.label }}
-              </button>
+                <span class="footer-preset-group-tag">{{ group.label }}</span>
+                <div class="footer-preset-items">
+                  <button
+                    v-for="tpl in group.items"
+                    :key="tpl.id"
+                    type="button"
+                    class="footer-preset-card"
+                    :class="{ 'is-active': activeFooterTemplateId === tpl.id }"
+                    :aria-pressed="activeFooterTemplateId === tpl.id"
+                    :data-footer-preset="tpl.id"
+                    @click="applyFooterTemplate(tpl.id)"
+                  >
+                    <span
+                      class="footer-preset-thumb"
+                      :style="footerTemplateThumbStyle(tpl)"
+                      aria-hidden="true"
+                    >
+                      <i
+                        v-for="(span, sIdx) in tpl.spans"
+                        :key="sIdx"
+                        :style="{
+                          gridColumn: `span ${span.colSpan}`,
+                          gridRow: `span ${span.rowSpan}`,
+                        }"
+                      />
+                    </span>
+                    <span>{{ tpl.label }}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -2357,10 +2575,23 @@ onUnmounted(() => {
                       <ImageUpload
                         category="HOME"
                         compact
+                        :disabled="importingBrand"
                         :key="`top-img-${activeFooterBlock.id}-${activeFooterBlock.topImageUrl}`"
                         :label="activeFooterBlock.topImageUrl ? '替换图片' : '上传图片'"
                         @uploaded="activeFooterBlock.topImageUrl = $event"
                       />
+                      <button
+                        v-if="activeFooterBlock.id === 'brand' && activeFooterBlock.topImageUrl === DEFAULT_BRAND"
+                        type="button"
+                        class="secondary"
+                        :disabled="importingBrand || saving"
+                        @click="importDefaultBrand(activeFooterBlock)"
+                      >
+                        {{ importingBrand ? "正在存入素材库…" : "将默认品牌底图存入素材库" }}
+                      </button>
+                      <small v-if="activeFooterBlock.id === 'brand' && brandImportError" class="field-error" role="alert">
+                        {{ brandImportError }}
+                      </small>
                       <label class="switch-inline">
                         <input v-model="activeFooterBlock.topPreviewable" type="checkbox" />
                         可长按识别 / 点击放大（二维码）
@@ -2903,32 +3134,372 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 6px;
 }
-.shortcut-chips {
+.hero-media-card {
+  gap: 12px;
+}
+.hero-media-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-.shortcut-chip {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: #fff;
-  cursor: grab;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.hero-media-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.hero-media-hint {
+  font-size: 12px;
+  color: var(--rf-muted, #607268);
+}
+.hero-reset-btn {
+  padding: 2px 0;
   font-size: 13px;
 }
+.hero-media-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.08fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.hero-media-preview {
+  position: relative;
+  min-height: 168px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #173025;
+}
+.hero-media-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hero-media-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 12px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(13, 30, 21, 0.48) 0%,
+    rgba(13, 30, 21, 0.08) 46%,
+    rgba(13, 30, 21, 0.72) 100%
+  );
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.hero-preview-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.hero-preview-brand strong {
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+}
+.hero-preview-brand span {
+  font-size: 11px;
+  line-height: 1.25;
+  opacity: 0.88;
+}
+.hero-preview-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.hero-preview-copy small {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-preview-copy strong {
+  font-size: 15px;
+  line-height: 1.28;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-preview-copy span {
+  font-size: 11px;
+  line-height: 1.3;
+  opacity: 0.92;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hero-media-upload {
+  min-width: 0;
+  display: flex;
+}
+.hero-media-upload :deep(.image-upload) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.hero-media-upload :deep(.drop-zone) {
+  flex: 1;
+  min-height: 118px;
+  padding: 12px 14px;
+  background: var(--rf-surface, #fff);
+}
+.hero-media-upload :deep(.upload-secondary-row) {
+  margin-top: 8px;
+}
+.hero-media-upload :deep(.library-button) {
+  width: 100%;
+  justify-content: center;
+}
+@media (max-width: 780px) {
+  .hero-media-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .hero-media-preview {
+    min-height: 0;
+    aspect-ratio: 16 / 9;
+  }
+}
+.shortcut-panel-sub {
+  margin: 4px 0 0;
+}
+.shortcut-chips {
+  display: grid;
+  gap: 10px;
+}
+.shortcut-chip {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background: #173025;
+  overflow: hidden;
+  cursor: grab;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+.shortcut-chip:hover {
+  border-color: rgba(22, 122, 82, 0.55);
+  box-shadow: 0 4px 12px rgba(16, 37, 29, 0.12);
+}
 .shortcut-chip.is-selected {
-  border-color: var(--rf-primary, #247a52);
-  background: var(--rf-soft, #eaf4e7);
-  font-weight: 600;
+  border-color: var(--rf-primary, #167a52);
+  box-shadow: 0 0 0 2px rgba(22, 122, 82, 0.2);
 }
 .shortcut-chip img {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+}
+.shortcut-chip-index {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(16, 37, 29, 0.76);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.shortcut-chip.is-selected .shortcut-chip-index {
+  background: var(--rf-primary, #167a52);
+}
+.shortcut-chip-type {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--rf-ink, #18271f);
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.shortcut-chip-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 18px 8px 7px;
+  background: linear-gradient(transparent, rgba(14, 30, 22, 0.82));
+  color: #fff;
+}
+.shortcut-chip-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shortcut-add-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 16 / 10;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1.5px dashed var(--rf-field-line, #cdd9d0);
+  background: var(--rf-surface-subtle, #f9fbf9);
+  color: var(--rf-muted, #687b70);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.shortcut-add-slot:hover {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+}
+.shortcut-editor-card {
+  background: #fff;
+  gap: 16px;
+}
+.shortcut-editor-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rf-line, #e0e8e2);
+}
+.shortcut-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shortcut-editing-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rf-soft, #e9f4ed);
+  color: var(--rf-primary-text, #126743);
+  font-size: 12px;
+  font-weight: 700;
+}
+.shortcut-appearance {
+  display: grid;
+  grid-template-columns: 204px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.shortcut-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.shortcut-live-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #173025;
+}
+.shortcut-live-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.shortcut-live-shade {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: 20px 10px 9px;
+  background: linear-gradient(transparent, rgba(14, 30, 22, 0.82));
+  color: #fff;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+.shortcut-live-shade strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shortcut-live-shade small {
+  flex-shrink: 0;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.shortcut-preview-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+}
+.shortcut-fields-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.shortcut-basic-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.shortcut-basic-row label {
+  margin: 0;
+  min-width: 0;
+}
+.shortcut-action-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #e0e8e2);
+  background: var(--rf-surface-subtle, #f9fbf9);
+}
+.shortcut-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.shortcut-action-row.is-two-col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.shortcut-action-row label {
+  margin: 0;
+  min-width: 0;
+}
+@media (max-width: 780px) {
+  .shortcut-appearance,
+  .shortcut-basic-row,
+  .shortcut-action-row.is-two-col {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .qr-section-head {
   display: flex;
@@ -3710,44 +4281,75 @@ onUnmounted(() => {
 }
 .footer-preset-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
+  flex-direction: column;
+  gap: 8px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid var(--rf-line, #dce3dd);
   background: var(--rf-surface-subtle, #f9fbf9);
 }
+.footer-preset-bar-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.footer-preset-bar-hint {
+  font-size: 11px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-preset-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
 .footer-preset-group {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
 }
 .footer-preset-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rf-ink, #18271f);
+}
+.footer-preset-group-tag {
+  flex: 0 0 42px;
+  padding-top: 6px;
   font-size: 11px;
   font-weight: 600;
   color: var(--rf-muted, #687b70);
+  white-space: nowrap;
 }
 .footer-preset-items {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+  flex: 1;
 }
 .footer-preset-card {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 8px;
+  min-height: 30px;
+  padding: 4px 9px;
   border-radius: 8px;
   border: 1px solid var(--rf-line, #dce3dd);
   background: #fff;
   color: var(--rf-ink, #18271f);
   font-size: 12px;
+  line-height: 1.2;
   cursor: pointer;
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
 }
 .footer-preset-card:hover {
   border-color: var(--rf-primary, #167a52);
+}
+.footer-preset-card:focus-visible {
+  outline: 2px solid var(--rf-primary, #167a52);
+  outline-offset: 1px;
 }
 .footer-preset-card.is-active {
   border-color: var(--rf-primary, #167a52);
@@ -3759,18 +4361,14 @@ onUnmounted(() => {
   width: 24px;
   height: 18px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-auto-flow: dense;
+  grid-auto-rows: 1fr;
   gap: 2px;
-}
-.footer-preset-thumb.is-two_lr {
-  grid-template-rows: 1fr;
-}
-.footer-preset-thumb.is-two_tb {
-  grid-template-columns: 1fr;
+  flex-shrink: 0;
 }
 .footer-preset-thumb i {
   display: block;
+  min-height: 0;
   border-radius: 2px;
   background: #c7d6cc;
 }
