@@ -279,6 +279,10 @@ describe("HomeLayoutView modular workbench", () => {
     await flushPromises();
 
     expect(w.get("h1").text()).toBe("小程序首页配置");
+    const moduleCards = w.findAll(".module-card");
+    await moduleCards[0]!.get(".module-move").trigger("click");
+    expect(moduleCards[0]!.classes()).toContain("is-active");
+    await moduleCards[2]!.get(".module-move").trigger("click");
     expect(w.get(".editor-panel h2").text()).toBe("首页精选活动");
     // Verify 6 slots are shown on the left (2 filled + 4 empty) and rich cards on the right
     expect(w.findAll(".activity-empty-slot").length).toBe(4);

@@ -1118,12 +1118,12 @@ onUnmounted(() => {
               </label>
             </div>
             <small>{{ moduleLabels[mod.id]?.desc }}</small>
-            <div class="module-move" @click.stop>
+            <div class="module-move">
               <button
                 type="button"
                 class="text-button"
                 :disabled="idx === 0"
-                @click="moveArrayItem(layout.modules, idx, idx - 1)"
+                @click.stop="moveArrayItem(layout.modules, idx, idx - 1)"
               >
                 上移
               </button>
@@ -1131,7 +1131,7 @@ onUnmounted(() => {
                 type="button"
                 class="text-button"
                 :disabled="idx === layout.modules.length - 1"
-                @click="moveArrayItem(layout.modules, idx, idx + 1)"
+                @click.stop="moveArrayItem(layout.modules, idx, idx + 1)"
               >
                 下移
               </button>
