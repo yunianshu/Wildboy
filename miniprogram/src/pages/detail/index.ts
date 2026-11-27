@@ -150,6 +150,7 @@ Page({
     destHasCoord: false,
     meetHasCoord: false,
     boardingStops: [] as BoardingStopItem[],
+    boardingStopsExpanded: false,
     navPickerOpen: false,
     navPickerTitle: "选择导航地点",
     navPickerItems: [] as NavDisplayItem[],
@@ -232,6 +233,7 @@ Page({
         destHasCoord: navPoints.some((p) => p.kind === "DESTINATION"),
         meetHasCoord: navPoints.some((p) => p.kind === "MEETING"),
         boardingStops,
+        boardingStopsExpanded: boardingStops.length > 0 && this.data.boardingStopsExpanded,
         deadline: dateLabel(a.registrationDeadline),
         endDate: dateLabel(a.endAt),
       });
@@ -388,6 +390,10 @@ Page({
       return;
     }
     this.copyPlainAddress(this.data.activity?.meetingPoint || "");
+  },
+  toggleBoardingStops() {
+    if (!this.data.boardingStops.length) return;
+    this.setData({ boardingStopsExpanded: !this.data.boardingStopsExpanded });
   },
   tapBoardingStop(e: WechatMiniprogram.TouchEvent) {
     const idx = Number(e.currentTarget.dataset.index);

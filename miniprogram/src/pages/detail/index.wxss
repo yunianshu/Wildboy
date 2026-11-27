@@ -80,13 +80,41 @@ button.share { position: absolute; top: 12px; right: 16px; z-index: 2; display: 
   font-weight: 600;
   line-height: 1.5;
 }
-.boarding-fact-block { align-items: start; }
-.boarding-fact-block .fact-label { padding-top: 9px; }
+.boarding-fact-block { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 0; }
+button.boarding-stops-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 2px 6px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--rf-primary-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+}
+button.boarding-stops-toggle::after { border: 0; }
+button.boarding-stops-toggle.action-pressed { background: var(--rf-soft); }
+.boarding-stop-chevron {
+  flex: 0 0 7px;
+  height: 7px;
+  margin-right: 4px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.boarding-stop-chevron-up { transform: rotate(225deg); }
 .boarding-stop-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
   width: 100%;
+  padding-bottom: 7px;
 }
 .boarding-stop-chip {
   display: flex;

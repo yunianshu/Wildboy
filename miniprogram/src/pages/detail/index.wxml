@@ -38,8 +38,11 @@
           </view>
         </view>
         <view wx:if="{{boardingStops.length}}" class="fact-row boarding-fact-block">
-          <text class="fact-label">上车地点</text>
-          <view class="boarding-stop-list">
+          <button class="boarding-stops-toggle" hover-class="action-pressed" bindtap="toggleBoardingStops" aria-expanded="{{boardingStopsExpanded}}">
+            <text>{{boardingStopsExpanded ? "收起上车点" : "查看上车点"}}</text>
+            <view class="boarding-stop-chevron {{boardingStopsExpanded ? 'boarding-stop-chevron-up' : ''}}" aria-hidden="{{true}}"></view>
+          </button>
+          <view wx:if="{{boardingStopsExpanded}}" class="boarding-stop-list">
             <view
               class="boarding-stop-chip"
               wx:for="{{boardingStops}}"

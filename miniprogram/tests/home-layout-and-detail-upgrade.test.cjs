@@ -299,6 +299,39 @@ test("activity detail displays confirmed attendee avatars/nicknames and supports
   assert.equal(openedLocations[1].name, "海沧阿罗海广场");
 });
 
+test("activity boarding addresses stay folded until the native detail button is tapped", () => {
+  const markup = require("node:fs").readFileSync(require("node:path").join(__dirname, "../dist/pages/detail/index.wxml"), "utf8");
+  const boarding = markup.slice(markup.indexOf('class="fact-row boarding-fact-block"') - 45, markup.indexOf("报名截止"));
+  assert.ok(boarding.includes('wx:if="{{boardingStops.length}}"'));
+  assert.ok(boarding.includes('bindtap="toggleBoardingStops"'));
+  assert.ok(boarding.includes("查看上车点") && boarding.includes("收起上车点"));
+  assert.ok(boarding.includes('wx:if="{{boardingStopsExpanded}}" class="boarding-stop-list"'));
+  assert.ok(boarding.indexOf("{{item.address}}") > boarding.indexOf('wx:if="{{boardingStopsExpanded}}"'));
+  assert.ok(boarding.includes('bindtap="tapBoardingStop"'));
+
+  const detail = mountPage("detail");
+  detail.toggleBoardingStops();
+  assert.equal(detail.data.boardingStopsExpanded, false, "no stops cannot open");
+  detail.setData({
+    boardingStops: [
+      { label: "北门", address: "厦门市湖里区嘉禾路468号", hasCoord: true, latitude: 24.501, longitude: 118.126 },
+      { label: "南门", address: "海沧阿罗海", hasCoord: false },
+    ],
+  });
+  assert.equal(detail.data.boardingStopsExpanded, false);
+  detail.toggleBoardingStops();
+  assert.equal(detail.data.boardingStopsExpanded, true);
+  const copied = [];
+  wx.setClipboardData = ({ data }) => copied.push(data);
+  detail.tapBoardingStop({ currentTarget: { dataset: { index: 0 } } });
+  detail.tapBoardingStop({ currentTarget: { dataset: { index: 1 } } });
+  assert.equal(openedLocations[0].latitude, 24.501);
+  assert.deepEqual(copied, ["海沧阿罗海"]);
+  detail.toggleBoardingStops();
+  assert.equal(detail.data.boardingStopsExpanded, false);
+  assert.equal(detail.data.boardingStops.length, 2, "closing does not clear the places");
+});
+
 test("plain destination and meeting addresses copy their own text when only boarding has coordinates", () => {
   const copied = [];
   wx.setClipboardData = ({ data }) => copied.push(data);
