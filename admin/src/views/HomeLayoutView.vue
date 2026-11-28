@@ -4,7 +4,6 @@ import { onBeforeRouteLeave, useRoute } from "vue-router";
 import { ApiError, currentUser, errorMessage, request } from "../api";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
-import FeaturedRankList from "../components/FeaturedRankList.vue";
 import { displayDate } from "../forms";
 import defaultBrandPreview from "../assets/platform-brand-original-transparent.png";
 import ImageUpload from "../components/ImageUpload.vue";
@@ -705,19 +704,21 @@ watch(activityFilter, (_value, _previous, onCleanup) => {
   onCleanup(() => clearTimeout(timer));
 });
 
-async function loadCatalogs(featuredIds: string[]) {
+async function loadProducts() {
   productCatalogState.value = "loading";
+  try {
+    allProducts.value = (await request<Product[]>("/admin/shop/products"))
+      .filter((product) => product.status === "ON_SALE");
+    productCatalogState.value = "ready";
+  } catch {
+    productCatalogState.value = "error";
+  }
+}
+
+async function loadCatalogs(featuredIds: string[]) {
   await Promise.allSettled([
     loadActivityPreview(featuredIds),
-    request<Product[]>("/admin/shop/products")
-      .then((products) => {
-        allProducts.value = products.filter((p) => p.status === "ON_SALE");
-        productCatalogState.value = "ready";
-      })
-      .catch(() => {
-        allProducts.value = [];
-        productCatalogState.value = "error";
-      }),
+    loadProducts(),
     request<Page<ArticleOption>>("/admin/articles?page=0&size=50").then(
       (page) => {
         allArticles.value = page.items.filter((a) => a.status === "PUBLISHED");
@@ -762,11 +763,6 @@ const activityOptions = computed(() => allActivities.value.map((activity) => ({
   title: activity.title,
   imageUrl: activity.coverUrl,
   detail: activity.location,
-})));
-const productOptions = computed(() => allProducts.value.map((product) => ({
-  id: product.id,
-  title: product.name,
-  imageUrl: product.imageUrl,
 })));
 const previewActivities = computed(() => {
   const config = layout.value?.activities;
@@ -963,12 +959,73 @@ const previewProducts = computed(() => {
     .slice(0, shop.maxCount);
 });
 
-function toggleFeaturedProduct(id: string) {
-  if (!layout.value) return;
-  const list = layout.value.shop.featuredProductIds;
-  const idx = list.indexOf(id);
-  if (idx >= 0) list.splice(idx, 1);
-  else if (list.length < 8) list.push(id);
+const productFilter = ref("");
+const dragProductId = ref("");
+const overProductId = ref("");
+const productIds = computed(() => layout.value?.shop.featuredProductIds ?? []);
+const productDisplayCount = computed(() => {
+  const count = Number(layout.value?.shop.maxCount);
+  return Number.isInteger(count) && count >= 1 && count <= 8 ? count : 0;
+});
+const productSlotCount = computed(() => Math.max(1, productDisplayCount.value, productIds.value.length));
+const productSlots = computed(() =>
+  Array.from({ length: productSlotCount.value }, (_, index) => {
+    const id = productIds.value[index] ?? "";
+    return { index, id, product: productsById.value.get(id) };
+  }),
+);
+const productsById = computed(() => new Map(allProducts.value.map((item) => [item.id, item])));
+const nextProductSlotIndex = computed(() =>
+  productIds.value.length < productDisplayCount.value ? productIds.value.length : -1,
+);
+const candidateProducts = computed(() => {
+  const keyword = productFilter.value.trim().toLocaleLowerCase();
+  const selected = new Set(productIds.value);
+  return allProducts.value.filter(
+    (product) => !selected.has(product.id) && product.name.toLocaleLowerCase().includes(keyword),
+  );
+});
+function addFeaturedProduct(id: string) {
+  if (!layout.value || saving.value || productCatalogState.value !== "ready" ||
+      nextProductSlotIndex.value < 0 || productIds.value.includes(id) || !productsById.value.has(id)) return;
+  layout.value.shop.featuredProductIds.push(id);
+}
+function removeFeaturedProduct(index: number) {
+  if (!layout.value || saving.value || !productIds.value[index]) return;
+  layout.value.shop.featuredProductIds.splice(index, 1);
+}
+function swapFeaturedProducts(first: string, second: string) {
+  const list = layout.value?.shop.featuredProductIds;
+  if (saving.value || !list || !first || !second || first === second) return;
+  const from = list.indexOf(first);
+  const to = list.indexOf(second);
+  if (from < 0 || to < 0) return;
+  [list[from], list[to]] = [second, first];
+}
+function moveFeaturedProduct(index: number, delta: -1 | 1) {
+  swapFeaturedProducts(productIds.value[index] ?? "", productIds.value[index + delta] ?? "");
+}
+function startProductDrag(id: string, event: DragEvent) {
+  if (saving.value || !id || productIds.value.length < 2) return event.preventDefault();
+  dragProductId.value = id;
+  overProductId.value = "";
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", id);
+  }
+}
+function overProductSlot(id: string, event: DragEvent) {
+  if (!dragProductId.value || saving.value) return;
+  event.preventDefault();
+  overProductId.value = id;
+}
+function dropProductSlot(id: string) {
+  swapFeaturedProducts(dragProductId.value, id);
+  endProductDrag();
+}
+function endProductDrag() {
+  dragProductId.value = "";
+  overProductId.value = "";
 }
 
 // Custom gallery slides
@@ -2022,85 +2079,86 @@ onUnmounted(() => {
             </div>
           </section>
 
-          <div
-            v-if="
-              layout.shop.showProducts &&
-              layout.shop.featuredProductIds.length
-            "
-            class="sub-box"
-          >
-            <div class="shop-section-head">
-              <h3>
-                已排定商品（{{ layout.shop.featuredProductIds.length }} 件）
-              </h3>
-              <span
-                v-if="layout.shop.featuredProductIds.length > 1"
-                class="field-hint"
-                >拖动卡片可调整展示顺序</span
-              >
-            </div>
-            <FeaturedRankList
-              v-model="layout.shop.featuredProductIds"
-              class="featured-products"
-              item-label="商品"
-              :options="productOptions"
-              :disabled="saving"
-            />
-          </div>
-
-          <div
-            v-if="layout.shop.showProducts && allProducts.length"
-            class="sub-box"
-          >
-            <div class="shop-section-head">
-              <h3>选择优先展示的商品</h3>
-              <span class="field-hint"
-                >已选 {{ layout.shop.featuredProductIds.length }} / 8 件 ·
-                点击卡片加入或移出</span
-              >
-            </div>
-            <div class="product-pick-grid">
-              <button
-                v-for="prod in allProducts"
-                :key="prod.id"
-                type="button"
-                class="product-pick-btn"
-                :disabled="
-                  saving ||
-                  (layout.shop.featuredProductIds.length >= 8 &&
-                    !layout.shop.featuredProductIds.includes(prod.id))
-                "
-                :aria-pressed="layout.shop.featuredProductIds.includes(prod.id)"
-                :class="{
-                  'is-picked': layout.shop.featuredProductIds.includes(prod.id),
-                }"
-                @click="toggleFeaturedProduct(prod.id)"
-              >
-                <div class="product-pick-media">
-                  <img :src="prod.imageUrl" alt="" />
-                  <span
-                    v-if="layout.shop.featuredProductIds.includes(prod.id)"
-                    class="product-pick-badge"
+          <div v-if="layout.shop.showProducts" class="activity-slot-workbench product-slot-workbench">
+            <section class="sub-box activity-slots-pane">
+              <div class="shop-section-head">
+                <h3>首页排位（{{ productIds.length }} / {{ productSlotCount }} 位）</h3>
+                <span class="field-hint">点击商品填入空位，拖动已填卡片可换位</span>
+              </div>
+              <div class="featured-products activity-slots-grid">
+                <template v-for="slot in productSlots" :key="slot.id || 'empty-' + slot.index">
+                  <article
+                    v-if="slot.id"
+                    class="featured-rank-card activity-filled-slot"
+                    :class="{
+                      'is-dragging': dragProductId === slot.id,
+                      'is-drop-target': overProductId === slot.id && dragProductId !== slot.id,
+                    }"
+                    :draggable="!saving && productIds.length > 1"
+                    @dragstart="startProductDrag(slot.id, $event)"
+                    @dragover="overProductSlot(slot.id, $event)"
+                    @dragleave="overProductId === slot.id && (overProductId = '')"
+                    @drop.prevent="dropProductSlot(slot.id)"
+                    @dragend="endProductDrag"
                   >
-                    第
-                    {{ layout.shop.featuredProductIds.indexOf(prod.id) + 1 }} 位
-                  </span>
-                </div>
-                <div class="product-pick-body">
-                  <span class="product-pick-name">{{ prod.name }}</span>
-                  <div class="product-pick-meta">
-                    <strong class="product-pick-price"
-                      >¥{{ (prod.priceCents / 100).toFixed(2) }}</strong
-                    >
-                    <small class="product-pick-state">{{
-                      layout.shop.featuredProductIds.includes(prod.id)
-                        ? "已选中"
-                        : "点击选择"
-                    }}</small>
+                    <div class="slot-card-media">
+                      <img v-if="slot.product?.imageUrl" :src="slot.product.imageUrl" alt="" draggable="false" />
+                      <div v-else class="slot-card-placeholder"><AppIcon name="bag" :size="20" /></div>
+                      <span class="slot-rank-badge">第 {{ slot.index + 1 }} 位</span>
+                    </div>
+                    <div class="slot-card-body">
+                      <strong>{{ slot.product?.name || '商品 ' + slot.id.slice(0, 8) }}</strong>
+                      <small v-if="slot.product" class="muted">¥{{ (slot.product.priceCents / 100).toFixed(2) }}</small>
+                      <small v-else class="muted">{{
+                        productCatalogState === 'loading' ? '正在读取商品…' :
+                        productCatalogState === 'error' ? '商品资料暂未读取' : '商品不在在售列表'
+                      }}</small>
+                      <small v-if="slot.index >= productDisplayCount" class="muted">超出当前设置的展示件数</small>
+                      <div class="slot-card-actions">
+                        <button type="button" class="text-button" :disabled="saving || slot.index === 0" @click="moveFeaturedProduct(slot.index, -1)">前移</button>
+                        <button type="button" class="text-button" :disabled="saving || slot.index === productIds.length - 1" @click="moveFeaturedProduct(slot.index, 1)">后移</button>
+                        <button type="button" class="text-button danger-text" :disabled="saving" @click="removeFeaturedProduct(slot.index)">移出</button>
+                      </div>
+                    </div>
+                  </article>
+                  <div v-else class="activity-empty-slot" :class="{ 'is-next': nextProductSlotIndex === slot.index }">
+                    <span class="empty-slot-index">位置 {{ slot.index + 1 }}</span>
+                    <small>{{ nextProductSlotIndex === slot.index ? "下一个填入此位" : "空位" }}</small>
                   </div>
-                </div>
-              </button>
-            </div>
+                </template>
+              </div>
+            </section>
+
+            <section class="sub-box activity-candidates-pane">
+              <div class="panel-head">
+                <h3>可选在售商品</h3>
+                <input v-model="productFilter" type="search" class="compact-search" aria-label="搜索可选商品" placeholder="搜索商品名称…" maxlength="100" />
+              </div>
+              <p v-if="productCatalogState === 'loading'" role="status" class="muted">正在加载商品…</p>
+              <p v-else-if="productCatalogState === 'error'" role="alert" class="error-box">
+                商品列表加载失败。
+                <button type="button" class="text-button" @click="loadProducts">重试</button>
+              </p>
+              <template v-else>
+                <p v-if="nextProductSlotIndex < 0 && productDisplayCount > 0" class="muted">排位已满，移出商品或增加展示件数后可继续添加。</p>
+                <ul v-if="candidateProducts.length" class="candidate-list">
+                  <li v-for="product in candidateProducts" :key="product.id" class="candidate-card">
+                    <button type="button" class="candidate-card-btn" :disabled="saving || nextProductSlotIndex < 0" @click="addFeaturedProduct(product.id)">
+                      <div class="candidate-thumb">
+                        <img v-if="product.imageUrl" :src="product.imageUrl" alt="" />
+                        <AppIcon v-else name="bag" :size="18" />
+                      </div>
+                      <div class="candidate-info">
+                        <strong class="candidate-title">{{ product.name }}</strong>
+                        <small class="candidate-meta"><span class="candidate-price">¥{{ (product.priceCents / 100).toFixed(2) }}</span></small>
+                      </div>
+                      <span class="candidate-fill-pill">{{ nextProductSlotIndex < 0 ? "无空位" : "填入第 " + (nextProductSlotIndex + 1) + " 位" }}</span>
+                    </button>
+                  </li>
+                </ul>
+                <p v-else class="muted">{{ productFilter.trim() ? "没有匹配的可选商品。" : "没有可添加的在售商品。" }}</p>
+              </template>
+            </section>
           </div>
         </div>
 
@@ -3905,111 +3963,6 @@ onUnmounted(() => {
   .shop-banner-fields {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-.product-pick-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
-  gap: 12px;
-}
-.product-pick-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-  width: 100%;
-  min-width: 0;
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  border-radius: 10px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: #fff;
-  color: var(--rf-ink, #18271f);
-  font-weight: 400;
-  text-align: left;
-  white-space: normal;
-  overflow: hidden;
-  cursor: pointer;
-  transition:
-    border-color 0.16s ease,
-    box-shadow 0.16s ease,
-    background-color 0.16s ease;
-}
-.product-pick-btn:hover:not(:disabled) {
-  border-color: var(--rf-primary, #167a52);
-  box-shadow: 0 4px 12px rgba(16, 37, 29, 0.08);
-}
-.product-pick-btn.is-picked {
-  border-color: var(--rf-primary, #167a52);
-  background: var(--rf-soft, #e9f4ed);
-  box-shadow: 0 0 0 1px rgba(22, 122, 82, 0.18);
-}
-.product-pick-media {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  background: var(--rf-surface-subtle, #f9fbf9);
-  overflow: hidden;
-}
-.product-pick-media img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 0;
-}
-.product-pick-badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--rf-primary, #167a52);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.4;
-  box-shadow: 0 2px 6px rgba(16, 37, 29, 0.22);
-}
-.product-pick-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  min-width: 0;
-}
-.product-pick-name {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  color: var(--rf-ink, #18271f);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  min-height: 2.8em;
-  overflow-wrap: anywhere;
-}
-.product-pick-meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 6px;
-}
-.product-pick-price {
-  color: var(--rf-primary-text, #126743);
-  font-size: 13px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-.product-pick-state {
-  color: var(--rf-muted, #687b70);
-  font-size: 11px;
-  white-space: nowrap;
-}
-.product-pick-btn.is-picked .product-pick-state {
-  color: var(--rf-primary-text, #126743);
-  font-weight: 600;
 }
 .slide-row {
   display: flex;

@@ -376,15 +376,33 @@ describe("HomeLayoutView modular workbench", () => {
       .findAll(".module-card")
       .find((c) => c.text().includes("装备横幅与商品"))!
       .trigger("click");
-    const products = w.findAll(".product-pick-btn");
-    expect(products.map((button) => button.text())).toEqual([
-      expect.stringContaining("轻量背包"),
-      expect.stringContaining("登山杖"),
-      expect.stringContaining("头灯"),
+    const workbench = w.get(".product-slot-workbench");
+    const search = workbench.get('input[type="search"]');
+    const products = () => workbench.findAll(".candidate-card-btn");
+    const productCards = () => workbench.findAll(".featured-products .featured-rank-card");
+    expect(workbench.findAll(".activity-empty-slot")).toHaveLength(4);
+    expect(products().map((button) => button.get("strong").text())).toEqual([
+      "轻量背包", "登山杖", "头灯",
     ]);
-    for (const product of products) await product.trigger("click");
-    const productCards = () =>
-      w.findAll(".featured-products .featured-rank-card");
+    await search.setValue("背包");
+    expect(products()).toHaveLength(1);
+    expect(products()[0]!.text()).toContain("填入第 1 位");
+    await products()[0]!.trigger("click");
+    expect(products()).toHaveLength(0);
+    await search.setValue("");
+    expect(products()[0]!.text()).toContain("填入第 2 位");
+    await products()[0]!.trigger("click");
+    const count = w.get(".shop-count-field input");
+    await count.setValue(2);
+    expect(products()[0]!.attributes("disabled")).toBeDefined();
+    await count.setValue(4);
+    await products()[0]!.trigger("click");
+    expect(workbench.findAll(".activity-empty-slot")).toHaveLength(1);
+    await productCards()[2]!.findAll("button")[0]!.trigger("click");
+    expect(productCards()[1]!.get("strong").text()).toBe("头灯");
+    await productCards()[1]!.findAll("button")[2]!.trigger("click");
+    expect(products()[0]!.get("strong").text()).toBe("头灯");
+    await products()[0]!.trigger("click");
     const rankedProducts = productCards();
     expect(rankedProducts).toHaveLength(3);
     expect(rankedProducts[0]!.attributes("draggable")).toBe("true");
