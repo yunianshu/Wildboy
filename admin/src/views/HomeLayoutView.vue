@@ -2757,22 +2757,45 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="sub-box">
-            <h3>当前轮播预览</h3>
-            <p v-if="!galleryPreview" class="muted">
+          <div class="sub-box gallery-preview-box">
+            <div class="gallery-preview-head">
+              <div class="gallery-preview-head-left">
+                <h3>当前轮播预览</h3>
+                <span
+                  v-if="galleryPreview && galleryPreview.slides.length"
+                  class="gallery-preview-source"
+                >
+                  {{ galleryPreview.sourceLabel }} · 共 {{ galleryPreview.slides.length }} 项
+                </span>
+              </div>
+              <span
+                v-if="galleryPreview && galleryPreview.slides.length"
+                class="gallery-preview-hint"
+              >
+                点击条目切换右侧预览
+              </span>
+            </div>
+
+            <p v-if="!galleryPreview" class="gallery-preview-empty">
               板块显示后可查看当前轮播内容。
             </p>
-            <p v-else-if="!galleryPreview.slides.length" class="muted">
+            <p v-else-if="!galleryPreview.slides.length" class="gallery-preview-empty">
               正在加载轮播内容…
             </p>
             <template v-else>
-              <p class="muted">
-                {{ galleryPreview.sourceLabel }} · 共
-                {{ galleryPreview.slides.length }} 项（点击条目可切换右侧预览）
-              </p>
-              <p v-if="layout.gallery.mode === 'AUTO_ARTICLES'" class="muted">
-                自动模式会在没有可展示的文章时使用备用内容。如需混排图片、短视频与文章，请切换到「自定义混排内容」。
-              </p>
+              <div
+                v-if="layout.gallery.mode === 'AUTO_ARTICLES'"
+                class="gallery-preview-note"
+              >
+                <span>自动模式无已发布文章时将展示备用内容。</span>
+                <button
+                  type="button"
+                  class="text-button gallery-preview-switch"
+                  @click="layout.gallery.mode = 'CUSTOM'"
+                >
+                  去自定义混排 →
+                </button>
+              </div>
               <ol class="gallery-preview-items">
                 <li
                   v-for="(slide, index) in galleryPreview.slides"
@@ -2780,12 +2803,16 @@ onUnmounted(() => {
                 >
                   <button
                     type="button"
-                    class="secondary gallery-preview-item"
+                    class="gallery-preview-item"
                     :aria-pressed="galleryPreview.index === index"
                     @click="galleryPreview.selectSlide(index)"
                   >
+                    <span class="gallery-preview-idx">{{
+                      String(index + 1).padStart(2, "0")
+                    }}</span>
                     <img
                       v-if="slide.imageUrl"
+                      class="gallery-preview-thumb"
                       :src="slide.imageUrl"
                       alt=""
                     />
@@ -2796,14 +2823,32 @@ onUnmounted(() => {
                       >▶</span
                     >
                     <span
-                      class="gallery-preview-pill"
-                      :class="`is-${(slide.mediaType || 'IMAGE').toLowerCase()}`"
-                    >
-                      {{ galleryMediaTypeLabel(slide.mediaType) }}
+                      v-else
+                      class="gallery-preview-fallback-thumb"
+                      aria-hidden="true"
+                    />
+                    <span class="gallery-preview-copy">
+                      <span class="gallery-preview-title">{{
+                        slide.title || "未填写标题"
+                      }}</span>
+                      <span v-if="slide.subtitle" class="gallery-preview-sub">{{
+                        slide.subtitle
+                      }}</span>
                     </span>
-                    <span class="gallery-preview-title"
-                      >{{ index + 1 }}. {{ slide.title || "未填写标题" }}</span
-                    >
+                    <span class="gallery-preview-meta">
+                      <span
+                        class="gallery-preview-pill"
+                        :class="`is-${(slide.mediaType || 'IMAGE').toLowerCase()}`"
+                      >
+                        {{ galleryMediaTypeLabel(slide.mediaType) }}
+                      </span>
+                      <span
+                        v-if="galleryPreview.index === index"
+                        class="gallery-preview-active-tag"
+                      >
+                        预览中
+                      </span>
+                    </span>
                   </button>
                 </li>
               </ol>
@@ -3719,9 +3764,66 @@ onUnmounted(() => {
   gap: 10px;
   min-width: 0;
 }
+.gallery-preview-box {
+  gap: 10px;
+}
+.gallery-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+.gallery-preview-head-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.gallery-preview-head-left h3 {
+  margin: 0;
+}
+.gallery-preview-source {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rf-neutral-bg, #eff3f0);
+  color: var(--rf-muted, #687b70);
+  font-size: 11px;
+  font-weight: 500;
+}
+.gallery-preview-hint {
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+}
+.gallery-preview-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--rf-muted, #687b70);
+}
+.gallery-preview-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: var(--rf-surface-subtle, #f6f9f7);
+  border: 1px solid var(--rf-line, #dce3dd);
+  font-size: 12px;
+  color: var(--rf-muted, #687b70);
+}
+.gallery-preview-switch {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0;
+  color: var(--rf-primary-text, #126743);
+}
 .gallery-preview-items {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -3729,21 +3831,51 @@ onUnmounted(() => {
 .gallery-preview-item {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   width: 100%;
-  gap: 10px;
+  padding: 8px 12px;
+  gap: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  color: var(--rf-ink, #18271f);
   text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
-.gallery-preview-item img {
-  width: 48px;
-  height: 32px;
-  border-radius: 4px;
+.gallery-preview-item:hover {
+  border-color: color-mix(in srgb, var(--rf-primary, #167a52) 55%, var(--rf-line, #dce3dd));
+  background: #fafcfa;
+}
+.gallery-preview-item:focus-visible {
+  outline: 2px solid var(--rf-primary, #167a52);
+  outline-offset: 2px;
+}
+.gallery-preview-idx {
+  width: 20px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--rf-muted, #687b70);
+  text-align: center;
+}
+.gallery-preview-thumb {
+  width: 58px;
+  height: 38px;
+  border-radius: 6px;
   object-fit: cover;
+  border: 1px solid rgba(24, 39, 31, 0.08);
+  background: #f2f5f3;
   flex: none;
 }
 .gallery-preview-video-thumb {
-  width: 48px;
-  height: 32px;
-  border-radius: 4px;
+  width: 58px;
+  height: 38px;
+  border-radius: 6px;
   background: #20372c;
   color: #fff;
   display: grid;
@@ -3751,13 +3883,51 @@ onUnmounted(() => {
   font-size: 12px;
   flex: none;
 }
+.gallery-preview-fallback-thumb {
+  width: 58px;
+  height: 38px;
+  border-radius: 6px;
+  background: var(--rf-neutral-bg, #eff3f0);
+  border: 1px dashed var(--rf-line, #dce3dd);
+  flex: none;
+}
+.gallery-preview-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gallery-preview-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--rf-ink, #18271f);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gallery-preview-sub {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--rf-muted, #687b70);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gallery-preview-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
 .gallery-preview-pill {
-  padding: 2px 7px;
+  padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  background: var(--rf-bg);
-  color: var(--rf-muted);
+  background: var(--rf-neutral-bg, #eff3f0);
+  color: var(--rf-muted, #687b70);
   flex: none;
 }
 .gallery-preview-pill.is-video {
@@ -3768,14 +3938,24 @@ onUnmounted(() => {
   background: #eef2ff;
   color: #374785;
 }
-.gallery-preview-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.gallery-preview-active-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--rf-primary, #167a52);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
 }
 .gallery-preview-item[aria-pressed="true"] {
-  border-color: var(--rf-primary);
-  background: var(--rf-soft);
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #edf7f1);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--rf-primary, #167a52) 16%, transparent);
+}
+.gallery-preview-item[aria-pressed="true"] .gallery-preview-idx {
+  color: var(--rf-primary-text, #126743);
 }
 .heading-actions {
   display: flex;
