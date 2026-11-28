@@ -10,7 +10,7 @@
       <text class="category-retry-text">{{categoriesError}}</text>
       <button class="secondary ui-button ui-button-small" bindtap="retryCategories">重试分类</button>
     </view>
-    <view class="category-search-row" mark:tabSwipeIgnore="{{true}}">
+    <view class="category-search-row {{searchOpen ? 'category-search-expanded' : ''}}" mark:tabSwipeIgnore="{{true}}">
     <scroll-view class="section-tabs shop-category-viewport category-search-tabs {{searchOpen ? 'category-search-covered' : ''}}" aria-hidden="{{searchOpen}}" scroll-x enhanced mark:tabSwipeIgnore="{{true}}" show-scrollbar="{{false}}" scroll-left="{{categoryScrollLeft}}" bindtouchstart="onCategoryTouchStart" bindtouchend="onCategoryTouchEnd" bindtouchcancel="onCategoryTouchCancel">
       <view class="section-tab-list shop-category-track">
         <button id="shop-category-all" class="section-tab {{selectedCategory === '' || selectedCategory === 'all' ? 'section-tab-current' : ''}}" data-id="all" bindtap="selectCategory" hover-class="section-tab-pressed" aria-label="全部{{selectedCategory === '' || selectedCategory === 'all' ? '，已选中' : ''}}">全部</button>
@@ -19,13 +19,15 @@
     </scroll-view>
     <button class="category-search-toggle {{searchTerm ? 'category-search-active' : ''}}" bindtap="openSearch" aria-hidden="{{searchOpen}}" aria-label="{{searchTerm ? '搜索已筛选，点击编辑' : '搜索装备'}}"><view class="category-search-icon" aria-hidden="{{true}}" /></button>
     <view wx:if="{{searchOpen}}" class="category-search-layer">
-  <input class="category-search-input" value="{{searchInput}}" focus="{{searchOpen}}" placeholder="搜索全部装备" aria-label="装备名称" maxlength="80" confirm-type="search" bindinput="searchProducts" />
-  <button wx:if="{{searchInput || searchTerm}}" class="category-search-clear" aria-label="清除搜索" bindtap="clearSearch"><icon type="clear" size="16" color="#5D7064" /></button>
-
-  <button class="category-search-cancel" bindtap="closeSearch" aria-label="收起搜索">收起</button>
-</view>
+      <view class="category-search-field">
+        <view class="category-search-icon category-search-field-icon" aria-hidden="{{true}}" />
+        <input class="category-search-input" value="{{searchInput}}" focus="{{searchOpen}}" placeholder="搜索全部装备" aria-label="装备名称" maxlength="80" confirm-type="search" bindinput="searchProducts" />
+        <button wx:if="{{searchInput || searchTerm}}" class="category-search-clear" aria-label="清除搜索" bindtap="clearSearch"><icon type="clear" size="16" color="#5D7064" /></button>
+      </view>
+      <button class="category-search-cancel" bindtap="closeSearch" aria-label="收起搜索">收起</button>
     </view>
-    <view class="{{!categoriesError && categories.length ? 'section-tab-panel' : ''}}">
+    </view>
+    <view class="{{!categoriesError && categories.length ? 'section-tab-panel' : ''}} {{searchOpen ? 'section-tab-panel-search' : ''}}">
       <view wx:if="{{refreshing}}" class="shop-refresh-hint">正在更新装备…</view>
       <ui-state wx:if="{{loading}}" kind="loading">正在加载商品…</ui-state>
       <ui-state wx:elif="{{error && !items.length}}" kind="error">{{error}}<button class="secondary ui-button ui-button-block" bindtap="retry">重试</button></ui-state>

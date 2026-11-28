@@ -459,11 +459,15 @@ test("activity hub discards a late records response after switching or leaving",
 
 test("search opens over both tab strips, closes without clearing and supports clearing", async () => {
   const { readFileSync } = require("node:fs");
+  const searchCss = readFileSync(require.resolve("../dist/styles/category-search.wxss"), "utf8");
+  assert.match(searchCss, /\.section-tab-panel-search\s*\{[^}]*margin-top: 12px;[^}]*border-top: 0/);
   for (const name of ["activities", "shop"]) {
     const markup = readFileSync(require.resolve(`../dist/pages/${name}/index.wxml`), "utf8");
     assert.match(markup, /category-search-tabs/);
     assert.match(markup, /wx:if="{{searchOpen}}" class="category-search-layer"/);
     assert.match(markup, /focus="{{searchOpen}}"/);
+    assert.match(markup, /class="category-search-field"[\s\S]*?class="category-search-input"/);
+    assert.match(markup, /searchOpen \? \u0027section-tab-panel-search\u0027/);
     const p = page(name);
     assert.equal(p.data.searchOpen, false);
     if (name === "activities") p.setData({ searchTitle: "hike" });
