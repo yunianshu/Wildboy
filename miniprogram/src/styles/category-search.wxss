@@ -29,14 +29,9 @@
   margin: 0; padding: 0 5px 0 0; border: 0; border-radius: 0;
   background: transparent; color: var(--rf-ink); font-size: 14px;
 }
-.category-search-row .category-search-layer .category-search-submit {
-  min-width: 54px; padding: 0 10px; border-radius: var(--rf-control-radius);
-  background: var(--rf-primary-text); color: var(--rf-on-primary); font-weight: 650;
-}
 .category-search-row .category-search-layer .category-search-clear { padding: 0; }
 .category-search-row .category-search-layer .category-search-cancel { padding: 0 3px; color: var(--rf-muted); }
 .category-search-row button.button-hover { background: var(--rf-soft); }
-.category-search-row .category-search-submit.button-hover { opacity: .85; }
 .section-tab-panel-search { margin-top: 12px; border-top: 0; border-radius: 10px; }
 @keyframes category-search-reveal {
   from { transform: translateX(100%); }

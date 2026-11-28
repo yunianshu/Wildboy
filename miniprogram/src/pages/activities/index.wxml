@@ -17,10 +17,9 @@
       <view wx:if="{{searchOpen}}" class="category-search-layer">
         <view class="category-search-field">
           <view class="category-search-icon category-search-field-icon" aria-hidden="{{true}}" />
-          <input class="category-search-input" type="text" confirm-type="search" maxlength="100" value="{{searchInput}}" focus="{{searchOpen}}" placeholder="搜索活动名称" aria-label="活动名称" bindinput="updateSearchInput" bindconfirm="search" />
+          <input class="category-search-input" type="text" confirm-type="search" maxlength="100" value="{{searchInput}}" focus="{{searchOpen}}" placeholder="搜索全部活动" aria-label="活动名称" bindinput="updateSearchInput" bindconfirm="search" />
           <button wx:if="{{searchInput || searchTitle}}" class="category-search-clear" aria-label="清除搜索" bindtap="clearSearch"><icon type="clear" size="16" color="#5D7064" /></button>
         </view>
-        <button class="category-search-submit" bindtap="search">搜索</button>
         <button class="category-search-cancel" bindtap="closeSearch" aria-label="收起搜索">收起</button>
       </view>
       </view>

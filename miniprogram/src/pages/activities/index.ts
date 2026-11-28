@@ -16,6 +16,7 @@ import { measureCapsuleHeader } from "../../utils/capsule-header";
 import { centeredFilterScroll } from "../../utils/filter-scroll";
 
 const epoch = new RequestEpoch();
+const SEARCH_DEBOUNCE_MS = 250;
 
 /** Sub-pixel slack: an already-framed category must never restart its animation. */
 const FILTER_CENTER_TOLERANCE = 0.5;
@@ -47,6 +48,7 @@ Page({
   // Guard for the category strip: one counter invalidates pending native
   // queries, late renderer callbacks and staged animation commits together.
   _loaded: false,
+  _searchTimer: null as ReturnType<typeof setTimeout> | null,
   filterEpoch: 0,
   filterActive: true,
   onLoad() {
@@ -65,7 +67,7 @@ Page({
       this.filterEpoch++;
       // Consume the stored selection before measuring so the strip frames the
       // restored category, not the one rendered before hiding.
-      this.setData({ selected }, () => this.revealSelectedFilter());
+      this.setData({ selected, searchInput: "", searchTitle: "" }, () => this.revealSelectedFilter());
     } else {
       this.revealSelectedFilter();
     }
@@ -78,6 +80,7 @@ Page({
     this.filterEpoch++;
   },
   onUnload() {
+    this.cancelSearchTimer();
     resetTabSwipe(this);
     this.filterActive = false;
     this.filterEpoch++;
@@ -100,13 +103,14 @@ Page({
     if (!this.filterActive) return;
     const v = (e.currentTarget.dataset.code as string) || "";
     if (v !== "" && !validCategory(v)) return;
-    if (v === this.data.selected) {
+    if (v === this.data.selected && !this.data.searchTitle) {
+      if (this.data.searchInput) this.setData({ searchInput: "" });
       // Re-tapping the active category only re-frames the strip; no refetch.
       this.revealSelectedFilter();
       return;
     }
     this.filterEpoch++;
-    this.setData({ selected: v }, () => this.revealSelectedFilter());
+    this.setData({ selected: v, searchInput: "", searchTitle: "" }, () => this.revealSelectedFilter());
     void this.load(true);
   },
   onFilterTouchStart() {
@@ -157,33 +161,59 @@ Page({
     this.setData({ filterScrollLeft: target });
   },
   openSearch() {
-    this.setData({ searchOpen: true, searchInput: this.data.searchTitle });
+    this.setData({ searchOpen: true });
   },
   closeSearch() {
-    if (this.data.searchOpen) this.setData({ searchOpen: false, searchInput: this.data.searchTitle });
+    if (this.data.searchOpen) this.setData({ searchOpen: false });
   },
   updateSearchInput(event: WechatMiniprogram.Input) {
-    this.setData({ searchInput: event.detail.value });
+    this.applySearch(event.detail.value, true);
   },
-  search(event: WechatMiniprogram.Input | WechatMiniprogram.TouchEvent) {
-    const value = "value" in event.detail ? event.detail.value : this.data.searchInput;
-    this.applySearch(value);
+  search(event: WechatMiniprogram.Input) {
+    this.applySearch(event.detail.value);
   },
   clearSearch() {
     this.applySearch("");
   },
-  applySearch(value: string) {
-    const title = value.trim().slice(0, 100);
-    const changed = title !== this.data.searchTitle;
-    this.setData({ searchInput: title, searchTitle: title });
-    if (changed) void this.load(true);
+  cancelSearchTimer() {
+    if (this._searchTimer === null) return;
+    clearTimeout(this._searchTimer);
+    this._searchTimer = null;
+  },
+  applySearch(value: string, debounce = false) {
+    const searchInput = value.slice(0, 100);
+    const searchTitle = searchInput.trim();
+    const categoryChanged = Boolean(searchTitle && this.data.selected);
+    const changed = searchTitle !== this.data.searchTitle || categoryChanged;
+    if (categoryChanged) this.filterEpoch++;
+    this.setData({
+      searchInput,
+      searchTitle,
+      ...(categoryChanged ? { selected: "" } : {}),
+    }, categoryChanged ? () => this.revealSelectedFilter() : undefined);
+    if (!changed) {
+      if (!debounce && this._searchTimer !== null) void this.load(true);
+      return;
+    }
+    // A response for the previous input must not update the list during the debounce.
+    epoch.invalidate();
+    this.cancelSearchTimer();
+    if (!debounce || !searchTitle) {
+      void this.load(true);
+      return;
+    }
+    this._searchTimer = setTimeout(() => {
+      this._searchTimer = null;
+      void this.load(true);
+    }, SEARCH_DEBOUNCE_MS);
   },
   async load(reset = true) {
     if (
       !reset &&
-      (this.data.loading || this.data.loadingMore || !this.data.hasMore)
+      (this._searchTimer !== null || this.data.loading || this.data.loadingMore || !this.data.hasMore)
     )
       return;
+    if (reset) this.cancelSearchTimer();
     const n = epoch.next();
     this.setData({
       loading: reset,

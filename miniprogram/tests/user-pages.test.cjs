@@ -111,25 +111,81 @@ test("normal My page opens the unified activity hub", async () => {
   p.onHide();
   assert.equal(p.data.user.id, "u");
 });
-test("search clear restores the selected category and ignores a late keyword response", async () => {
+const input = value => ({ detail: { value } });
+const allActivities = "/activities?page=0&size=10";
+const waitForActivitySearch = () => new Promise(resolve => setImmediate(resolve));
+
+test("activity search debounces typing, searches all categories and keeps the keyword when collapsed", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
   const p = page("activities");
   p.setData({ selected: "WEEKLY" });
+  p.openSearch();
+  p.updateSearchInput(input("海"));
+  t.mock.timers.tick(200);
+  p.updateSearchInput(input(" 海岸 "));
+  assert.equal(p.data.searchInput, " 海岸 ");
+  assert.equal(p.data.selected, "");
+  p.onReachBottom();
+  p.closeSearch();
+  t.mock.timers.tick(249);
+  assert.deepEqual(calls, []);
+  t.mock.timers.tick(1);
+  assert.deepEqual(calls.map(x => x.path), [allActivities + "&title=" + encodeURIComponent("海岸")]);
+  await waitForActivitySearch();
+  p.openSearch();
+  assert.equal(p.data.searchInput, " 海岸 ");
+});
+
+test("activity search ignores a response that arrives after typing a new keyword and before its debounce", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = page("activities");
+  let resolveOld;
+  response = () => new Promise(resolve => { resolveOld = resolve; });
+  p.updateSearchInput(input("old"));
+  t.mock.timers.tick(250);
+  p.updateSearchInput(input("new"));
+  resolveOld({ items: [activity], page: 0, hasMore: true });
+  await waitForActivitySearch();
+  assert.deepEqual(p.data.items, []);
+  response = async () => ({ items: [{ ...activity, id: "new-activity" }], page: 0, hasMore: true });
+  t.mock.timers.tick(250);
+  await waitForActivitySearch();
+  assert.deepEqual(p.data.items.map(item => item.id), ["new-activity"]);
+});
+
+test("keyboard search flushes once, and clear invalidates the result and restores all activities", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = page("activities");
   let resolveSearch;
   response = () => new Promise(resolve => { resolveSearch = resolve; });
-  p.updateSearchInput({ detail: { value: " 海岸 " } });
-  assert.equal(calls.length, 0);
-  p.search({ detail: {} });
-  assert.equal(p.data.searchTitle, "海岸");
-  assert.ok(calls[0].path.endsWith("&category=WEEKLY&title=" + encodeURIComponent("海岸")));
+  p.updateSearchInput(input(" coast "));
+  p.search(input(" coast "));
+  t.mock.timers.tick(250);
+  assert.deepEqual(calls.map(x => x.path), [allActivities + "&title=coast"]);
 
   response = async () => ({ items: [activity], page: 0, hasMore: false });
   p.clearSearch();
   assert.equal(p.data.searchTitle, "");
   assert.equal(p.data.searchInput, "");
-  assert.ok(calls[1].path.endsWith("&category=WEEKLY"));
+  assert.equal(calls[1].path, allActivities);
   resolveSearch({ items: [], page: 0, hasMore: false });
-  await new Promise(resolve => setImmediate(resolve));
+  await waitForActivitySearch();
   assert.deepEqual(p.data.items.map(item => item.id), [activity.id]);
+});
+
+test("selecting a category clears pending search and unloading cancels it", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const p = page("activities");
+  p.updateSearchInput(input("coast"));
+  p.select({ currentTarget: { dataset: { code: "WEEKLY" } } });
+  t.mock.timers.tick(250);
+  assert.equal(p.data.searchTitle, "");
+  assert.deepEqual(calls.map(x => x.path), [allActivities + "&category=WEEKLY"]);
+  p.updateSearchInput(input("trail"));
+  p.onUnload();
+  t.mock.timers.tick(250);
+  assert.equal(calls.length, 1);
+  await waitForActivitySearch();
 });
 
 test("detail will not start a new registration during the existing registration check", async () => {
@@ -470,7 +526,11 @@ test("search opens over both tab strips, closes without clearing and supports cl
     assert.match(markup, /searchOpen \? \u0027section-tab-panel-search\u0027/);
     const p = page(name);
     assert.equal(p.data.searchOpen, false);
-    if (name === "activities") p.setData({ searchTitle: "hike" });
+    if (name === "activities") {
+      assert.match(markup, /bindinput="updateSearchInput"/);
+      assert.doesNotMatch(markup, /category-search-submit/);
+      p.setData({ searchTitle: "hike", searchInput: "hike" });
+    }
     else p.applySearch("boots");
     p.openSearch();
     assert.equal(p.data.searchOpen, true);
