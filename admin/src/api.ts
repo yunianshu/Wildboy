@@ -69,6 +69,43 @@ export async function request<T>(
   }
   return body as T;
 }
+export async function uploadAdminVideo(file: File): Promise<{
+  url: string;
+  filename: string;
+  sizeBytes: number;
+}> {
+  if (!file || file.size === 0) {
+    throw new Error("请选择有效的短视频文件（MP4 / MOV / WebM）。");
+  }
+  if (file.size > 30 * 1024 * 1024) {
+    throw new Error("短视频超过 30 MB，请压缩后再上传，或改用外部 https:// 视频链接。");
+  }
+  const startedSession = sessionVersion;
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch("/api/v1/admin/media/video", {
+    method: "POST",
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: "omit",
+  });
+  const body = await response.json().catch(() => null);
+  if (startedSession !== sessionVersion) {
+    throw new ApiError(0, "SESSION_CHANGED", "登录身份已变化，请重新操作。");
+  }
+  if (!response.ok) {
+    if (response.status === 401 && token) clearSession(true);
+    throw new ApiError(
+      response.status,
+      body?.code || "UPLOAD_FAILED",
+      body?.message ||
+        (response.status === 413
+          ? "视频体积超出服务器传输限制，请压缩后再试或粘贴 https:// 视频链接。"
+          : "短视频上传失败，请稍后重试。"),
+    );
+  }
+  return body as { url: string; filename: string; sizeBytes: number };
+}
 export async function login(username: string, password: string) {
   const auth = await request<Auth>("/auth/admin", {
     method: "POST",

@@ -265,10 +265,17 @@ public class HomeLayoutService {
                     ? List.of()
                     : cfg.gallery().slides().stream()
                         .map(
-                            s ->
-                                new GallerySlide(
-                                    s.id(), s.imageUrl(), s.title(), s.subtitle(),
-                                    sanitizePublicAction(s.action())))
+                            s -> {
+                              String mt = normalizeGalleryMediaType(s.mediaType());
+                              return new GallerySlide(
+                                  s.id(),
+                                  mt,
+                                  s.imageUrl() == null ? "" : s.imageUrl(),
+                                  "VIDEO".equals(mt) && s.videoUrl() != null ? s.videoUrl() : "",
+                                  s.title(),
+                                  s.subtitle(),
+                                  sanitizePublicAction(s.action()));
+                            })
                         .toList());
     return new LayoutConfig(
         cfg.version(), cfg.modules(), hero, shortcuts, cfg.activities(), cfg.shop(), gallery, cfg.footer());
@@ -511,6 +518,12 @@ public class HomeLayoutService {
         showProducts, maxCount, autoFill, ids);
   }
 
+  private static String normalizeGalleryMediaType(String raw) {
+    String mt = clean(raw);
+    if ("VIDEO".equals(mt) || "ARTICLE".equals(mt)) return mt;
+    return "IMAGE";
+  }
+
   private GalleryConfig validateGallery(GalleryConfig in) {
     if (in == null) bad("请提供山野轮播配置");
     String eyebrow = clean(in.eyebrow());
@@ -522,20 +535,39 @@ public class HomeLayoutService {
     if (!Set.of("AUTO_ARTICLES", "CUSTOM").contains(mode)) mode = "AUTO_ARTICLES";
     var slides = new ArrayList<GallerySlide>();
     if (in.slides() != null) {
-      if (in.slides().size() > 10) bad("自定义轮播最多 10 张");
+      if (in.slides().size() > 10) bad("自定义轮播最多 10 项");
       int idx = 1;
       for (GallerySlide s : in.slides()) {
         if (s == null) bad("轮播项无效");
+        String mediaType = normalizeGalleryMediaType(s.mediaType());
         String img = clean(s.imageUrl());
+        String video = clean(s.videoUrl());
         String sTitle = clean(s.title());
         String sSub = clean(s.subtitle());
-        if (!ContentService.safeImage(img)) bad("轮播图片地址无效");
+        ActionLink validatedAction = validateAction(s.action(), true);
+        if ("VIDEO".equals(mediaType)) {
+          if (!ContentService.safeVideo(video)) {
+            bad("短视频轮播项请上传视频或填写有效的 https:// 视频地址");
+          }
+          if (!img.isEmpty() && !ContentService.safeImage(img)) {
+            bad("短视频封面图片地址无效");
+          }
+        } else if ("ARTICLE".equals(mediaType)) {
+          if (!ContentService.safeImage(img)) bad("文章轮播项请设置封面图片");
+          video = "";
+          if (!Set.of("ARTICLE", "WECHAT_ARTICLE").contains(validatedAction.type())) {
+            bad("文章轮播项请选择小程序文章或填写微信公众号文章链接");
+          }
+        } else {
+          if (!ContentService.safeImage(img)) bad("轮播图片地址无效");
+          video = "";
+        }
         if (sTitle.isEmpty() || sTitle.length() > 80 || sSub.length() > 160) {
           bad("轮播标题请填写 1–80 字，副标题最多 160 字");
         }
         String sid = clean(s.id());
         if (sid.isEmpty() || !sid.matches("[A-Za-z0-9_-]{1,64}")) sid = "slide-" + idx;
-        slides.add(new GallerySlide(sid, img, sTitle, sSub, validateAction(s.action(), true)));
+        slides.add(new GallerySlide(sid, mediaType, img, video, sTitle, sSub, validatedAction));
         idx++;
       }
     }

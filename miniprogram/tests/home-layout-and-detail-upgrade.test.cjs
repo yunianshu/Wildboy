@@ -413,3 +413,62 @@ test("the native home footer renders custom cells, omits blanks and preserves ad
   home.previewFollowQr({ currentTarget: { dataset: { url: urls[1] } } });
   assert.deepEqual(calls.map(({ current, urls }) => ({ current, urls })), [{ current: urls[1], urls: [urls[1], urls[0]] }]);
 });
+
+test("gallery supports mixed IMAGE, VIDEO, and ARTICLE slides with short-video modal player", () => {
+  const { normalizePublicHomeLayout } = require("../dist/utils/home-layout.js");
+  const normalized = normalizePublicHomeLayout({
+    layout: {
+      modules: [{ id: "GALLERY", enabled: true }],
+      gallery: {
+        eyebrow: "MOMENTS OUTSIDE",
+        title: "山野之间",
+        mode: "CUSTOM",
+        slides: [
+          {
+            id: "s-img",
+            mediaType: "IMAGE",
+            imageUrl: "/assets/hero-hiking.jpg",
+            title: "山野照片",
+            subtitle: "晨雾",
+            action: { type: "NONE" },
+          },
+          {
+            id: "s-vid",
+            mediaType: "VIDEO",
+            imageUrl: "",
+            videoUrl: "/assets/uploads/video-demo.mp4",
+            title: "山野短视频",
+            subtitle: "出发瞬间",
+            action: { type: "ARTICLE", articleId: "OFFICIAL" },
+          },
+          {
+            id: "s-art",
+            mediaType: "ARTICLE",
+            imageUrl: "/assets/category-weekly.jpg",
+            title: "山野手记",
+            subtitle: "路线记录",
+            action: {
+              type: "WECHAT_ARTICLE",
+              wechatArticleUrl: "https://mp.weixin.qq.com/s/WildboyNote",
+            },
+          },
+        ],
+      },
+    },
+  });
+  assert.equal(normalized.gallery.slides.length, 3);
+  assert.equal(normalized.gallery.slides[0].mediaType, "IMAGE");
+  assert.equal(normalized.gallery.slides[1].mediaType, "VIDEO");
+  assert.match(normalized.gallery.slides[1].videoUrl, /\/assets\/uploads\/video-demo\.mp4$/);
+  assert.equal(normalized.gallery.slides[2].mediaType, "ARTICLE");
+
+  const home = mountPage("home");
+  home.data.galleryConfig = normalized.gallery;
+  home.openGalleryItem({ currentTarget: { dataset: { slideIndex: 1 } } });
+  assert.equal(home.data.activeVideo.id, "s-vid");
+  home.closeVideoPlayer();
+  assert.equal(home.data.activeVideo, null);
+
+  home.openGalleryItem({ currentTarget: { dataset: { slideIndex: 2 } } });
+  assert.deepEqual(openedOfficialUrls, ["https://mp.weixin.qq.com/s/WildboyNote"]);
+});

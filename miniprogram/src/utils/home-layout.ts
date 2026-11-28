@@ -1,6 +1,7 @@
 import { Activity, Home } from "./models";
 import {
   defaultShortcutViews,
+  safeGalleryVideo,
   safeShortcutImage,
   safeWechatArticleUrl,
   shortcutIcons,
@@ -75,9 +76,13 @@ export interface HomeShopView {
   maxCount: number;
 }
 
+export type HomeGalleryMediaType = "IMAGE" | "VIDEO" | "ARTICLE";
+
 export interface HomeGallerySlideView {
   id: string;
+  mediaType: HomeGalleryMediaType;
   imageUrl: string;
+  videoUrl: string;
   title: string;
   subtitle: string;
   action: HomeActionLink;
@@ -667,11 +672,25 @@ export function normalizePublicHomeLayout(payload: PublicHomeLayoutPayload) {
   const slides: HomeGallerySlideView[] = Array.isArray(raw.gallery?.slides)
     ? raw.gallery!.slides
         .map((s, idx) => {
+          const mediaType: HomeGalleryMediaType =
+            s?.mediaType === "VIDEO" || s?.mediaType === "ARTICLE"
+              ? s.mediaType
+              : "IMAGE";
           const img = s?.imageUrl ? safeShortcutImage(s.imageUrl) : "";
-          if (!img) return null;
+          const videoUrl =
+            mediaType === "VIDEO" && s?.videoUrl
+              ? safeGalleryVideo(s.videoUrl)
+              : "";
+          if (mediaType === "VIDEO") {
+            if (!videoUrl) return null;
+          } else if (!img) {
+            return null;
+          }
           return {
             id: typeof s.id === "string" && s.id ? s.id : `slide-${idx + 1}`,
+            mediaType,
             imageUrl: img,
+            videoUrl,
             title: typeof s.title === "string" ? s.title : "",
             subtitle: typeof s.subtitle === "string" ? s.subtitle : "",
             action: sanitizeAction(s.action),

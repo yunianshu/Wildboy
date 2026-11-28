@@ -7,13 +7,22 @@ import AppIcon from "./AppIcon.vue";
 const props = defineProps<{ config: HomeGalleryConfig; active: boolean }>();
 defineEmits<{ edit: [] }>();
 
-type Slide = Pick<HomeGallerySlide, "id" | "title" | "subtitle" | "imageUrl">;
+type Slide = Pick<
+  HomeGallerySlide,
+  "id" | "mediaType" | "title" | "subtitle" | "imageUrl" | "videoUrl"
+>;
 type Article = {
   id: string;
   title: string;
   coverUrl: string;
   summary: string;
   isOfficial: boolean;
+};
+
+const mediaTypeLabels: Record<string, string> = {
+  IMAGE: "图片",
+  VIDEO: "短视频",
+  ARTICLE: "文章",
 };
 
 // The mini program uses these packaged slides when the public feeds are empty.
@@ -38,7 +47,16 @@ const defaultSlides: Slide[] = [
   },
 ];
 const customSlides = computed(() =>
-  props.config.slides.filter((slide) => slide.imageUrl),
+  props.config.slides
+    .filter((slide) =>
+      slide.mediaType === "VIDEO"
+        ? Boolean(slide.videoUrl || slide.imageUrl)
+        : Boolean(slide.imageUrl),
+    )
+    .map((slide) => ({
+      ...slide,
+      mediaType: slide.mediaType || "IMAGE",
+    })),
 );
 const source = computed(() =>
   props.config.mode === "CUSTOM" && customSlides.value.length
@@ -53,8 +71,13 @@ const slides = computed(() =>
 );
 const index = ref(0);
 const current = computed(() => slides.value[index.value]);
+const currentBadge = computed(() => {
+  const mt = current.value?.mediaType;
+  if (mt === "VIDEO" || mt === "ARTICLE") return mediaTypeLabels[mt];
+  return "";
+});
 const sourceLabel = computed(() =>
-  source.value === "CUSTOM_SLIDES" ? "自定义轮播图" : publicSourceLabel.value,
+  source.value === "CUSTOM_SLIDES" ? "自定义内容" : publicSourceLabel.value,
 );
 
 defineExpose({
@@ -89,6 +112,7 @@ watch(
         publicSlides.value = articles.map(
           ({ id, title, coverUrl, summary }) => ({
             id,
+            mediaType: "ARTICLE" as const,
             title,
             imageUrl: coverUrl,
             subtitle: summary,
@@ -145,6 +169,19 @@ watch(
       >
       <span v-if="current" class="gallery-slide">
         <img v-if="current.imageUrl" :src="current.imageUrl" alt="" />
+        <video
+          v-else-if="current.mediaType === 'VIDEO' && current.videoUrl"
+          :src="current.videoUrl"
+          muted
+          playsinline
+          preload="metadata"
+        />
+        <span v-if="currentBadge" class="gallery-type-badge" :class="`is-${(current.mediaType || 'IMAGE').toLowerCase()}`">
+          {{ currentBadge }}
+        </span>
+        <span v-if="current.mediaType === 'VIDEO'" class="gallery-play-dot" aria-hidden="true">
+          ▶
+        </span>
         <span class="gallery-copy">
           <strong v-if="current.title">{{ current.title }}</strong>
           <small v-if="current.subtitle">{{ current.subtitle }}</small>
@@ -202,12 +239,48 @@ watch(
   background: #3a5241;
   border-radius: 6px;
 }
-.gallery-slide img {
+.gallery-slide img,
+.gallery-slide video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+.gallery-type-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(16, 32, 24, 0.72);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(4px);
+}
+.gallery-type-badge.is-video {
+  background: rgba(18, 92, 62, 0.88);
+}
+.gallery-play-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding-left: 2px;
+  transform: translate(-50%, -65%);
+  border-radius: 999px;
+  background: rgba(16, 32, 24, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
 }
 .gallery-copy {
   position: relative;

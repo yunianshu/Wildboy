@@ -287,9 +287,12 @@ export interface HomeShopConfig {
   autoFill: boolean;
   featuredProductIds: string[];
 }
+export type HomeGalleryMediaType = "IMAGE" | "VIDEO" | "ARTICLE";
 export interface HomeGallerySlide {
   id: string;
+  mediaType?: HomeGalleryMediaType;
   imageUrl: string;
+  videoUrl?: string;
   title: string;
   subtitle: string;
   action: HomeActionLink;

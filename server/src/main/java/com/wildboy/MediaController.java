@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import java.util.Base64;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.config.annotation.*;
 
 @RestController @RequestMapping("/api/v1/admin/media")
@@ -37,6 +38,12 @@ public class MediaController implements WebMvcConfigurer {
     try { bytes = Base64.getDecoder().decode(input.dataBase64()); }
     catch (IllegalArgumentException e) { throw MediaService.invalid(); }
     return ResponseEntity.status(201).body(media.storeMedia(bytes, input.name(), input.category()));
+  }
+
+  @PostMapping(value = "/video", consumes = "multipart/form-data")
+  ResponseEntity<MediaService.VideoUploadResult> uploadVideo(
+      @RequestParam("file") MultipartFile file) {
+    return ResponseEntity.status(201).body(media.storeVideo(file));
   }
 
   @PutMapping("/{id}")

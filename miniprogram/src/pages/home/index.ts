@@ -25,6 +25,7 @@ import {
   defaultHomeModules,
   defaultShopView,
   HomeActionLink,
+  HomeGallerySlideView,
   HomeQrImage,
   HomeShortcutView,
   isPublicHomeLayout,
@@ -74,6 +75,7 @@ Page({
     popupGeneration: 0,
     popupBodyHeight: 0,
     popupScrollable: false,
+    activeVideo: null as null | HomeGallerySlideView,
     items: [] as ReturnType<typeof homeActivitySlots>,
     articles: [] as ArticleSummary[],
     articleLoading: false,
@@ -108,7 +110,12 @@ Page({
     layoutEpoch.invalidate();
     shortcutEpoch.invalidate();
     tapEpoch.invalidate();
-    this.setData({ popup: null, popupImages: [], shortcutBusy: false });
+    this.setData({
+      popup: null,
+      popupImages: [],
+      shortcutBusy: false,
+      activeVideo: null,
+    });
   },
   onUnload() {
     this._popupDisposed = true;
@@ -187,6 +194,7 @@ Page({
         footer: normalized.footer,
         popup: null,
         popupImages: [],
+        activeVideo: null,
       });
     } catch {
       // Keep the last valid layout, or use the legacy sections on a first load.
@@ -276,11 +284,29 @@ Page({
     const slideIdx = e.currentTarget.dataset.slideIndex;
     if (slideIdx !== undefined && this.data.galleryConfig.mode === "CUSTOM") {
       const slide = this.data.galleryConfig.slides[Number(slideIdx)];
-      if (slide) void this.dispatchAction(slide.action);
+      if (!slide) return;
+      if (slide.mediaType === "VIDEO" && slide.videoUrl) {
+        this.setData({ activeVideo: slide });
+        return;
+      }
+      void this.dispatchAction(slide.action);
       return;
     }
     if (e.currentTarget.dataset.article) this.openArticle(e);
     else this.openActivity(e);
+  },
+  closeVideoPlayer() {
+    this.setData({ activeVideo: null });
+  },
+  keepVideoPlayer() {},
+  openVideoAction() {
+    const slide = this.data.activeVideo;
+    if (!slide) return;
+    this.setData({ activeVideo: null }, () => {
+      if (slide.action && slide.action.type !== "NONE") {
+        void this.dispatchAction(slide.action);
+      }
+    });
   },
   tapHero() {
     if (this.data.hero.action && this.data.hero.action.type !== "NONE") {

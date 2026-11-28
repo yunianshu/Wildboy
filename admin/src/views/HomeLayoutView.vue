@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
-import { ApiError, currentUser, errorMessage, request } from "../api";
+import {
+  ApiError,
+  currentUser,
+  errorMessage,
+  request,
+  uploadAdminVideo,
+} from "../api";
 import { askConfirm } from "../confirm";
 import AppIcon from "../components/AppIcon.vue";
 import { displayDate } from "../forms";
@@ -15,6 +21,7 @@ import {
   categories,
   type Activity,
   type HomeActionLink,
+  type HomeGalleryMediaType,
   type HomeGallerySlide,
   type HomeFooterBlock,
   type HomeFooterCell,
@@ -48,7 +55,7 @@ const moduleLabels: Record<HomeModuleId, { title: string; desc: string }> = {
     desc: "选择活动并调整显示顺序",
   },
   SHOP: { title: "装备横幅与商品", desc: "横幅图文与首页精选装备" },
-  GALLERY: { title: "山野之间轮播", desc: "自动取文章或自定义轮播图" },
+  GALLERY: { title: "山野之间轮播", desc: "支持图片、短视频与文章轮播" },
   FOOTER: {
     title: "底部关注码与底图",
     desc: "自定义底图、说明和二维码的四格位置",
@@ -70,7 +77,13 @@ const iconPresets = [
   ["INTRO", "海岸休闲图"],
 ] as const;
 
-type ArticleOption = { id: string; title: string; status: string };
+type ArticleOption = {
+  id: string;
+  title: string;
+  status: string;
+  summary?: string;
+  coverUrl?: string;
+};
 
 const route = useRoute();
 const layout = ref<HomeLayoutConfig | null>(null);
@@ -127,6 +140,8 @@ const footerQuickTemplateGroups: Array<{
 );
 
 const activeFooterBlockId = ref<string>("");
+const footerPresetMenuOpen = ref(false);
+const footerPresetAnchorEl = ref<HTMLElement | null>(null);
 const dragFooterIdx = ref<number | null>(null);
 const dragOverFooterIdx = ref<number | null>(null);
 const puzzleStageEl = ref<HTMLElement | null>(null);
@@ -382,6 +397,10 @@ const activeFooterTemplateId = computed(() => {
   return match?.id ?? "";
 });
 
+const activeFooterTemplate = computed<FooterQuickTemplate | null>(
+  () => footerQuickTemplates.find((t) => t.id === activeFooterTemplateId.value) ?? null,
+);
+
 function footerTemplateThumbStyle(tpl: FooterQuickTemplate) {
   return {
     gridTemplateColumns: tpl.colRatios.map((r) => `minmax(0, ${r}fr)`).join(" "),
@@ -404,6 +423,20 @@ function applyFooterTemplate(tplId: string) {
     b.enabled = idx < tpl.spans.length;
   });
   if (blocks[0]) activeFooterBlockId.value = blocks[0].id;
+  footerPresetMenuOpen.value = false;
+}
+
+function onFooterPresetDocClick(e: MouseEvent) {
+  if (!footerPresetMenuOpen.value) return;
+  const target = e.target as Node | null;
+  if (target && footerPresetAnchorEl.value?.contains(target)) return;
+  footerPresetMenuOpen.value = false;
+}
+
+function onFooterPresetKeydown(e: KeyboardEvent) {
+  if (e.key === "Escape" && footerPresetMenuOpen.value) {
+    footerPresetMenuOpen.value = false;
+  }
 }
 
 function addFooterBlock() {
@@ -619,6 +652,12 @@ function normalizeLoaded(raw: HomeLayoutConfig): HomeLayoutConfig {
   copy.gallery.slides = (copy.gallery.slides || []).map((s, idx) => ({
     ...s,
     id: s.id || `slide-${idx + 1}`,
+    mediaType:
+      s.mediaType === "VIDEO" || s.mediaType === "ARTICLE"
+        ? s.mediaType
+        : "IMAGE",
+    imageUrl: s.imageUrl || "",
+    videoUrl: s.videoUrl || "",
     action: s.action || emptyAction("NONE"),
   }));
   copy.footer.followQrcodes = copy.footer.followQrcodes || [];
@@ -1028,17 +1067,115 @@ function endProductDrag() {
   overProductId.value = "";
 }
 
-// Custom gallery slides
-function addGallerySlide(url: string) {
+// Custom gallery slides (IMAGE / VIDEO / ARTICLE)
+const galleryVideoUploading = reactive<Record<string, boolean>>({});
+const galleryVideoErrors = reactive<Record<string, string>>({});
+const galleryMediaTypeOptions: Array<{
+  value: HomeGalleryMediaType;
+  label: string;
+}> = [
+  { value: "IMAGE", label: "图片" },
+  { value: "VIDEO", label: "短视频" },
+  { value: "ARTICLE", label: "文章" },
+];
+
+function galleryMediaTypeLabel(type?: HomeGalleryMediaType) {
+  if (type === "VIDEO") return "短视频";
+  if (type === "ARTICLE") return "文章";
+  return "图片";
+}
+
+function addGallerySlideByType(mediaType: HomeGalleryMediaType) {
   if (!layout.value || layout.value.gallery.slides.length >= 10) return;
-  const slide: HomeGallerySlide = {
-    id: `slide-${Date.now().toString(36)}`,
-    imageUrl: url,
+  const id = `slide-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 5)}`;
+  if (mediaType === "VIDEO") {
+    layout.value.gallery.slides.push({
+      id,
+      mediaType: "VIDEO",
+      imageUrl: "",
+      videoUrl: "",
+      title: "山野短视频",
+      subtitle: "记录出发与在路上的瞬间",
+      action: emptyAction("NONE"),
+    });
+    return;
+  }
+  if (mediaType === "ARTICLE") {
+    const usedIds = new Set(
+      layout.value.gallery.slides
+        .filter((s) => s.action.type === "ARTICLE")
+        .map((s) => s.action.articleId),
+    );
+    const picked =
+      allArticles.value.find((a) => !usedIds.has(a.id)) || allArticles.value[0];
+    layout.value.gallery.slides.push({
+      id,
+      mediaType: "ARTICLE",
+      imageUrl: picked?.coverUrl || "",
+      videoUrl: "",
+      title: picked?.title || "山野手记",
+      subtitle: picked?.summary || "",
+      action: {
+        ...emptyAction("ARTICLE"),
+        articleId: picked?.id || "OFFICIAL",
+      },
+    });
+    return;
+  }
+  layout.value.gallery.slides.push({
+    id,
+    mediaType: "IMAGE",
+    imageUrl: "",
+    videoUrl: "",
     title: "山野时刻",
     subtitle: "一起走进自然",
     action: emptyAction("NONE"),
-  };
-  layout.value.gallery.slides.push(slide);
+  });
+}
+
+function setGallerySlideType(
+  slide: HomeGallerySlide,
+  nextType: HomeGalleryMediaType,
+) {
+  slide.mediaType = nextType;
+  if (nextType === "ARTICLE") {
+    if (
+      slide.action.type !== "ARTICLE" &&
+      slide.action.type !== "WECHAT_ARTICLE"
+    ) {
+      slide.action.type = "ARTICLE";
+      if (!slide.action.articleId) {
+        slide.action.articleId = allArticles.value[0]?.id || "OFFICIAL";
+      }
+      onGalleryArticleSelect(slide);
+    }
+  }
+}
+
+function onGalleryArticleSelect(slide: HomeGallerySlide) {
+  if (slide.action.type !== "ARTICLE") return;
+  const picked = allArticles.value.find((a) => a.id === slide.action.articleId);
+  if (!picked) return;
+  slide.title = picked.title;
+  if (picked.summary) slide.subtitle = picked.summary;
+  if (picked.coverUrl) slide.imageUrl = picked.coverUrl;
+}
+
+async function uploadGalleryVideo(slide: HomeGallerySlide, event: Event) {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  target.value = "";
+  if (!file) return;
+  galleryVideoUploading[slide.id] = true;
+  galleryVideoErrors[slide.id] = "";
+  try {
+    const res = await uploadAdminVideo(file);
+    slide.videoUrl = res.url;
+  } catch (e) {
+    galleryVideoErrors[slide.id] = errorMessage(e);
+  } finally {
+    galleryVideoUploading[slide.id] = false;
+  }
 }
 
 async function save() {
@@ -1092,11 +1229,15 @@ watch(currentUser, (u) => {
 onMounted(() => {
   void load();
   window.addEventListener("beforeunload", protectBeforeUnload);
+  document.addEventListener("click", onFooterPresetDocClick);
+  document.addEventListener("keydown", onFooterPresetKeydown);
 });
 onUnmounted(() => {
   activityRequest?.abort();
   stopSplitDrag();
   window.removeEventListener("beforeunload", protectBeforeUnload);
+  document.removeEventListener("click", onFooterPresetDocClick);
+  document.removeEventListener("keydown", onFooterPresetKeydown);
 });
 </script>
 
@@ -2164,7 +2305,15 @@ onUnmounted(() => {
 
         <!-- 5. GALLERY -->
         <div v-else-if="activeModule === 'GALLERY'" class="editor-panel">
-          <h2>山野之间轮播区</h2>
+          <div class="panel-head">
+            <div>
+              <h2>山野之间轮播区</h2>
+              <p class="field-hint">
+                可自动展示已发布文章，或自由混排图片、短视频与文章内容。
+              </p>
+            </div>
+          </div>
+
           <div class="field-row">
             <label>
               英文眉题
@@ -2174,160 +2323,584 @@ onUnmounted(() => {
               板块标题
               <input v-model="layout.gallery.title" maxlength="40" />
             </label>
-            <label>
-              数据来源
-              <select v-model="layout.gallery.mode">
-                <option value="AUTO_ARTICLES">
-                  自动展示已发布文章（默认）
-                </option>
-                <option value="CUSTOM">自定义上传轮播图与跳转</option>
-              </select>
-            </label>
+          </div>
+
+          <div class="gallery-mode-group" role="radiogroup" aria-label="数据来源">
+            <button
+              type="button"
+              class="gallery-mode-card"
+              :class="{ 'is-active': layout.gallery.mode === 'AUTO_ARTICLES' }"
+              :aria-checked="layout.gallery.mode === 'AUTO_ARTICLES'"
+              role="radio"
+              @click="layout.gallery.mode = 'AUTO_ARTICLES'"
+            >
+              <strong>自动展示已发布文章</strong>
+              <span>自动拉取已发布文章，无文章时回退至活动封面或内置图</span>
+            </button>
+            <button
+              type="button"
+              class="gallery-mode-card"
+              :class="{ 'is-active': layout.gallery.mode === 'CUSTOM' }"
+              :aria-checked="layout.gallery.mode === 'CUSTOM'"
+              role="radio"
+              @click="layout.gallery.mode = 'CUSTOM'"
+            >
+              <strong>自定义混排内容</strong>
+              <span>自由添加图片、短视频与文章，支持排序与点击跳转</span>
+            </button>
+          </div>
+
+          <div v-if="layout.gallery.mode === 'CUSTOM'" class="sub-box">
+            <div class="panel-head gallery-custom-head">
+              <div>
+                <h3>自定义轮播内容（{{ layout.gallery.slides.length }} / 10）</h3>
+                <p class="field-hint">
+                  支持混合编排图片、短视频与文章；未配置完整资源的条目不会在小程序显示。
+                </p>
+              </div>
+              <div
+                v-if="layout.gallery.slides.length < 10"
+                class="gallery-add-actions"
+              >
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="addGallerySlideByType('IMAGE')"
+                >
+                  + 图片
+                </button>
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="addGallerySlideByType('VIDEO')"
+                >
+                  + 短视频
+                </button>
+                <button
+                  type="button"
+                  class="secondary"
+                  @click="addGallerySlideByType('ARTICLE')"
+                >
+                  + 文章
+                </button>
+              </div>
+            </div>
+
+            <div
+              v-if="!layout.gallery.slides.length"
+              class="gallery-empty-state"
+            >
+              <p>还没有自定义轮播项，点击上方按钮添加图片、短视频或文章。</p>
+            </div>
+
+            <div class="gallery-card-list">
+              <div
+                v-for="(slide, sIdx) in layout.gallery.slides"
+                :key="slide.id"
+                class="gallery-card"
+              >
+                <div class="gallery-card-head">
+                  <div class="gallery-card-ident">
+                    <span class="gallery-card-index">#{{ sIdx + 1 }}</span>
+                    <div
+                      class="gallery-type-tabs"
+                      role="group"
+                      aria-label="内容类型"
+                    >
+                      <button
+                        v-for="opt in galleryMediaTypeOptions"
+                        :key="opt.value"
+                        type="button"
+                        class="gallery-type-tab"
+                        :class="{
+                          'is-active': (slide.mediaType || 'IMAGE') === opt.value,
+                        }"
+                        @click="setGallerySlideType(slide, opt.value)"
+                      >
+                        {{ opt.label }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="gallery-card-ops">
+                    <button
+                      type="button"
+                      class="text-button"
+                      :disabled="sIdx === 0"
+                      @click="
+                        moveArrayItem(layout.gallery.slides, sIdx, sIdx - 1)
+                      "
+                    >
+                      上移
+                    </button>
+                    <button
+                      type="button"
+                      class="text-button"
+                      :disabled="sIdx === layout.gallery.slides.length - 1"
+                      @click="
+                        moveArrayItem(layout.gallery.slides, sIdx, sIdx + 1)
+                      "
+                    >
+                      下移
+                    </button>
+                    <button
+                      type="button"
+                      class="text-button danger-text"
+                      @click="layout.gallery.slides.splice(sIdx, 1)"
+                    >
+                      删除
+                    </button>
+                  </div>
+                </div>
+
+                <!-- IMAGE TYPE -->
+                <div
+                  v-if="(slide.mediaType || 'IMAGE') === 'IMAGE'"
+                  class="gallery-card-body"
+                >
+                  <div class="gallery-media-col">
+                    <div class="gallery-media-box">
+                      <img
+                        v-if="slide.imageUrl"
+                        :src="slide.imageUrl"
+                        alt=""
+                      />
+                      <span v-else class="gallery-media-placeholder">
+                        请上传或选择图片
+                      </span>
+                    </div>
+                    <ImageUpload
+                      category="HOME"
+                      compact
+                      :label="slide.imageUrl ? '更换图片' : '上传图片'"
+                      :preview="slide.imageUrl"
+                      @uploaded="(url) => (slide.imageUrl = url)"
+                    />
+                  </div>
+                  <div class="gallery-fields-col">
+                    <div class="field-row">
+                      <label>
+                        主标题
+                        <input
+                          v-model="slide.title"
+                          maxlength="80"
+                          placeholder="输入轮播主标题"
+                        />
+                      </label>
+                      <label>
+                        副标题
+                        <input
+                          v-model="slide.subtitle"
+                          maxlength="160"
+                          placeholder="输入简短说明（可选）"
+                        />
+                      </label>
+                    </div>
+                    <div class="field-row">
+                      <label>
+                        点击跳转
+                        <select v-model="slide.action.type">
+                          <option value="NONE">点击不跳转</option>
+                          <option value="ARTICLE">跳小程序文章</option>
+                          <option value="WECHAT_ARTICLE">跳微信公众号文章</option>
+                          <option value="ACTIVITY">跳指定活动</option>
+                        </select>
+                      </label>
+                      <label v-if="slide.action.type === 'WECHAT_ARTICLE'">
+                        公众号文章链接
+                        <input
+                          v-model="slide.action.wechatArticleUrl"
+                          placeholder="https://mp.weixin.qq.com/s/..."
+                        />
+                      </label>
+                      <label v-else-if="slide.action.type === 'ACTIVITY'">
+                        选择活动
+                        <select v-model="slide.action.activityId">
+                          <option value="">选择活动</option>
+                          <option
+                            v-for="a in allActivities"
+                            :key="a.id"
+                            :value="a.id"
+                          >
+                            {{ a.title }}
+                          </option>
+                        </select>
+                      </label>
+                      <label v-else-if="slide.action.type === 'ARTICLE'">
+                        选择文章
+                        <select v-model="slide.action.articleId">
+                          <option value="OFFICIAL">官方介绍</option>
+                          <option
+                            v-for="art in allArticles"
+                            :key="art.id"
+                            :value="art.id"
+                          >
+                            {{ art.title }}
+                          </option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- VIDEO TYPE -->
+                <div
+                  v-else-if="slide.mediaType === 'VIDEO'"
+                  class="gallery-card-body"
+                >
+                  <div class="gallery-media-col">
+                    <div class="gallery-media-box is-video">
+                      <video
+                        v-if="slide.videoUrl"
+                        :src="slide.videoUrl"
+                        :poster="slide.imageUrl || undefined"
+                        controls
+                        preload="metadata"
+                      />
+                      <img
+                        v-else-if="slide.imageUrl"
+                        :src="slide.imageUrl"
+                        alt=""
+                      />
+                      <span v-else class="gallery-media-placeholder">
+                        上传或粘贴短视频
+                      </span>
+                    </div>
+                    <div class="gallery-video-actions">
+                      <label class="video-upload-btn">
+                        <input
+                          type="file"
+                          hidden
+                          accept="video/mp4,video/quicktime,video/webm"
+                          :disabled="galleryVideoUploading[slide.id]"
+                          @change="(e) => uploadGalleryVideo(slide, e)"
+                        />
+                        {{
+                          galleryVideoUploading[slide.id]
+                            ? "上传中…"
+                            : slide.videoUrl
+                              ? "更换视频"
+                              : "上传短视频"
+                        }}
+                      </label>
+                      <ImageUpload
+                        category="HOME"
+                        compact
+                        :label="slide.imageUrl ? '更换封面' : '设置封面'"
+                        :preview="slide.imageUrl"
+                        @uploaded="(url) => (slide.imageUrl = url)"
+                      />
+                      <button
+                        v-if="slide.imageUrl"
+                        type="button"
+                        class="text-button"
+                        @click="slide.imageUrl = ''"
+                      >
+                        清除封面
+                      </button>
+                    </div>
+                    <p
+                      v-if="galleryVideoErrors[slide.id]"
+                      class="error-box gallery-inline-error"
+                    >
+                      {{ galleryVideoErrors[slide.id] }}
+                    </p>
+                  </div>
+                  <div class="gallery-fields-col">
+                    <label>
+                      视频地址（MP4 / MOV / WebM，上传≤30MB 或填 https:// 链接）
+                      <input
+                        v-model="slide.videoUrl"
+                        maxlength="2048"
+                        placeholder="/assets/uploads/video-...mp4 或 https://..."
+                      />
+                    </label>
+                    <div class="field-row">
+                      <label>
+                        主标题
+                        <input
+                          v-model="slide.title"
+                          maxlength="80"
+                          placeholder="短视频标题"
+                        />
+                      </label>
+                      <label>
+                        副标题
+                        <input
+                          v-model="slide.subtitle"
+                          maxlength="160"
+                          placeholder="短视频简介（可选）"
+                        />
+                      </label>
+                    </div>
+                    <div class="field-row">
+                      <label>
+                        播放页底部跳转（可选）
+                        <select v-model="slide.action.type">
+                          <option value="NONE">无附加跳转</option>
+                          <option value="ACTIVITY">查看关联活动</option>
+                          <option value="ARTICLE">阅读关联文章</option>
+                          <option value="WECHAT_ARTICLE">跳微信公众号文章</option>
+                        </select>
+                      </label>
+                      <label v-if="slide.action.type === 'WECHAT_ARTICLE'">
+                        公众号文章链接
+                        <input
+                          v-model="slide.action.wechatArticleUrl"
+                          placeholder="https://mp.weixin.qq.com/s/..."
+                        />
+                      </label>
+                      <label v-else-if="slide.action.type === 'ACTIVITY'">
+                        选择活动
+                        <select v-model="slide.action.activityId">
+                          <option value="">选择活动</option>
+                          <option
+                            v-for="a in allActivities"
+                            :key="a.id"
+                            :value="a.id"
+                          >
+                            {{ a.title }}
+                          </option>
+                        </select>
+                      </label>
+                      <label v-else-if="slide.action.type === 'ARTICLE'">
+                        选择文章
+                        <select v-model="slide.action.articleId">
+                          <option value="OFFICIAL">官方介绍</option>
+                          <option
+                            v-for="art in allArticles"
+                            :key="art.id"
+                            :value="art.id"
+                          >
+                            {{ art.title }}
+                          </option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ARTICLE TYPE -->
+                <div v-else class="gallery-card-body">
+                  <div class="gallery-media-col">
+                    <div class="gallery-media-box">
+                      <img
+                        v-if="slide.imageUrl"
+                        :src="slide.imageUrl"
+                        alt=""
+                      />
+                      <span v-else class="gallery-media-placeholder">
+                        请设置文章封面
+                      </span>
+                    </div>
+                    <ImageUpload
+                      category="HOME"
+                      compact
+                      :label="slide.imageUrl ? '更换封面' : '上传封面'"
+                      :preview="slide.imageUrl"
+                      @uploaded="(url) => (slide.imageUrl = url)"
+                    />
+                  </div>
+                  <div class="gallery-fields-col">
+                    <div class="field-row">
+                      <label>
+                        文章来源
+                        <select v-model="slide.action.type">
+                          <option value="ARTICLE">小程序文章</option>
+                          <option value="WECHAT_ARTICLE">微信公众号文章</option>
+                        </select>
+                      </label>
+                      <label v-if="slide.action.type === 'WECHAT_ARTICLE'">
+                        公众号文章链接
+                        <input
+                          v-model="slide.action.wechatArticleUrl"
+                          placeholder="https://mp.weixin.qq.com/s/..."
+                        />
+                      </label>
+                      <label v-else>
+                        选择已发布文章（自动填充封面与标题）
+                        <select
+                          v-model="slide.action.articleId"
+                          @change="onGalleryArticleSelect(slide)"
+                        >
+                          <option value="OFFICIAL">官方介绍</option>
+                          <option
+                            v-for="art in allArticles"
+                            :key="art.id"
+                            :value="art.id"
+                          >
+                            {{ art.title }}
+                          </option>
+                        </select>
+                      </label>
+                    </div>
+                    <div class="field-row">
+                      <label>
+                        展示标题
+                        <input
+                          v-model="slide.title"
+                          maxlength="80"
+                          placeholder="文章标题"
+                        />
+                      </label>
+                      <label>
+                        展示副标题
+                        <input
+                          v-model="slide.subtitle"
+                          maxlength="160"
+                          placeholder="文章摘要（可选）"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="sub-box">
-            <h3>当前轮播内容</h3>
-            <p v-if="!galleryPreview" class="muted">板块显示后可查看当前轮播内容。</p>
-            <p v-else-if="!galleryPreview.slides.length" class="muted">正在加载轮播内容…</p>
+            <h3>当前轮播预览</h3>
+            <p v-if="!galleryPreview" class="muted">
+              板块显示后可查看当前轮播内容。
+            </p>
+            <p v-else-if="!galleryPreview.slides.length" class="muted">
+              正在加载轮播内容…
+            </p>
             <template v-else>
               <p class="muted">
-                {{ galleryPreview.sourceLabel }} · 共 {{ galleryPreview.slides.length }} 项
+                {{ galleryPreview.sourceLabel }} · 共
+                {{ galleryPreview.slides.length }} 项（点击条目可切换右侧预览）
               </p>
               <p v-if="layout.gallery.mode === 'AUTO_ARTICLES'" class="muted">
-                自动模式会在没有可展示的文章时使用备用内容。要指定图片、文案或跳转，可切换到自定义。
+                自动模式会在没有可展示的文章时使用备用内容。如需混排图片、短视频与文章，请切换到「自定义混排内容」。
               </p>
               <ol class="gallery-preview-items">
-                <li v-for="(slide, index) in galleryPreview.slides" :key="slide.id">
+                <li
+                  v-for="(slide, index) in galleryPreview.slides"
+                  :key="slide.id"
+                >
                   <button
                     type="button"
                     class="secondary gallery-preview-item"
                     :aria-pressed="galleryPreview.index === index"
                     @click="galleryPreview.selectSlide(index)"
                   >
-                    <img v-if="slide.imageUrl" :src="slide.imageUrl" alt="" />
-                    <span>{{ index + 1 }}. {{ slide.title || "未填写标题" }}</span>
+                    <img
+                      v-if="slide.imageUrl"
+                      :src="slide.imageUrl"
+                      alt=""
+                    />
+                    <span
+                      v-else-if="slide.mediaType === 'VIDEO'"
+                      class="gallery-preview-video-thumb"
+                      aria-hidden="true"
+                      >▶</span
+                    >
+                    <span
+                      class="gallery-preview-pill"
+                      :class="`is-${(slide.mediaType || 'IMAGE').toLowerCase()}`"
+                    >
+                      {{ galleryMediaTypeLabel(slide.mediaType) }}
+                    </span>
+                    <span class="gallery-preview-title"
+                      >{{ index + 1 }}. {{ slide.title || "未填写标题" }}</span
+                    >
                   </button>
                 </li>
               </ol>
             </template>
           </div>
-
-          <div v-if="layout.gallery.mode === 'CUSTOM'" class="sub-box">
-            <div class="panel-head">
-              <h3>自定义轮播图（{{ layout.gallery.slides.length }} / 10）</h3>
-              <ImageUpload
-                category="HOME"
-                v-if="layout.gallery.slides.length < 10"
-                :key="`slide-up-${layout.gallery.slides.length}`"
-                label="上传新增轮播图"
-                @uploaded="addGallerySlide"
-              />
-            </div>
-            <div
-              v-for="(slide, sIdx) in layout.gallery.slides"
-              :key="slide.id"
-              class="slide-row"
-            >
-              <img :src="slide.imageUrl" alt="" class="small-thumb" />
-              <div class="slide-fields">
-                <div class="field-row">
-                  <input
-                    v-model="slide.title"
-                    maxlength="80"
-                    placeholder="轮播主标题"
-                  />
-                  <input
-                    v-model="slide.subtitle"
-                    maxlength="160"
-                    placeholder="副标题"
-                  />
-                </div>
-                <div class="field-row">
-                  <select v-model="slide.action.type">
-                    <option value="NONE">点击不跳转</option>
-                    <option value="WECHAT_ARTICLE">跳微信公众号文章</option>
-                    <option value="ACTIVITY">跳指定活动</option>
-                    <option value="ARTICLE">跳小程序文章</option>
-                  </select>
-                  <input
-                    v-if="slide.action.type === 'WECHAT_ARTICLE'"
-                    v-model="slide.action.wechatArticleUrl"
-                    placeholder="https://mp.weixin.qq.com/s/..."
-                  />
-                  <select
-                    v-else-if="slide.action.type === 'ACTIVITY'"
-                    v-model="slide.action.activityId"
-                  >
-                    <option value="">选择活动</option>
-                    <option
-                      v-for="a in allActivities"
-                      :key="a.id"
-                      :value="a.id"
-                    >
-                      {{ a.title }}
-                    </option>
-                  </select>
-                  <select
-                    v-else-if="slide.action.type === 'ARTICLE'"
-                    v-model="slide.action.articleId"
-                  >
-                    <option value="OFFICIAL">官方介绍</option>
-                    <option
-                      v-for="art in allArticles"
-                      :key="art.id"
-                      :value="art.id"
-                    >
-                      {{ art.title }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-              <div class="slide-actions">
-                <button
-                  type="button"
-                  class="text-button"
-                  :disabled="sIdx === 0"
-                  @click="moveArrayItem(layout.gallery.slides, sIdx, sIdx - 1)"
-                >
-                  上移
-                </button>
-                <button
-                  type="button"
-                  class="text-button danger-text"
-                  @click="layout.gallery.slides.splice(sIdx, 1)"
-                >
-                  删除
-                </button>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- 6. FOOTER (Generic flexible puzzle blocks: top text/image + bottom text/image) -->
-        <div v-else-if="activeModule === 'FOOTER'" class="editor-panel">
-          <div class="panel-head">
+        <div v-else-if="activeModule === 'FOOTER'" class="editor-panel footer-editor-panel">
+          <div class="panel-head footer-panel-head">
             <div>
               <h2>首页底部配置</h2>
               <p class="field-hint footer-panel-desc">
-                每个区域均可自由组合「上部文字/图片 + 下部文字/图片」，支持 1–3 列自由排布、跨列/跨行、拖动换位与推动列宽。
+                点击画布格子编辑内容，拖动卡片换位，拖动列间分割条调节宽度比例。
               </p>
             </div>
             <div class="footer-head-toggles">
-              <div class="footer-pos-switcher" role="group" aria-label="底部网格列数">
-                <span class="footer-pos-switcher-label">列数</span>
+              <div ref="footerPresetAnchorEl" class="footer-preset-popover-wrap">
                 <button
-                  v-for="c in ([1, 2, 3] as const)"
-                  :key="c"
                   type="button"
-                  class="footer-pos-btn"
-                  :class="{ 'is-current': footerColumns === c }"
-                  :data-footer-cols="c"
-                  :aria-pressed="footerColumns === c"
-                  @click="setFooterColumns(c)"
+                  class="footer-preset-trigger"
+                  :class="{ 'is-open': footerPresetMenuOpen }"
+                  :aria-expanded="footerPresetMenuOpen"
+                  aria-haspopup="dialog"
+                  data-footer-preset-toggle
+                  @click.stop="footerPresetMenuOpen = !footerPresetMenuOpen"
                 >
-                  {{ c }}列
+                  <span
+                    v-if="activeFooterTemplate"
+                    class="footer-preset-thumb"
+                    :style="footerTemplateThumbStyle(activeFooterTemplate)"
+                    aria-hidden="true"
+                  >
+                    <i
+                      v-for="(span, sIdx) in activeFooterTemplate.spans"
+                      :key="sIdx"
+                      :style="{
+                        gridColumn: `span ${span.colSpan}`,
+                        gridRow: `span ${span.rowSpan}`,
+                      }"
+                    />
+                  </span>
+                  <span>版式：<strong>{{ activeFooterTemplate ? activeFooterTemplate.label : "自定义" }}</strong></span>
+                  <AppIcon name="chevron-down" :size="14" class="footer-preset-chevron" />
                 </button>
+
+                <!-- Quick Layout Presets Popover -->
+                <div
+                  v-if="footerPresetMenuOpen"
+                  class="footer-preset-popover"
+                  role="dialog"
+                  aria-label="快捷排列组合"
+                >
+                  <div class="footer-preset-bar-head">
+                    <span class="footer-preset-group-label">快捷排列</span>
+                    <span class="footer-preset-bar-hint">一键切换常见版式，之后仍可自由拖拽微调</span>
+                  </div>
+                  <div class="footer-preset-groups">
+                    <div
+                      v-for="group in footerQuickTemplateGroups"
+                      :key="group.label"
+                      class="footer-preset-group"
+                    >
+                      <span class="footer-preset-group-tag">{{ group.label }}</span>
+                      <div class="footer-preset-items">
+                        <button
+                          v-for="tpl in group.items"
+                          :key="tpl.id"
+                          type="button"
+                          class="footer-preset-card"
+                          :class="{ 'is-active': activeFooterTemplateId === tpl.id }"
+                          :aria-pressed="activeFooterTemplateId === tpl.id"
+                          :data-footer-preset="tpl.id"
+                          @click="applyFooterTemplate(tpl.id)"
+                        >
+                          <span
+                            class="footer-preset-thumb"
+                            :style="footerTemplateThumbStyle(tpl)"
+                            aria-hidden="true"
+                          >
+                            <i
+                              v-for="(span, sIdx) in tpl.spans"
+                              :key="sIdx"
+                              :style="{
+                                gridColumn: `span ${span.colSpan}`,
+                                gridRow: `span ${span.rowSpan}`,
+                              }"
+                            />
+                          </span>
+                          <span>{{ tpl.label }}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+
               <button
                 type="button"
                 class="secondary"
@@ -2340,194 +2913,174 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <!-- Quick Layout Presets (1 to 6 common arrangements) -->
-          <div class="footer-preset-bar" role="group" aria-label="快捷排列组合">
-            <div class="footer-preset-bar-head">
-              <span class="footer-preset-group-label">快捷排列</span>
-              <span class="footer-preset-bar-hint">点击一键切换常见版式，切换后仍可继续拖拽或微调列宽</span>
-            </div>
-            <div class="footer-preset-groups">
-              <div
-                v-for="group in footerQuickTemplateGroups"
-                :key="group.label"
-                class="footer-preset-group"
-              >
-                <span class="footer-preset-group-tag">{{ group.label }}</span>
-                <div class="footer-preset-items">
+          <!-- Unified Canvas Shell: Layout Toolbar + Visual Grid -->
+          <div class="footer-canvas-shell">
+            <div class="footer-canvas-toolbar">
+              <div class="footer-canvas-meta">
+                <span class="footer-canvas-title">布局画布</span>
+                <span class="footer-canvas-count">{{ footerBlocks.length }} 个区域</span>
+              </div>
+              <div class="footer-canvas-tools">
+                <div
+                  v-if="footerColumns > 1 && footerBlocks.length"
+                  class="footer-ratio-inline"
+                  title="拖动列间分割条可推动左右宽度比例"
+                >
+                  <span>宽比 <strong>{{ footerColRatios.map((r) => `${r}%`).join(" : ") }}</strong></span>
                   <button
-                    v-for="tpl in group.items"
-                    :key="tpl.id"
+                    v-if="footerColRatios.some((r, i) => r !== defaultColRatiosFor(footerColumns)[i])"
                     type="button"
-                    class="footer-preset-card"
-                    :class="{ 'is-active': activeFooterTemplateId === tpl.id }"
-                    :aria-pressed="activeFooterTemplateId === tpl.id"
-                    :data-footer-preset="tpl.id"
-                    @click="applyFooterTemplate(tpl.id)"
+                    class="text-button footer-ratio-reset"
+                    @click="resetFooterRatios"
                   >
-                    <span
-                      class="footer-preset-thumb"
-                      :style="footerTemplateThumbStyle(tpl)"
-                      aria-hidden="true"
-                    >
-                      <i
-                        v-for="(span, sIdx) in tpl.spans"
-                        :key="sIdx"
-                        :style="{
-                          gridColumn: `span ${span.colSpan}`,
-                          gridRow: `span ${span.rowSpan}`,
-                        }"
-                      />
-                    </span>
-                    <span>{{ tpl.label }}</span>
+                    均分
+                  </button>
+                </div>
+                <div class="footer-pos-switcher" role="group" aria-label="底部网格列数">
+                  <span class="footer-pos-switcher-label">列数</span>
+                  <button
+                    v-for="c in ([1, 2, 3] as const)"
+                    :key="c"
+                    type="button"
+                    class="footer-pos-btn"
+                    :class="{ 'is-current': footerColumns === c }"
+                    :data-footer-cols="c"
+                    :aria-pressed="footerColumns === c"
+                    @click="setFooterColumns(c)"
+                  >
+                    {{ c }}列
                   </button>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Interactive Generic Puzzle Canvas -->
-          <div
-            v-if="footerBlocks.length"
-            ref="puzzleStageEl"
-            class="footer-puzzle-stage footer-puzzle-stage-auto"
-            :class="{ 'is-resizing': draggingSplitIdx !== null }"
-          >
+            <!-- Interactive Generic Puzzle Canvas -->
             <div
-              class="footer-puzzle-grid"
-              role="list"
-              aria-label="首页底部区域排布"
-              :style="footerPuzzleGridStyle"
+              v-if="footerBlocks.length"
+              ref="puzzleStageEl"
+              class="footer-puzzle-stage footer-puzzle-stage-auto"
+              :class="{ 'is-resizing': draggingSplitIdx !== null }"
             >
               <div
-                v-for="(block, bIdx) in footerBlocks"
-                :key="block.id"
-                class="footer-slot-card"
-                :class="{
-                  'is-selected': activeFooterBlock?.id === block.id,
-                  'is-muted': !footerBlockMeta(block).active,
-                  'is-dragging': dragFooterIdx === bIdx,
-                  'is-drag-over': dragOverFooterIdx === bIdx && dragFooterIdx !== bIdx,
-                }"
-                :style="{
-                  gridColumn: block.colSpan > 1 ? `span ${Math.min(block.colSpan, footerColumns)}` : undefined,
-                  gridRow: block.rowSpan > 1 ? `span ${block.rowSpan}` : undefined,
-                }"
-                role="listitem"
-                tabindex="0"
-                draggable="true"
-                :data-footer-pos="bIdx"
-                :data-footer-block="block.id"
-                :aria-pressed="activeFooterBlock?.id === block.id"
-                @click="activeFooterBlockId = block.id"
-                @keydown.enter.prevent="activeFooterBlockId = block.id"
-                @keydown.space.prevent="activeFooterBlockId = block.id"
-                @dragstart="startFooterBlockDrag(bIdx)"
-                @dragenter.prevent="dragOverFooterIdx = bIdx"
-                @dragover.prevent="dragOverFooterIdx = bIdx"
-                @drop.prevent="dropFooterBlock(bIdx)"
-                @dragend="endFooterBlockDrag"
+                class="footer-puzzle-grid"
+                role="list"
+                aria-label="首页底部区域排布"
+                :style="footerPuzzleGridStyle"
               >
-                <div class="footer-slot-head">
-                  <div class="footer-slot-title">
-                    <strong>{{ block.name }}</strong>
-                    <span v-if="block.colSpan > 1" class="footer-pos-tag">占{{ Math.min(block.colSpan, footerColumns) }}列</span>
-                    <span v-if="block.rowSpan > 1" class="footer-pos-tag">跨2行</span>
+                <div
+                  v-for="(block, bIdx) in footerBlocks"
+                  :key="block.id"
+                  class="footer-slot-card"
+                  :class="{
+                    'is-selected': activeFooterBlock?.id === block.id,
+                    'is-muted': !footerBlockMeta(block).active,
+                    'is-empty': !blockHasVisibleContent(block),
+                    'is-dragging': dragFooterIdx === bIdx,
+                    'is-drag-over': dragOverFooterIdx === bIdx && dragFooterIdx !== bIdx,
+                  }"
+                  :style="{
+                    gridColumn: block.colSpan > 1 ? `span ${Math.min(block.colSpan, footerColumns)}` : undefined,
+                    gridRow: block.rowSpan > 1 ? `span ${block.rowSpan}` : undefined,
+                  }"
+                  role="listitem"
+                  tabindex="0"
+                  draggable="true"
+                  :data-footer-pos="bIdx"
+                  :data-footer-block="block.id"
+                  :aria-pressed="activeFooterBlock?.id === block.id"
+                  @click="activeFooterBlockId = block.id"
+                  @keydown.enter.prevent="activeFooterBlockId = block.id"
+                  @keydown.space.prevent="activeFooterBlockId = block.id"
+                  @dragstart="startFooterBlockDrag(bIdx)"
+                  @dragenter.prevent="dragOverFooterIdx = bIdx"
+                  @dragover.prevent="dragOverFooterIdx = bIdx"
+                  @drop.prevent="dropFooterBlock(bIdx)"
+                  @dragend="endFooterBlockDrag"
+                >
+                  <div class="footer-slot-head">
+                    <div class="footer-slot-title">
+                      <strong>{{ block.name }}</strong>
+                      <span v-if="block.colSpan > 1" class="footer-pos-tag">占{{ Math.min(block.colSpan, footerColumns) }}列</span>
+                      <span v-if="block.rowSpan > 1" class="footer-pos-tag">跨2行</span>
+                    </div>
+                    <div class="footer-slot-right">
+                      <span
+                        class="footer-status-pill"
+                        :class="`is-${footerBlockMeta(block).tone}`"
+                      >
+                        {{ footerBlockMeta(block).badge }}
+                      </span>
+                      <span class="footer-drag-grip" title="拖动换位" aria-hidden="true">
+                        <AppIcon name="grip" :size="14" />
+                      </span>
+                    </div>
                   </div>
-                  <div class="footer-slot-right">
-                    <span
-                      class="footer-status-pill"
-                      :class="`is-${footerBlockMeta(block).tone}`"
+
+                  <div class="footer-slot-body">
+                    <template v-if="block.topType === 'IMAGE' && block.topImageUrl">
+                      <img
+                        class="footer-slot-brand-img"
+                        :src="brandPreviewUrl(block.topImageUrl)"
+                        alt=""
+                      />
+                    </template>
+                    <strong
+                      v-else-if="block.topType === 'TEXT' && block.topText.trim()"
+                      class="footer-slot-text-title"
                     >
-                      {{ footerBlockMeta(block).badge }}
+                      {{ block.topText }}
+                    </strong>
+
+                    <template v-if="block.bottomType === 'IMAGE' && block.bottomImageUrl">
+                      <img
+                        class="footer-slot-qr-img"
+                        :src="brandPreviewUrl(block.bottomImageUrl)"
+                        alt=""
+                      />
+                    </template>
+                    <span
+                      v-else-if="block.bottomType === 'TEXT' && block.bottomText.trim()"
+                      class="footer-slot-text-sub"
+                    >
+                      {{ block.bottomText }}
                     </span>
-                    <span class="footer-drag-grip" title="拖动换位" aria-hidden="true">
-                      <AppIcon name="grip" :size="14" />
-                    </span>
-                  </div>
-                </div>
 
-                <div class="footer-slot-body">
-                  <template v-if="block.topType === 'IMAGE' && block.topImageUrl">
-                    <img
-                      class="footer-slot-brand-img"
-                      :src="brandPreviewUrl(block.topImageUrl)"
-                      alt=""
-                    />
-                  </template>
-                  <strong
-                    v-else-if="block.topType === 'TEXT' && block.topText.trim()"
-                    class="footer-slot-text-title"
-                  >
-                    {{ block.topText }}
-                  </strong>
-
-                  <template v-if="block.bottomType === 'IMAGE' && block.bottomImageUrl">
-                    <img
-                      class="footer-slot-qr-img"
-                      :src="brandPreviewUrl(block.bottomImageUrl)"
-                      alt=""
-                    />
-                  </template>
-                  <span
-                    v-else-if="block.bottomType === 'TEXT' && block.bottomText.trim()"
-                    class="footer-slot-text-sub"
-                  >
-                    {{ block.bottomText }}
-                  </span>
-
-                  <div v-if="!blockHasVisibleContent(block)" class="footer-slot-empty">
-                    <AppIcon name="plus" :size="16" />
-                    <span>点击配置文字或图片</span>
+                    <div v-if="!blockHasVisibleContent(block)" class="footer-slot-empty">
+                      <AppIcon name="plus" :size="15" />
+                      <span>点击配置内容</span>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <!-- Column Ratio Push Splitters -->
+              <button
+                v-for="split in footerSplitPositions"
+                :key="split.idx"
+                type="button"
+                class="footer-splitter footer-splitter-v"
+                :class="{ 'is-active': draggingSplitIdx === split.idx }"
+                :style="{ left: split.left, top: '0', bottom: '0' }"
+                :data-footer-splitter="`col-${split.idx}`"
+                aria-label="左右推动调整列宽比例"
+                title="左右拖动调整列宽比例"
+                @pointerdown="startSplitDrag(split.idx, $event)"
+                @keydown.left.prevent="nudgeFooterColRatio(split.idx, -5)"
+                @keydown.right.prevent="nudgeFooterColRatio(split.idx, 5)"
+              >
+                <span class="footer-splitter-handle" />
+                <span v-if="draggingSplitIdx === split.idx" class="footer-splitter-tip">
+                  {{ split.label }}
+                </span>
+              </button>
             </div>
-
-            <!-- Column Ratio Push Splitters -->
-            <button
-              v-for="split in footerSplitPositions"
-              :key="split.idx"
-              type="button"
-              class="footer-splitter footer-splitter-v"
-              :class="{ 'is-active': draggingSplitIdx === split.idx }"
-              :style="{ left: split.left, top: '0', bottom: '0' }"
-              :data-footer-splitter="`col-${split.idx}`"
-              aria-label="左右推动调整列宽比例"
-              title="左右拖动调整列宽比例"
-              @pointerdown="startSplitDrag(split.idx, $event)"
-              @keydown.left.prevent="nudgeFooterColRatio(split.idx, -5)"
-              @keydown.right.prevent="nudgeFooterColRatio(split.idx, 5)"
-            >
-              <span class="footer-splitter-handle" />
-              <span v-if="draggingSplitIdx === split.idx" class="footer-splitter-tip">
-                {{ split.label }}
-              </span>
-            </button>
-          </div>
-          <div v-else class="footer-off-banner">
-            <span>当前没有底部区域，点击右上角「+ 添加区域」或选择快捷排列即可开始配置。</span>
-          </div>
-
-          <!-- Column Ratio Bar -->
-          <div v-if="footerColumns > 1 && footerBlocks.length" class="footer-ratio-bar">
-            <div class="footer-ratio-stats">
-              <span class="footer-ratio-chip">
-                列宽比例 <strong>{{ footerColRatios.map((r) => `${r}%`).join(" : ") }}</strong>
-              </span>
-              <span class="field-hint">拖动列间分割条可推动左右宽度比例</span>
+            <div v-else class="footer-off-banner">
+              <span>当前没有底部区域，点击右上角「+ 添加区域」或选择「版式」即可开始配置。</span>
             </div>
-            <button
-              v-if="footerColRatios.some((r, i) => r !== defaultColRatiosFor(footerColumns)[i])"
-              type="button"
-              class="text-button"
-              @click="resetFooterRatios"
-            >
-              恢复均分
-            </button>
           </div>
 
-          <!-- Generic Block Inspector (Top: None/Text/Image + Bottom: None/Text/Image) -->
-          <div v-if="activeFooterBlock" class="sub-box footer-inspector">
+          <!-- Generic Block Inspector (Flat, Non-Nested Layout) -->
+          <div v-if="activeFooterBlock" class="footer-inspector-panel">
             <div class="footer-inspector-head">
               <div class="footer-inspector-title">
                 <input
@@ -2573,6 +3126,7 @@ onUnmounted(() => {
                     {{ rSpan }}行
                   </button>
                 </div>
+                <span class="footer-action-sep" aria-hidden="true" />
                 <button
                   type="button"
                   class="text-button"
@@ -2580,6 +3134,14 @@ onUnmounted(() => {
                   @click="swapFooterBlockOrder(activeFooterBlockIndex, activeFooterBlockIndex - 1)"
                 >
                   前移
+                </button>
+                <button
+                  type="button"
+                  class="text-button"
+                  :disabled="activeFooterBlockIndex >= footerBlocks.length - 1"
+                  @click="swapFooterBlockOrder(activeFooterBlockIndex, activeFooterBlockIndex + 1)"
+                >
+                  后移
                 </button>
                 <button
                   type="button"
@@ -2962,6 +3524,201 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+.gallery-mode-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.gallery-mode-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-surface);
+  color: var(--rf-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.gallery-mode-card strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.gallery-mode-card span {
+  font-size: 12px;
+  color: var(--rf-muted);
+  line-height: 1.45;
+  font-weight: 400;
+}
+.gallery-mode-card.is-active {
+  border-color: var(--rf-primary);
+  background: var(--rf-soft);
+}
+.gallery-mode-card.is-active strong {
+  color: var(--rf-primary-text);
+}
+.gallery-custom-head {
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gallery-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gallery-empty-state {
+  padding: 20px 14px;
+  border: 1px dashed var(--rf-line);
+  border-radius: var(--rf-control-radius);
+  text-align: center;
+  color: var(--rf-muted);
+  font-size: 13px;
+}
+.gallery-card-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+.gallery-card {
+  border: 1px solid var(--rf-line);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-surface);
+  padding: 12px 14px;
+  display: grid;
+  gap: 12px;
+}
+.gallery-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rf-line);
+}
+.gallery-card-ident {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.gallery-card-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--rf-bg);
+  color: var(--rf-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.gallery-type-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--rf-bg);
+  border: 1px solid var(--rf-line);
+}
+.gallery-type-tab {
+  min-height: 28px;
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--rf-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.gallery-type-tab.is-active {
+  background: var(--rf-primary);
+  color: #fff;
+}
+.gallery-card-ops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gallery-card-body {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .gallery-card-body,
+  .gallery-mode-group {
+    grid-template-columns: 1fr;
+  }
+}
+.gallery-media-col {
+  display: grid;
+  gap: 8px;
+}
+.gallery-media-box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--rf-line);
+  background: #20372c;
+  display: grid;
+  place-items: center;
+}
+.gallery-media-box img,
+.gallery-media-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gallery-media-box.is-video video {
+  background: #0d1914;
+  object-fit: contain;
+}
+.gallery-media-placeholder {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+}
+.gallery-video-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.video-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: var(--rf-control-radius);
+  border: 1px solid var(--rf-primary);
+  background: var(--rf-soft);
+  color: var(--rf-primary-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.gallery-inline-error {
+  margin: 0;
+  font-size: 12px;
+}
+.gallery-fields-col {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
 .gallery-preview-items {
   display: grid;
   gap: 6px;
@@ -2981,6 +3738,40 @@ onUnmounted(() => {
   height: 32px;
   border-radius: 4px;
   object-fit: cover;
+  flex: none;
+}
+.gallery-preview-video-thumb {
+  width: 48px;
+  height: 32px;
+  border-radius: 4px;
+  background: #20372c;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  flex: none;
+}
+.gallery-preview-pill {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--rf-bg);
+  color: var(--rf-muted);
+  flex: none;
+}
+.gallery-preview-pill.is-video {
+  background: #e6f4ee;
+  color: #145a3d;
+}
+.gallery-preview-pill.is-article {
+  background: #eef2ff;
+  color: #374785;
+}
+.gallery-preview-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .gallery-preview-item[aria-pressed="true"] {
   border-color: var(--rf-primary);
@@ -4206,6 +4997,12 @@ onUnmounted(() => {
   color: var(--rf-primary, #247a52);
   font-weight: 650;
 }
+.footer-editor-panel {
+  gap: 14px;
+}
+.footer-panel-head {
+  align-items: center;
+}
 .footer-panel-desc {
   margin: 4px 0 0;
 }
@@ -4215,14 +5012,62 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
 }
+.footer-preset-popover-wrap {
+  position: relative;
+}
+.footer-preset-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  color: var(--rf-ink, #18271f);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.footer-preset-trigger:hover,
+.footer-preset-trigger.is-open {
+  border-color: var(--rf-primary, #167a52);
+  background: var(--rf-soft, #e9f4ed);
+}
+.footer-preset-trigger strong {
+  color: var(--rf-primary-text, #126743);
+  font-weight: 600;
+}
+.footer-preset-chevron {
+  color: var(--rf-muted, #687b70);
+  transition: transform 0.16s ease;
+}
+.footer-preset-trigger.is-open .footer-preset-chevron {
+  transform: rotate(180deg);
+}
+.footer-preset-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  width: min(560px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(24, 39, 31, 0.14);
+}
 .footer-toggle-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
+  gap: 5px;
+  padding: 4px 10px;
   border-radius: 999px;
   border: 1px solid var(--rf-line, #dce3dd);
-  background: var(--rf-surface-subtle, #f9fbf9);
+  background: #fff;
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -4232,21 +5077,14 @@ onUnmounted(() => {
   width: auto;
   margin: 0;
 }
-.footer-preset-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: var(--rf-surface-subtle, #f9fbf9);
-}
 .footer-preset-bar-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 4px 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rf-line, #dce3dd);
 }
 .footer-preset-bar-hint {
   font-size: 11px;
@@ -4311,8 +5149,8 @@ onUnmounted(() => {
   font-weight: 600;
 }
 .footer-preset-thumb {
-  width: 24px;
-  height: 18px;
+  width: 22px;
+  height: 16px;
   display: grid;
   grid-auto-flow: dense;
   grid-auto-rows: 1fr;
@@ -4325,8 +5163,64 @@ onUnmounted(() => {
   border-radius: 2px;
   background: #c7d6cc;
 }
-.footer-preset-card.is-active .footer-preset-thumb i {
+.footer-preset-card.is-active .footer-preset-thumb i,
+.footer-preset-trigger .footer-preset-thumb i {
   background: var(--rf-primary, #167a52);
+}
+.footer-canvas-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: var(--rf-surface-subtle, #f7faf8);
+}
+.footer-canvas-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.footer-canvas-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.footer-canvas-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rf-ink, #18271f);
+}
+.footer-canvas-count {
+  font-size: 11px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-canvas-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.footer-ratio-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--rf-line, #dce3dd);
+  font-size: 11px;
+  color: var(--rf-muted, #687b70);
+}
+.footer-ratio-inline strong {
+  color: var(--rf-ink, #18271f);
+  font-weight: 600;
+}
+.footer-ratio-reset {
+  font-size: 11px;
+  padding: 0 2px;
 }
 .footer-puzzle-stage {
   position: relative;
@@ -4334,37 +5228,56 @@ onUnmounted(() => {
 }
 .footer-puzzle-stage-auto .footer-puzzle-grid {
   height: auto;
-  grid-auto-rows: minmax(112px, auto);
+  grid-auto-rows: minmax(100px, auto);
 }
 .footer-block-name-input {
-  width: 180px;
+  width: 170px;
   max-width: 100%;
   font-weight: 600;
+  background: #fff;
+}
+.footer-inspector-panel {
+  border-radius: 12px;
+  border: 1px solid var(--rf-line, #dce3dd);
+  background: #fff;
+  overflow: hidden;
 }
 .footer-inspector-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px 8px;
+}
+.footer-action-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--rf-line, #dce3dd);
 }
 .footer-parts-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+}
+.footer-part-card {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.footer-part-card + .footer-part-card {
+  border-left: 1px solid var(--rf-line, #dce3dd);
 }
 @media (max-width: 820px) {
   .footer-parts-grid {
     grid-template-columns: 1fr;
   }
-}
-.footer-part-card {
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--rf-line, #dce3dd);
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  .footer-part-card + .footer-part-card {
+    border-left: 0;
+    border-top: 1px solid var(--rf-line, #dce3dd);
+  }
+  .footer-preset-popover {
+    right: auto;
+    left: 0;
+  }
 }
 .footer-part-head {
   display: flex;
@@ -4379,8 +5292,8 @@ onUnmounted(() => {
   gap: 10px;
 }
 .footer-part-preview {
-  width: 72px;
-  height: 72px;
+  width: 68px;
+  height: 68px;
   padding: 4px;
   border-radius: 8px;
   border: 1px solid var(--rf-line, #dce3dd);
@@ -4524,7 +5437,7 @@ onUnmounted(() => {
   background: var(--rf-surface, #fff);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   cursor: grab;
   overflow: hidden;
   transition:
@@ -4540,13 +5453,17 @@ onUnmounted(() => {
   outline: 2px solid var(--rf-primary, #167a52);
   outline-offset: 2px;
 }
+.footer-slot-card.is-empty {
+  background: #fcfdfc;
+  border-style: dashed;
+}
 .footer-slot-card.is-selected {
+  border-style: solid;
   border-color: var(--rf-primary, #167a52);
-  background: var(--rf-soft, #e9f4ed);
+  background: var(--rf-soft, #edf7f1);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--rf-primary, #167a52) 18%, transparent);
 }
 .footer-slot-card.is-muted {
-  background: var(--rf-surface-subtle, #f9fbf9);
   opacity: 0.78;
 }
 .footer-slot-card.is-muted.is-selected {
@@ -4619,14 +5536,17 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   color: var(--rf-muted, #687b70);
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+.footer-slot-card:hover .footer-drag-grip,
+.footer-slot-card.is-selected .footer-drag-grip {
+  opacity: 0.9;
 }
 .footer-slot-body {
   flex: 1;
-  min-height: 54px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px dashed var(--rf-line, #dce3dd);
-  padding: 8px;
+  min-height: 48px;
+  padding: 4px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4673,23 +5593,20 @@ onUnmounted(() => {
   overflow: hidden;
 }
 .footer-slot-empty {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 12px;
   color: var(--rf-muted, #687b70);
-}
-.footer-inspector {
-  gap: 12px;
 }
 .footer-inspector-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding-bottom: 10px;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  background: var(--rf-surface-subtle, #f7faf8);
   border-bottom: 1px solid var(--rf-line, #dce3dd);
 }
 .footer-inspector-title {

@@ -139,6 +139,11 @@ public class ContentService {
     return value.matches("/assets/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*\\.(?:png|jpg|jpeg|webp)")
       || value.matches("https://[^\\s<>\\\"'\\\\]+") && !value.contains("@");
   }
+  static boolean safeVideo(String value) {
+    if (value == null || value.length() > 2048) return false;
+    return value.matches("/assets/[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*\\.(?:mp4|mov|m4v|webm)")
+      || value.matches("https://[^\\s<>\\\"'\\\\]+") && !value.contains("@");
+  }
   static void validate(List<Block> blocks) {
     if(blocks==null || blocks.size()>30) bad();
     int chars=0, formattedChars=0;

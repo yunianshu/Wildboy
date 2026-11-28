@@ -74,10 +74,17 @@ public final class HomeLayoutModels {
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record GallerySlide(
       String id,
+      String mediaType,
       String imageUrl,
+      String videoUrl,
       String title,
       String subtitle,
-      ActionLink action) {}
+      ActionLink action) {
+    public GallerySlide(
+        String id, String imageUrl, String title, String subtitle, ActionLink action) {
+      this(id, "IMAGE", imageUrl, "", title, subtitle, action);
+    }
+  }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   public record GalleryConfig(

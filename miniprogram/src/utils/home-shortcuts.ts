@@ -76,6 +76,23 @@ export function safeShortcutImage(value: string): string {
     return value;
   return "";
 }
+export function safeGalleryVideo(value: string): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  if (
+    /^\/assets\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\.(?:mp4|mov|m4v|webm)$/.test(
+      trimmed,
+    )
+  )
+    return mediaUrl(trimmed);
+  if (
+    /^https:\/\/[^\s<>"'\\]+$/.test(trimmed) &&
+    !trimmed.includes("@") &&
+    trimmed.length <= 2048
+  )
+    return trimmed;
+  return "";
+}
 export function safeWechatArticleUrl(value: string): string {
   if (typeof value !== "string") return "";
   const trimmed = value.trim();

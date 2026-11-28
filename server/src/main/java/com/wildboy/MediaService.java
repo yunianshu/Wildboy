@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class MediaService {
   static final int MAX_BYTES = 4 * 1024 * 1024;
+  static final long MAX_VIDEO_BYTES = 30L * 1024 * 1024;
   static final Set<String> CATEGORIES = Set.of("ACTIVITY", "SHOP", "ARTICLE", "HOME", "UNCATEGORIZED");
   private static final Pattern MEDIA_FILE = Pattern.compile("[0-9a-f-]{36}\\.png");
   private static final Logger log = LoggerFactory.getLogger(MediaService.class);
@@ -51,6 +52,8 @@ public class MediaService {
       int size,
       boolean hasMore,
       Map<String, Long> counts) {}
+
+  public record VideoUploadResult(String url, String filename, long sizeBytes) {}
 
   @Autowired
   public MediaService(
@@ -114,6 +117,65 @@ public class MediaService {
       log.error("图片保存失败 media-dir={}", root, e);
       throw new ApiException(503, "UPLOAD_FAILED", "图片保存失败，请重试");
     }
+  }
+
+  VideoUploadResult storeVideo(org.springframework.web.multipart.MultipartFile file) {
+    if (file == null || file.isEmpty() || file.getSize() > MAX_VIDEO_BYTES) {
+      throw invalidVideo();
+    }
+    byte[] head = new byte[12];
+    int read;
+    try (InputStream in = file.getInputStream()) {
+      read = in.readNBytes(head, 0, head.length);
+    } catch (IOException e) {
+      throw invalidVideo();
+    }
+    String ext = detectVideoExtension(head, read);
+    if (ext == null) throw invalidVideo();
+    try {
+      Files.createDirectories(root);
+      String filename = "video-" + UUID.randomUUID() + "." + ext;
+      Path dest = root.resolve(filename);
+      try (InputStream in = file.getInputStream()) {
+        Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
+      }
+      long sizeBytes = Files.size(dest);
+      if (sizeBytes <= 0 || sizeBytes > MAX_VIDEO_BYTES) {
+        Files.deleteIfExists(dest);
+        throw invalidVideo();
+      }
+      return new VideoUploadResult("/assets/uploads/" + filename, filename, sizeBytes);
+    } catch (ApiException e) {
+      throw e;
+    } catch (IOException e) {
+      log.error("短视频保存失败 media-dir={}", root, e);
+      throw new ApiException(503, "UPLOAD_FAILED", "短视频保存失败，请重试");
+    }
+  }
+
+  private static String detectVideoExtension(byte[] head, int read) {
+    if (read >= 12
+        && head[4] == 'f'
+        && head[5] == 't'
+        && head[6] == 'y'
+        && head[7] == 'p') {
+      if (head[8] == 'q' && head[9] == 't' && head[10] == ' ' && head[11] == ' ') {
+        return "mov";
+      }
+      return "mp4";
+    }
+    if (read >= 4
+        && (head[0] & 0xFF) == 0x1A
+        && (head[1] & 0xFF) == 0x45
+        && (head[2] & 0xFF) == 0xDF
+        && (head[3] & 0xFF) == 0xA3) {
+      return "webm";
+    }
+    return null;
+  }
+
+  static ApiException invalidVideo() {
+    return new ApiException(400, "INVALID_VIDEO", "请上传有效的 MP4 / MOV / WebM 短视频（最大 30 MB）");
   }
 
   public MediaPage list(String categoryFilter, String query, int page, int size) {

@@ -94,3 +94,56 @@ it("uses public home banners when there are no published articles and updates cu
   expect(wrapper.find('[aria-label="下一张轮播图"]').exists()).toBe(false);
   wrapper.unmount();
 });
+
+it("renders video and article badges and previews video slides without cover images", async () => {
+  const noAction = {
+    type: "NONE" as const,
+    page: "",
+    activityId: "",
+    articleId: "",
+    wechatArticleUrl: "",
+    popupTitle: "",
+    popupText: "",
+    popupImages: [],
+  };
+  const wrapper = mount(HomeGalleryPreview, {
+    props: {
+      config: {
+        ...config,
+        mode: "CUSTOM",
+        slides: [
+          {
+            id: "vid-1",
+            mediaType: "VIDEO",
+            imageUrl: "",
+            videoUrl: "https://cdn.example.com/hike.mp4",
+            title: "山野短视频",
+            subtitle: "云海日出",
+            action: noAction,
+          },
+          {
+            id: "art-1",
+            mediaType: "ARTICLE",
+            imageUrl: "/assets/bamboo.jpg",
+            videoUrl: "",
+            title: "徒步手记",
+            subtitle: "精选文章",
+            action: { ...noAction, type: "ARTICLE", articleId: "OFFICIAL" },
+          },
+        ],
+      },
+      active: false,
+    },
+  });
+  await flushPromises();
+  expect(wrapper.get(".gallery-slide video").attributes("src")).toBe(
+    "https://cdn.example.com/hike.mp4",
+  );
+  expect(wrapper.get(".gallery-type-badge").text()).toBe("短视频");
+  await wrapper.get('[aria-label="下一张轮播图"]').trigger("click");
+  expect(wrapper.get(".gallery-slide img").attributes("src")).toBe(
+    "/assets/bamboo.jpg",
+  );
+  expect(wrapper.get(".gallery-type-badge").text()).toBe("文章");
+  wrapper.unmount();
+});

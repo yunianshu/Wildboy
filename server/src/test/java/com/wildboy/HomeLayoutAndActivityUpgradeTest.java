@@ -470,4 +470,54 @@ class HomeLayoutAndActivityUpgradeTest {
     var repriced = activityOrders.setPrice(zeroSignupPub.id(), 8800, zeroSignupPub.version(), actorId);
     assertThat(repriced.priceCents()).isEqualTo(8800);
   }
+
+  @Test
+  void gallerySupportsMixedImageVideoAndArticleSlidesAndVideoUpload() throws Exception {
+    byte[] fakeMp4 = new byte[] {0, 0, 0, 24, 'f', 't', 'y', 'p', 'i', 's', 'o', 'm', 0, 0, 0, 1};
+    String uploadBody =
+        mvc.perform(
+                multipart("/api/v1/admin/media/video")
+                    .file("file", fakeMp4)
+                    .header("Authorization", adminHeader))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.url").isString())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String videoUrl = json.readTree(uploadBody).get("url").asText();
+    assertThat(videoUrl).startsWith("/assets/uploads/video-").endsWith(".mp4");
+
+    LayoutConfig current = homeLayout.get(true);
+    var noneAction = new ActionLink("NONE", "", "", "", "", "", "", List.of());
+    var articleAction = new ActionLink("ARTICLE", "", "", "OFFICIAL", "", "", "", List.of());
+    var gallery =
+        new GalleryConfig(
+            "MOMENTS OUTSIDE",
+            "山野之间",
+            "CUSTOM",
+            List.of(
+                new GallerySlide("s-img", "IMAGE", "/assets/hero-hiking.jpg", "", "山野图片", "风景", noneAction),
+                new GallerySlide("s-vid", "VIDEO", "", videoUrl, "山野短视频", "记录瞬间", noneAction),
+                new GallerySlide("s-art", "ARTICLE", "/assets/category-weekly.jpg", "", "山野文章", "阅读手记", articleAction)));
+    var updated =
+        new LayoutConfig(
+            current.version(),
+            current.modules(),
+            current.hero(),
+            current.shortcuts(),
+            current.activities(),
+            current.shop(),
+            gallery,
+            current.footer());
+    LayoutConfig saved = homeLayout.save(updated, actorId);
+    assertThat(saved.gallery().slides()).hasSize(3);
+    assertThat(saved.gallery().slides().get(0).mediaType()).isEqualTo("IMAGE");
+    assertThat(saved.gallery().slides().get(1).mediaType()).isEqualTo("VIDEO");
+    assertThat(saved.gallery().slides().get(1).videoUrl()).isEqualTo(videoUrl);
+    assertThat(saved.gallery().slides().get(2).mediaType()).isEqualTo("ARTICLE");
+
+    var pub = homeLayout.publicHome();
+    assertThat(pub.layout().gallery().slides()).hasSize(3);
+    assertThat(pub.layout().gallery().slides().get(1).videoUrl()).isEqualTo(videoUrl);
+  }
 }

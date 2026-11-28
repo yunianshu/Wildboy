@@ -126,12 +126,17 @@
           </view>
         </view>
         <ui-state wx:if="{{galleryConfig.mode !== 'CUSTOM' && articleError}}" kind="error" compact="{{true}}">{{articleError}}<button class="secondary" bindtap="retryArticles">重试</button></ui-state>
-        <swiper class="scenery-swiper" mark:tabSwipeIgnore="{{true}}" autoplay="{{true}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
+        <swiper class="scenery-swiper" mark:tabSwipeIgnore="{{true}}" autoplay="{{!activeVideo}}" circular interval="5000" duration="700" indicator-dots indicator-color="rgba(255,255,255,.4)" indicator-active-color="#fff">
           <block wx:if="{{galleryConfig.mode === 'CUSTOM' && galleryConfig.slides.length}}">
             <swiper-item wx:for="{{galleryConfig.slides}}" wx:key="id">
               <view class="scenery-slide" data-slide-index="{{index}}" bindtap="openGalleryItem">
-                <image class="scenery-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
+                <image wx:if="{{item.imageUrl}}" class="scenery-image" src="{{item.imageUrl}}" mode="aspectFill" lazy-load />
                 <view class="scenery-shade" />
+                <view wx:if="{{item.mediaType === 'VIDEO'}}" class="scenery-badge scenery-badge-video">短视频</view>
+                <view wx:elif="{{item.mediaType === 'ARTICLE'}}" class="scenery-badge scenery-badge-article">文章</view>
+                <view wx:if="{{item.mediaType === 'VIDEO'}}" class="scenery-play" aria-hidden="{{true}}">
+                  <view class="scenery-play-triangle" />
+                </view>
                 <view class="scenery-copy">
                   <view class="scenery-title">{{item.title}}</view>
                   <view class="scenery-sub">{{item.subtitle}}</view>
@@ -206,5 +211,28 @@
         <view wx:if="{{!popup.image && !popupImages.length && !popup.text}}" class="shortcut-message">暂未配置内容，请联系主理人。</view>
       </view>
     </scroll-view>
+  </view>
+</view>
+
+<view wx:if="{{activeVideo}}" class="video-mask" catchtap="closeVideoPlayer" catchtouchmove="keepVideoPlayer">
+  <view class="video-dialog motion-dialog-enter" catchtap="keepVideoPlayer" aria-role="dialog" aria-modal="true" aria-label="{{activeVideo.title || '短视频播放'}}">
+    <view class="video-head">
+      <view class="video-title">{{activeVideo.title || '山野短视频'}}</view>
+      <button class="shortcut-close" bindtap="closeVideoPlayer" aria-label="关闭视频"><image src="/assets/icons-slate/close.svg" mode="aspectFit" aria-hidden="true" /></button>
+    </view>
+    <video
+      class="gallery-video-player"
+      src="{{activeVideo.videoUrl}}"
+      poster="{{activeVideo.imageUrl}}"
+      autoplay="{{true}}"
+      controls="{{true}}"
+      show-fullscreen-btn="{{true}}"
+      enable-play-gesture="{{true}}"
+      object-fit="contain"
+    />
+    <view wx:if="{{activeVideo.subtitle}}" class="video-sub">{{activeVideo.subtitle}}</view>
+    <view wx:if="{{activeVideo.action && activeVideo.action.type !== 'NONE'}}" class="video-footer">
+      <button class="video-action-btn" bindtap="openVideoAction">查看详情</button>
+    </view>
   </view>
 </view>
