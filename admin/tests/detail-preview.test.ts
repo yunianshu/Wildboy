@@ -57,7 +57,7 @@ describe("renderPreviewMarkdown", () => {
 });
 
 describe("ActivityDetailPreview & ProductDetailPreview", () => {
-  it("renders activity details, expandable boarding stops and markdown content", async () => {
+  it("renders configured activity details and markdown without a separate boarding section", async () => {
     const wrapper = mount(ActivityDetailPreview, {
       props: {
         activity: {
@@ -100,11 +100,16 @@ describe("ActivityDetailPreview & ProductDetailPreview", () => {
     expect(wrapper.text()).not.toContain("兜底纯文本说明");
     expect(wrapper.text()).toContain("立即报名");
 
-    const toggle = wrapper.get(".mp-boarding-toggle");
+    expect(wrapper.text()).toContain("集合位置");
+    expect(wrapper.text()).not.toContain("查看上车点");
     expect(wrapper.text()).not.toContain("地铁口 A");
-    await toggle.trigger("click");
-    expect(wrapper.text()).toContain("地铁口 A");
-    expect(wrapper.text()).toContain("体育馆北门");
+    expect(wrapper.text()).not.toContain("体育馆北门");
+    await wrapper.setProps({ activity: {
+      ...wrapper.props("activity"), startAt: "", endAt: "", registrationDeadline: "",
+      location: "", meetingPoint: "", capacity: 0, priceCents: 0,
+    } });
+    expect(wrapper.findAll(".mp-fact-label").map((row) => row.text())).toEqual(["标准费用"]);
+    expect(wrapper.text()).toContain("免费参与");
   });
 
   it("renders product details, strikethrough original price and interactive quantity stepper", async () => {

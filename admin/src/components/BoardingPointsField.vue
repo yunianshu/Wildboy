@@ -108,7 +108,7 @@ onMounted(load);
   <fieldset class="boarding-points" :disabled="disabled">
     <legend>上车地点</legend>
     <div v-if="choices.length" class="point-choices">
-      <label v-for="row in choices" :key="row.name" class="point-choice">
+      <label v-for="row in choices" :key="row.name" class="point-choice" :title="row.address || boardingDisplayName(row)">
         <input
           type="checkbox"
           :checked="selected.includes(row.name)"
@@ -147,9 +147,14 @@ onMounted(load);
   font-weight: 600;
 }
 .point-choices {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  max-width: 100%;
+  overflow-x: auto;
   margin-bottom: 6px;
+  padding: 2px 2px 6px;
+  scrollbar-width: thin;
 }
 .point-choices .point-choice {
   display: flex;
@@ -158,7 +163,14 @@ onMounted(load);
   min-height: 40px;
   margin: 0;
   cursor: pointer;
-  overflow-wrap: anywhere;
+  flex: 0 0 auto;
+  max-width: min(270px, 84%);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: var(--rf-surface-subtle);
+}
+.point-choices .point-choice:has(input:checked) {
+  background: var(--rf-soft);
 }
 .point-choice input {
   width: 18px;
@@ -171,6 +183,12 @@ onMounted(load);
   display: grid;
   gap: 3px;
   min-width: 0;
+}
+.point-name,
+.point-detail {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .point-name {
   color: var(--rf-ink);

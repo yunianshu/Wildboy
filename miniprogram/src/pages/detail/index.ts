@@ -35,14 +35,6 @@ type NavDisplayItem = {
   longitude: number;
 };
 
-type BoardingStopItem = {
-  label: string;
-  address: string;
-  hasCoord: boolean;
-  latitude: number;
-  longitude: number;
-};
-
 type AttendeeChip = {
   key: string;
   nickname: string;
@@ -89,54 +81,6 @@ function extractNavItems(points?: NavigationPoint[]): NavDisplayItem[] {
   return out;
 }
 
-function buildBoardingStops(
-  boardingPoints?: string[],
-  navPoints?: NavigationPoint[],
-): BoardingStopItem[] {
-  const result: BoardingStopItem[] = [];
-  const seen = new Set<string>();
-  const navBoarding = Array.isArray(navPoints)
-    ? navPoints.filter((n) => n && n.kind === "BOARDING" && n.label?.trim())
-    : [];
-  for (const name of boardingPoints || []) {
-    const clean = (name || "").trim();
-    if (!clean || seen.has(clean)) continue;
-    seen.add(clean);
-    const matched = navBoarding.find((n) => n.label.trim() === clean);
-    const hasCoord =
-      matched != null &&
-      typeof matched.latitude === "number" &&
-      typeof matched.longitude === "number" &&
-      Number.isFinite(matched.latitude) &&
-      Number.isFinite(matched.longitude);
-    result.push({
-      label: clean,
-      address: (matched?.address || clean).trim(),
-      hasCoord,
-      latitude: hasCoord ? (matched!.latitude as number) : 0,
-      longitude: hasCoord ? (matched!.longitude as number) : 0,
-    });
-  }
-  for (const nav of navBoarding) {
-    const clean = nav.label.trim();
-    if (seen.has(clean)) continue;
-    seen.add(clean);
-    const hasCoord =
-      typeof nav.latitude === "number" &&
-      typeof nav.longitude === "number" &&
-      Number.isFinite(nav.latitude) &&
-      Number.isFinite(nav.longitude);
-    result.push({
-      label: clean,
-      address: (nav.address || clean).trim(),
-      hasCoord,
-      latitude: hasCoord ? (nav.latitude as number) : 0,
-      longitude: hasCoord ? (nav.longitude as number) : 0,
-    });
-  }
-  return result;
-}
-
 Page({
   _contentGeneration: 0,
   _attendeeGeneration: 0,
@@ -149,8 +93,11 @@ Page({
     navPoints: [] as NavDisplayItem[],
     destHasCoord: false,
     meetHasCoord: false,
-    boardingStops: [] as BoardingStopItem[],
-    boardingStopsExpanded: false,
+    showSchedule: false,
+    showDeparture: false,
+    showDestination: false,
+    showCapacity: false,
+    showFee: false,
     navPickerOpen: false,
     navPickerTitle: "选择导航地点",
     navPickerItems: [] as NavDisplayItem[],
@@ -219,23 +166,27 @@ Page({
       const a = await request<Activity>(`/activities/${this.data.id}`);
       if (!epoch.valid(n)) return;
       const navPoints = extractNavItems(a.navigationPoints);
-      const boardingStops = buildBoardingStops(
-        a.boardingPoints,
-        a.navigationPoints,
-      );
+      const facts = activityView({ ...a, coverUrl: mediaUrl(a.coverUrl), galleryUrls: a.galleryUrls.map(mediaUrl) });
+      const date = (value: string) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? dateLabel(value) : "";
+      const departure = date(a.startAt);
+      const endDate = date(a.endAt);
+      const deadline = date(a.registrationDeadline);
+      const showDestination = Boolean(a.location?.trim());
+      const showCapacity = Number.isFinite(a.capacity) && a.capacity > 0;
+      const showFee = Number.isFinite(a.priceCents) && a.priceCents >= 0;
+      const meetingPoint = facts.meetingPoint?.trim() || "";
       this.setData({
-        activity: activityView({
-          ...a,
-          coverUrl: mediaUrl(a.coverUrl),
-          galleryUrls: a.galleryUrls.map(mediaUrl),
-        }),
+        activity: { ...facts, meetingPoint, showMeeting: Boolean(meetingPoint) },
+        showSchedule: Boolean(departure || endDate || deadline || showDestination || showCapacity || showFee || meetingPoint || navPoints.length),
+        showDeparture: Boolean(departure),
+        showDestination,
+        showCapacity,
+        showFee,
         navPoints,
         destHasCoord: navPoints.some((p) => p.kind === "DESTINATION"),
         meetHasCoord: navPoints.some((p) => p.kind === "MEETING"),
-        boardingStops,
-        boardingStopsExpanded: boardingStops.length > 0 && this.data.boardingStopsExpanded,
-        deadline: dateLabel(a.registrationDeadline),
-        endDate: dateLabel(a.endAt),
+        deadline,
+        endDate,
       });
       if (hasSession()) {
         const session = sessionVersion();
@@ -390,20 +341,6 @@ Page({
       return;
     }
     this.copyPlainAddress(this.data.activity?.meetingPoint || "");
-  },
-  toggleBoardingStops() {
-    if (!this.data.boardingStops.length) return;
-    this.setData({ boardingStopsExpanded: !this.data.boardingStopsExpanded });
-  },
-  tapBoardingStop(e: WechatMiniprogram.TouchEvent) {
-    const idx = Number(e.currentTarget.dataset.index);
-    const stop = this.data.boardingStops[idx];
-    if (!stop) return;
-    if (stop.hasCoord) {
-      this.openWxMap({ ...stop, label: stop.address });
-      return;
-    }
-    this.copyPlainAddress(stop.address);
   },
   openAllNavPicker() {
     if (!this.data.navPoints.length) return;

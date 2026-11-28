@@ -1,5 +1,5 @@
 Component({
-  properties: { blocks: { type: Array, value: [] }, previewImages: Boolean },
+  properties: { blocks: { type: Array, value: [] }, previewImages: Boolean, activityLayout: Boolean },
   methods: {
     previewImage(event: WechatMiniprogram.TouchEvent) {
       if (!this.properties.previewImages) return;

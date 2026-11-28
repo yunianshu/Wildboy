@@ -2,12 +2,15 @@ import { prepareWechatNodes, WechatRichTextNode } from "../../utils/wechat-rich-
 
 Component({
   properties: {
+    activityLayout: Boolean,
     nodes: {
       type: Array,
       value: [],
-      observer(value: WechatRichTextNode[]) {
-        this.setData({ renderNodes: prepareWechatNodes(value) });
-      },
+    },
+  },
+  observers: {
+    'nodes, activityLayout'(nodes: WechatRichTextNode[], activityLayout: boolean) {
+      this.setData({ renderNodes: prepareWechatNodes(nodes, activityLayout) });
     },
   },
   data: { renderNodes: [] as WechatRichTextNode[] },

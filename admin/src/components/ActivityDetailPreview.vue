@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { activityStops } from "../boarding";
 import { displayDate, fromShanghaiInput } from "../forms";
 import { renderPreviewMarkdown } from "../previewMarkdown";
@@ -45,8 +45,6 @@ const props = defineProps<{
 
 defineEmits<{ retryContent: [] }>();
 
-const boardingExpanded = ref(false);
-
 function normalizeIso(value: string): string {
   if (!value) return "";
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
@@ -57,12 +55,12 @@ function normalizeIso(value: string): string {
 
 function formatDate(value: string): string {
   const iso = normalizeIso(value);
-  return iso ? displayDate(iso, true) : "时间待定";
+  return iso && Number.isFinite(Date.parse(iso)) ? displayDate(iso, true) : "";
 }
 
 function formatShortDate(value: string): string {
   const iso = normalizeIso(value);
-  return iso ? displayDate(iso, false) : "时间待定";
+  return iso && Number.isFinite(Date.parse(iso)) ? displayDate(iso, false) : "";
 }
 
 const startText = computed(() => formatShortDate(props.activity.startAt));
@@ -77,7 +75,7 @@ const categoryName = computed(
 
 const priceLabel = computed(() => {
   const cents = props.activity.priceCents;
-  if (!Number.isFinite(cents) || cents <= 0) return "免费";
+  if (cents === 0) return "免费参与";
   return `¥${(cents / 100).toFixed(2)} / 人`;
 });
 
@@ -102,25 +100,15 @@ const meetHasCoord = computed(() =>
   navPointsWithCoord.value.some((p) => p.kind === "MEETING"),
 );
 
-const boardingStops = computed(() => {
-  const navBoarding = (stopsInfo.value.navigationPoints || []).filter(
-    (p) => p.kind === "BOARDING" && p.label?.trim(),
-  );
-  return stopsInfo.value.boardingPoints.map((label) => {
-    const matched = navBoarding.find((n) => n.label.trim() === label.trim());
-    const hasCoord =
-      matched != null &&
-      typeof matched.latitude === "number" &&
-      typeof matched.longitude === "number" &&
-      Number.isFinite(matched.latitude) &&
-      Number.isFinite(matched.longitude);
-    return {
-      label,
-      address: (matched?.address || label).trim(),
-      hasCoord,
-    };
-  });
+const meetingPoint = computed(() => {
+  const meeting = props.activity.meetingPoint?.trim() || "";
+  return meeting === "示例集合点"
+    ? (stopsInfo.value.navigationPoints.find((p) => p.kind === "MEETING" && p.address?.trim() && p.address.trim() !== meeting)?.address?.trim() || "")
+    : meeting;
 });
+const showDestination = computed(() => Boolean(props.activity.location?.trim()));
+const showFee = computed(() => Number.isFinite(props.activity.priceCents) && props.activity.priceCents >= 0);
+const showSchedule = computed(() => Boolean(startText.value || endText.value || deadlineText.value || showDestination.value || capacity.value || showFee.value || meetingPoint.value || navPointsWithCoord.value.length));
 
 const renderedMarkdown = computed(() =>
   props.markdown?.trim() ? renderPreviewMarkdown(props.markdown) : "",
@@ -185,9 +173,9 @@ const actionButton = computed(() => {
         该活动已被主理人取消，请勿按原计划前往。
       </div>
 
-      <section class="mp-section">
+      <section v-if="showSchedule" class="mp-section">
         <div class="mp-section-bar mp-section-bar-row">
-          <span>活动安排</span>
+          <span>集合位置</span>
           <span v-if="navPointsWithCoord.length" class="mp-nav-pill">
             <AppIcon name="location" :size="13" />
             <span>{{
@@ -196,63 +184,33 @@ const actionButton = computed(() => {
           </span>
         </div>
         <div class="mp-section-body">
-          <div class="mp-fact-row">
+          <div v-if="startText" class="mp-fact-row">
             <span class="mp-fact-label">出发时间</span>
             <span>{{ startText }}</span>
           </div>
-          <div class="mp-fact-row">
+          <div v-if="endText" class="mp-fact-row">
             <span class="mp-fact-label">结束时间</span>
             <span>{{ endText }}</span>
           </div>
-          <div class="mp-fact-row">
+          <div v-if="showDestination" class="mp-fact-row">
             <span class="mp-fact-label">活动地点</span>
             <div class="mp-nav-value">
-              <span class="mp-address">{{ activity.location || "待填写" }}</span>
+              <span class="mp-address">{{ activity.location }}</span>
               <span class="mp-nav-tag">{{ destHasCoord ? "导航" : "复制" }}</span>
             </div>
           </div>
-          <div v-if="stopsInfo.meetingPoint" class="mp-fact-row">
+          <div v-if="meetingPoint" class="mp-fact-row">
             <span class="mp-fact-label">集合地点</span>
             <div class="mp-nav-value">
-              <span class="mp-address">{{ stopsInfo.meetingPoint }}</span>
+              <span class="mp-address">{{ meetingPoint }}</span>
               <span class="mp-nav-tag">{{ meetHasCoord ? "导航" : "复制" }}</span>
             </div>
           </div>
-          <div v-if="boardingStops.length" class="mp-fact-row mp-boarding-block">
-            <button
-              type="button"
-              class="mp-boarding-toggle"
-              :aria-expanded="boardingExpanded"
-              @click="boardingExpanded = !boardingExpanded"
-            >
-              <span>{{
-                boardingExpanded
-                  ? "收起上车点"
-                  : `查看上车点（${boardingStops.length}）`
-              }}</span>
-              <AppIcon
-                :name="boardingExpanded ? 'up' : 'down'"
-                :size="14"
-              />
-            </button>
-            <div v-if="boardingExpanded" class="mp-boarding-list">
-              <div
-                v-for="stop in boardingStops"
-                :key="stop.label"
-                class="mp-boarding-chip"
-              >
-                <span class="mp-boarding-name">{{ stop.address }}</span>
-                <span class="mp-nav-tag">{{
-                  stop.hasCoord ? "导航" : "复制"
-                }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="mp-fact-row">
+          <div v-if="deadlineText" class="mp-fact-row">
             <span class="mp-fact-label">报名截止</span>
             <span>{{ deadlineText }}</span>
           </div>
-          <div class="mp-fact-row">
+          <div v-if="capacity" class="mp-fact-row">
             <span class="mp-fact-label">同行名额</span>
             <span>
               共 {{ capacity }} 位，已占 {{ registeredCount }} 位
@@ -261,7 +219,7 @@ const actionButton = computed(() => {
               </template>
             </span>
           </div>
-          <div class="mp-fact-row">
+          <div v-if="showFee" class="mp-fact-row">
             <span class="mp-fact-label">标准费用</span>
             <div>
               <span class="mp-fact-price">{{ priceLabel }}</span>
@@ -496,47 +454,6 @@ const actionButton = computed(() => {
   font-weight: 600;
 }
 
-.mp-boarding-block {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 6px;
-}
-
-.mp-boarding-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 32px;
-  padding: 2px 0;
-  border: 0;
-  background: transparent;
-  color: var(--rf-primary-text);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.mp-boarding-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.mp-boarding-chip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: var(--rf-bg);
-}
-
-.mp-boarding-name {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 13px;
-}
 
 .mp-fact-price {
   color: var(--rf-primary-text);
