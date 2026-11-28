@@ -627,6 +627,7 @@ onMounted(() => {
   gap: 16px;
 }
 .page-head {
+  padding: 24px 16px 0;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;

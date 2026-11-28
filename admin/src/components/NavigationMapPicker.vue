@@ -20,12 +20,14 @@ const emit = defineEmits<{ close: []; confirm: [place: MapPlace]; reselect: [] }
 const pending = ref<MapPlace>();
 const confirmButton = ref<HTMLButtonElement>();
 const frame = ref<HTMLIFrameElement>();
+const mapVisible = ref(true);
+const restartButton = ref<HTMLButtonElement>();
 const url = mapKey() ? pickerUrl(props.initial) : null;
 
 function receiveSelection(event: MessageEvent<unknown>) {
   // The provider posts after the user confirms a location inside the map.
   if (
-    props.busy ||
+    props.busy || !mapVisible.value ||
     (event.origin !== pickerOrigin &&
       event.origin !== "https://mapapi.qq.com") ||
     !frame.value?.contentWindow ||
@@ -46,7 +48,15 @@ function confirmSelection() {
 function reselect() {
   if (props.busy) return;
   pending.value = undefined;
+  // The cross-origin picker has no clear-selection API. Discard its old frame.
+  mapVisible.value = false;
   emit("reselect");
+  void nextTick(() => restartButton.value?.focus({ preventScroll: true }));
+}
+
+function restartPicker() {
+  if (props.busy) return;
+  mapVisible.value = true;
   void nextTick(() => frame.value?.focus({ preventScroll: true }));
 }
 
@@ -70,7 +80,7 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
         {{ error }}
       </p>
       <p v-if="busy" class="picker-status" role="status">正在保存上车点…</p>
-      <div class="picker-surface" :inert="busy">
+      <div v-if="mapVisible" class="picker-surface" :inert="busy">
         <iframe
           ref="frame"
           title="选择上车地址"
@@ -78,6 +88,10 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
           :src="url"
           referrerpolicy="strict-origin-when-cross-origin"
         />
+      </div>
+      <div v-else class="picker-reset">
+        <p role="status">未选择上车点</p>
+        <button ref="restartButton" type="button" class="secondary" @click="restartPicker">重新选址</button>
       </div>
       <div class="picker-footer">
         <div v-if="pending" class="picker-selection" aria-label="已选上车点">
@@ -107,6 +121,17 @@ onUnmounted(() => window.removeEventListener("message", receiveSelection));
   height: clamp(260px, 56dvh, 520px);
   border: 0;
 }
+.picker-reset {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: clamp(260px, 56dvh, 520px);
+  border-radius: var(--rf-control-radius);
+  background: var(--rf-soft);
+  color: var(--rf-muted);
+}
+.picker-reset p { margin: 0; }
 .picker-footer {
   display: flex;
   flex-wrap: wrap;

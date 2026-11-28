@@ -138,18 +138,25 @@ describe("上车点一步选址保存", () => {
     expect(unnamed.find(".stop-detail").exists()).toBe(false);
   });
 
-  it("returns to the same map to reselect and closes without saving a preview", async () => {
+  it("discards the old map check on cancellation and only accepts a fresh map selection", async () => {
     await openPage();
     await button("新增上车点").trigger("click");
     const source = frame().contentWindow;
     sendSelection(source);
     await flushPromises();
     await button("取消选中").trigger("click");
-    expect(frame().contentWindow).toBe(source);
+    expect(wrapper.find("iframe").exists()).toBe(false);
+    expect(wrapper.get(".picker-reset [role=status]").text()).toBe("未选择上车点");
     expect(wrapper.find(".picker-selection").exists()).toBe(false);
     expect(button("保存").attributes("disabled")).toBeDefined();
     expect(posts()).toHaveLength(0);
-    sendSelection(source, { data: { ...selection, poiname: "另一个地点" } });
+    await button("重新选址").trigger("click");
+    const freshSource = frame().contentWindow;
+    expect(freshSource).not.toBe(source);
+    sendSelection(source);
+    await flushPromises();
+    expect(button("保存").attributes("disabled")).toBeDefined();
+    sendSelection(freshSource, { data: { ...selection, poiname: "另一个地点" } });
     await flushPromises();
     expect(wrapper.get(".picker-selection strong").text()).toBe("另一个地点");
     await wrapper.get('[aria-label="关闭弹窗"]').trigger("click");
