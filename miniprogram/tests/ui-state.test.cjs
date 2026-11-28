@@ -64,7 +64,7 @@ test("user icon controls share assets and retain their accessible actions", () =
   assert.match(product, /data-delta="1"[\s\S]*?aria-label="增加购买数量"/);
   assert.match(product, /icons-slate\/minus\.svg/);
   assert.match(product, /icons-slate\/plus\.svg/);
-  assert.match(read("pages/register/index.wxml"), /class="participant-card participant-draft"/);
+  assert.match(read("pages/register/index.wxml"), /class="participant-sheet" aria-role="dialog"/);
   for (const route of ["orders", "activity-orders"])
     assert.match(read(`pages/${route}/index.wxml`), /<ui-dialog /);
   assert.match(read("components/ui-dialog/index.wxml"), /class="ui-dialog-panel motion-dialog-enter"/);

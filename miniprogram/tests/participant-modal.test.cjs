@@ -122,9 +122,12 @@ test("submitting and success block participant mutation and modal blocks submit"
   assert.equal(p.data.fieldError, "");
   assert.equal(p.data.participants.length, 1);
 });
-test("markup connects inline draft buttons and uses isolated draft inputs", () => {
+test("markup connects the bottom sheet buttons and uses isolated draft inputs", () => {
   const html = fs.readFileSync(path.join(__dirname, "../src/pages/register/index.wxml"), "utf8");
-  assert.match(html, /<view wx:if="{{participantModalOpen}}" class="participant-card participant-draft"/);
+  assert.match(html, /<\/view>\s*<view wx:if="{{participantModalOpen && activity && !success}}" class="participant-layer"/);
+  assert.match(html, /class="participant-mask" catchtouchmove="blockParticipantBackdrop"/);
+  assert.match(html, /class="participant-sheet" aria-role="dialog"/);
+  assert.match(html, /<scroll-view class="participant-sheet-scroll" scroll-y="{{true}}"/);
   assert.match(html, /bindtap="cancelParticipant">取消/);
   assert.match(html, /bindtap="confirmParticipant">确认添加/);
   assert.match(html, /participantDraft\.participantName/);

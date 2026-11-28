@@ -107,11 +107,27 @@
   margin-top: 12px;
 }
 
-.participant-draft {
-  padding: 24rpx 20rpx;
-  margin-bottom: 24rpx;
-  border-radius: 20rpx;
+.participant-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
+.participant-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, .3); }
+.participant-sheet {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 560px;
+  border-radius: 20px 20px 0 0;
+  background: var(--rf-surface, #fff);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.participant-sheet-title { padding: 18px 16px 10px; font-size: 17px; font-weight: 650; }
+.participant-sheet-scroll { display: block; max-height: 65vh; }
+.participant-sheet-body { padding: 0 16px 16px; }
 .participant-actions {
   display: flex;
   flex-wrap: wrap;

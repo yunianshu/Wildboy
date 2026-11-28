@@ -322,6 +322,9 @@ Page({
       fieldError: "",
     });
   },
+  blockParticipantBackdrop() {
+    // The overlay should not scroll the underlying signup page.
+  },
   addParticipant() {
     if (this.data.submitting || this.data.recoveryNeeded || this.data.success || this.data.participantModalOpen) return;
     if (this.data.participants.length >= (this.data.activity?.available || 0)) {
